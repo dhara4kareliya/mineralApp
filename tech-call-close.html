@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html>
 
-<html>
+<html dir="rtl" lang="he">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
@@ -24,6 +24,18 @@
   button, input, textarea, select { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
   .ds-input::placeholder { color: #aeb6c2; }
+  html[dir="ltr"] .ds-input,
+  [dir="ltr"] .ds-input {
+    direction: ltr !important;
+    text-align: left !important;
+  }
+  html[dir="rtl"] .ds-input,
+  [dir="rtl"] .ds-input {
+    direction: rtl !important;
+    text-align: right !important;
+  }
+  html[dir="ltr"] .page-back-icon { transform: none; }
+  html[dir="rtl"] .page-back-icon { transform: scaleX(-1); }
   .photo-slot {
     flex: 1; min-height: 118px; border-radius: 14px; border: 1.6px dashed #aebfd6;
     background: #f4f8fd; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -41,9 +53,26 @@
     width: 100%; height: 160px; display: block; background: #fff; cursor: crosshair;
     touch-action: none; -webkit-user-select: none; user-select: none;
   }
-  .completed-media { width: 100%; border-radius: 12px; overflow: hidden; background: #f4f5f7; }
+  .completed-media { width: 100%; border-radius: 12px; overflow: hidden; background: #f4f5f7; cursor: pointer; }
   .completed-media img { width: 100%; height: 140px; object-fit: cover; display: block; }
   .completed-media figcaption { font-size: 11.5px; color: #9aa3b0; font-weight: 600; padding: 7px 10px; }
+  .photo-lightbox {
+    position: absolute; inset: 0; z-index: 80; background: rgba(10, 16, 28, .92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 18px; border-radius: 26px;
+  }
+  .photo-lightbox img {
+    max-width: 100%; max-height: calc(100% - 70px); object-fit: contain;
+    border-radius: 12px; background: #fff;
+  }
+  .photo-lightbox-close {
+    position: absolute; top: 14px; inset-inline-end: 14px; width: 36px; height: 36px;
+    border: none; border-radius: 50%; background: rgba(255,255,255,.16); color: #fff;
+    font-size: 22px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .photo-lightbox-caption {
+    margin-top: 12px; color: #d7deea; font-size: 13px; font-weight: 700; text-align: center;
+  }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
@@ -53,7 +82,7 @@
 <div style="background:#16223a; padding:13px 18px 14px; flex:none;">
 <div style="display:flex; align-items:center; justify-content:space-between;">
 <button type="button" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
+<svg class="page-back-icon" fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
 </button>
 <div style="text-align:center;" data-no-i18n="true">
 <div style="font-size:17.5px; font-weight:800; color:#fff;">{{ pageTitle }}</div>
@@ -74,17 +103,32 @@
 <!-- ========== COMPLETE FORM ========== -->
 <sc-if hint-placeholder-val="{{ true }}" value="{{ showForm }}">
 <div data-no-i18n="true">
-<!-- work summary -->
+<!-- user / ticket details (subject stays here, not in work summary) -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelDetails }}</div>
+<div style="display:flex; flex-direction:column; gap:8px;">
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; flex:none;">{{ labelCustomer }}</div>
+<div style="font-size:14px; font-weight:700; color:#1f2a3a; text-align:end; word-break:break-word;">{{ customerName }}</div>
+</div>
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; flex:none;">{{ labelSubject }}</div>
+<div style="font-size:14px; font-weight:700; color:#1f2a3a; text-align:end; word-break:break-word;">{{ ticketSubject }}</div>
+</div>
+</div>
+</div>
+
+<!-- work summary → saved as ticket note/messages -->
 <div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:7px;">{{ labelSummary }} <span style="color:#c0392b;">*</span></div>
-<textarea id="work-summary-input" class="ds-input" oninput="{{ onSummary }}" placeholder="{{ summaryPh }}" style="width:100%; min-height:96px; padding:13px; border:1.5px solid {{ summaryBorder }}; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; direction:ltr; resize:none; background:#fff;" value="{{ summary }}">{{ summary }}</textarea>
+<textarea id="work-summary-input" class="ds-input" oninput="{{ onSummary }}" placeholder="{{ summaryPh }}" style="width:100%; min-height:96px; padding:13px; border:1.5px solid {{ summaryBorder }}; border-radius:13px; font-size:14px; color:#1f2a3a; resize:none; background:#fff;"></textarea>
 </div>
 
 <!-- spare parts -->
 <div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px; overflow:hidden;">
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelSpares }} <span style="color:#9aa3b0; font-weight:600;">({{ optionalLabel }})</span></div>
 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px; min-width:0;">
-<select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff; direction:ltr; text-align:left;">
+<select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff;">
 <option value="">{{ selectProduct }}</option>
 <sc-for as="p" hint-placeholder-count="4" list="{{ products }}">
 <option value="{{ p.id }}">{{ p.name }}</option>
@@ -155,6 +199,11 @@
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:12px;">{{ labelCompleted }}</div>
 
 <div style="margin-bottom:14px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelSubject }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ ticketSubject }}</div>
+</div>
+
+<div style="margin-bottom:14px;">
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelSummary }}</div>
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45; white-space:pre-wrap;">{{ viewSummary }}</div>
 </div>
@@ -173,13 +222,13 @@
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:8px;">{{ labelPhotos }}</div>
 <div style="display:flex; gap:11px;">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasBefore }}">
-<figure class="completed-media">
+<figure class="completed-media" onclick="{{ openBefore }}">
 <img alt="Before" src="{{ beforeUrl }}"/>
 <figcaption>{{ beforePhoto }}</figcaption>
 </figure>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasAfter }}">
-<figure class="completed-media">
+<figure class="completed-media" onclick="{{ openAfter }}">
 <img alt="After" src="{{ afterUrl }}"/>
 <figcaption>{{ afterPhoto }}</figcaption>
 </figure>
@@ -191,7 +240,7 @@
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasSignature }}">
 <div>
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:8px;">{{ labelSignature }}</div>
-<div style="background:#fff; border:1.5px solid #e4e8ee; border-radius:12px; padding:10px;">
+<div onclick="{{ openSignature }}" style="background:#fff; border:1.5px solid #e4e8ee; border-radius:12px; padding:10px; cursor:pointer;">
 <img alt="Signature" src="{{ signatureUrl }}" style="width:100%; height:120px; object-fit:contain; display:block;"/>
 </div>
 </div>
@@ -201,10 +250,19 @@
 </sc-if>
 </div>
 
+<!-- photo lightbox -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showLightbox }}">
+<div class="photo-lightbox" onclick="{{ closeLightbox }}" data-no-i18n="true">
+<button type="button" class="photo-lightbox-close" onclick="{{ closeLightbox }}" aria-label="Close">&times;</button>
+<img alt="{{ lightboxCaption }}" src="{{ lightboxUrl }}" onclick="{{ keepLightbox }}"/>
+<div class="photo-lightbox-caption">{{ lightboxCaption }}</div>
+</div>
+</sc-if>
+
 <!-- bottom action -->
 <div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px;" data-no-i18n="true">
 <sc-if hint-placeholder-val="{{ true }}" value="{{ showForm }}">
-<button type="button" onclick="{{ submit }}" disabled="{{ busy }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
+<button type="button" id="submit-close-btn" onclick="{{ submit }}" disabled="{{ busy }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
 <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 15l2 2 4-4"></path></svg>
           {{ submitLabel }}
         </button>
@@ -228,6 +286,7 @@ class Component extends DCLogic {
     formError: '',
     ticketId: '',
     ticketName: '',
+    ticketSubject: '',
     customerName: '',
     mode: 'form', // form | view
     summary: '',
@@ -242,7 +301,9 @@ class Component extends DCLogic {
     signatureUrl: '',
     hasStroke: false,
     attempted: false,
-    langTick: 0
+    langTick: 0,
+    lightboxUrl: '',
+    lightboxCaption: ''
   };
 
   _sigDrawing = false;
@@ -291,12 +352,23 @@ class Component extends DCLogic {
 
   pickSubject(ticket, fallback) {
     if (!ticket || typeof ticket !== 'object') return String(fallback || '').trim();
-    var keys = ['subject', 'topic', 'title', 'summary', 'description', 'note', 'work_done'];
+    var keys = ['subject', 'topic', 'title'];
     for (var i = 0; i < keys.length; i++) {
       var v = ticket[keys[i]];
       if (v != null && String(v).trim()) return String(v).trim();
     }
     return String(fallback || '').trim();
+  }
+
+  parseWorkNoteFromMessages(ticket) {
+    var msgs = ticket && (ticket.messages || ticket.message || ticket.notes) || '';
+    if (Array.isArray(msgs)) {
+      msgs = msgs.map(function (m) { return m.message || m.msg || m.text || m.note || ''; }).join('\n');
+    }
+    var text = String(msgs || '');
+    var m = text.match(/Work summary:\s*([^\n]+)/i);
+    if (m && m[1]) return String(m[1]).trim();
+    return '';
   }
 
   unwrapTicket(raw) {
@@ -327,8 +399,9 @@ class Component extends DCLogic {
       errorMsg: '',
       ticketId: tid,
       ticketName: name,
+      ticketSubject: name || '',
       customerName: customer,
-      summary: name || ''
+      summary: ''
     });
     if (!tid) {
       this.setState({ loading: false, errorMsg: this.t('Ticket not found', 'טיקט לא נמצא') });
@@ -340,30 +413,33 @@ class Component extends DCLogic {
       if (ticket) {
         var closed = this.isClosed(ticket);
         var media = this.extractMedia(ticket);
-        var summary = this.pickSubject(ticket, name);
+        var subject = this.pickSubject(ticket, name);
+        var workNote = this.parseWorkNoteFromMessages(ticket);
         var cust = ticket.customer_name || ticket.joined_customer_name || ticket.name || customer;
         if (closed || forceView) {
           this.setState({
             loading: false,
             mode: 'view',
-            summary: summary,
-            viewSummary: summary || this.t('No summary', 'אין סיכום'),
+            summary: '',
+            ticketSubject: subject || name || ('#' + tid),
+            viewSummary: workNote || this.t('No summary', 'אין סיכום'),
             beforeUrl: media.before || '',
             afterUrl: media.after || '',
             signatureUrl: media.signature || '',
             beforeDataUrl: media.before || '',
             afterDataUrl: media.after || '',
             customerName: cust || customer,
-            ticketName: name || ('#' + tid),
+            ticketName: name || subject || ('#' + tid),
             spares: this.parseSparesFromMessages(ticket)
           });
         } else {
           this.setState({
             loading: false,
             mode: 'form',
-            summary: summary,
+            summary: '',
+            ticketSubject: subject || name || ('#' + tid),
             customerName: cust || customer,
-            ticketName: name || summary || ('#' + tid)
+            ticketName: name || subject || ('#' + tid)
           });
           this.scheduleBind(80);
           this.scheduleBind(300);
@@ -372,7 +448,8 @@ class Component extends DCLogic {
         this.setState({
           loading: false,
           mode: 'form',
-          summary: name || '',
+          summary: '',
+          ticketSubject: name || ('#' + tid),
           ticketName: name || ('#' + tid)
         });
         this.scheduleBind(80);
@@ -383,7 +460,8 @@ class Component extends DCLogic {
       this.setState({
         loading: false,
         mode: 'form',
-        summary: name || '',
+        summary: '',
+        ticketSubject: name || '',
         errorMsg: (e && e.message) || this.t('Failed to load ticket', 'טעינת הטיקט נכשלה')
       });
       this.scheduleBind(80);
@@ -511,9 +589,25 @@ class Component extends DCLogic {
   syncSummaryInput() {
     var el = document.getElementById('work-summary-input');
     if (!el) return;
-    if (!this._summaryDirty && this.state.summary != null && el.value !== String(this.state.summary)) {
-      el.value = String(this.state.summary || '');
-    }
+    // Never fight the user while the field is focused
+    if (document.activeElement === el) return;
+    var desired = this._summaryDirty
+      ? String(this._summaryValue != null ? this._summaryValue : (this.state.summary || ''))
+      : String(this.state.summary || '');
+    if (el.value !== desired) el.value = desired;
+  }
+
+  updateSubmitEnabled() {
+    var btn = document.getElementById('submit-close-btn');
+    if (!btn) return;
+    var st = this.state;
+    var hasSig = !!(st.hasStroke || this._hasStroke || this._sigDataUrl);
+    var canSubmit = String(st.summary || '').trim().length >= 2 && hasSig && !st.busy;
+    btn.style.background = canSubmit ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0';
+    btn.style.color = canSubmit ? '#fff' : '#9aa3b0';
+    btn.style.cursor = canSubmit ? 'pointer' : 'not-allowed';
+    btn.style.boxShadow = canSubmit ? '0 6px 16px rgba(44,138,96,.32)' : 'none';
+    btn.style.opacity = st.busy ? '0.75' : '1';
   }
 
   bindPhotos() {
@@ -686,16 +780,9 @@ class Component extends DCLogic {
     this._summaryDirty = true;
     var val = String((e && e.target && e.target.value) || '');
     this._summaryValue = val;
-    clearTimeout(this._summaryTimer);
-    var self = this;
-    // Debounce so typing does not wipe the signature canvas every keystroke
-    this._summaryTimer = setTimeout(function () {
-      self.setState({ summary: val });
-      setTimeout(function () {
-        self.bindSignature();
-        if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
-      }, 40);
-    }, 250);
+    // Keep local — avoid setState/re-render while typing (it resets the textarea)
+    this.state.summary = val;
+    this.updateSubmitEnabled();
   }
 
   onProductPick(e) {
@@ -834,12 +921,12 @@ class Component extends DCLogic {
       lines.push('BIZ1_MEDIA:' + JSON.stringify(media));
       var messages = lines.join('\n');
 
+      // Per Ticket.Edit: topic/subject = ticket subject; messages/message = note.
+      // Keep automatic subject unchanged; save work summary as note only.
       var payload = {
         ticket_id: tid,
         id: tid,
         status: '2',
-        subject: summary,
-        topic: summary,
         messages: messages,
         message: messages
       };
@@ -884,6 +971,26 @@ class Component extends DCLogic {
     window.location.href = 'tech-open-calls.html';
   }
 
+  openPhoto(url, caption) {
+    var src = String(url || '').trim();
+    if (!src) return;
+    this.setState({
+      lightboxUrl: src,
+      lightboxCaption: String(caption || '')
+    });
+  }
+
+  closeLightbox() {
+    this.setState({ lightboxUrl: '', lightboxCaption: '' });
+  }
+
+  keepLightbox(e) {
+    try {
+      if (e && e.stopPropagation) e.stopPropagation();
+      if (e && e.preventDefault) e.preventDefault();
+    } catch (err) { /* ignore */ }
+  }
+
   renderVals() {
     void this.state.langTick;
     var st = this.state;
@@ -893,7 +1000,9 @@ class Component extends DCLogic {
     var canSubmit = String(st.summary || '').trim().length >= 2 && hasSig && !st.busy;
 
     if (showForm) {
-      this.scheduleBind(50);
+      var active = typeof document !== 'undefined' ? document.activeElement : null;
+      var typing = active && (active.id === 'work-summary-input' || active.id === 'spare-qty-input');
+      if (!typing) this.scheduleBind(50);
     }
 
     return {
@@ -909,9 +1018,14 @@ class Component extends DCLogic {
       headerSub: '#' + String(st.ticketId || '').replace(/^#/, '') +
         (st.customerName ? (' · ' + st.customerName) : (st.ticketName && String(st.ticketName).indexOf('#') !== 0 ? (' · ' + st.ticketName) : '')),
 
+      labelDetails: this.t('User details', 'פרטי לקוח'),
+      labelCustomer: this.t('Customer', 'לקוח'),
+      labelSubject: this.t('Subject', 'נושא'),
+      customerName: st.customerName || '—',
+      ticketSubject: st.ticketSubject || st.ticketName || '—',
+
       labelSummary: this.t('Work summary', 'סיכום העבודה'),
-      summaryPh: this.t('Describe work performed…', 'פרט מה בוצע…'),
-      summary: st.summary,
+      summaryPh: this.t('Write a note about the work performed…', 'כתוב הערה על העבודה שבוצעה…'),
       onSummary: (e) => this.onSummary(e),
       summaryBorder: (st.attempted && String(st.summary || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
 
@@ -971,8 +1085,16 @@ class Component extends DCLogic {
       hasAfter: !!st.afterUrl,
       beforeUrl: st.beforeUrl || '',
       afterUrl: st.afterUrl || '',
+      openBefore: () => this.openPhoto(st.beforeUrl, this.t('Before photo', 'תמונה לפני')),
+      openAfter: () => this.openPhoto(st.afterUrl, this.t('After photo', 'תמונה אחרי')),
       hasSignature: !!st.signatureUrl,
       signatureUrl: st.signatureUrl || '',
+      openSignature: () => this.openPhoto(st.signatureUrl, this.t('Digital Signature', 'חתימה דיגיטלית')),
+      showLightbox: !!st.lightboxUrl,
+      lightboxUrl: st.lightboxUrl || '',
+      lightboxCaption: st.lightboxCaption || '',
+      closeLightbox: () => this.closeLightbox(),
+      keepLightbox: (e) => this.keepLightbox(e),
       backLabel: this.t('Back to open tickets', 'חזרה לטיקטים פתוחים'),
       backTickets: () => { window.location.href = 'tech-open-calls.html'; },
       onClose: () => this.goBack()

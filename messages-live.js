@@ -98,6 +98,7 @@
     if (row.when) q.set('when', row.when);
     if (row.message_id) q.set('message_id', row.message_id);
     if (row.messenger_meta_id) q.set('messenger_meta_id', row.messenger_meta_id);
+    q.set('back', 'calls-list.html');
     return CHAT_PAGE + '?' + q.toString();
   }
 

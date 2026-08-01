@@ -49,6 +49,116 @@
   var suppressThreadReloadUntil = 0;
   var isSending = false;
 
+  function safeBackHref(raw) {
+    if (!raw) return '';
+    try { raw = decodeURIComponent(String(raw)); } catch (e) { raw = String(raw); }
+    raw = String(raw || '').trim();
+    if (!raw || /^javascript:/i.test(raw) || raw.indexOf('//') === 0) return '';
+    if (/^https?:/i.test(raw)) {
+      try {
+        var abs = new URL(raw, location.href);
+        if (abs.origin !== location.origin) return '';
+        return (abs.pathname.split('/').pop() || '') + abs.search + abs.hash;
+      } catch (e) { return ''; }
+    }
+    if (raw.indexOf('..') >= 0) return '';
+    return raw.replace(/^\//, '');
+  }
+
+  function defaultChatBackHref() {
+    var role = null;
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getRole === 'function') {
+        role = MineralBarApp.getRole();
+      }
+    } catch (e) { /* ignore */ }
+    if (!role) {
+      try { role = document.body.getAttribute('data-role'); } catch (e) { /* ignore */ }
+    }
+    // Tech users must not land on the sales/service message list
+    if (role === 'tech') return 'tech-open-calls.html';
+    if (role === 'service') return 'service-all-calls.html';
+    return 'calls-list.html';
+  }
+
+  function resolveChatBackHref() {
+    var q = new URLSearchParams(location.search || '');
+    var fromParam = safeBackHref(q.get('back') || q.get('from') || q.get('return'));
+    if (fromParam) return fromParam;
+    try {
+      var stored = safeBackHref(sessionStorage.getItem('mb_chat_back'));
+      if (stored && !/chat-customer\.html/i.test(stored)) return stored;
+    } catch (e) { /* ignore */ }
+    return defaultChatBackHref();
+  }
+
+  function rememberChatEntry() {
+    var q = new URLSearchParams(location.search || '');
+    var explicit = q.get('back') || q.get('from') || q.get('return');
+    if (explicit) {
+      var safe = safeBackHref(explicit);
+      if (safe) {
+        try { sessionStorage.setItem('mb_chat_back', safe); } catch (e) { /* ignore */ }
+      }
+      return;
+    }
+    try {
+      var ref = document.referrer;
+      if (!ref) return;
+      var u = new URL(ref);
+      if (u.origin !== location.origin) return;
+      if (/chat-customer|login/i.test(u.pathname)) return;
+      var rel = (u.pathname.split('/').pop() || '') + u.search + u.hash;
+      if (rel) sessionStorage.setItem('mb_chat_back', rel);
+    } catch (e) { /* ignore */ }
+  }
+
+  function goChatBack(e) {
+    if (e) {
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+      } catch (err) { /* ignore */ }
+    }
+    var href = resolveChatBackHref();
+    // Hard navigation is more reliable than history.back() in WebViews / DC remounts
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (err) { /* ignore */ }
+    window.location.href = defaultChatBackHref();
+  }
+
+  function syncChatBackHref() {
+    var btn = document.getElementById('mb-chat-back');
+    if (!btn) return;
+    var href = resolveChatBackHref();
+    if (btn.tagName === 'A') btn.setAttribute('href', href);
+    btn.setAttribute('data-back-href', href);
+  }
+
+  function wireChatBackButton() {
+    rememberChatEntry();
+    syncChatBackHref();
+  }
+
+  // Survive DC remounts: one capture-phase listener on document
+  if (!window.__mbChatBackDelegated) {
+    window.__mbChatBackDelegated = true;
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('#mb-chat-back');
+      if (!btn) return;
+      goChatBack(e);
+    }, true);
+  }
+  window.goChatBack = goChatBack;
+
   function showToast(message, kind) {
     var text = String(message || '').trim();
     if (!text) return;
@@ -345,6 +455,19 @@
     if (nameEl) nameEl.textContent = name;
     if (subEl) subEl.textContent = subText;
     if (avEl) avEl.textContent = initials(name);
+    var detailsLink = document.getElementById('mb-chat-details-link');
+    if (detailsLink) {
+      var q = new URLSearchParams();
+      var cid = p.customer_id || p.cust_id || '';
+      if (cid) {
+        q.set('customer_id', cid);
+        q.set('cust_id', cid);
+      }
+      if (p.name) q.set('name', p.name);
+      if (p.phone) q.set('phone', p.phone);
+      if (p.email) q.set('email', p.email);
+      detailsLink.href = 'chat-customer-details.html?' + q.toString();
+    }
   }
 
   window.filterChatType = function (type) {
@@ -756,7 +879,10 @@
     await loadThread(elId, p);
   }
 
-  window.addEventListener('mineralbar:ready', start);
+  window.addEventListener('mineralbar:ready', function () {
+    wireChatBackButton();
+    start();
+  });
   window.addEventListener('mineralbar:messages', function () {
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     var elId = 'mb-live-chat';
@@ -771,11 +897,17 @@
   });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
+      wireChatBackButton();
       initHorizontalDrags();
+      setTimeout(wireChatBackButton, 100);
+      setTimeout(wireChatBackButton, 500);
       setTimeout(start, 50);
     });
   } else {
+    wireChatBackButton();
     initHorizontalDrags();
+    setTimeout(wireChatBackButton, 100);
+    setTimeout(wireChatBackButton, 500);
     setTimeout(start, 50);
   }
 })();

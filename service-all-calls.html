@@ -110,7 +110,7 @@
                   stroke-width="2.4" viewbox="0 0 24 24" width="15">
                   <path d="M12 5v14M5 12h14"></path>
                 </svg>
-                new reading
+                new ticket
               </button>
             </div>
             <sc-for as="c" hint-placeholder-count="4" list="{{ calls }}">
@@ -261,7 +261,7 @@
                       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
                       <circle cx="12" cy="12" r="3"></circle>
                     </svg>
-                    Reading details
+                    Ticket details
                   </button>
                   <button
                     style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:none; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:700; cursor:pointer;">
@@ -294,8 +294,8 @@
 class Component extends DCLogic {
   state = {
     tab: 'toschedule',
-    sort: 'wait',
-    ticketStatus: 'all',
+    sort: 'id',
+    ticketStatus: 'open',
     search: '',
     searchOpen: false,
     filtersOpen: false,
@@ -324,6 +324,7 @@ class Component extends DCLogic {
   PRIO_LIST = ['urgent', 'normal', 'low'];
 
   SORTS = [
+    { id: 'id', label: 'Ticket ID' },
     { id: 'wait', label: 'Waiting time' },
     { id: 'date', label: 'Date' },
     { id: 'name', label: 'Name' },
@@ -348,12 +349,35 @@ class Component extends DCLogic {
   setTab(id) { this.setState({ tab: id }); }
   openFilters() { this.setState({ filtersOpen: true }); }
   closeFilters() { this.setState({ filtersOpen: false }); }
-  clearFilters() { this.setState({ ticketStatus: 'all', sort: 'wait' }); }
-  setFilter(key, val) { this.setState(s => ({ [key]: s[key] === val ? 'all' : val })); }
+  clearFilters() { this.setState({ ticketStatus: 'open', sort: 'id' }); }
+  setFilter(key, val) { this.setState(s => ({ [key]: s[key] === val ? 'open' : val })); }
   setSort(id) { this.setState({ sort: id }); }
   
   toggleSearch() { this.setState(s => ({ searchOpen: !s.searchOpen, search: '' })); }
   onSearch(e) { this.setState({ search: e.target.value }); }
+
+  applyServiceDefaultFilter() {
+    var status = 'open';
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var raw = String(p.get('status') || p.get('ticketStatus') || p.get('filter') || '').toLowerCase();
+      if (raw === 'closed' || raw === 'close' || raw === 'done') status = 'closed';
+      else status = 'open';
+    } catch (e) { status = 'open'; }
+    if (this.state.ticketStatus !== status) {
+      this.setState({ ticketStatus: status });
+    }
+  }
+
+  setTicketStatusFilter(status) {
+    var next = status === 'closed' ? 'closed' : 'open';
+    this.setState({ ticketStatus: next });
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', 'service-all-calls.html?status=' + next);
+      }
+    } catch (e) { /* ignore */ }
+  }
 
   isTicketClosed(t) {
     if (!t) return false;
@@ -393,15 +417,21 @@ class Component extends DCLogic {
       }
       return true;
     });
-    if (st.sort === 'wait') list = [...list].sort((a, b) => b.wait - a.wait);
-    else if (st.sort === 'date') list = [...list].sort((a, b) => b.ts - a.ts);
-    else if (st.sort === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'he'));
+    if (st.sort === 'wait') list = [...list].sort((a, b) => b.wait - a.wait || b.ticketIdNum - a.ticketIdNum);
+    else if (st.sort === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'he') || b.ticketIdNum - a.ticketIdNum);
+    else if (st.sort === 'date') list = [...list].sort((a, b) => b.ts - a.ts || b.ticketIdNum - a.ticketIdNum);
+    else list = [...list].sort((a, b) => b.ticketIdNum - a.ticketIdNum || b.ts - a.ts);
     return list;
   }
 
   componentDidMount() {
+    this.applyServiceDefaultFilter();
     this.loadTickets();
     window.addEventListener('mineralbar:ready', () => this.loadTickets());
+    window.addEventListener('pageshow', () => this.applyServiceDefaultFilter());
+    window.addEventListener('service-nav:open-tickets', () => {
+      this.setState({ ticketStatus: 'open' });
+    });
   }
 
   async loadTickets() {
@@ -478,8 +508,11 @@ class Component extends DCLogic {
             dueDateStr = day + '/' + month + '/' + year;
           }
 
+          const ticketIdNum = Number(t.ticket_id) || Number(String(t.ticket_id || '').replace(/\D/g, '')) || 0;
+
           return {
             id: '#SRV-' + t.ticket_id,
+            ticketIdNum: ticketIdNum,
             name: t.joined_customer_name || t.customer_name || 'לקוח',
             age: age,
             bucket: bucket,
@@ -582,8 +615,8 @@ class Component extends DCLogic {
       resultCount: list.length,
       showResultsLabel: 'Show ' + list.length + ' results',
       hasActiveFilters: false,
-      setFilterOpen: () => this.setState({ ticketStatus: isFiltOpen ? 'all' : 'open' }),
-      setFilterClosed: () => this.setState({ ticketStatus: isFiltClosed ? 'all' : 'closed' }),
+      setFilterOpen: () => this.setTicketStatusFilter('open'),
+      setFilterClosed: () => this.setTicketStatusFilter(isFiltClosed ? 'open' : 'closed'),
       pillOpenBg: isFiltOpen ? '#fdf1dd' : '#fff',
       pillOpenBorder: isFiltOpen ? '#bd8324' : '#e4e8ee',
       pillOpenColor: isFiltOpen ? '#bd8324' : '#5a6473',

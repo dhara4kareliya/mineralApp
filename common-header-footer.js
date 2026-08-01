@@ -639,7 +639,7 @@
       html += createTab('main', 'main', 'sales-home.html', '<path d="M3 11 12 3l9 8"></path><path d="M5 9.5V20h14V9.5"></path>', 'text-gray', defaultColor, activeColor);
     } else if (role === 'service') {
       var activeColor = '#2e8a63';
-      html += createTab('service', 'service', 'service-all-calls.html', '<path d="M4 13a8 8 0 0 1 16 0"></path><rect x="2.5" y="13" width="4" height="7" rx="1.6"></rect><rect x="17.5" y="13" width="4" height="7" rx="1.6"></rect>', 'text-gray', defaultColor, activeColor);
+      html += createTab('service', 'service', 'service-all-calls.html?status=open', '<path d="M4 13a8 8 0 0 1 16 0"></path><rect x="2.5" y="13" width="4" height="7" rx="1.6"></rect><rect x="17.5" y="13" width="4" height="7" rx="1.6"></rect>', 'text-gray', defaultColor, activeColor);
       html += createTab('messages', 'messages', 'calls-list.html', '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>', 'text-gray', defaultColor, activeColor);
       html += createTab('inventory', 'inventory', 'service-inventory.html', '<path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path>', 'text-gray', defaultColor, activeColor);
       html += createTab('customers', 'customers', 'customers.html', '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>', 'text-gray', defaultColor, activeColor);
@@ -647,7 +647,7 @@
     } else if (role === 'tech') {
       var activeColor = '#2e8a63';
       html += createTab('clock', 'time clock', 'tech-time-clock.html', '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.2 2"/>', 'text-gray', defaultColor, activeColor);
-      html += createTab('service', 'service', 'service-all-calls.html', '<path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4" height="7" rx="1.6"/><rect x="17.5" y="13" width="4" height="7" rx="1.6"/>', 'text-gray', defaultColor, activeColor);
+      html += createTab('service', 'service', 'service-all-calls.html?status=open', '<path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4" height="7" rx="1.6"/><rect x="17.5" y="13" width="4" height="7" rx="1.6"/>', 'text-gray', defaultColor, activeColor);
       html += createTab('open_calls', 'open tickets', 'tech-open-calls.html', '<path d="M14.6 6.3a3.6 3.6 0 0 0-4.9 4.9l-5.4 5.4a1.5 1.5 0 0 0 2.1 2.1l5.4-5.4a3.6 3.6 0 0 0 4.9-4.9l-2.2 2.2-1.9-.2-.2-1.9z"/>', 'text-gray', defaultColor, activeColor);
       html += createTab('schedule', 'daily schedule', 'tech-daily-schedule.html', '<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v4M16 3v4"/><path d="M7.5 13h3.5M7.5 16.5h7"/>', 'text-gray', defaultColor, activeColor);
       html += createTab('main', 'main', 'tech-dashboard.html', '<path d="M3 11 12 3l9 8"/><path d="M5 9.5V20h14V9.5"/>', 'text-gray', defaultColor, activeColor);
@@ -687,6 +687,7 @@
   document.addEventListener('click', function (e) {
     var langBtn = e.target.closest('.lang-translator-btn, #btn-lang-toggle');
     var logoutBtn = e.target.closest('.common-logout-btn, #btn-logout-common');
+    var serviceNav = e.target.closest('a[href*="service-all-calls"]');
     if (langBtn) {
       e.preventDefault();
       var curr = getCurrentLanguage();
@@ -696,6 +697,22 @@
     if (logoutBtn) {
       e.preventDefault();
       performLogout();
+    }
+    // Bottom "service" tab: always land on Open ticket filter
+    if (serviceNav) {
+      var path = String(window.location.pathname || '').toLowerCase();
+      var onServiceCalls = path.indexOf('service-all-calls') !== -1;
+      if (onServiceCalls) {
+        e.preventDefault();
+        try {
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', 'service-all-calls.html?status=open');
+          }
+        } catch (err) { /* ignore */ }
+        try {
+          window.dispatchEvent(new CustomEvent('service-nav:open-tickets'));
+        } catch (err2) { /* ignore */ }
+      }
     }
   });
 

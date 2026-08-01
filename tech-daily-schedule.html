@@ -459,6 +459,7 @@ class Component extends DCLogic {
     if (name) chatQ.set('name', name);
     if (phone) chatQ.set('phone', phone);
     if (ticketId) chatQ.set('ticket_id', ticketId);
+    chatQ.set('back', 'tech-daily-schedule.html');
     var chatHref = customerId
       ? ('chat-customer.html?' + chatQ.toString())
       : '#';

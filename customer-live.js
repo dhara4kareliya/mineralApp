@@ -165,7 +165,8 @@
     var av = initials(name);
     var chatUrl = 'chat-customer.html?customer_id=' + encodeURIComponent(id) +
       '&name=' + encodeURIComponent(name) +
-      (phone ? '&phone=' + encodeURIComponent(phone) : '');
+      (phone ? '&phone=' + encodeURIComponent(phone) : '') +
+      '&back=' + encodeURIComponent('service-customer-card.html?customer_id=' + id + '&cust_id=' + id);
     var missionUrl = 'service-create-task.html?customer_id=' + encodeURIComponent(id) +
       '&name=' + encodeURIComponent(name) +
       (phone ? '&phone=' + encodeURIComponent(phone) : '') +
