@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-role="tech" data-active-tab="main">
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
+<!-- header -->
+<div style="padding:6px 18px 14px; flex:none; position:relative; z-index:20;">
+<div style="display:flex; align-items:flex-start; justify-content:space-between;">
+<div>
+<div style="font-size:13px; color:#8a93a3; font-weight:600;">my performance</div>
+<div style="font-size:22px; font-weight:800; color:#1f2a3a; margin-top:1px;">{{ monthLabel }}</div>
+</div>
+<button type="button" onclick="{{ toggleMonthPicker }}" style="display:flex; align-items:center; gap:7px; background:#fff; border:none; border-radius:12px; padding:9px 13px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ monthShort }}</span>
+<svg fill="none" height="15" stroke="#7b8595" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ monthPickerOpen }}">
+<div style="position:absolute; top:58px; left:18px; right:18px; background:#fff; border-radius:14px; box-shadow:0 10px 28px rgba(15,24,40,.16); max-height:260px; overflow-y:auto; padding:6px;">
+<sc-for as="m" hint-placeholder-count="6" list="{{ monthOptions }}">
+<button type="button" onclick="{{ m.select }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; border:none; background:{{ m.bg }}; color:#1f2a3a; padding:11px 12px; border-radius:10px; cursor:pointer; font-family:inherit;">
+<span style="font-size:13.5px; font-weight:700;">{{ m.label }}</span>
+<span style="font-size:12px; font-weight:700; color:{{ m.checkColor }};">{{ m.check }}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
+<!-- hero: documents -->
+<div style="background:linear-gradient(135deg,#1d60a2,#16487c); border-radius:20px; padding:19px; color:#fff; margin-bottom:13px; position:relative; overflow:hidden;">
+<div style="position:absolute; top:-30px; left:-20px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.07);"></div>
+<div style="position:relative;">
+<div style="font-size:13px; opacity:.8; font-weight:600;">Documents this month</div>
+<div style="display:flex; align-items:baseline; gap:9px; margin-top:6px;">
+<span style="font-size:34px; font-weight:800; line-height:1;">{{ docTotal }}</span>
+<span style="display:inline-flex; align-items:center; gap:2px; font-size:12.5px; font-weight:700; background:rgba(255,255,255,.18); padding:3px 9px; border-radius:99px;">
+<svg fill="none" height="12" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="12"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+                {{ docTotalLabel }}
+              </span>
+</div>
+<div style="display:flex; gap:20px; margin-top:16px;">
+<div>
+<div style="font-size:22px; font-weight:800; line-height:1;">{{ docInvoices }}</div>
+<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Invoices</div>
+</div>
+<div style="width:1px; background:rgba(255,255,255,.2);"></div>
+<div>
+<div style="font-size:22px; font-weight:800; line-height:1;">{{ docReceipts }}</div>
+<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Receipts</div>
+</div>
+<div style="width:1px; background:rgba(255,255,255,.2);"></div>
+<div>
+<div style="font-size:22px; font-weight:800; line-height:1;">{{ docCredits }}</div>
+<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Credit notes</div>
+</div>
+</div>
+</div>
+</div>
+<!-- weekly chart -->
+<div style="background:#fff; border-radius:18px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Work hours by week</span>
+<span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ weeksTotalLabel }}</span>
+</div>
+<div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; height:130px;">
+<sc-for as="w" hint-placeholder-count="4" list="{{ weeks }}">
+<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+<span style="font-size:12.5px; font-weight:800; color:#1d60a2;">{{ w.val }}</span>
+<div style="width:100%; max-width:40px; border-radius:8px 8px 4px 4px; background:{{ w.bg }}; height:{{ w.h }};"></div>
+<span style="font-size:11.5px; color:#9aa3b0; font-weight:600;">{{ w.label }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+<!-- breakdown by install type -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
+<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Detail by type of installation</span>
+<span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ productsCountLabel }}</span>
+</div>
+<div style="background:#fff; border-radius:18px; padding:7px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ productsLoading }}">
+<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">Loading…</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ productsEmpty }}">
+<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">No products</div>
+</sc-if>
+<sc-for as="t" hint-placeholder-count="8" list="{{ types }}">
+<div style="padding:11px 0; border-bottom:1px solid {{ t.border }};">
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:34px; height:34px; border-radius:9px; background:{{ t.iconBg }}; color:{{ t.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+<span style="font-size:13px; font-weight:800;">{{ t.count }}</span>
+</div>
+<div style="flex:1;">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ t.name }}</span>
+<span style="font-size:13px; font-weight:800; color:#5a6473; flex:none;">{{ t.amount }}</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+<span style="font-size:11px; color:#9aa3b0; font-weight:600;">{{ t.stockLabel }}</span>
+</div>
+<div style="height:6px; border-radius:99px; background:#eef0f3; margin-top:7px; overflow:hidden;">
+<div style="height:100%; border-radius:99px; background:{{ t.barColor }}; width:{{ t.barW }};"></div>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="text-align:center; padding:4px 0; color:#b6bdc8; font-size:12px; font-weight:600;">{{ updatedLabel }}</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    loadingDocs: true,
+    loadingProducts: true,
+    loadingHours: true,
+    products: [],
+    weekSeconds: [0, 0, 0, 0],
+    docTotal: 0,
+    docInvoices: 0,
+    docReceipts: 0,
+    docCredits: 0,
+    selectedYear: new Date().getFullYear(),
+    selectedMonth: new Date().getMonth(),
+    monthPickerOpen: false
+  };
+
+  COLORS = ['#1d60a2', '#2e8a63', '#50439d', '#bd8324', '#c0392b'];
+  TONE = {
+    '#1d60a2': { bg: '#eaf2fb' },
+    '#2e8a63': { bg: '#e9f5ee' },
+    '#50439d': { bg: '#eef0fb' },
+    '#bd8324': { bg: '#fdf1dd' },
+    '#c0392b': { bg: '#fbeeed' },
+  };
+
+  pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  fmt(n) {
+    var v = Math.round(Number(n) || 0);
+    return '₪' + v.toLocaleString('en-US');
+  }
+
+  // API stores timestamps in UTC (Y-m-d H:i:s)
+  parseDateTime(str) {
+    if (!str) return null;
+    var s = String(str).trim().replace('T', ' ');
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ ](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (m) {
+      return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)));
+    }
+    var d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  elapsedToSeconds(val) {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number' && isFinite(val)) {
+      if (val > 0 && val < 100) return Math.round(val * 3600);
+      return Math.round(val);
+    }
+    var s = String(val).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) return this.elapsedToSeconds(Number(s));
+    var parts = s.split(':').map(Number);
+    if (parts.length === 3 && parts.every(function (n) { return isFinite(n); })) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    if (parts.length === 2 && parts.every(function (n) { return isFinite(n); })) {
+      return parts[0] * 3600 + parts[1] * 60;
+    }
+    return 0;
+  }
+
+  sessionSeconds(row) {
+    if (!row) return 0;
+    var sec = this.elapsedToSeconds(row.elapsed);
+    if (sec > 0) return sec;
+    var start = this.parseDateTime(row.start_time);
+    var end = this.parseDateTime(row.end_time);
+    if (start && end) return Math.max(0, Math.floor((end - start) / 1000));
+    if (start && (Number(row.status) === 1 || !row.end_time)) {
+      return Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
+    }
+    return 0;
+  }
+
+  formatHoursShort(totalSec) {
+    var h = Math.max(0, totalSec || 0) / 3600;
+    if (h <= 0) return '0';
+    if (h < 10) return (Math.round(h * 10) / 10).toString();
+    return String(Math.round(h));
+  }
+
+  weekIndexForDate(d) {
+    if (!d || isNaN(d.getTime())) return -1;
+    var day = d.getDate();
+    if (day <= 7) return 0;
+    if (day <= 14) return 1;
+    if (day <= 21) return 2;
+    return 3;
+  }
+
+  getClient() {
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return null;
+    try { return MineralBarApp.getClient(); } catch (e) { return null; }
+  }
+
+  extractRows(res) {
+    if (!res) return [];
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.output)) return res.output;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.list)) return res.list;
+    if (Array.isArray(res.products)) return res.products;
+    if (Array.isArray(res)) return res;
+    return [];
+  }
+
+  extractCount(res) {
+    if (!res) return 0;
+    if (res.count != null) return Number(res.count) || 0;
+    if (res.recordsTotal != null) return Number(res.recordsTotal) || 0;
+    if (res.recordsFiltered != null) return Number(res.recordsFiltered) || 0;
+    if (res.total_record != null) return Number(res.total_record) || 0;
+    if (res.data && res.data.count != null) return Number(res.data.count) || 0;
+    return 0;
+  }
+
+  monthRange(year, month) {
+    var y = year != null ? Number(year) : Number(this.state.selectedYear);
+    var m = month != null ? Number(month) : Number(this.state.selectedMonth);
+    if (!isFinite(y) || !isFinite(m)) {
+      var now = new Date();
+      y = now.getFullYear();
+      m = now.getMonth();
+    }
+    var from = y + '-' + this.pad(m + 1) + '-01';
+    var last = new Date(y, m + 1, 0).getDate();
+    var to = y + '-' + this.pad(m + 1) + '-' + this.pad(last);
+    return { from: from, to: to, year: y, month: m, lastDay: last };
+  }
+
+  toggleMonthPicker() {
+    this.setState({ monthPickerOpen: !this.state.monthPickerOpen });
+  }
+
+  async selectMonth(year, month) {
+    this.setState({
+      selectedYear: year,
+      selectedMonth: month,
+      monthPickerOpen: false
+    });
+    var client = this.getClient();
+    if (!client) return;
+    await Promise.all([
+      this.loadDocuments(client, year, month),
+      this.loadWorkHours(client, year, month)
+    ]);
+    this.ensureChrome();
+  }
+
+  ensureChrome() {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    if (typeof applyTranslations === 'function') {
+      applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+    }
+  }
+
+  componentDidMount() {
+    this.ensureChrome();
+    this.initData();
+    window.addEventListener('mineralbar:ready', (ev) => {
+      if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      this.initData();
+      this.ensureChrome();
+    });
+    window.addEventListener('mineralbar:realtime', (ev) => {
+      var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
+      if (/product|document|team_hours|teamhours/.test(key)) this.initData();
+    });
+    setTimeout(() => this.ensureChrome(), 200);
+    setTimeout(() => this.ensureChrome(), 800);
+  }
+
+  async initData() {
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ loadingDocs: false, loadingProducts: false, loadingHours: false });
+      return;
+    }
+    await Promise.all([
+      this.loadDocuments(client),
+      this.loadProducts(client),
+      this.loadWorkHours(client)
+    ]);
+    this.ensureChrome();
+  }
+
+  async fetchTeamHourSessions(client, fromDate, toDate) {
+    var all = [];
+    var seen = {};
+    for (var page = 1; page <= 20; page++) {
+      var body = { page: page, limit: 25, from_date: fromDate };
+      if (toDate) body.to_date = toDate;
+      var res = await client.request('TeamHours.List', body);
+      var rows = this.extractRows(res);
+      rows.forEach((r) => {
+        var id = String((r && (r.id || r.team_hours_id)) || '') + '|' + String((r && r.start_time) || '');
+        if (seen[id]) return;
+        seen[id] = true;
+        all.push(r);
+      });
+      if (rows.length < 25) break;
+      var total = Number(res && (res.total || res.count)) || 0;
+      if (total && all.length >= total) break;
+    }
+    return all;
+  }
+
+  async loadWorkHours(client, year, month) {
+    this.setState({ loadingHours: true });
+    try {
+      var range = this.monthRange(year, month);
+      var sessions = await this.fetchTeamHourSessions(client, range.from, range.to);
+      var weekSeconds = [0, 0, 0, 0];
+      sessions.forEach((row) => {
+        var start = this.parseDateTime(row && row.start_time);
+        if (!start) return;
+        if (start.getFullYear() !== range.year || start.getMonth() !== range.month) return;
+        var idx = this.weekIndexForDate(start);
+        if (idx < 0) return;
+        weekSeconds[idx] += this.sessionSeconds(row);
+      });
+      this.setState({ loadingHours: false, weekSeconds: weekSeconds });
+    } catch (e) {
+      console.error('[TechDashboard] TeamHours.List failed', e);
+      this.setState({ loadingHours: false, weekSeconds: [0, 0, 0, 0] });
+    }
+  }
+
+  async loadDocuments(client, year, month) {
+    this.setState({ loadingDocs: true });
+    var range = this.monthRange(year, month);
+    var dateRange = { from_date: range.from, to_date: range.to };
+    var countBase = Object.assign({ default_value_folder: 'all' }, dateRange);
+    try {
+      var results = await Promise.all([
+        client.request('Documents.Count', Object.assign({}, countBase)),
+        client.request('Documents.Count', Object.assign({}, countBase, { type: 'invoice' })),
+        client.request('Documents.Count', Object.assign({}, countBase, { type: 'receipt' })),
+        client.request('Documents.Count', Object.assign({}, countBase, { type: 'credit_invoice' })),
+        client.request('Documents.Sum', Object.assign({}, dateRange, { types: ['invoice', 'receipt_tax_invoice', 'credit_invoice'] })).catch(function () { return null; })
+      ]);
+
+      var total = this.extractCount(results[0]);
+      var invoices = this.extractCount(results[1]);
+      var receipts = this.extractCount(results[2]);
+      var credits = this.extractCount(results[3]);
+      var sumRes = results[4];
+
+      if (sumRes && sumRes.counts) {
+        if (sumRes.counts.invoice != null) invoices = Number(sumRes.counts.invoice) || invoices;
+        if (sumRes.counts.receipt != null) receipts = Number(sumRes.counts.receipt) || receipts;
+        if (sumRes.counts.receipt_tax_invoice != null && !receipts) {
+          receipts = Number(sumRes.counts.receipt_tax_invoice) || receipts;
+        }
+        if (sumRes.counts.credit_invoice != null) credits = Number(sumRes.counts.credit_invoice) || credits;
+      }
+      if (sumRes && sumRes.by_type) {
+        if (sumRes.by_type.invoice && sumRes.by_type.invoice.count != null) {
+          invoices = Number(sumRes.by_type.invoice.count) || invoices;
+        }
+        if (sumRes.by_type.receipt && sumRes.by_type.receipt.count != null) {
+          receipts = Number(sumRes.by_type.receipt.count) || receipts;
+        }
+        if (sumRes.by_type.receipt_tax_invoice && sumRes.by_type.receipt_tax_invoice.count != null && !receipts) {
+          receipts = Number(sumRes.by_type.receipt_tax_invoice.count) || receipts;
+        }
+        if (sumRes.by_type.credit_invoice && sumRes.by_type.credit_invoice.count != null) {
+          credits = Number(sumRes.by_type.credit_invoice.count) || credits;
+        }
+      }
+      if (!total && (invoices || receipts || credits)) {
+        total = invoices + receipts + credits;
+      }
+
+      this.setState({
+        loadingDocs: false,
+        docTotal: total,
+        docInvoices: invoices,
+        docReceipts: receipts,
+        docCredits: credits
+      });
+    } catch (e) {
+      console.error('[TechDashboard] Documents load failed', e);
+      this.setState({ loadingDocs: false, docTotal: 0, docInvoices: 0, docReceipts: 0, docCredits: 0 });
+    }
+  }
+
+  async loadProducts(client) {
+    this.setState({ loadingProducts: true });
+    try {
+      var res = await client.request('Products.List', { limit: 25, active: 1 });
+      var rows = this.extractRows(res).map(function (item) {
+        var stock = item.stock != null ? Number(item.stock)
+          : (item.qty != null ? Number(item.qty) : (item.left_stock != null ? Number(item.left_stock) : 0));
+        var minStock = item.min_stock != null ? Number(item.min_stock)
+          : (item.minStock != null ? Number(item.minStock) : (item.minimum_stock != null ? Number(item.minimum_stock) : 0));
+        var price = Number(item.price != null ? item.price
+          : (item.product_price != null ? item.product_price
+            : (item.main_price != null ? item.main_price : (item.cost || 0))));
+        return {
+          id: String(item.id || item.product_id || ''),
+          name: item.product_name || item.name || 'Product',
+          price: isFinite(price) ? price : 0,
+          stock: isFinite(stock) ? stock : 0,
+          min_stock: isFinite(minStock) ? minStock : 0
+        };
+      });
+      this.setState({ loadingProducts: false, products: rows });
+    } catch (e) {
+      console.error('[TechDashboard] Products.List failed', e);
+      this.setState({ loadingProducts: false, products: [] });
+    }
+  }
+
+  stockBar(product) {
+    var stock = Math.max(0, Number(product.stock) || 0);
+    var minStock = Math.max(0, Number(product.min_stock) || 0);
+    var target = Math.max(minStock > 0 ? minStock * 2 : 10, stock, 1);
+    var pct = Math.max(0, Math.min(100, Math.round((stock / target) * 100)));
+    var color = '#2e8a63';
+    if (stock <= 0) color = '#c0392b';
+    else if (minStock > 0 && stock <= minStock) color = '#bd8324';
+    else if (pct < 40) color = '#bd8324';
+    return { barW: pct + '%', barColor: color, pct: pct };
+  }
+
+  renderVals() {
+    var st = this.state;
+    var isEn = false;
+    try { isEn = (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he') === 'en'; } catch (e) {}
+
+    var weekSeconds = (st.weekSeconds && st.weekSeconds.length === 4) ? st.weekSeconds : [0, 0, 0, 0];
+    var maxSec = Math.max.apply(null, weekSeconds.concat([1]));
+    var weekLabels = isEn
+      ? ['Week 1', 'Week 2', 'Week 3', 'Week 4']
+      : ['שבוע 1', 'שבוע 2', 'שבוע 3', 'שבוע 4'];
+    var now = new Date();
+    var activeWeek = 3;
+    if (st.selectedYear === now.getFullYear() && st.selectedMonth === now.getMonth()) {
+      activeWeek = this.weekIndexForDate(now);
+      if (activeWeek < 0) activeWeek = 3;
+    }
+    var weeks = weekSeconds.map(function (sec, i) {
+      var hPct = Math.round((sec / maxSec) * 100);
+      if (hPct < 8) hPct = 8; // keep a minor stub bar for 0 / tiny values
+      return {
+        label: weekLabels[i],
+        val: st.loadingHours ? '…' : this.formatHoursShort(sec),
+        h: (st.loadingHours ? 8 : hPct) + '%',
+        bg: i === activeWeek ? '#1d60a2' : '#bcd3ea'
+      };
+    }.bind(this));
+    var totalSec = weekSeconds.reduce(function (a, b) { return a + b; }, 0);
+    var weeksTotalLabel = st.loadingHours
+      ? (isEn ? 'Loading…' : 'טוען…')
+      : (isEn
+        ? ('A total of ' + this.formatHoursShort(totalSec) + 'h')
+        : ('סה״כ ' + this.formatHoursShort(totalSec) + ' שעות'));
+
+    var products = st.products || [];
+    var types = products.map(function (p, i) {
+      var color = this.COLORS[i % this.COLORS.length];
+      var tone = this.TONE[color] || { bg: '#eef0f3' };
+      var bar = this.stockBar(p);
+      var stockLabel = isEn
+        ? ('Left ' + p.stock + ' · Min ' + p.min_stock)
+        : ('נותר ' + p.stock + ' · מינ׳ ' + p.min_stock);
+      return {
+        name: p.name,
+        count: p.stock,
+        amount: this.fmt(p.price),
+        stockLabel: stockLabel,
+        iconBg: tone.bg,
+        iconColor: bar.barColor,
+        barColor: bar.barColor,
+        barW: bar.barW,
+        border: i === products.length - 1 ? 'transparent' : '#f0f2f5'
+      };
+    }.bind(this));
+
+    var monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var monthsHe = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    var monthsShortEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthNames = isEn ? monthsEn : monthsHe;
+    var selY = Number(st.selectedYear);
+    var selM = Number(st.selectedMonth);
+    var monthName = monthNames[selM] || monthNames[now.getMonth()];
+    var monthLabel = monthName + ' ' + selY;
+    var monthShort = isEn ? (monthsShortEn[selM] || monthName) : monthName;
+    var updated = this.pad(now.getDate()) + '/' + this.pad(now.getMonth() + 1) + '/' + String(now.getFullYear()).slice(-2);
+
+    var self = this;
+    var monthOptions = [];
+    for (var i = 0; i < 12; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var y = d.getFullYear();
+      var m = d.getMonth();
+      var selected = y === selY && m === selM;
+      (function (yy, mm, selectedFlag) {
+        monthOptions.push({
+          label: monthNames[mm] + ' ' + yy,
+          bg: selectedFlag ? '#eaf2fb' : 'transparent',
+          check: selectedFlag ? '✓' : '',
+          checkColor: selectedFlag ? '#1d60a2' : 'transparent',
+          select: function () { self.selectMonth(yy, mm); }
+        });
+      })(y, m, selected);
+    }
+
+    return {
+      monthLabel: monthLabel,
+      monthShort: monthShort,
+      monthPickerOpen: !!st.monthPickerOpen,
+      toggleMonthPicker: function () { self.toggleMonthPicker(); },
+      monthOptions: monthOptions,
+      weeks: weeks,
+      weeksTotalLabel: weeksTotalLabel,
+      types: types,
+      productsLoading: !!st.loadingProducts,
+      productsEmpty: !st.loadingProducts && products.length === 0,
+      productsCountLabel: products.length + (isEn ? ' products' : ' מוצרים'),
+      docTotal: st.loadingDocs ? '…' : st.docTotal,
+      docTotalLabel: 'docs',
+      docInvoices: st.loadingDocs ? '…' : st.docInvoices,
+      docReceipts: st.loadingDocs ? '…' : st.docReceipts,
+      docCredits: st.loadingDocs ? '…' : st.docCredits,
+      updatedLabel: (isEn ? 'Updated today · ' : 'עודכן היום · ') + updated
+    };
+  }
+}
+</script>
+
+<script>
+  function mbEnsureDashboardChrome() {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    if (typeof applyTranslations === 'function') {
+      applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+    }
+  }
+  window.addEventListener('load', mbEnsureDashboardChrome);
+  window.addEventListener('mineralbar:ready', mbEnsureDashboardChrome);
+  setTimeout(mbEnsureDashboardChrome, 300);
+  setTimeout(mbEnsureDashboardChrome, 1000);
+  setTimeout(mbEnsureDashboardChrome, 2000);
+</script>
+</body>
+
+</html>

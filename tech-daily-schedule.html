@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-role="tech" data-active-tab="schedule">
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
+<!-- header -->
+<div style="padding:6px 18px 13px; flex:none;">
+<div style="display:flex; align-items:flex-start; justify-content:space-between;">
+<div>
+<div style="font-size:13px; color:#8a93a3; font-weight:600;">{{ dayLabel }}</div>
+<div style="font-size:22px; font-weight:800; color:#1f2a3a; margin-top:1px;" data-no-i18n="true">{{ pageTitle }}</div>
+</div>
+<button type="button" style="display:flex; align-items:center; gap:7px; background:#fff; border:none; border-radius:12px; padding:9px 13px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+<svg fill="none" height="16" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect><path d="M3 9h18M8 2.5v4M16 2.5v4"></path></svg>
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ dateShort }}</span>
+</button>
+</div>
+<!-- summary strip -->
+<div style="display:flex; gap:9px; margin-top:14px;" data-no-i18n="true">
+<div style="flex:1; background:#fff; border-radius:13px; padding:11px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+<div style="font-size:21px; font-weight:800; color:#1d60a2; line-height:1;">{{ visitCount }}</div>
+<div style="font-size:11.5px; color:#8a93a3; margin-top:4px; font-weight:600;">{{ labelVisits }}</div>
+</div>
+<div style="flex:1; background:#fff; border-radius:13px; padding:11px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+<div style="font-size:21px; font-weight:800; color:#2e8a63; line-height:1;">{{ doneCount }}</div>
+<div style="font-size:11.5px; color:#8a93a3; margin-top:4px; font-weight:600;">{{ labelDone }}</div>
+</div>
+<div style="flex:1; background:#fff; border-radius:13px; padding:11px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+<div style="font-size:21px; font-weight:800; color:#bd8324; line-height:1;">{{ waitingCount }}</div>
+<div style="font-size:11.5px; color:#8a93a3; margin-top:4px; font-weight:600;">{{ labelWaiting }}</div>
+</div>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ loading }}">
+<div style="text-align:center; padding:28px 12px; color:#8a93a3; font-size:13.5px; font-weight:600;" data-no-i18n="true">{{ loadingMsg }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
+<div style="background:#fbeeed; border:1px solid #f1c9c4; border-radius:14px; padding:12px 14px; margin-bottom:13px; color:#a3302e; font-size:13px; font-weight:600;">{{ errorMsg }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ emptyList }}">
+<div style="text-align:center; padding:28px 12px; color:#9aa3b0; font-size:13.5px; font-weight:600;" data-no-i18n="true">{{ emptyMsg }}</div>
+</sc-if>
+<sc-for as="v" hint-placeholder-count="4" list="{{ visits }}">
+<div style="display:flex; gap:11px; margin-bottom:4px;">
+<!-- timeline -->
+<div style="flex:none; width:46px; text-align:center; padding-top:14px;">
+<div style="font-size:15px; font-weight:800; color:{{ v.timeColor }};">{{ v.time }}</div>
+<div style="font-size:10.5px; color:#b6bdc8; margin-top:1px;">{{ v.dur }}</div>
+<div style="width:2px; height:calc(100% - 46px); background:#dfe3e9; margin:8px auto 0;"></div>
+</div>
+<!-- card -->
+<div style="flex:1; background:#fff; border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); border-right:4px solid {{ v.accent }};">
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+<div style="flex:1;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;">{{ v.name }}</div>
+<div style="display:flex; align-items:center; gap:4px; font-size:12.5px; color:#9aa3b0; margin-top:3px;">
+<svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="13"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+                    {{ v.address }}
+                  </div>
+</div>
+<div style="display:inline-flex; align-items:center; gap:4px; background:{{ v.badgeBg }}; color:{{ v.badgeColor }}; font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap; flex:none;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ v.isDone }}"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="12"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ v.notDone }}"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="12"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></sc-if>
+                  {{ v.badge }}
+                </div>
+</div>
+<!-- type pill + description -->
+<div style="display:flex; align-items:center; gap:7px; margin-top:11px;">
+<div style="display:inline-flex; align-items:center; gap:5px; background:{{ v.typeBg }}; color:{{ v.typeColor }}; font-size:12px; font-weight:700; padding:5px 10px; border-radius:8px;">
+                  {{ v.type }}
+                </div>
+<div style="font-size:11.5px; color:#9aa3b0; font-weight:600;">{{ v.ticketRef }}</div>
+</div>
+<div style="font-size:13.5px; color:#5a6473; margin-top:9px; line-height:1.5;">{{ v.desc }}</div>
+<!-- equipment -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ v.hasParts }}">
+<div style="background:#f7f9fc; border-radius:11px; padding:10px 12px; margin-top:11px;">
+<div style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#8a93a3; font-weight:700; margin-bottom:7px;">
+<svg fill="none" height="13" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="13"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path></svg>
+                  Equipment / inventory required
+                </div>
+<div style="display:flex; flex-wrap:wrap; gap:6px;">
+<sc-for as="p" hint-placeholder-count="2" list="{{ v.parts }}">
+<span style="background:#fff; border:1px solid #e4e8ee; color:#4a5462; font-size:12px; font-weight:600; padding:4px 10px; border-radius:7px;">{{ p.label }}</span>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<!-- actions: open tickets -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ v.notDone }}">
+<div style="display:flex; gap:8px; margin-top:13px;">
+<a href="{{ v.phoneHref }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="currentColor" height="18" viewbox="0 0 24 24" width="18"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
+</a>
+<a href="{{ v.chatHref }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M3 11 21 3l-8 18-2-7z"></path></svg>
+</a>
+<button type="button" onclick="{{ v.openCard }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#1d60a2; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer;">
+                  Customer card
+                  <svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="m14 7-5 5 5 5"></path></svg>
+</button>
+</div>
+<div style="display:flex; gap:8px; margin-top:8px;">
+<button type="button" onclick="{{ v.createOrder }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1.5px solid #d7dde6; border-radius:11px; background:#fff; color:#1f2a3a; font-size:13.5px; font-weight:700; cursor:pointer;">
+<svg fill="none" height="15" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="M6 2h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"></path><path d="M14 2v5h5M12 11v6M9 14h6"></path></svg>
+                  Create an order
+                </button>
+<button type="button" onclick="{{ v.closeCall }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; font-size:13.5px; font-weight:700; cursor:pointer;">
+<svg fill="none" height="15" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M20 6 9 17l-5-5"></path></svg>
+                  close reading
+                </button>
+</div>
+</sc-if>
+<!-- actions: completed tickets — View only -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ v.isDone }}">
+<div style="display:flex; gap:8px; margin-top:13px;">
+<a href="{{ v.phoneHref }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="currentColor" height="18" viewbox="0 0 24 24" width="18"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
+</a>
+<button type="button" onclick="{{ v.viewCall }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#c0392b; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(192,57,43,.28);">
+<svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  {{ v.viewLabel }}
+                </button>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+<div style="text-align:center; padding:8px 0 4px; color:#b6bdc8; font-size:12.5px; font-weight:600;">— end of day —</div>
+</div>
+<!-- customer card sheet -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ cardOpen }}">
+<div style="position:absolute; inset:0; z-index:40; background:#eef0f3; display:flex; flex-direction:column;">
+<div style="background:#16223a; padding:13px 16px; flex:none;">
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<button type="button" onclick="{{ closeCard }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
+</button>
+<div style="text-align:center;">
+<div style="font-size:17.5px; font-weight:800; color:#fff;">Customer card</div>
+<div style="font-size:11.5px; color:#9fb0c8; margin-top:1px;">{{ cardName }}</div>
+</div>
+<div style="width:34px;"></div>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px;">
+<!-- contact -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:46px; height:46px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">{{ cardInitials }}</div>
+<div style="flex:1;">
+<div style="font-size:16.5px; font-weight:800; color:#1f2a3a;">{{ cardName }}</div>
+<div style="font-size:12.5px; color:#9aa3b0; margin-top:1px;">{{ cardMeta }}</div>
+</div>
+<div style="display:inline-flex; align-items:center; gap:4px; background:#e6f4ec; color:#2e8a63; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px;">
+<span style="width:6px; height:6px; border-radius:50%; background:#2e8a63;"></span>active
+                  </div>
+</div>
+<div style="margin-top:12px; font-size:13px; color:#5a6473; line-height:1.5;">{{ cardAddress }}</div>
+<div style="margin-top:10px; display:flex; gap:8px;">
+<a href="{{ cardPhoneHref }}" style="flex:1; text-align:center; padding:10px; border-radius:11px; background:#eaf7ef; color:#2e8a63; font-size:13px; font-weight:700; text-decoration:none;">dialing</a>
+<a href="{{ cardDetailsHref }}" style="flex:1; text-align:center; padding:10px; border-radius:11px; background:#eef3fd; color:#1d60a2; font-size:13px; font-weight:700; text-decoration:none;">Reading details</a>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    loading: true,
+    errorMsg: '',
+    tickets: [],
+    cardOpen: false,
+    cardTicket: null,
+    langTick: 0
+  };
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  componentDidMount() {
+    this.ensureChrome();
+    this.initData();
+    window.addEventListener('mineralbar:ready', (ev) => {
+      if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      this.initData();
+      this.ensureChrome();
+    });
+    window.addEventListener('mineralbar:realtime', (ev) => {
+      var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
+      if (/ticket/.test(key)) this.initData();
+    });
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+          if (typeof applyTranslations === 'function') {
+            applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+          }
+        }, 80);
+      }
+    });
+  }
+
+  ensureChrome() {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }
+
+  getClient() {
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return null;
+    try { return MineralBarApp.getClient(); } catch (e) { return null; }
+  }
+
+  resolveUserId() {
+    try {
+      var u = (window.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser()) || null;
+      if (!u && MineralBarApp.getUserBasic) {
+        var basic = MineralBarApp.getUserBasic();
+        u = (basic && ((basic.data && basic.data.user) || basic.user || basic)) || null;
+      }
+      if (!u) return 0;
+      return Number(u.id || u.user_id || u.member_id || u.team_member_id || u.userid || 0) || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  extractRows(res) {
+    if (!res) return [];
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.output)) return res.output;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.list)) return res.list;
+    if (Array.isArray(res.tickets)) return res.tickets;
+    if (Array.isArray(res)) return res;
+    return [];
+  }
+
+  isAssignedToUser(ticket, userId) {
+    if (!userId) return true;
+    var ids = [];
+    var a = ticket && ticket.assign_member_id;
+    if (Array.isArray(a)) ids = a;
+    else if (a != null && a !== '') ids = String(a).split(',');
+    else if (ticket && ticket.team_member_id != null) ids = [ticket.team_member_id];
+    else if (ticket && ticket.team_member != null) ids = Array.isArray(ticket.team_member) ? ticket.team_member : [ticket.team_member];
+    return ids.map(function (x) { return Number(x); }).indexOf(Number(userId)) !== -1;
+  }
+
+  isClosedStatus(ticket) {
+    if (!ticket) return false;
+    if (ticket.is_done === 1 || ticket.closed === 1 || ticket.is_closed === 1 || ticket.close_date) return true;
+    var st = String(ticket.status_name || ticket.status_label || ticket.status || '').toLowerCase();
+    if (st === '2' || st === 'closed' || st === 'done' || st === 'completed' || st === 'סגור' || st === 'נסגר' || st === 'הושלם' || st === 'נסגרה') return true;
+    var sid = Number(ticket.status_id != null ? ticket.status_id : ticket.status);
+    if (sid === 2 || sid === 4 || sid === 5) return true;
+    var msgs = ticket.messages || ticket.message || '';
+    if (Array.isArray(msgs)) {
+      msgs = msgs.map(function (m) { return m && (m.message || m.msg || m.text) || ''; }).join('\n');
+    }
+    var msg = String(msgs || '');
+    if (/BIZ1_MEDIA\s*:/i.test(msg) || /Client signature saved/i.test(msg)) return true;
+    return false;
+  }
+
+  parseTimeToMinutes(val) {
+    if (!val) return null;
+    var s = String(val).trim();
+    var m = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?/);
+    if (!m) return null;
+    return Number(m[1]) * 60 + Number(m[2]);
+  }
+
+  formatClock(mins) {
+    if (mins == null || !isFinite(mins)) return '--:--';
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    return this.pad(h) + ':' + this.pad(m);
+  }
+
+  durationLabel(fromMin, toMin) {
+    if (fromMin == null || toMin == null || toMin <= fromMin) return '';
+    var d = toMin - fromMin;
+    return d + ' min';
+  }
+
+  ticketSortKey(t) {
+    var from = this.parseTimeToMinutes(t.ticket_from_time || t.from_time || t.start_time);
+    if (from != null) return from;
+    var due = t.due_date || t.open_date || '';
+    var d = due ? new Date(due) : null;
+    if (d && !isNaN(d.getTime())) return d.getHours() * 60 + d.getMinutes();
+    return 24 * 60;
+  }
+
+  initials(name) {
+    var p = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return '?';
+    if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+    return ((p[0][0] || '') + (p[1][0] || '')).toUpperCase();
+  }
+
+  guessTypeKind(subject) {
+    var s = String(subject || '').toLowerCase();
+    if (/install|התקנ/.test(s)) return 'install';
+    if (/repair|תיקון|נזיל/.test(s)) return 'repair';
+    if (/filter|סנן|מרכך/.test(s)) return 'filter';
+    return 'repair';
+  }
+
+  async initData() {
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ loading: false, errorMsg: 'SDK not ready' });
+      return;
+    }
+
+    this.setState({ loading: true, errorMsg: '' });
+    try {
+      var userId = this.resolveUserId();
+      if (!userId) {
+        this.setState({ loading: false, errorMsg: 'Missing logged-in user id', tickets: [] });
+        return;
+      }
+
+      var payload = {
+        limit: 25,
+        assign_member_id: String(userId),
+        team_member: String(userId),
+        team_member_id: String(userId)
+      };
+
+      var res = await client.request('Ticket.List', payload);
+      var rows = this.extractRows(res).filter(function (t) {
+        return this.isAssignedToUser(t, userId);
+      }.bind(this));
+      rows.sort(function (a, b) {
+        return this.ticketSortKey(a) - this.ticketSortKey(b);
+      }.bind(this));
+
+      this.setState({ loading: false, errorMsg: '', tickets: rows });
+      this.ensureChrome();
+    } catch (e) {
+      console.error('[DailySchedule] Ticket.List failed', e);
+      this.setState({
+        loading: false,
+        errorMsg: (e && e.message) || 'Failed to load tickets',
+        tickets: []
+      });
+    }
+  }
+
+  openCard(ticket) {
+    var t = ticket || {};
+    var customerId = t.customer_id || t.cust_id || t.contactus_id || '';
+    var ticketId = t.ticket_id || t.id || '';
+    var q = new URLSearchParams();
+    if (customerId) q.set('customer_id', customerId);
+    if (ticketId) q.set('ticket_id', ticketId);
+    if (customerId) {
+      try {
+        sessionStorage.setItem('mb_customer_id', String(customerId));
+        localStorage.setItem('mb_customer_id', String(customerId));
+      } catch (e) { /* ignore */ }
+      window.location.href = 'service-customer-card.html?' + q.toString();
+      return;
+    }
+    if (ticketId) {
+      window.location.href = 'service-call-details.html?ticket_id=' + encodeURIComponent(ticketId);
+      return;
+    }
+    this.setState({ errorMsg: 'Missing customer_id' });
+  }
+
+  closeCard() {
+    this.setState({ cardOpen: false, cardTicket: null });
+  }
+
+  mapVisit(ticket, statusKey) {
+    var STATUS = {
+      done: { badge: this.t('Completed', 'הושלם'), badgeBg: '#e6f4ec', badgeColor: '#2e8a63', accent: '#2e8a63', timeColor: '#b6bdc8' },
+      next: { badge: this.t('Next up', 'הבא בתור'), badgeBg: '#eaf2fb', badgeColor: '#1d60a2', accent: '#1d60a2', timeColor: '#1d60a2' },
+      pending: { badge: this.t('Waiting', 'ממתין'), badgeBg: '#fdf1dd', badgeColor: '#bd8324', accent: '#e0a13c', timeColor: '#1f2a3a' },
+    };
+    var TYPE = {
+      filter: { typeBg: '#eef3fd', typeColor: '#1d60a2' },
+      install: { typeBg: '#eef0fb', typeColor: '#50439d' },
+      repair: { typeBg: '#fdf1dd', typeColor: '#bd8324' },
+    };
+
+    var s = STATUS[statusKey] || STATUS.pending;
+    var kind = this.guessTypeKind(ticket.subject || ticket.type);
+    var tstyle = TYPE[kind] || TYPE.repair;
+
+    var fromMin = this.parseTimeToMinutes(ticket.ticket_from_time || ticket.from_time);
+    var toMin = this.parseTimeToMinutes(ticket.ticket_to_time || ticket.to_time);
+    if (fromMin == null) fromMin = this.ticketSortKey(ticket);
+    var time = this.formatClock(fromMin);
+    var dur = this.durationLabel(fromMin, toMin) || (ticket.duration ? String(ticket.duration) : '');
+
+    var name = ticket.customer_name || ticket.joined_customer_name || ticket.cust_name || ticket.name || ticket.subject || this.t('Customer', 'לקוח');
+    var address = ticket.address || ticket.city || ticket.city_name || this.t('No address', 'אין כתובת');
+    var phone = String(ticket.phone || ticket.mobile || ticket.customer_phone || '').replace(/\D+/g, '');
+    var ticketId = ticket.ticket_id || ticket.id;
+    var customerId = ticket.customer_id || ticket.cust_id || ticket.contactus_id || '';
+
+    var desc = ticket.subject || '';
+    if (Array.isArray(ticket.messages) && ticket.messages.length) {
+      var msg = ticket.messages[0] && ticket.messages[0].message;
+      if (msg && String(msg).indexOf('biz1upload/') !== 0) desc = msg;
+    }
+
+    var parts = [];
+    if (ticket.product_name) parts.push({ label: ticket.product_name });
+    if (ticket.department_name) parts.push({ label: ticket.department_name });
+
+    var chatQ = new URLSearchParams();
+    if (customerId) chatQ.set('customer_id', customerId);
+    if (name) chatQ.set('name', name);
+    if (phone) chatQ.set('phone', phone);
+    if (ticketId) chatQ.set('ticket_id', ticketId);
+    var chatHref = customerId
+      ? ('chat-customer.html?' + chatQ.toString())
+      : '#';
+
+    var self = this;
+    return {
+      time: time,
+      dur: dur,
+      name: name,
+      address: address,
+      desc: desc,
+      type: ticket.subject || ticket.type || this.t('Service call', 'קריאת שירות'),
+      ticketRef: ticketId ? ('#' + ticketId) : '',
+      parts: parts,
+      hasParts: parts.length > 0,
+      badge: s.badge,
+      badgeBg: s.badgeBg,
+      badgeColor: s.badgeColor,
+      isDone: statusKey === 'done',
+      notDone: statusKey !== 'done',
+      accent: s.accent,
+      timeColor: s.timeColor,
+      typeBg: tstyle.typeBg,
+      typeColor: tstyle.typeColor,
+      phoneHref: phone ? ('tel:' + phone) : '#',
+      chatHref: chatHref,
+      viewLabel: this.t('View', 'צפייה'),
+      openCard: function () { self.openCard(ticket); },
+      createOrder: function () {
+        var q = new URLSearchParams();
+        if (ticketId) q.set('ticket_id', ticketId);
+        if (customerId) q.set('customer_id', customerId);
+        if (name) q.set('name', name);
+        window.location.href = 'tech-field-order.html?' + q.toString();
+      },
+      closeCall: function () {
+        var q = new URLSearchParams();
+        if (ticketId) q.set('ticket_id', ticketId);
+        if (customerId) q.set('customer_id', customerId);
+        if (name) q.set('name', name);
+        window.location.href = 'tech-call-close.html?' + q.toString();
+      },
+      viewCall: function () {
+        var q = new URLSearchParams();
+        if (ticketId) q.set('ticket_id', ticketId);
+        if (customerId) q.set('customer_id', customerId);
+        if (name) q.set('name', name);
+        q.set('view', '1');
+        window.location.href = 'tech-call-close.html?' + q.toString();
+      }
+    };
+  }
+
+  renderVals() {
+    void this.state.langTick;
+    var st = this.state;
+    var tickets = st.tickets || [];
+    var doneCount = 0;
+    var waiting = [];
+    tickets.forEach(function (t) {
+      if (this.isClosedStatus(t)) doneCount += 1;
+      else waiting.push(t);
+    }.bind(this));
+
+    var visits = [];
+    var nextMarked = false;
+    tickets.forEach(function (t) {
+      var key = 'pending';
+      if (this.isClosedStatus(t)) key = 'done';
+      else if (!nextMarked) { key = 'next'; nextMarked = true; }
+      visits.push(this.mapVisit(t, key));
+    }.bind(this));
+
+    var now = new Date();
+    var dayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var dayNamesHe = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'];
+    var dayLabel = this.isEn() ? dayNamesEn[now.getDay()] : dayNamesHe[now.getDay()];
+    var dateShort = this.pad(now.getDate()) + '/' + this.pad(now.getMonth() + 1);
+
+    var card = st.cardTicket || {};
+    var cardName = card.customer_name || card.joined_customer_name || card.cust_name || card.name || card.subject || '';
+    var cardPhone = String(card.phone || card.mobile || card.customer_phone || '').replace(/\D+/g, '');
+    var cardTicketId = card.ticket_id || card.id || '';
+    var cardCustomerId = card.customer_id || card.cust_id || '';
+    var detailsQ = new URLSearchParams();
+    if (cardTicketId) detailsQ.set('ticket_id', cardTicketId);
+    if (cardCustomerId) detailsQ.set('customer_id', cardCustomerId);
+
+    return {
+      loading: !!st.loading,
+      hasError: !!st.errorMsg,
+      errorMsg: st.errorMsg || '',
+      emptyList: !st.loading && !st.errorMsg && visits.length === 0,
+      pageTitle: this.t('My schedule', 'הלו״ז שלי'),
+      loadingMsg: this.t('Loading…', 'טוען…'),
+      emptyMsg: this.t('No assigned tickets today', 'אין קריאות משויכות להיום'),
+      labelVisits: this.t('visits', 'ביקורים'),
+      labelDone: this.t('completed', 'הושלמו'),
+      labelWaiting: this.t('waiting', 'ממתינים'),
+      dayLabel: dayLabel,
+      dateShort: dateShort,
+      visitCount: tickets.length,
+      doneCount: doneCount,
+      waitingCount: waiting.length,
+      visits: visits,
+      cardOpen: !!st.cardOpen,
+      cardName: cardName || this.t('Customer', 'לקוח'),
+      cardInitials: this.initials(cardName || 'C'),
+      cardMeta: (cardPhone ? cardPhone : '') + (cardTicketId ? ((cardPhone ? ' · ' : '') + '#' + cardTicketId) : ''),
+      cardAddress: card.address || card.city || '',
+      cardPhoneHref: cardPhone ? ('tel:' + cardPhone) : '#',
+      cardDetailsHref: 'service-call-details.html?' + detailsQ.toString(),
+      closeCard: () => this.closeCard()
+    };
+  }
+}
+</script>
+
+<script>
+  function mbEnsureScheduleChrome() {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    if (typeof applyTranslations === 'function') {
+      applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+    }
+  }
+  window.addEventListener('load', mbEnsureScheduleChrome);
+  window.addEventListener('mineralbar:ready', mbEnsureScheduleChrome);
+  setTimeout(mbEnsureScheduleChrome, 300);
+  setTimeout(mbEnsureScheduleChrome, 1000);
+</script>
+</body>
+
+</html>

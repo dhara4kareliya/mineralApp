@@ -1,0 +1,995 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-role="tech" data-active-tab="open_calls">
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, textarea, select { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .ds-input::placeholder { color: #aeb6c2; }
+  .photo-slot {
+    flex: 1; min-height: 118px; border-radius: 14px; border: 1.6px dashed #aebfd6;
+    background: #f4f8fd; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 7px; cursor: pointer; position: relative; overflow: hidden; padding: 10px; color: #1d60a2;
+    font-size: 12.5px; font-weight: 700; text-align: center;
+  }
+  .photo-slot input { display: none; }
+  .photo-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .photo-slot.has-img { border-style: solid; border-color: #c7d0dc; }
+  .sig-wrap {
+    background: #fff; border: 1.5px solid #dde2ea; border-radius: 13px; overflow: hidden;
+    touch-action: none; -webkit-user-select: none; user-select: none; position: relative; z-index: 2;
+  }
+  .sig-wrap canvas {
+    width: 100%; height: 160px; display: block; background: #fff; cursor: crosshair;
+    touch-action: none; -webkit-user-select: none; user-select: none;
+  }
+  .completed-media { width: 100%; border-radius: 12px; overflow: hidden; background: #f4f5f7; }
+  .completed-media img { width: 100%; height: 140px; object-fit: cover; display: block; }
+  .completed-media figcaption { font-size: 11.5px; color: #9aa3b0; font-weight: 600; padding: 7px 10px; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
+<!-- header -->
+<div style="background:#16223a; padding:13px 18px 14px; flex:none;">
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<button type="button" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
+</button>
+<div style="text-align:center;" data-no-i18n="true">
+<div style="font-size:17.5px; font-weight:800; color:#fff;">{{ pageTitle }}</div>
+<div style="font-size:11.5px; color:#9fb0c8; margin-top:1px;">{{ headerSub }}</div>
+</div>
+<div style="width:34px;"></div>
+</div>
+</div>
+
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 20px;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ loading }}">
+<div style="text-align:center; padding:28px 12px; color:#8a93a3; font-size:13.5px; font-weight:600;" data-no-i18n="true">{{ loadingMsg }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
+<div style="background:#fbeeed; border:1px solid #f1c9c4; border-radius:14px; padding:12px 14px; margin-bottom:13px; color:#a3302e; font-size:13px; font-weight:700;" data-no-i18n="true">{{ errorMsg }}</div>
+</sc-if>
+
+<!-- ========== COMPLETE FORM ========== -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showForm }}">
+<div data-no-i18n="true">
+<!-- work summary -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:7px;">{{ labelSummary }} <span style="color:#c0392b;">*</span></div>
+<textarea id="work-summary-input" class="ds-input" oninput="{{ onSummary }}" placeholder="{{ summaryPh }}" style="width:100%; min-height:96px; padding:13px; border:1.5px solid {{ summaryBorder }}; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; direction:ltr; resize:none; background:#fff;" value="{{ summary }}">{{ summary }}</textarea>
+</div>
+
+<!-- spare parts -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px; overflow:hidden;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelSpares }} <span style="color:#9aa3b0; font-weight:600;">({{ optionalLabel }})</span></div>
+<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px; min-width:0;">
+<select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff; direction:ltr; text-align:left;">
+<option value="">{{ selectProduct }}</option>
+<sc-for as="p" hint-placeholder-count="4" list="{{ products }}">
+<option value="{{ p.id }}">{{ p.name }}</option>
+</sc-for>
+</select>
+<div style="display:flex; align-items:center; gap:8px; min-width:0;">
+<input id="spare-qty-input" class="ds-input" inputmode="numeric" oninput="{{ onQty }}" style="width:64px; flex:none; box-sizing:border-box; padding:11px 8px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ qty }}"/>
+<button type="button" onclick="{{ addSpare }}" style="flex:1; min-width:0; padding:11px 14px; border:none; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap;">{{ addPart }}</button>
+</div>
+</div>
+<sc-for as="s" hint-placeholder-count="0" list="{{ spares }}">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid #f0f2f5; min-width:0;">
+<div style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">{{ s.name }} × {{ s.qty }}</div>
+<button type="button" onclick="{{ s.remove }}" style="border:none; background:none; color:#c0392b; font-size:12.5px; font-weight:700; cursor:pointer; flex:none;">{{ removePart }}</button>
+</div>
+</sc-for>
+</div>
+
+<!-- photos -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelPhotos }}</div>
+<div style="display:flex; gap:11px;">
+<label class="photo-slot {{ beforeClass }}" id="before-photo-label">
+<span id="before-photo-label-text">{{ beforePhoto }}</span>
+<input accept="image/*" id="before-photo-input" type="file"/>
+<img alt="Before" id="before-photo-preview" style="display:none;"/>
+</label>
+<label class="photo-slot {{ afterClass }}" id="after-photo-label">
+<span id="after-photo-label-text">{{ afterPhoto }}</span>
+<input accept="image/*" id="after-photo-input" type="file"/>
+<img alt="After" id="after-photo-preview" style="display:none;"/>
+</label>
+</div>
+</div>
+
+<!-- signature -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+<div style="font-size:14px; font-weight:800; color:#16223a;">{{ labelSignature }} <span style="color:#c0392b;">*</span></div>
+<button type="button" onclick="{{ clearSig }}" style="padding:6px 10px; border:none; border-radius:9px; background:#f4f5f7; color:#5a6473; font-size:12px; font-weight:700; cursor:pointer;">{{ clearSigLabel }}</button>
+</div>
+<div class="sig-wrap" style="border-color:{{ sigBorder }};">
+<canvas height="320" id="sig-canvas" width="700"></canvas>
+</div>
+<div style="font-size:11.5px; color:#9aa3b0; font-weight:600; text-align:center; margin-top:6px;">{{ tapSign }}</div>
+</div>
+
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showFormError }}">
+<div style="margin-bottom:12px; color:#c0392b; font-size:13px; font-weight:700; text-align:center;">{{ formError }}</div>
+</sc-if>
+</div>
+</sc-if>
+
+<!-- ========== VIEW AFTER CLOSE ========== -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showView }}">
+<div data-no-i18n="true">
+<div style="background:#eafaf0; border:1px solid #cdeeda; border-radius:15px; padding:14px 15px; margin-bottom:14px; display:flex; gap:11px; align-items:center;">
+<div style="width:40px; height:40px; border-radius:50%; background:#25b35e; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="20" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="20"><path d="M20 6 9 17l-5-5"></path></svg>
+</div>
+<div>
+<div style="font-size:14px; font-weight:800; color:#1f7a45;">{{ successTitle }}</div>
+<div style="font-size:12.5px; color:#4f9b6f; margin-top:2px;">{{ successBody }}</div>
+</div>
+</div>
+
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:12px;">{{ labelCompleted }}</div>
+
+<div style="margin-bottom:14px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelSummary }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45; white-space:pre-wrap;">{{ viewSummary }}</div>
+</div>
+
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasViewSpares }}">
+<div style="margin-bottom:14px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelSpares }}</div>
+<sc-for as="s" hint-placeholder-count="0" list="{{ viewSpares }}">
+<div style="font-size:13.5px; font-weight:700; color:#1f2a3a; padding:4px 0;">{{ s.label }}</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasViewPhotos }}">
+<div style="margin-bottom:14px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:8px;">{{ labelPhotos }}</div>
+<div style="display:flex; gap:11px;">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasBefore }}">
+<figure class="completed-media">
+<img alt="Before" src="{{ beforeUrl }}"/>
+<figcaption>{{ beforePhoto }}</figcaption>
+</figure>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasAfter }}">
+<figure class="completed-media">
+<img alt="After" src="{{ afterUrl }}"/>
+<figcaption>{{ afterPhoto }}</figcaption>
+</figure>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasSignature }}">
+<div>
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:8px;">{{ labelSignature }}</div>
+<div style="background:#fff; border:1.5px solid #e4e8ee; border-radius:12px; padding:10px;">
+<img alt="Signature" src="{{ signatureUrl }}" style="width:100%; height:120px; object-fit:contain; display:block;"/>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+
+<!-- bottom action -->
+<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px;" data-no-i18n="true">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showForm }}">
+<button type="button" onclick="{{ submit }}" disabled="{{ busy }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 15l2 2 4-4"></path></svg>
+          {{ submitLabel }}
+        </button>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showView }}">
+<button type="button" onclick="{{ backTickets }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:linear-gradient(#33a571,#2c8a60); color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; box-shadow:0 6px 16px rgba(44,138,96,.32);">
+          {{ backLabel }}
+        </button>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    loading: true,
+    busy: false,
+    errorMsg: '',
+    formError: '',
+    ticketId: '',
+    ticketName: '',
+    customerName: '',
+    mode: 'form', // form | view
+    summary: '',
+    products: [],
+    productId: '',
+    qty: '1',
+    spares: [],
+    beforeDataUrl: '',
+    afterDataUrl: '',
+    beforeUrl: '',
+    afterUrl: '',
+    signatureUrl: '',
+    hasStroke: false,
+    attempted: false,
+    langTick: 0
+  };
+
+  _sigDrawing = false;
+  _sigCanvas = null;
+  _sigDataUrl = '';
+  _hasStroke = false;
+  _bindTimer = null;
+  _summaryDirty = false;
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  componentDidMount() {
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+          if (typeof applyTranslations === 'function') {
+            applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+          }
+        }, 80);
+      }
+    });
+    this.boot();
+    window.addEventListener('mineralbar:ready', function () { self.boot(); });
+    this.scheduleBind(150);
+    this.scheduleBind(600);
+  }
+
+  scheduleBind(ms) {
+    var self = this;
+    clearTimeout(this._bindTimer);
+    this._bindTimer = setTimeout(function () { self.bindDom(); }, ms || 60);
+  }
+
+  getQuery() {
+    try { return new URLSearchParams(window.location.search || ''); }
+    catch (e) { return new URLSearchParams(); }
+  }
+
+  pickSubject(ticket, fallback) {
+    if (!ticket || typeof ticket !== 'object') return String(fallback || '').trim();
+    var keys = ['subject', 'topic', 'title', 'summary', 'description', 'note', 'work_done'];
+    for (var i = 0; i < keys.length; i++) {
+      var v = ticket[keys[i]];
+      if (v != null && String(v).trim()) return String(v).trim();
+    }
+    return String(fallback || '').trim();
+  }
+
+  unwrapTicket(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    if (raw.ticket && typeof raw.ticket === 'object') {
+      var nested = raw.ticket;
+      if (nested.output && typeof nested.output === 'object') return nested.output;
+      if (nested.data && typeof nested.data === 'object' && !Array.isArray(nested.data)) return nested.data;
+      return nested;
+    }
+    if (raw.output && typeof raw.output === 'object' && !Array.isArray(raw.output)) return raw.output;
+    if (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) return raw.data;
+    return raw;
+  }
+
+  async boot() {
+    var q = this.getQuery();
+    var tid = String(q.get('ticket_id') || q.get('id') || '').trim();
+    var name = String(q.get('name') || q.get('subject') || '').trim();
+    var customer = String(q.get('customer') || '').trim();
+    var forceView = q.get('view') === '1';
+    this._summaryDirty = false;
+    this._hasStroke = false;
+    this._sigDataUrl = '';
+    this._sigCanvas = null;
+    this.setState({
+      loading: true,
+      errorMsg: '',
+      ticketId: tid,
+      ticketName: name,
+      customerName: customer,
+      summary: name || ''
+    });
+    if (!tid) {
+      this.setState({ loading: false, errorMsg: this.t('Ticket not found', 'טיקט לא נמצא') });
+      return;
+    }
+    try {
+      await this.loadProducts();
+      var ticket = await this.fetchTicket(tid);
+      if (ticket) {
+        var closed = this.isClosed(ticket);
+        var media = this.extractMedia(ticket);
+        var summary = this.pickSubject(ticket, name);
+        var cust = ticket.customer_name || ticket.joined_customer_name || ticket.name || customer;
+        if (closed || forceView) {
+          this.setState({
+            loading: false,
+            mode: 'view',
+            summary: summary,
+            viewSummary: summary || this.t('No summary', 'אין סיכום'),
+            beforeUrl: media.before || '',
+            afterUrl: media.after || '',
+            signatureUrl: media.signature || '',
+            beforeDataUrl: media.before || '',
+            afterDataUrl: media.after || '',
+            customerName: cust || customer,
+            ticketName: name || ('#' + tid),
+            spares: this.parseSparesFromMessages(ticket)
+          });
+        } else {
+          this.setState({
+            loading: false,
+            mode: 'form',
+            summary: summary,
+            customerName: cust || customer,
+            ticketName: name || summary || ('#' + tid)
+          });
+          this.scheduleBind(80);
+          this.scheduleBind(300);
+        }
+      } else {
+        this.setState({
+          loading: false,
+          mode: 'form',
+          summary: name || '',
+          ticketName: name || ('#' + tid)
+        });
+        this.scheduleBind(80);
+        this.scheduleBind(300);
+      }
+    } catch (e) {
+      console.warn('[tech-call-close] boot failed', e);
+      this.setState({
+        loading: false,
+        mode: 'form',
+        summary: name || '',
+        errorMsg: (e && e.message) || this.t('Failed to load ticket', 'טעינת הטיקט נכשלה')
+      });
+      this.scheduleBind(80);
+    }
+  }
+
+  isClosed(ticket) {
+    if (!ticket) return false;
+    var st = String(ticket.status_name || ticket.status_label || ticket.status || '').toLowerCase();
+    if (st === '2' || st === 'closed' || st === 'done' || st === 'completed' || st === 'סגור' || st === 'נסגר') return true;
+    var sid = Number(ticket.status_id != null ? ticket.status_id : ticket.status);
+    return sid === 2 || sid === 4 || sid === 5;
+  }
+
+  async fetchTicket(tid) {
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return null;
+    var client = MineralBarApp.getClient();
+    try {
+      if (typeof MineralBarApp.getTicket === 'function') {
+        var res = await MineralBarApp.getTicket(tid);
+        return this.unwrapTicket(res);
+      }
+      var raw = await client.request('Ticket.Get', { ticket_id: tid, id: tid });
+      return this.unwrapTicket(raw);
+    } catch (e) {
+      console.warn('[tech-call-close] Ticket.Get failed', e);
+      return null;
+    }
+  }
+
+  async loadProducts() {
+    try {
+      if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return;
+      var raw;
+      if (typeof MineralBarApp.listProducts === 'function') {
+        var listed = await MineralBarApp.listProducts({ active: 1, limit: 50, length: 50, start: 0 });
+        raw = listed && (listed.raw || listed);
+        var listedRows = listed && listed.rows;
+        if (Array.isArray(listedRows) && listedRows.length) {
+          this.setState({
+            products: listedRows.map(function (p) {
+              return {
+                id: String(p.id || p.product_id || p.ID || ''),
+                name: p.name || p.product_name || p.title || ('#' + (p.id || ''))
+              };
+            }).filter(function (p) { return p.id; })
+          });
+          return;
+        }
+      }
+      raw = await MineralBarApp.getClient().request('Products.List', {
+        active: 1,
+        length: 50,
+        limit: 50,
+        start: 0
+      });
+      var rows = [];
+      if (Array.isArray(raw && raw.data)) rows = raw.data;
+      else if (Array.isArray(raw && raw.rows)) rows = raw.rows;
+      else if (Array.isArray(raw && raw.products)) rows = raw.products;
+      else if (Array.isArray(raw && raw.output)) rows = raw.output;
+      else if (raw && raw.output && Array.isArray(raw.output.data)) rows = raw.output.data;
+      var products = rows.map(function (p) {
+        return {
+          id: String(p.id || p.product_id || p.ID || ''),
+          name: p.name || p.product_name || p.title || ('#' + (p.id || ''))
+        };
+      }).filter(function (p) { return p.id; });
+      this.setState({ products: products });
+    } catch (e) {
+      console.warn('[tech-call-close] Products.List failed', e);
+    }
+  }
+
+  extractMedia(ticket) {
+    var out = { before: '', after: '', signature: '' };
+    if (!ticket) return out;
+    var msgs = ticket.messages || ticket.message || ticket.notes || '';
+    if (Array.isArray(msgs)) {
+      msgs = msgs.map(function (m) { return m.message || m.msg || m.text || ''; }).join('\n');
+    }
+    var text = String(msgs || '');
+    var m = text.match(/BIZ1_MEDIA:(\{[\s\S]*?\})/);
+    if (m) {
+      try {
+        var json = JSON.parse(m[1]);
+        out.before = json.before || '';
+        out.after = json.after || '';
+        out.signature = json.signature || '';
+      } catch (e) { /* ignore */ }
+    }
+    var files = ticket.files || ticket.attachments || [];
+    if (!Array.isArray(files)) files = [];
+    var tid = String(this.state.ticketId || ticket.id || '');
+    files.forEach(function (f) {
+      var name = String(f.original_name || f.file_name || f.name || f.fileName || '').toLowerCase();
+      var url = f.file_url || f.url || f.path || f.file_path || '';
+      if (!url) return;
+      if (name.indexOf('before') >= 0 || name.indexOf('ticket-' + tid + '-before') >= 0) out.before = out.before || url;
+      else if (name.indexOf('after') >= 0 || name.indexOf('ticket-' + tid + '-after') >= 0) out.after = out.after || url;
+      else if (name.indexOf('signature') >= 0 || name.indexOf('ticket-' + tid + '-signature') >= 0) out.signature = out.signature || url;
+    });
+    return out;
+  }
+
+  parseSparesFromMessages(ticket) {
+    var msgs = ticket && (ticket.messages || ticket.message) || '';
+    if (Array.isArray(msgs)) msgs = msgs.map(function (m) { return m.message || ''; }).join('\n');
+    var lines = String(msgs || '').split('\n');
+    var spares = [];
+    lines.forEach(function (line) {
+      var mm = line.match(/^-\s*(.+?)\s*x(\d+)\s*$/i);
+      if (mm) spares.push({ id: 'x' + spares.length, name: mm[1], qty: Number(mm[2]) || 1 });
+    });
+    return spares;
+  }
+
+  bindDom() {
+    this.bindPhotos();
+    this.bindSignature();
+    this.syncPhotoPreviews();
+    this.syncSummaryInput();
+  }
+
+  syncSummaryInput() {
+    var el = document.getElementById('work-summary-input');
+    if (!el) return;
+    if (!this._summaryDirty && this.state.summary != null && el.value !== String(this.state.summary)) {
+      el.value = String(this.state.summary || '');
+    }
+  }
+
+  bindPhotos() {
+    var self = this;
+    ['before', 'after'].forEach(function (kind) {
+      var input = document.getElementById(kind + '-photo-input');
+      if (!input) return;
+      if (input.getAttribute('data-bound') === '1') return;
+      input.setAttribute('data-bound', '1');
+      input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        self.compressImage(file).then(function (dataUrl) {
+          if (kind === 'before') self.setState({ beforeDataUrl: dataUrl });
+          else self.setState({ afterDataUrl: dataUrl });
+          setTimeout(function () { self.syncPhotoPreviews(); }, 40);
+        }).catch(function (e) {
+          console.warn('[tech-call-close] compress failed', e);
+        });
+      });
+    });
+  }
+
+  syncPhotoPreviews() {
+    var before = document.getElementById('before-photo-preview');
+    var after = document.getElementById('after-photo-preview');
+    var beforeLabel = document.getElementById('before-photo-label');
+    var afterLabel = document.getElementById('after-photo-label');
+    var beforeText = document.getElementById('before-photo-label-text');
+    var afterText = document.getElementById('after-photo-label-text');
+    if (before && this.state.beforeDataUrl) {
+      before.src = this.state.beforeDataUrl;
+      before.style.display = 'block';
+      if (beforeLabel) beforeLabel.classList.add('has-img');
+      if (beforeText) beforeText.style.display = 'none';
+    }
+    if (after && this.state.afterDataUrl) {
+      after.src = this.state.afterDataUrl;
+      after.style.display = 'block';
+      if (afterLabel) afterLabel.classList.add('has-img');
+      if (afterText) afterText.style.display = 'none';
+    }
+  }
+
+  compressImage(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function () {
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function () {
+          var max = 1280;
+          var w = img.width, h = img.height;
+          if (w > max || h > max) {
+            var scale = Math.min(max / w, max / h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  restoreSignature(canvas) {
+    if (!canvas || !this._sigDataUrl) return;
+    var img = new Image();
+    var self = this;
+    img.onload = function () {
+      var ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      self._hasStroke = true;
+    };
+    img.src = this._sigDataUrl;
+  }
+
+  bindSignature() {
+    var canvas = document.getElementById('sig-canvas');
+    if (!canvas) return;
+
+    // Rebind whenever DC recreates the canvas node
+    if (this._sigCanvas !== canvas) {
+      this._sigCanvas = canvas;
+      var ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#1f2a3a';
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      var self = this;
+
+      function pos(e) {
+        var rect = canvas.getBoundingClientRect();
+        var src = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+        var w = rect.width || 1;
+        var h = rect.height || 1;
+        return {
+          x: (src.clientX - rect.left) * (canvas.width / w),
+          y: (src.clientY - rect.top) * (canvas.height / h)
+        };
+      }
+      function start(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        self._sigDrawing = true;
+        var p = pos(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+      }
+      function move(e) {
+        if (!self._sigDrawing) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var p = pos(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        self._hasStroke = true;
+      }
+      function end(e) {
+        if (!self._sigDrawing) return;
+        self._sigDrawing = false;
+        try {
+          self._sigDataUrl = canvas.toDataURL('image/png');
+        } catch (err) { /* ignore */ }
+        // Update button state once — restore canvas after re-render
+        if (self._hasStroke && !self.state.hasStroke) {
+          self.setState({ hasStroke: true });
+          setTimeout(function () {
+            self.bindSignature();
+            self.restoreSignature(document.getElementById('sig-canvas'));
+          }, 50);
+        }
+      }
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      canvas.addEventListener('mouseup', end);
+      canvas.addEventListener('mouseleave', end);
+      window.addEventListener('mouseup', end);
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', end, { passive: false });
+      canvas.addEventListener('touchcancel', end, { passive: false });
+    }
+
+    if (this._sigDataUrl) this.restoreSignature(canvas);
+  }
+
+  clearSig() {
+    var canvas = document.getElementById('sig-canvas') || this._sigCanvas;
+    if (canvas) {
+      var ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    this._hasStroke = false;
+    this._sigDataUrl = '';
+    this.setState({ hasStroke: false, signatureUrl: '' });
+    var self = this;
+    setTimeout(function () { self.bindSignature(); }, 40);
+  }
+
+  onSummary(e) {
+    this._summaryDirty = true;
+    var val = String((e && e.target && e.target.value) || '');
+    this._summaryValue = val;
+    clearTimeout(this._summaryTimer);
+    var self = this;
+    // Debounce so typing does not wipe the signature canvas every keystroke
+    this._summaryTimer = setTimeout(function () {
+      self.setState({ summary: val });
+      setTimeout(function () {
+        self.bindSignature();
+        if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+      }, 40);
+    }, 250);
+  }
+
+  onProductPick(e) {
+    // Avoid setState here — it recreates the signature canvas
+    this.state.productId = String((e && e.target && e.target.value) || '');
+  }
+
+  onQty(e) {
+    var v = String((e && e.target && e.target.value) || '').replace(/[^0-9]/g, '');
+    // Keep local — avoid re-render while typing qty
+    this.state.qty = v || '1';
+  }
+
+  addSpare() {
+    var select = document.getElementById('spare-product-select');
+    var qtyEl = document.getElementById('spare-qty-input');
+    var id = (select && select.value) || this.state.productId || '';
+    if (!id) {
+      this.setState({ formError: this.t('Select a product first', 'קודם בחר מוצר') });
+      return;
+    }
+    var product = (this.state.products || []).find(function (p) { return String(p.id) === String(id); });
+    if (!product) {
+      var opt = select && select.options && select.options[select.selectedIndex];
+      product = { id: id, name: (opt && opt.text) || ('#' + id) };
+    }
+    var qtyRaw = (qtyEl && qtyEl.value) || this.state.qty || '1';
+    var qty = Math.max(1, parseInt(qtyRaw, 10) || 1);
+    var spares = (this.state.spares || []).slice();
+    var existing = spares.find(function (s) { return String(s.id) === String(id); });
+    if (existing) existing.qty += qty;
+    else spares.push({ id: product.id, name: product.name, qty: qty });
+    this.setState({ spares: spares, productId: '', qty: '1', formError: '' });
+    if (select) select.value = '';
+    if (qtyEl) qtyEl.value = '1';
+    var self = this;
+    setTimeout(function () {
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+    }, 60);
+  }
+
+  removeSpare(id) {
+    this.setState({ spares: (this.state.spares || []).filter(function (s) { return String(s.id) !== String(id); }) });
+    var self = this;
+    setTimeout(function () {
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+    }, 60);
+  }
+
+  dataUrlToFile(dataUrl, fileName) {
+    var parts = String(dataUrl || '').split(',');
+    var meta = parts[0] || '';
+    var data = parts[1] || '';
+    var mime = (meta.match(/data:(.*?);/) || [])[1] || 'image/png';
+    var bin = atob(data);
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new File([arr], fileName, { type: mime });
+  }
+
+  async uploadOne(ticketId, dataUrl, fileName) {
+    var client = MineralBarApp.getClient();
+    var form = new FormData();
+    form.append('ticket_id', String(ticketId));
+    form.append('id', String(ticketId));
+    form.append('image_upload', this.dataUrlToFile(dataUrl, fileName), fileName);
+    var raw = await client.request('Ticket.Edit', form);
+    var files = (raw && (raw.files || (raw.output && raw.output.files) || (raw.data && raw.data.files))) || [];
+    if (!Array.isArray(files)) files = [];
+    var hit = files.find(function (f) {
+      var n = String(f.original_name || f.file_name || f.name || '').toLowerCase();
+      return n === String(fileName).toLowerCase() || n.indexOf(String(fileName).toLowerCase().replace(/\.\w+$/, '')) >= 0;
+    }) || files[files.length - 1];
+    return (hit && (hit.file_url || hit.url || hit.path || hit.file_path)) || '';
+  }
+
+  async submit() {
+    var st = this.state;
+    var summaryEl = document.getElementById('work-summary-input');
+    var summary = String((summaryEl && summaryEl.value) || st.summary || '').trim();
+    var hasSig = !!(this._hasStroke || st.hasStroke || this._sigDataUrl);
+    var errs = [];
+    if (summary.length < 2) errs.push(this.t('Work summary', 'סיכום העבודה'));
+    if (!hasSig) errs.push(this.t('Digital Signature', 'חתימה דיגיטלית'));
+    if (errs.length) {
+      this.setState({
+        attempted: true,
+        summary: summary,
+        formError: this.t('Missing:', 'חסר:') + ' ' + errs.join(' · ')
+      });
+      return;
+    }
+    if (!st.ticketId) {
+      this.setState({ formError: this.t('Ticket not found', 'טיקט לא נמצא') });
+      return;
+    }
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
+      this.setState({ formError: this.t('SDK not ready', 'המערכת עדיין לא מוכנה') });
+      return;
+    }
+
+    this.setState({ busy: true, formError: '', summary: summary });
+    try {
+      var tid = st.ticketId;
+      var media = { before: '', after: '', signature: '' };
+
+      if (st.beforeDataUrl && String(st.beforeDataUrl).indexOf('data:') === 0) {
+        media.before = await this.uploadOne(tid, st.beforeDataUrl, 'ticket-' + tid + '-before-1.jpg');
+        if (!media.before) throw new Error(this.t('Photo upload failed', 'העלאת התמונה נכשלה'));
+      } else if (st.beforeDataUrl) {
+        media.before = st.beforeDataUrl;
+      }
+
+      if (st.afterDataUrl && String(st.afterDataUrl).indexOf('data:') === 0) {
+        media.after = await this.uploadOne(tid, st.afterDataUrl, 'ticket-' + tid + '-after-1.jpg');
+        if (!media.after) throw new Error(this.t('Photo upload failed', 'העלאת התמונה נכשלה'));
+      } else if (st.afterDataUrl) {
+        media.after = st.afterDataUrl;
+      }
+
+      var canvas = document.getElementById('sig-canvas');
+      var sigData = this._sigDataUrl || (canvas ? canvas.toDataURL('image/png') : '');
+      if (!sigData) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
+      media.signature = await this.uploadOne(tid, sigData, 'ticket-' + tid + '-signature.png');
+      if (!media.signature) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
+
+      var lines = ['Work summary: ' + summary];
+      (st.spares || []).forEach(function (s) {
+        lines.push('- ' + s.name + ' x' + s.qty);
+      });
+      if (media.before) lines.push('Before photo attached.');
+      if (media.after) lines.push('After photo attached.');
+      lines.push('Client signature saved.');
+      lines.push('BIZ1_MEDIA:' + JSON.stringify(media));
+      var messages = lines.join('\n');
+
+      var payload = {
+        ticket_id: tid,
+        id: tid,
+        status: '2',
+        subject: summary,
+        topic: summary,
+        messages: messages,
+        message: messages
+      };
+      if ((st.spares || []).length) {
+        payload.product_id = st.spares.map(function (s) { return s.id; }).join(',');
+      }
+
+      var client = MineralBarApp.getClient();
+      var raw = await client.request('Ticket.Edit', payload);
+      if (raw && Number(raw.success) === 0) {
+        throw new Error(raw.message || this.t('Failed to close ticket', 'סגירת הטיקט נכשלה'));
+      }
+
+      this.setState({
+        busy: false,
+        mode: 'view',
+        viewSummary: summary,
+        beforeUrl: media.before,
+        afterUrl: media.after,
+        signatureUrl: media.signature,
+        beforeDataUrl: media.before,
+        afterDataUrl: media.after
+      });
+    } catch (e) {
+      console.warn('[tech-call-close] submit failed', e);
+      this.setState({
+        busy: false,
+        formError: (e && e.message) || this.t('Failed to close ticket', 'סגירת הטיקט נכשלה')
+      });
+      var self = this;
+      setTimeout(function () {
+        self.bindDom();
+        if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+      }, 60);
+    }
+  }
+
+  goBack() {
+    try {
+      if (window.history.length > 1) { window.history.back(); return; }
+    } catch (e) { /* ignore */ }
+    window.location.href = 'tech-open-calls.html';
+  }
+
+  renderVals() {
+    void this.state.langTick;
+    var st = this.state;
+    var showForm = !st.loading && st.mode === 'form';
+    var showView = !st.loading && st.mode === 'view';
+    var hasSig = !!(st.hasStroke || this._hasStroke || this._sigDataUrl);
+    var canSubmit = String(st.summary || '').trim().length >= 2 && hasSig && !st.busy;
+
+    if (showForm) {
+      this.scheduleBind(50);
+    }
+
+    return {
+      loading: !!st.loading,
+      loadingMsg: this.t('Loading…', 'טוען…'),
+      hasError: !!st.errorMsg && !showForm && !showView,
+      errorMsg: st.errorMsg || '',
+      showForm: showForm,
+      showView: showView,
+      pageTitle: showView
+        ? this.t('View ticket', 'צפייה בטיקט')
+        : this.t('Complete & Sign-Off', 'סיום וחתימה'),
+      headerSub: '#' + String(st.ticketId || '').replace(/^#/, '') +
+        (st.customerName ? (' · ' + st.customerName) : (st.ticketName && String(st.ticketName).indexOf('#') !== 0 ? (' · ' + st.ticketName) : '')),
+
+      labelSummary: this.t('Work summary', 'סיכום העבודה'),
+      summaryPh: this.t('Describe work performed…', 'פרט מה בוצע…'),
+      summary: st.summary,
+      onSummary: (e) => this.onSummary(e),
+      summaryBorder: (st.attempted && String(st.summary || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
+
+      labelSpares: this.t('Spare parts', 'חלקים שנוצלו'),
+      optionalLabel: this.t('optional', 'אופציונלי'),
+      selectProduct: this.t('Select product…', 'בחר מוצר…'),
+      addPart: this.t('Add', 'הוסף'),
+      removePart: this.t('Remove', 'הסר'),
+      products: (st.products || []).map(p => ({
+        id: p.id,
+        name: p.name
+      })),
+      onProductPick: (e) => this.onProductPick(e),
+      qty: st.qty || '1',
+      onQty: (e) => this.onQty(e),
+      addSpare: () => this.addSpare(),
+      spares: (st.spares || []).map(s => ({
+        name: s.name,
+        qty: s.qty,
+        remove: () => this.removeSpare(s.id)
+      })),
+
+      labelPhotos: this.t('Photos', 'תמונות'),
+      beforePhoto: this.t('Before photo', 'תמונה לפני'),
+      afterPhoto: this.t('After photo', 'תמונה אחרי'),
+      beforeClass: st.beforeDataUrl ? 'has-img' : '',
+      afterClass: st.afterDataUrl ? 'has-img' : '',
+
+      labelSignature: this.t('Digital Signature', 'חתימה דיגיטלית'),
+      clearSigLabel: this.t('Clear', 'נקה'),
+      tapSign: this.t('Sign here', 'חתום כאן'),
+      clearSig: () => this.clearSig(),
+      sigBorder: (st.attempted && !hasSig) ? '#e8a9a4' : '#dde2ea',
+
+      showFormError: !!st.formError,
+      formError: st.formError || '',
+
+      busy: !!st.busy,
+      submit: () => this.submit(),
+      submitLabel: st.busy
+        ? this.t('Saving…', 'שומר…')
+        : this.t('Complete Ticket & Sign Off', 'סגור טיקט וחתום'),
+      submitBg: canSubmit ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0',
+      submitColor: canSubmit ? '#fff' : '#9aa3b0',
+      submitCursor: canSubmit ? 'pointer' : 'not-allowed',
+      submitOpacity: st.busy ? '0.75' : '1',
+      submitShadow: canSubmit ? '0 6px 16px rgba(44,138,96,.32)' : 'none',
+
+      successTitle: this.t('Ticket completed', 'הטיקט הושלם'),
+      successBody: this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.'),
+      labelCompleted: this.t('Completed work', 'עבודה שהושלמה'),
+      viewSummary: st.viewSummary || st.summary || '—',
+      hasViewSpares: !!(st.spares && st.spares.length),
+      viewSpares: (st.spares || []).map(s => ({ label: s.name + ' × ' + s.qty })),
+      hasViewPhotos: !!(st.beforeUrl || st.afterUrl),
+      hasBefore: !!st.beforeUrl,
+      hasAfter: !!st.afterUrl,
+      beforeUrl: st.beforeUrl || '',
+      afterUrl: st.afterUrl || '',
+      hasSignature: !!st.signatureUrl,
+      signatureUrl: st.signatureUrl || '',
+      backLabel: this.t('Back to open tickets', 'חזרה לטיקטים פתוחים'),
+      backTickets: () => { window.location.href = 'tech-open-calls.html'; },
+      onClose: () => this.goBack()
+    };
+  }
+}
+</script>
+
+<script>
+  window.addEventListener('load', function () {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    if (typeof applyTranslations === 'function') applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+  });
+  setTimeout(function () {
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }, 300);
+</script>
+</body>
+</html>

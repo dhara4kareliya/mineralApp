@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<script src="./sales-static-live.js?v=sales-live-1"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, a { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+  <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+    <div data-screen-label="אישור הזמנה" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+
+      <!-- status bar -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 22px 4px; font-size:13px; font-weight:700; color:#1f2a3a; flex:none; background:#13593a;">
+        <span style="color:#fff;">9:41</span>
+        <div style="display:flex; gap:5px; align-items:center;">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="#fff"><rect x="0" y="3" width="3" height="8" rx="1"/><rect x="4.5" y="1.5" width="3" height="9.5" rx="1"/><rect x="9" y="0" width="3" height="11" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1" opacity="0.35"/></svg>
+          <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#fff" stroke-opacity="0.55"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.2" fill="#fff"/><rect x="22" y="4" width="1.6" height="4" rx="0.8" fill="#fff" fill-opacity="0.5"/></svg>
+        </div>
+      </div>
+
+      <!-- green hero -->
+      <div style="background:linear-gradient(165deg,#1e6b44,#11502f); padding:30px 22px 34px; flex:none; text-align:center; color:#fff;">
+        <div style="width:92px; height:92px; border-radius:50%; background:rgba(255,255,255,.16); margin:0 auto 22px; display:flex; align-items:center; justify-content:center;">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div style="font-size:27px; font-weight:800; line-height:1.1;">ההזמנה אושרה! 🎉</div>
+        <div style="font-size:15px; color:rgba(255,255,255,.86); margin-top:13px; line-height:1.6; max-width:300px; margin-left:auto; margin-right:auto;">נציגת השירות קיבלה את ההזמנה ותיצור קשר עם הלקוח לתיאום התקנה</div>
+      </div>
+
+      <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:18px 16px 16px;">
+
+        <!-- order summary card -->
+        <div style="background:#f4f6f8; border:1px solid #e7eaee; border-radius:18px; padding:6px 16px; margin-bottom:20px;">
+          <!-- title -->
+          <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:13px 0 11px; border-bottom:1px solid #e7eaee;">
+            <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">סיכום הזמנה #ORD-0089</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7b8595" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/></svg>
+          </div>
+          <!-- rows -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid #e7eaee;">
+            <span style="font-size:13.5px; color:#7b8595; font-weight:600;">לקוח</span>
+            <span style="font-size:14.5px; font-weight:700; color:#1f2a3a;">משה כהן</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid #e7eaee; gap:14px;">
+            <span style="font-size:13.5px; color:#7b8595; font-weight:600; flex:none;">מוצרים</span>
+            <span style="font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:left;">סנן ראשי אופק + ביטוח</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid #e7eaee;">
+            <span style="font-size:13.5px; color:#7b8595; font-weight:600;">צבע</span>
+            <span style="font-size:14.5px; font-weight:700; color:#1f2a3a;">לבן</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid #e7eaee;">
+            <span style="font-size:13.5px; color:#7b8595; font-weight:600;">סה"כ</span>
+            <span style="font-size:15px; font-weight:800; color:#2e8a63;">118₪/חודש</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid #e7eaee;">
+            <span style="font-size:13.5px; color:#7b8595; font-weight:600;">תשלום</span>
+            <span style="font-size:14.5px; font-weight:700; color:#1f2a3a;">אשראי · •••• 4782</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0;">
+            <span style="font-size:13.5px; color:#7b8595; font-weight:600;">מקדמה</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:14.5px; font-weight:700; color:#1f2a3a;">
+              200₪
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2e8a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+          </div>
+        </div>
+
+        <!-- what's next -->
+        <div style="font-size:14px; color:#7b8595; font-weight:700; margin:0 2px 11px; text-align:right;">מה הלאה?</div>
+
+        <!-- row 1 -->
+        <div style="display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #e7eaee; border-radius:14px; padding:14px 14px; margin-bottom:11px;">
+          <span style="flex:none; color:#7b8595; display:flex;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4" height="7" rx="1.6"/><rect x="17.5" y="13" width="4" height="7" rx="1.6"/></svg>
+          </span>
+          <div style="flex:1; text-align:right;">
+            <div style="font-size:14.5px; font-weight:700; color:#1f2a3a;">ההזמנה נשלחה לנציגת שירות</div>
+            <div style="font-size:12.5px; color:#9aa3b0; margin-top:2px;">לתיאום התקנה עם הלקוח</div>
+          </div>
+          <span style="flex:none; display:inline-flex; align-items:center; gap:4px; background:#e8f3ec; color:#2e8a63; font-size:12px; font-weight:700; padding:5px 10px; border-radius:99px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2e8a63" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            נשלח
+          </span>
+        </div>
+
+        <!-- row 2 -->
+        <div style="display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #e7eaee; border-radius:14px; padding:14px 14px;">
+          <span style="flex:none; color:#7b8595; display:flex;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          </span>
+          <div style="flex:1; text-align:right;">
+            <div style="font-size:14.5px; font-weight:700; color:#1f2a3a;">חשבונית נשלחה ללקוח</div>
+            <div style="font-size:12.5px; color:#9aa3b0; margin-top:2px;">לאימייל moshe@gmail.com</div>
+          </div>
+          <span style="flex:none; display:inline-flex; align-items:center; gap:4px; background:#e8f3ec; color:#2e8a63; font-size:12px; font-weight:700; padding:5px 10px; border-radius:99px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2e8a63" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            נשלח
+          </span>
+        </div>
+
+      </div>
+
+      <!-- footer button -->
+      <div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:13px 16px 14px;">
+        <a href="sales-home.html" style="width:100%; padding:14px 18px; border:none; border-radius:14px; background:#1d60a2; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.28); text-decoration:none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          <span style="flex:1; text-align:center;">
+            <span style="display:block; font-size:16px; font-weight:800;">חזור לדשבורד</span>
+            <span style="display:block; font-size:12px; font-weight:600; color:rgba(255,255,255,.8); margin-top:1px;">לטפל בלידים הבאים</span>
+          </span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 9.5V20h14V9.5"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 424, &quot;height&quot;: 880}}"></script>
+</body>
+</html>

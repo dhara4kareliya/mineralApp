@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<script src="./sales-static-live.js?v=sales-live-1"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, a { font-family: 'Heebo', sans-serif; }
+  .od-scroll::-webkit-scrollbar { width: 0; }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes slideUp {
+    0% { transform: translate(-50%, 20px); opacity: 0; }
+    100% { transform: translate(-50%, 0); opacity: 1; }
+  }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div data-screen-label="Order document" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- status bar -->
+<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 22px 4px; font-size:13px; font-weight:700; color:#1f2a3a; flex:none; background:#fff;">
+<span class="status-clock"></span> <button type="button" class="lang-translator-btn" id="btn-lang-toggle">🌐 EN</button>
+<div style="display:flex; gap:5px; align-items:center;">
+
+
+</div>
+</div>
+<!-- header -->
+<div style="background:#fff; padding:4px 14px 12px; flex:none; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 0 #edeff2;">
+<a href="collection-payment.html" style="width:38px; height:38px; border-radius:50%; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m15 18-6-6 6-6"></path></svg>
+</a>
+<div style="font-size:18px; font-weight:800; color:#1f2a3a; white-space:nowrap;">Order document</div>
+<button style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><circle cx="12" cy="13" r="3"></circle><path d="M12 10V3M9 5l3-3 3 3"></path><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path></svg>
+</button>
+</div>
+<div class="od-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 120px;">
+<!-- ===== letterhead ===== -->
+<div style="background:linear-gradient(135deg,#16223a 0%,#1d3a5f 100%); border-radius:20px 20px 0 0; padding:20px 18px 18px; color:#fff; position:relative; overflow:hidden;">
+<div style="position:absolute; top:-30px; left:-20px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.05);"></div>
+<div style="display:flex; align-items:center; gap:11px; position:relative;">
+<div style="width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="24" stroke="#9cc3ec" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="24"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:19px; font-weight:900; letter-spacing:-.3px;">mineral bar</div>
+<div style="font-size:11.5px; color:#9fb6d4; margin-top:1px;">One drop above them all</div>
+</div>
+<div style="text-align:left; flex:none; font-size:10.5px; color:#9fb6d4; line-height:1.7;">
+<div>03-555-1234</div>
+<div>service@mineralbar.co.il</div>
+</div>
+</div>
+</div>
+<!-- order meta strip -->
+<div style="background:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f0f2f5;">
+<div style="text-align:left;">
+<div style="font-size:11.5px; color:#9aa3b0; font-weight:600;">order number</div>
+<div style="font-size:17px; font-weight:800; color:#1f2a3a; margin-top:1px; white-space:nowrap; direction:ltr; text-align:left;">#ORD-0089</div>
+</div>
+<div style="display:inline-flex; align-items:center; gap:5px; background:#e8f3ec; color:#2e8a63; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:99px;">
+<svg fill="none" height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="13"><path d="M20 6 9 17l-5-5"></path></svg>
+            The order has been confirmed
+          </div>
+</div>
+<!-- date strip -->
+<div style="background:#fbfcfd; padding:11px 18px; display:flex; align-items:center; gap:18px; color:#5a6473; border-bottom:1px solid #f0f2f5;">
+<div style="display:flex; align-items:center; gap:8px;">
+<svg fill="none" height="15" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none;" viewbox="0 0 24 24" width="15"><rect height="17" rx="2.5" width="18" x="3" y="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+<span style="font-size:12.5px; font-weight:700;">Order date 06/18/2026</span>
+</div>
+</div>
+<!-- ===== parties ===== -->
+<div style="background:#fff; padding:16px 18px 4px; display:flex; flex-direction:column; gap:14px;">
+<!-- customer -->
+<div>
+<div style="font-size:11.5px; font-weight:800; color:#9aa3b0; margin-bottom:8px;">Customer details</div>
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:44px; height:44px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">from</div>
+<div style="flex:1;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;">Moshe Cohen</div>
+<div style="font-size:12.5px; color:#8a93a3; margin-top:1px;">T.Z. 123456789</div>
+</div>
+</div>
+<div style="margin-top:11px; display:flex; flex-direction:column; gap:9px;">
+<div style="display:flex; align-items:center; gap:9px;">
+<svg fill="none" height="15" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none;" viewbox="0 0 24 24" width="15"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>
+<span style="font-size:13.5px; color:#46505f; font-weight:600; direction:ltr;">050-1234567</span>
+</div>
+<div style="display:flex; align-items:flex-start; gap:9px;">
+<svg fill="none" height="15" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none; margin-top:1px;" viewbox="0 0 24 24" width="15"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+<span style="font-size:13.5px; color:#46505f; font-weight:600;">12 Herzl St., 3rd floor, apartment 8, Tel Aviv <span style="color:#9aa3b0; font-weight:500;">· Installation address</span></span>
+</div>
+</div>
+</div>
+<div style="height:1px; background:#f0f2f5;"></div>
+<!-- rep -->
+<div style="display:flex; align-items:center; gap:9px; padding-bottom:14px;">
+<svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none;" viewbox="0 0 24 24" width="16"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
+<div style="flex:1; font-size:13px; color:#8a93a3; font-weight:600;">sales person</div>
+<div style="font-size:13.5px; font-weight:700; color:#1f2a3a;">Yossi Cohen</div>
+</div>
+</div>
+<!-- ===== line items ===== -->
+<div style="background:#fff; padding:6px 18px 4px; border-top:6px solid #f4f6f9;">
+<div style="font-size:11.5px; font-weight:800; color:#9aa3b0; margin:8px 0 4px;">Order details</div>
+<!-- item 1 -->
+<div style="display:flex; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid #f3f4f7;">
+<div style="width:40px; height:40px; border-radius:12px; background:#eef3fd; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="21"><path d="M12 3c3 4 6 7 6 10a6 6 0 0 1-12 0c0-3 3-6 6-10z"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Filter main horizon</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:2px; display:flex; align-items:center; gap:7px;">
+<span>Annual track</span>
+<span style="width:3px; height:3px; border-radius:50%; background:#cdd3dc;"></span>
+<span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:11px; height:11px; border-radius:50%; background:#fff; border:1px solid #d2d8e0;"></span>White color</span>
+</div>
+</div>
+<div style="text-align:left; flex:none;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">89₪<span style="font-size:11px; font-weight:600; color:#9aa3b0;">/month</span></div>
+</div>
+</div>
+<!-- item 2 -->
+<div style="display:flex; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid #f3f4f7;">
+<div style="width:40px; height:40px; border-radius:12px; background:#eef0fb; color:#50439d; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="21"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Annual product insurance</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">Full coverage · Repairs and replacements</div>
+</div>
+<div style="text-align:left; flex:none;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">29₪<span style="font-size:11px; font-weight:600; color:#9aa3b0;">/month</span></div>
+</div>
+</div>
+<!-- item 3 — install (free) -->
+<div style="display:flex; align-items:center; gap:12px; padding:13px 0;">
+<div style="width:40px; height:40px; border-radius:12px; background:#eaf7ef; color:#2e8a63; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="21"><path d="M14 7a3 3 0 0 0-4-4L6 7m1 1-4 4 4 4 4-4m6 6 3-3a3 3 0 0 0-4-4"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Professional installation</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">One time · by a qualified technician</div>
+</div>
+<div style="text-align:left; flex:none;">
+<div style="font-size:13px; font-weight:800; color:#2e8a63;">free of charge</div>
+</div>
+</div>
+</div>
+<!-- ===== totals ===== -->
+<div style="background:#fff; padding:14px 18px 16px; border-top:6px solid #f4f6f9;">
+<div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0;">
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">118 NIS/month</span>
+<span style="font-size:13px; color:#8a93a3;">Intermediate amount (before VAT)</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0;">
+<span style="font-size:13.5px; font-weight:700; color:#2e8a63;">0₪—</span>
+<span style="font-size:13px; color:#8a93a3;">discount</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0 12px;">
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">21.24 NIS/month</span>
+<span style="font-size:13px; color:#8a93a3;">VAT 18%</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:13px 16px; background:#16223a; border-radius:15px;">
+<div style="text-align:left;">
+<div style="font-size:23px; font-weight:900; color:#fff; line-height:1;">139.24₪<span style="font-size:13px; font-weight:600; color:#9fb6d4;">/month</span></div>
+</div>
+<div style="text-align:left;">
+<div style="font-size:14.5px; font-weight:800; color:#fff;">Total monthly</div>
+<div style="font-size:11.5px; color:#9fb6d4; margin-top:1px;">including VAT</div>
+</div>
+</div>
+</div>
+<!-- ===== payment ===== -->
+<div style="background:#fff; padding:6px 18px 16px; border-top:6px solid #f4f6f9;">
+<div style="font-size:11.5px; font-weight:800; color:#9aa3b0; margin:8px 0 11px;">Payment details</div>
+<div style="display:flex; align-items:center; gap:12px; background:#f6f8fb; border:1px solid #eef1f5; border-radius:14px; padding:13px 14px;">
+<div style="width:40px; height:40px; border-radius:12px; background:#eef3fd; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="21"><rect height="14" rx="2.5" width="19" x="2.5" y="5"></rect><path d="M2.5 9.5h19"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14px; font-weight:800; color:#1f2a3a;">Credit card · One payment</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:2px; direction:ltr; text-align:left;">•••• •••• •••• 4782</div>
+</div>
+<span style="flex:none; display:inline-flex; align-items:center; gap:4px; background:#e8f3ec; color:#2e8a63; font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:99px;">
+<svg fill="none" height="12" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" viewbox="0 0 24 24" width="12"><path d="M20 6 9 17l-5-5"></path></svg>
+              charged
+            </span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:13px 2px 0;">
+<span style="font-size:13px; color:#8a93a3; font-weight:600;">Installation advance (one-time)</span>
+<span style="display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:800; color:#1f2a3a;">
+              200₪
+              <svg fill="none" height="14" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="14"><path d="M20 6 9 17l-5-5"></path></svg>
+</span>
+</div>
+</div>
+<!-- ===== what's included ===== -->
+<!-- <div style="background:#fff; padding:6px 18px 18px; border-top:6px solid #f4f6f9;">
+<div style="font-size:11.5px; font-weight:800; color:#9aa3b0; margin:8px 0 11px;">The route includes</div>
+<div style="display:flex; flex-direction:column; gap:10px;">
+<div style="display:flex; align-items:center; gap:9px;">
+<span style="width:19px; height:19px; border-radius:50%; background:#eaf7ef; display:flex; align-items:center; justify-content:center; flex:none;"><svg fill="none" height="11" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="11"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="font-size:13px; color:#46505f; font-weight:600;">Periodic replacement of filters at no cost</span>
+</div>
+<div style="display:flex; align-items:center; gap:9px;">
+<span style="width:19px; height:19px; border-radius:50%; background:#eaf7ef; display:flex; align-items:center; justify-content:center; flex:none;"><svg fill="none" height="11" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="11"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="font-size:13px; color:#46505f; font-weight:600;">Technical service and repair availability</span>
+</div>
+<div style="display:flex; align-items:center; gap:9px;">
+<span style="width:19px; height:19px; border-radius:50%; background:#eaf7ef; display:flex; align-items:center; justify-content:center; flex:none;"><svg fill="none" height="11" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="11"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="font-size:13px; color:#46505f; font-weight:600;">Full warranty for the entire contract period</span>
+</div>
+</div>
+</div> -->
+<!-- terms -->
+<div style="padding:16px 6px 0; font-size:11px; color:#aab2bd; line-height:1.7; text-align:left;">
+          Prices include VAT (18%). The order is subject to the full terms of engagement and confirmation of the payment method. The installation date will be coordinated by the service representative. Cancellation during the commitment period may involve exit fees in accordance with the agreement.
+        </div>
+</div>
+<sc-if value="{{ downloading }}">
+  <div style="position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:rgba(15,24,40,0.9); backdrop-filter:blur(8px); color:#fff; padding:12px 20px; border-radius:16px; display:flex; align-items:center; gap:10px; box-shadow:0 8px 30px rgba(0,0,0,0.25); z-index:9999; animation: slideUp 0.3s ease-out; font-family:'Heebo',sans-serif; width: calc(100% - 32px); max-width: 360px; direction:rtl;">
+    <div style="width:18px; height:18px; border:2.5px solid rgba(255,255,255,0.2); border-top-color:#fff; border-radius:50%; animation: spin 0.8s linear infinite; flex:none;"></div>
+    <span style="font-size:14px; font-weight:700;">מכין מסמך להורדה...</span>
+  </div>
+</sc-if>
+
+<sc-if value="{{ downloadSuccess }}">
+  <div style="position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#e8f3ec; border:1px solid #c8e6d1; color:#2e8a63; padding:12px 20px; border-radius:16px; display:flex; align-items:center; gap:10px; box-shadow:0 8px 30px rgba(46,138,99,0.15); z-index:9999; animation: slideUp 0.3s ease-out; font-family:'Heebo',sans-serif; width: calc(100% - 32px); max-width: 360px; direction:rtl;">
+    <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="18" style="color:#2e8a63; flex:none;"><path d="M20 6 9 17l-5-5"></path></svg>
+    <span style="font-size:14px; font-weight:700;">הקובץ הורד בהצלחה! 🎉</span>
+  </div>
+</sc-if>
+
+<!-- sticky footer -->
+<div style="position:absolute; bottom:0; left:0; right:0; background:#fff; box-shadow:0 -2px 14px rgba(15,24,40,.08); padding:11px 16px 22px;">
+<div style="display:flex; gap:9px;">
+<button onclick="{{ onDownload }}" style="width:48px; height:50px; border-radius:14px; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="20"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
+</button>
+<a href="order-confirmation.html" style="flex:1; display:flex; align-items:center; justify-content:center; gap:9px; padding:14px; border-radius:14px; background:linear-gradient(135deg,#2e8a63,#23734f); color:#fff; font-size:15.5px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(46,138,99,.28);">
+<svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M21 11.5a8.4 8.4 0 0 1-1.1 4.2A8.5 8.5 0 0 1 8.5 19L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"></path></svg>
+            Send to the client on WhatsApp
+          </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    downloading: false,
+    downloadSuccess: false
+  };
+
+  downloadDocument() {
+    this.setState({ downloading: true });
+    setTimeout(() => {
+      this.setState({ downloading: false, downloadSuccess: true });
+      try {
+        const link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,JVBERi0xLjQKJdPr6gogMSAwIG9iagogIDw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+CmVuZG9iagoyIDAgb2JqCiAgPDwvVHlwZS9QYWdlcy9LaWRzWzMgMCBSXS9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKICA8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL01lZGlhQm94WzAgMCA1OTUgODQyXS9SZXNvdXJjZXM8PC9Gb250PDwvRjEgNCAwIFI+Pj4+L0NvbnRlbnRzIDUgMCBSPj4KZW5kb2JqCjQgMCBvYmoKICA8PC9UeXBlL0ZvbnQvU3VidHlwZS9UeXBlMS9CYXNlRm9udC9IZWx2ZXRpY2E+PgplbmRvYmoKNSAwIG9iagogIDw8L0xlbmd0aCA0ND4+c3RyZWFtCkJUCi9GMSAxMiBUZgoxMDAgNzAwIFRkCihNaW5lcmFsIEJhciBPcmRlciAjT1JELTAwODkpIFRqCkVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjAgMDAwMDAgbiAKMDAwMDAwMDExOCAwwMDAwIG4gCjAwMDAwMDAyMjUgMDAwMDAgbiAKMDAwMDAwMjg0IDAwMDAwIG4gCnRyYWlsZXIKICA8PC9TaXplIDYvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgozNzYKJSVFT0YK';
+        link.download = 'Order_ORD-0089.pdf';
+        document.body.appendChild(link);
+        link.click();
+      } catch (e) {
+        console.error(e);
+      }
+      setTimeout(() => {
+        this.setState({ downloadSuccess: false });
+      }, 3000);
+    }, 1500);
+  }
+
+  renderVals() {
+    return {
+      onDownload: () => this.downloadDocument()
+    };
+  }
+}
+</script>
+</body>
+</html>

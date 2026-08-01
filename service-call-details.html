@@ -1,0 +1,609 @@
+  <!DOCTYPE html>
+
+  <html>
+
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <script src="./support.js"></script>
+    <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+    <script src="./biz1-app.js"></script>
+    <script src="./page-boot.js"></script>
+    <link rel="stylesheet" href="./common.css" />
+    <script src="./i18n-translations.js"></script>
+    <script src="./common-header-footer.js?v=20260730-1"></script>
+  </head>
+
+  <body>
+    <x-dc>
+      <helmet>
+        <link href="https://fonts.googleapis.com" rel="preconnect" />
+        <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+        <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap"
+          rel="stylesheet" />
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+
+          html,
+          body {
+            margin: 0;
+            direction: rtl;
+            font-family: 'Heebo', sans-serif;
+            -webkit-font-smoothing: antialiased;
+          }
+
+          button,
+          a {
+            font-family: 'Heebo', sans-serif;
+          }
+
+          .dc-scroll::-webkit-scrollbar {
+            width: 0;
+          }
+
+          .gv-tap {
+            transition: background .12s, transform .08s;
+          }
+
+          .gv-tap:active {
+            transform: scale(.985);
+          }
+        </style>
+      </helmet>
+      <div
+        style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+        <div
+          style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+          <div data-screen-label="Reading details"
+            style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+            <!-- navy header -->
+            <div style="background:#16223a; padding:13px 18px 16px; flex:none;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <a href="service-all-calls.html"
+                  style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+                  <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-width="2" viewbox="0 0 24 24" width="17">
+                    <path d="m15 18-6-6 6-6"></path>
+                  </svg>
+                </a>
+                <div style="text-align:center;">
+                  <div style="font-size:17.5px; font-weight:800; color:#fff;">Reading details</div>
+                  <div style="font-size:11.5px; color:#9fb0c8; margin-top:1px;">{{ callId }} · opened {{ openedAt }}</div>
+                </div>
+                <div></div>
+                <!-- <button
+                  style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                  <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-width="2" viewbox="0 0 24 24" width="17">
+                    <circle cx="5" cy="12" r="1.5"></circle>
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="19" cy="12" r="1.5"></circle>
+                  </svg>
+                </button> -->
+              </div>
+              <!-- type + status row -->
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;">
+                <div style="display:flex; align-items:center; gap:11px;">
+                  <div
+                    style="width:44px; height:44px; border-radius:13px; background:rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; flex:none;">
+                    <svg fill="none" height="23" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="1.9" viewbox="0 0 24 24" width="23">
+                      <path
+                        d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z">
+                      </path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style="font-size:17px; font-weight:800; color:#fff;">{{ callType }}</div>
+                    <div style="font-size:12px; color:#9fb0c8; margin-top:2px;">Source: {{ source }}</div>
+                  </div>
+                </div>
+                <span
+                  style="display:inline-flex; align-items:center; gap:5px; background:{{ statusBg }}; color:{{ statusColor }}; font-size:12px; font-weight:800; padding:6px 12px; border-radius:99px; flex:none;">
+                  <span style="width:7px; height:7px; border-radius:50%; background:{{ statusColor }};"></span>{{
+                  statusLabel }}
+                </span>
+              </div>
+            </div>
+            <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 18px;">
+              <!-- priority + opened summary -->
+              <div style="display:flex; gap:10px; margin-bottom:14px;">
+                <div
+                  style="flex:1; background:{{ prioBg }}; border:1.4px solid {{ prioBorder }}; border-radius:14px; padding:12px 13px;">
+                  <div style="font-size:11px; color:{{ prioColor }}; font-weight:700; opacity:.85;">priority</div>
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
+                    <svg fill="none" height="15" stroke="{{ prioColor }}" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2.1" viewbox="0 0 24 24" width="15">
+                      <path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path>
+                      <path d="M12 9v4M12 17h.01"></path>
+                    </svg>
+                    <span style="font-size:15px; font-weight:800; color:{{ prioColor }};">{{ prioLabel }}</span>
+                  </div>
+                </div>
+                <div style="flex:1; background:#fff; border:1.4px solid #e8eaee; border-radius:14px; padding:12px 13px;">
+                  <div style="font-size:11px; color:#9aa3b0; font-weight:700;">waiting time</div>
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
+                    <svg fill="none" height="15" stroke="{{ waitColor }}" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2.1" viewbox="0 0 24 24" width="15">
+                      <circle cx="12" cy="12" r="9"></circle>
+                      <path d="M12 7v5l3 2"></path>
+                    </svg>
+                    <span style="font-size:15px; font-weight:800; color:{{ waitColor }};">{{ waitLabel }}</span>
+                  </div>
+                </div>
+              </div>
+              <!-- customer mini card -->
+              <a class="gv-tap" href="{{ customerLink }}"
+                style="display:flex; align-items:center; gap:12px; background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; text-decoration:none;">
+                <div
+                  style="width:46px; height:46px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">
+                  {{ custInitials }}</div>
+                <div style="flex:1;">
+                  <div style="font-size:16px; font-weight:800; color:#1f2a3a;">{{ custName }}</div>
+                  <div
+                    style="display:flex; align-items:center; gap:4px; font-size:12.5px; color:#9aa3b0; margin-top:2px;">
+                    <svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" viewbox="0 0 24 24" width="13">
+                      <path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path>
+                      <circle cx="12" cy="10" r="2.5"></circle>
+                    </svg>
+                    {{ custAddress }}
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; flex:none;">
+                  <svg fill="none" height="18" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-width="2.2" style="align-self:center;" viewbox="0 0 24 24" width="18">
+                    <path d="m15 18-6-6 6-6"></path>
+                  </svg>
+                </div>
+              </a>
+              <!-- linked product -->
+              <div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">Linked product</div>
+              <div
+                style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; border-right:4px solid #1d60a2;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div
+                    style="width:42px; height:42px; border-radius:12px; background:#eef3fd; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="1.8" viewbox="0 0 24 24" width="22">
+                      <path d="M3 4h18l-7 9v6l-4 2v-8z"></path>
+                    </svg>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">{{ productName }}</div>
+                    <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ productMeta }}</div>
+                  </div>
+                  <span
+                    style="display:inline-flex; align-items:center; gap:4px; background:#e6f4ec; color:#2e8a63; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; flex:none;">
+                    <svg fill="none" height="11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2.4" viewbox="0 0 24 24" width="11">
+                      <path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path>
+                    </svg>{{ warranty }}
+                  </span>
+                </div>
+              </div>
+              <!-- problem description -->
+              <div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">Description of the problem
+              </div>
+              <div
+                style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+                <div style="font-size:14px; color:#3a4452; line-height:1.6;">{{ problem }}</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:11px;">
+                  <sc-for as="t" hint-placeholder-count="2" list="{{ tags }}">
+                    <span
+                      style="background:#f6f8fa; color:#5a6473; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:7px;">{{
+                      t.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <!-- attached photos -->
+              <div style="display:flex; align-items:center; justify-content:space-between; margin:2px 2px 9px;">
+                <div style="font-size:13px; color:#7b8595; font-weight:800;">Pictures attached</div>
+                <span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ photoCountLabel }}</span>
+              </div>
+              <sc-if hint-placeholder-val="{{ true }}" value="{{ hasPhotos }}">
+                <div style="display:flex; gap:10px; margin-bottom:14px;">
+                  <sc-for as="ph" hint-placeholder-count="3" list="{{ photos }}">
+                    <div style="flex:1; height:96px; border-radius:13px; overflow:hidden; position:relative;">
+                      <div style="position:absolute; inset:0; background:{{ ph.grad }};"></div>
+                      <div
+                        style="position:absolute; bottom:0; left:0; right:0; background:rgba(15,24,40,.5); padding:5px 7px; font-size:10.5px; color:#fff; font-weight:700;">
+                        {{ ph.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if hint-placeholder-val="{{ false }}" value="{{ noPhotos }}">
+                <div
+                  style="display:flex; align-items:center; gap:9px; background:#fff; border:1.4px dashed #d7dde6; border-radius:14px; padding:15px; margin-bottom:14px; color:#9aa3b0;">
+                  <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-width="1.8" viewbox="0 0 24 24" width="20">
+                    <path d="M3 8.5 4.2 6A2 2 0 0 1 6 5h12a2 2 0 0 1 1.8 1L21 8.5"></path>
+                    <rect height="12" rx="2.5" width="19" x="2.5" y="8.5"></rect>
+                    <circle cx="12" cy="14.5" r="3.2"></circle>
+                  </svg>
+                  <span style="font-size:13px; font-weight:600;">No pictures were attached to the call</span>
+                </div>
+              </sc-if>
+              <sc-if hint-placeholder-val="{{ true }}" value="{{ hasRep }}">
+                <!-- assigned rep -->
+                <div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">Associated service representative</div>
+                <div
+                  style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div
+                      style="width:44px; height:44px; border-radius:50%; background:#eef0fb; color:#50439d; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none;">
+                      {{ repInitials }}</div>
+                    <div style="flex:1;">
+                      <div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ repName }}</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+              <!-- call details / meta -->
+              <div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">Reading details</div>
+              <div
+                style="background:#fff; border-radius:16px; padding:4px 14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid #f0f2f5;">
+                  <div
+                    style="width:34px; height:34px; border-radius:10px; background:#eef0fb; color:#50439d; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="1.9" viewbox="0 0 24 24" width="17">
+                      <path
+                        d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z">
+                      </path>
+                    </svg>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:11.5px; color:#9aa3b0; font-weight:700;">Assigned Technician</div>
+                    <div style="font-size:14px; font-weight:700; color:#1f2a3a; margin-top:1px;">{{ techName }}</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid #f0f2f5;">
+                  <div
+                    style="width:34px; height:34px; border-radius:10px; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="1.9" viewbox="0 0 24 24" width="17">
+                      <rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect>
+                      <path d="M3 9h18M8 2.5v4M16 2.5v4"></path>
+                    </svg>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:11.5px; color:#9aa3b0; font-weight:700;">Created on</div>
+                    <div style="font-size:14px; font-weight:700; color:#1f2a3a; margin-top:1px;">{{ createdAt }}</div>
+                  </div>
+                </div>
+                <sc-if hint-placeholder-val="{{ true }}" value="{{ isScheduled }}">
+                  <div
+                    style="display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid #f0f2f5;">
+                    <div
+                      style="width:34px; height:34px; border-radius:10px; background:#eef0fb; color:#50439d; display:flex; align-items:center; justify-content:center; flex:none;">
+                      <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="1.9" viewbox="0 0 24 24" width="17">
+                        <rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect>
+                        <path d="M3 9h18M8 2.5v4M16 2.5v4"></path>
+                        <path d="m9 14.5 2 2 4-4"></path>
+                      </svg>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:11.5px; color:#9aa3b0; font-weight:700;">Scheduled for</div>
+                      <div style="font-size:14px; font-weight:700; color:#50439d; margin-top:1px;">{{ scheduledAt }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+                <div style="display:flex; align-items:center; gap:11px; padding:11px 0;">
+                  <div
+                    style="width:34px; height:34px; border-radius:10px; background:#eafaf0; color:#2e8a63; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="1.9" viewbox="0 0 24 24" width="17">
+                      <path d="M21 12a9 9 0 1 1-2.6-6.3"></path>
+                      <path d="M21 4v4h-4"></path>
+                    </svg>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:11.5px; color:#9aa3b0; font-weight:700;">Last updated by</div>
+                    <div style="font-size:14px; font-weight:700; color:#1f2a3a; margin-top:1px;">{{ updatedBy }} · {{
+                      updatedAt }}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- service fee -->
+              <div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">Service fees</div>
+              <div
+                style="background:{{ feeBg }}; border:1.4px solid {{ feeBorder }}; border-radius:16px; padding:14px; margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div
+                    style="width:42px; height:42px; border-radius:12px; background:{{ feeIconBg }}; color:{{ feeColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="1.8" viewbox="0 0 24 24" width="22">
+                      <rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect>
+                      <circle cx="12" cy="12" r="2.4"></circle>
+                      <path d="M6 10v4M18 10v4"></path>
+                    </svg>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:14.5px; font-weight:800; color:{{ feeColor }};">{{ feeLabel }}</div>
+                    <div style="font-size:11.5px; color:#7b8595; margin-top:2px;">{{ feeSub }}</div>
+                  </div>
+                  <div style="font-size:19px; font-weight:800; color:{{ feeColor }}; flex:none;">{{ feeAmount }}</div>
+                </div>
+              </div>
+            </div>
+            <!-- bottom actions -->
+            <sc-if hint-placeholder-val="{{ false }}" value="{{ noRep }}">
+              <div
+                style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 20px; display:flex;">
+                <a class="gv-tap" href="{{ assignTechLink }}"
+                  style="flex:1; padding:15px; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26); text-decoration:none;">
+                  <svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    viewbox="0 0 24 24" width="18">
+                    <circle cx="9" cy="8" r="4"></circle>
+                    <path d="M3 20c0-3.4 2.7-5.5 6-5.5M17 11v6M14 14h6"></path>
+                  </svg>
+                  {{ primaryLabel }}
+                </a>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </x-dc>
+    <script data-dc-script="" type="text/x-dc">
+  class Component extends DCLogic {
+    PRIO = {
+      high:   { label: 'גבוהה', color: '#c0392b', bg: '#fbeeed', border: '#f0c4bf' },
+      normal: { label: 'רגילה', color: '#1d60a2', bg: '#eaf2fb', border: '#aecbe9' },
+      low:    { label: 'נמוכה', color: '#5a6473', bg: '#f4f5f7', border: '#d8dde4' },
+    };
+    STATUS = {
+      toschedule: { label: 'לתיאום',  color: '#1d60a2', bg: '#eaf2fb' },
+      scheduled:  { label: 'מתוזמן',  color: '#50439d', bg: '#eef0fb' },
+      inprogress: { label: 'בטיפול',  color: '#bd8324', bg: '#fdf6e8' },
+    };
+    FEE = {
+      collect: { label: 'לגבות דמי שירות', sub: 'טרם נגבה מהלקוח', amount: '180₪', color: '#9a7320', bg: '#fdf6e8', border: '#ecd7a4', iconBg: '#fbeed0' },
+      paid:    { label: 'נגבו דמי שירות',  sub: 'שולם בכרטיס אשראי', amount: '180₪', color: '#2e8a63', bg: '#eafaf0', border: '#c2e6d1', iconBg: '#d6f1e0' },
+      none:    { label: 'ללא דמי שירות',   sub: 'במסגרת מסלול / אחריות', amount: '—', color: '#5a6473', bg: '#f6f7f9', border: '#e2e6ec', iconBg: '#eceef2' },
+    };
+
+    TAGS = ['ירידת לחץ', 'מערכת תת-כיורית'];
+    PHOTOS = [
+      { label: 'מתחת לכיור', grad: 'linear-gradient(135deg,#cdd6e2,#9aa9bd)' },
+      { label: 'המסנן', grad: 'linear-gradient(135deg,#c7e0cf,#8fbf9f)' },
+      { label: 'הברז', grad: 'linear-gradient(135deg,#d8cfe8,#b3a3d6)' },
+    ];
+
+    state = {
+      ticket: null
+    };
+
+    componentDidMount() {
+      this.loadTicket();
+      window.addEventListener('mineralbar:ready', () => this.loadTicket());
+    }
+
+    async loadTicket() {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        const ticketId = p.get('ticket_id') || p.get('id');
+        if (!ticketId) return;
+
+        if (!window.MineralBarApp) {
+          console.warn('[service-call-details] window.MineralBarApp not defined yet');
+          return;
+        }
+        if (!window.MineralBarApp.getTicket) {
+          console.warn('[service-call-details] window.MineralBarApp.getTicket not defined');
+          return;
+        }
+        
+        const client = window.MineralBarApp.getClient();
+        if (!client || !client.getToken()) {
+          console.warn('[service-call-details] MineralBar client not authenticated yet. Waiting for mineralbar:ready event...');
+          return;
+        }
+
+        const res = await window.MineralBarApp.getTicket(ticketId);
+        if (res && res.ticket) {
+          this.setState({ ticket: res.ticket });
+        } else {
+          console.warn('[service-call-details] response did not contain ticket property', res);
+        }
+      } catch (e) {
+        console.error('[service-call-details] Failed to load ticket details:', e);
+      }
+    }
+
+    renderVals() {
+      const t = this.state.ticket;
+      if (!t) {
+        return;
+      }
+
+      const isEn = typeof window !== 'undefined' && typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+
+      let badge = 'new';
+      let callStatus = 'toschedule';
+      if (t.is_done === 1 || t.close_date || t.status === 4) {
+        badge = 'done';
+        callStatus = 'scheduled';
+      } else if (t.status === 3) {
+        badge = 'tocollect';
+        callStatus = 'inprogress';
+      } else if (t.status === 2) {
+        badge = 'scheduled';
+        callStatus = 'scheduled';
+      } else {
+        badge = 'new';
+        callStatus = 'toschedule';
+      }
+
+      const status = this.STATUS[callStatus] || this.STATUS.toschedule;
+
+      let prioKey = 'normal';
+      if (t.rating === '5' || t.rating === '4') {
+        prioKey = 'high';
+      } else if (t.rating === '1') {
+        prioKey = 'low';
+      }
+      const prio = this.PRIO[prioKey] || this.PRIO.normal;
+
+      const feeKey = (t.approved_by_customer === 1 || t.status === 3) ? 'collect' : 'none';
+      const fee = this.FEE[feeKey] || this.FEE.none;
+
+      let wait = 0;
+      let age = isEn ? 'Today' : 'היום';
+      if (t.open_date) {
+        const open = new Date(t.open_date);
+        const now = new Date();
+        const diff = Math.floor((now - open) / (1000 * 60 * 60 * 24));
+        if (diff > 0) {
+          wait = diff;
+          age = diff + (isEn ? ' days' : ' ימים');
+        }
+      }
+
+      let waitLabel = isEn ? 'Today' : 'היום';
+      if (wait > 0) {
+        if (isEn) {
+          waitLabel = wait === 1 ? 'Waiting 1 day' : 'Waiting ' + wait + ' days';
+        } else {
+          waitLabel = wait === 1 ? 'ממתין יום' : 'ממתין ' + wait + ' ימים';
+        }
+      }
+
+      const name = t.joined_customer_name || t.customer_name || (isEn ? 'Customer' : 'לקוח');
+      const parts = name.split(' ');
+      const custInitials = parts.map(p => p[0]).join('').substring(0, 2);
+      const customerId = t.cust_id || t.customer_id || t.contactus_id || t.lead_id;
+      const customerLink = customerId
+        ? 'service-customer-card.html?customer_id=' + encodeURIComponent(customerId) + '&cust_id=' + encodeURIComponent(customerId)
+        : 'service-customer-card.html';
+
+      const photos = [];
+      if (t.messages) {
+        t.messages.forEach((m, idx) => {
+          if (m.message && m.message.indexOf('biz1upload/') !== -1) {
+            photos.push({
+              label: isEn ? ('Picture ' + (idx + 1)) : ('תמונה ' + (idx + 1)),
+              grad: `url(https://mineral.bull36.com/${m.message}) center/cover no-repeat`
+            });
+          }
+        });
+      }
+      const hasPhotos = photos.length > 0;
+      const photoCountLabel = hasPhotos ? (photos.length + (isEn ? ' Pictures' : ' תמונות')) : (isEn ? 'None' : 'אין');
+
+      let repName = '';
+      let hasRep = false;
+      if (t.assign_member_id) {
+        const assigned = Array.isArray(t.assign_member_id)
+          ? t.assign_member_id[0]
+          : String(t.assign_member_id).split(',')[0];
+        const memberId = Number(assigned);
+        if (window.MineralBarApp && window.MineralBarApp.getTeamMembers) {
+          const team = window.MineralBarApp.getTeamMembers();
+          const found = team.find(m => Number(m.id || m.user_id) === memberId);
+          if (found && found.name) {
+            repName = found.name;
+            hasRep = true;
+          }
+        }
+      }
+
+      let repInitials = '';
+      if (hasRep && repName && repName !== '---') {
+        const rp = repName.split(' ');
+        repInitials = rp.map(p => p[0]).join('').substring(0, 2);
+      }
+
+      let openDateStr = '';
+      if (t.open_date) {
+        const d = new Date(t.open_date);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const hour = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        openDateStr = day + '/' + month + '/' + year + ' · ' + hour + ':' + min;
+      }
+
+      let scheduledAt = '';
+      if (t.due_date) {
+        const d = new Date(t.due_date);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const time = t.ticket_from_time ? t.ticket_from_time.substring(0, 5) + '–' + (t.ticket_to_time ? t.ticket_to_time.substring(0, 5) : '') : '';
+        scheduledAt = day + '/' + month + '/' + year + (time ? ' · ' + time : '');
+      }
+
+      let descText = '';
+      if (t.messages && t.messages.length) {
+        descText = t.messages[0].message;
+        if (descText.indexOf('biz1upload/') === 0) {
+          descText = isEn ? 'Attachment' : 'קובץ מצורף';
+        }
+      } else {
+        descText = t.subject || '';
+      }
+
+      return {
+        callId: '#SRV-' + t.ticket_id,
+        assignTechLink: 'service-assign-tech.html?ticket_id=' + t.ticket_id,
+        openedAt: age,
+        callType: t.subject || (isEn ? 'Technical Service' : 'שירות טכני'),
+        source: t.email || t.phone || '---',
+
+        statusLabel: status.label, statusColor: status.color, statusBg: status.bg,
+
+        prioLabel: prio.label, prioColor: prio.color, prioBg: prio.bg, prioBorder: prio.border,
+        waitLabel: waitLabel,
+        waitColor: prio.color,
+
+        custInitials: custInitials, custName: name, custAddress: t.address || '---',
+        customerLink: customerLink,
+
+        productName: t.subject || (isEn ? 'Technical Service' : 'שירות טכני'),
+        productMeta: t.email ? (isEn ? 'Email · ' : 'אימייל · ') + t.email : '',
+        warranty: (t.approved_by_customer === 1) ? (isEn ? 'Under Warranty' : 'באחריות') : (isEn ? 'No Warranty' : 'ללא אחריות'),
+
+        problem: descText,
+        tags: [{ label: t.subject || (isEn ? 'Technical Service' : 'שירות טכני') }, { label: t.department === 341 ? (isEn ? 'Customer Service' : 'שירות לקוחות') : (isEn ? 'Technical Service' : 'שירות טכני') }],
+
+        hasPhotos: hasPhotos, noPhotos: !hasPhotos,
+        photoCountLabel: photoCountLabel,
+        photos: photos,
+
+        hasRep: hasRep, noRep: !hasRep,
+        repInitials: repInitials, repName: repName,
+
+        techName: repName,
+        createdAt: openDateStr,
+        isScheduled: (t.status === 2 || t.status === 3),
+        scheduledAt: scheduledAt,
+        updatedBy: isEn ? 'System' : 'מערכת', updatedAt: openDateStr,
+
+        feeLabel: fee.label, feeSub: fee.sub, feeAmount: fee.amount,
+        feeColor: fee.color, feeBg: fee.bg, feeBorder: fee.border, feeIconBg: fee.iconBg,
+
+        primaryLabel: isEn ? 'Assign Technician' : 'שבץ טכנאי',
+      };
+    }
+  }
+  </script>
+  <script>
+    window.addEventListener('load', function() {
+      if (typeof applyDomTranslation === 'function' && typeof getCurrentLanguage === 'function') {
+        var observer = new MutationObserver(function() {
+          applyDomTranslation(document.body, getCurrentLanguage());
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+    });
+  </script>
+  </body>
+
+  </html>

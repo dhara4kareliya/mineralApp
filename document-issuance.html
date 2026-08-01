@@ -1,0 +1,344 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<script src="./sales-static-live.js?v=sales-live-1"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px;">
+<!-- dimmed context behind sheet -->
+<div style="position:absolute; inset:0; background:#1f2a3a; opacity:0.32;"></div>
+<!-- bottom sheet -->
+<div style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; overflow:hidden; box-shadow:0 -8px 30px rgba(15,24,40,.18);">
+<!-- navy header -->
+<div style="background:#16223a; padding:16px 18px; display:flex; align-items:center; justify-content:space-between;">
+<button type="button" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+<div style="text-align:center;">
+<div style="font-size:18px; font-weight:800; color:#fff;" data-no-i18n="true">{{ pageTitle }}</div>
+<div style="font-size:12px; color:#9fb0c8; margin-top:1px;" data-no-i18n="true">{{ subtitle }}</div>
+</div>
+<div style="width:34px;"></div>
+</div>
+<div class="dc-scroll" style="max-height:640px; overflow-y:auto; padding:18px 16px 24px;">
+
+<sc-if hint-placeholder-val="{{ true }}" value="{{ loading }}">
+<div style="padding:18px 14px; border-radius:14px; background:#f6f8fa; color:#7b8595; font-size:14px; font-weight:700; text-align:center; margin-bottom:16px;" data-no-i18n="true">{{ loadingMsg }}</div>
+</sc-if>
+
+<sc-if hint-placeholder-val="{{ false }}" value="{{ notFound }}">
+<div style="padding:16px 14px; border-radius:14px; background:#fbeeed; border:1px solid #f0c9c4; color:#c0392b; font-size:14px; font-weight:700; text-align:center; margin-bottom:16px;" data-no-i18n="true">{{ notFoundMsg }}</div>
+</sc-if>
+
+<sc-if hint-placeholder-val="{{ true }}" value="{{ hasCustomer }}">
+<div style="font-size:13px; color:#8a93a3; font-weight:600; margin-bottom:12px;" data-no-i18n="true">{{ sectionBilling }}</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;" data-no-i18n="true">
+<button type="button" onclick="{{ pickInvoice }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M6 2h9l4 4v16l-2.5-1.5L14 22l-2.5-1.5L9 22l-2.5-1.5L4 22V4a2 2 0 0 1 2-2z"></path><path d="M8 8h7M8 12h7M8 16h4"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameTax }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descTax }}</div>
+</div>
+</button>
+<button type="button" onclick="{{ pickTaxReceipt }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#e9f5ee; color:#2e8a63; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M6 2h9l4 4v16l-2.5-1.5L14 22l-2.5-1.5L9 22l-2.5-1.5L4 22V4a2 2 0 0 1 2-2z"></path><path d="M8 8h7M8 12h7"></path><path d="M8.5 16.5l1.3 1.3 2.7-2.7"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameTaxReceipt }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descTaxReceipt }}</div>
+</div>
+</button>
+<button type="button" onclick="{{ pickDeal }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#fdf1dd; color:#bd8324; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M11 2h8v20l-2.5-1.5L14 22l-2.5-1.5"></path><path d="M5 7h6v15l-2-1.2L7 22l-2-1.2z"></path><path d="M14 8h2M14 12h2"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameDeal }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descDeal }}</div>
+</div>
+</button>
+<button type="button" onclick="{{ pickReceipt }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#e9f5ee; color:#2e8a63; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M5 3h14v18l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3L5 21z"></path><path d="M9 8h6M9 12h6"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameReceipt }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descReceipt }}</div>
+</div>
+</button>
+</div>
+<div style="font-size:13px; color:#8a93a3; font-weight:600; margin-bottom:12px;" data-no-i18n="true">{{ sectionCredit }}</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;" data-no-i18n="true">
+<button type="button" onclick="{{ pickCredit }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#fbeeed; color:#c0392b; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M6 2h9l4 4v16l-2.5-1.5L14 22l-2.5-1.5L9 22l-2.5-1.5L4 22V4a2 2 0 0 1 2-2z"></path><path d="M8.5 12h7"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameCredit }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descCredit }}</div>
+</div>
+</button>
+<button type="button" onclick="{{ pickDelivery }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#eef0fb; color:#50439d; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M3 7h11v9H3z"></path><path d="M14 10h3.5L21 13v3h-7"></path><circle cx="6.5" cy="18" r="1.8"></circle><circle cx="17.5" cy="18" r="1.8"></circle></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameDelivery }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descDelivery }}</div>
+</div>
+</button>
+</div>
+<div style="font-size:13px; color:#8a93a3; font-weight:600; margin:4px 0 12px;" data-no-i18n="true">{{ sectionOther }}</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;" data-no-i18n="true">
+<button type="button" onclick="{{ pickProforma }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#fdf1dd; color:#bd8324; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameProforma }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descProforma }}</div>
+</div>
+</button>
+<button type="button" onclick="{{ pickGrir }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#e8f4f8; color:#1a7a8c; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameGrir }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descGrir }}</div>
+</div>
+</button>
+<button type="button" onclick="{{ pickDonation }}" style="text-align:left; background:#fff; border:1.6px solid #e4e8ee; border-radius:16px; padding:15px 14px; cursor:pointer; display:flex; flex-direction:column; gap:11px;">
+<div style="width:46px; height:46px; border-radius:13px; background:#fdeef5; color:#c2185b; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+</div>
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ nameDonation }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:3px; line-height:1.5;">{{ descDonation }}</div>
+</div>
+</button>
+</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    loading: true,
+    notFound: false,
+    notFoundMsg: 'not found',
+    customerId: '',
+    customerName: '',
+    customer: null,
+    langTick: 0
+  };
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  componentDidMount() {
+    this.loadCustomer();
+    window.addEventListener('mineralbar:ready', () => this.loadCustomer());
+    window.addEventListener('mineralbar:page-refresh', () => this.loadCustomer());
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () { self.setState({ langTick: Date.now() }); }, 80);
+      }
+    });
+  }
+
+  getCustomerId() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var id = p.get('customer_id') || p.get('cust_id') || p.get('id') || '';
+      if (!id && window.location.hash) {
+        var h = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+        id = h.get('customer_id') || h.get('cust_id') || h.get('id') || '';
+      }
+      if (!id) id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || '';
+      if (id === '0' || id === 'null' || id === 'undefined') id = '';
+      return String(id || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  rememberCustomerId(id) {
+    if (!id) return;
+    try {
+      sessionStorage.setItem('mb_customer_id', String(id));
+      localStorage.setItem('mb_customer_id', String(id));
+    } catch (e) { /* ignore */ }
+  }
+
+  async loadCustomer() {
+    var cid = this.getCustomerId();
+    if (!cid) {
+      this.setState({
+        loading: false,
+        notFound: true,
+        notFoundMsg: 'not found',
+        customerId: '',
+        customerName: '',
+        customer: null
+      });
+      return;
+    }
+
+    if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) {
+      this.setState({ loading: true, notFound: false, customerId: cid });
+      return;
+    }
+
+    this.setState({ loading: true, notFound: false, customerId: cid });
+    try {
+      var res = await MineralBarApp.getCustomer(cid);
+      var c = res && res.customer;
+      if (c && c.data && typeof c.data === 'object') c = c.data;
+      var name = (c && (c.name || c.client_name || c.company)) || '';
+      if (!c || !name) {
+        this.setState({
+          loading: false,
+          notFound: true,
+          notFoundMsg: 'not found',
+          customerId: cid,
+          customerName: '',
+          customer: null
+        });
+        return;
+      }
+      this.rememberCustomerId(c.customer_id || c.id || cid);
+      this.setState({
+        loading: false,
+        notFound: false,
+        customerId: String(c.customer_id || c.id || cid),
+        customerName: name,
+        customer: c
+      });
+    } catch (e) {
+      var msg = (e && e.message) ? String(e.message).replace(/<[^>]+>/g, ' ').trim() : '';
+      this.setState({
+        loading: false,
+        notFound: true,
+        notFoundMsg: /not found|לא נמצא|Customer not found/i.test(msg) ? 'not found' : (msg || 'not found'),
+        customerId: cid,
+        customerName: '',
+        customer: null
+      });
+    }
+  }
+
+  goBack() {
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (e) { /* fallback below */ }
+    var home = 'tech-dashboard.html';
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.homeForRole === 'function') {
+        home = MineralBarApp.homeForRole(MineralBarApp.getRole()) || home;
+      }
+    } catch (e2) { /* keep home */ }
+    window.location.href = home;
+  }
+
+  openForm(type) {
+    if (this.state.notFound || !this.state.customerId) return;
+    var q = new URLSearchParams();
+    q.set('customer_id', this.state.customerId);
+    if (type) q.set('type', type);
+    window.location.href = 'document-issue-form.html?' + q.toString();
+  }
+
+  renderVals() {
+    var s = this.state;
+    void s.langTick;
+    var hasCustomer = !s.loading && !s.notFound && !!s.customerId;
+    var subtitle = s.loading
+      ? this.t('Loading…', 'טוען…')
+      : (s.notFound ? this.t('not found', 'לא נמצא') : ((s.customerName || this.t('Customer', 'לקוח')) + ' · ' + this.t('Select a document type', 'בחרו סוג מסמך')));
+
+    return {
+      loading: !!s.loading,
+      notFound: !!s.notFound,
+      notFoundMsg: s.notFoundMsg || this.t('not found', 'לא נמצא'),
+      pageTitle: this.t('Issuance of a document', 'הנפקת מסמך'),
+      loadingMsg: this.t('Loading customer…', 'טוען לקוח…'),
+      sectionBilling: this.t('Billing documents', 'מסמכי חיוב'),
+      sectionCredit: this.t('Credit and shipping', 'זיכוי ומשלוח'),
+      sectionOther: this.t('Other documents', 'מסמכים אחרים'),
+      hasCustomer: hasCustomer,
+      subtitle: subtitle,
+      nameTax: this.t('Tax Invoice', 'חשבונית מס'),
+      descTax: this.t('Official billing with VAT', 'חיוב רשמי כולל מע״מ'),
+      nameTaxReceipt: this.t('Receipt tax invoice', 'חשבונית מס קבלה'),
+      descTaxReceipt: this.t('Billing + payment confirmation', 'חיוב + אישור תשלום'),
+      nameDeal: this.t('Transaction Invoice', 'חשבונית עסקה'),
+      descDeal: this.t('Payment requirement without VAT', 'דרישת תשלום ללא מע״מ'),
+      nameReceipt: this.t('Receipt', 'קבלה'),
+      descReceipt: this.t('Confirmation of receipt of payment', 'אישור קבלת תשלום'),
+      nameCredit: this.t('Credit Invoice', 'חשבונית זיכוי'),
+      descCredit: this.t('Cancellation / chargeback', 'ביטול / זיכוי'),
+      nameDelivery: this.t('Shipping certificate', 'תעודת משלוח'),
+      descDelivery: this.t('Delivery of products to the customer', 'מסירת מוצרים ללקוח'),
+      nameProforma: this.t('Proforma Invoice', 'חשבונית פרופורמה'),
+      descProforma: this.t('Preliminary invoice / quote document', 'חשבונית מקדמית / הצעת מחיר'),
+      nameGrir: this.t('GR/IR', 'קבלת סחורה / חשבונית'),
+      descGrir: this.t('Goods receipt / invoice receipt', 'קבלת סחורה / קבלת חשבונית'),
+      nameDonation: this.t('Donation receipt', 'קבלת תרומה'),
+      descDonation: this.t('Receipt for a donation', 'קבלה עבור תרומה'),
+      onClose: () => this.goBack(),
+      pickInvoice: () => this.openForm('tax'),
+      pickTaxReceipt: () => this.openForm('taxreceipt'),
+      pickDeal: () => this.openForm('deal'),
+      pickReceipt: () => this.openForm('receipt'),
+      pickCredit: () => this.openForm('credit'),
+      pickDelivery: () => this.openForm('delivery'),
+      pickProforma: () => this.openForm('proforma'),
+      pickGrir: () => this.openForm('grir'),
+      pickDonation: () => this.openForm('donation')
+    };
+  }
+}
+</script>
+</body>
+</html>

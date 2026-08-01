@@ -1,0 +1,363 @@
+/**
+ * Inject on every protected mock screen.
+ * - Requires Biz1 login (auto-refreshes expired token, else redirects to login.html)
+ * - Shows a small connection status chip (REST + Socket RT)
+ * - Connects / registers realtime for messages + missions
+ */
+(function () {
+  'use strict';
+
+  window.i18nDict = window.i18nDict || (window.appI18nDict || { "en": {} });
+
+  window.switchLanguage = function(lang) {
+    if (window.switchAppLanguage) {
+      window.switchAppLanguage(lang);
+    } else {
+      try { localStorage.setItem('app_lang', lang); } catch(e) {}
+      try { sessionStorage.setItem('app_lang', lang); } catch(e) {}
+      location.reload();
+    }
+  };
+
+  function applyLanguage(lang) {
+    if (window.applyTranslations) {
+      window.applyTranslations(lang);
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    var logoutBtn = e.target.closest('#btn-logout-avatar');
+    var dropdown = document.getElementById('avatar-dropdown');
+    var dropdownLogoutBtn = e.target.closest('#btn-dropdown-logout');
+    var confirmModal = document.getElementById('logout-confirm-modal');
+    var cancelLogoutBtn = e.target.closest('#btn-cancel-logout');
+    var confirmLogoutBtn = e.target.closest('#btn-confirm-logout');
+
+    if (logoutBtn) {
+      if (dropdown) {
+        var isVisible = dropdown.style.display === 'block';
+        if (isVisible) {
+          dropdown.style.opacity = '0';
+          dropdown.style.transform = 'translateY(-10px)';
+          setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+        } else {
+          dropdown.style.display = 'block';
+          // force reflow
+          void dropdown.offsetWidth;
+          dropdown.style.opacity = '1';
+          dropdown.style.transform = 'translateY(0)';
+        }
+      }
+    } else if (dropdown && dropdown.style.display === 'block' && !e.target.closest('#avatar-dropdown')) {
+      // click outside dropdown to close
+      dropdown.style.opacity = '0';
+      dropdown.style.transform = 'translateY(-10px)';
+      setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+    }
+
+    if (dropdownLogoutBtn) {
+      if (dropdown) {
+        dropdown.style.opacity = '0';
+        dropdown.style.transform = 'translateY(-10px)';
+        setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+      }
+      if (confirmModal) {
+        confirmModal.style.display = 'flex';
+        // force reflow
+        void confirmModal.offsetWidth;
+        confirmModal.style.opacity = '1';
+        var box = document.getElementById('logout-confirm-box');
+        if (box) box.style.transform = 'scale(1)';
+      }
+    }
+
+    if (cancelLogoutBtn) {
+      if (confirmModal) {
+        confirmModal.style.opacity = '0';
+        var box = document.getElementById('logout-confirm-box');
+        if (box) box.style.transform = 'scale(0.9)';
+        setTimeout(function() { confirmModal.style.display = 'none'; }, 300);
+      }
+    }
+
+    if (confirmLogoutBtn) {
+      if (window.MineralBarApp) {
+        window.MineralBarApp.clearSession();
+      }
+      location.href = 'login.html';
+    }
+  }, true);
+
+  function ready(fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  function rtDotColor(status) {
+    if (status === 'ready') return '#3dce7c';
+    if (status === 'connecting' || status === 'loading_io') return '#e6b422';
+    if (status === 'error') return '#e35d4f';
+    if (status === 'offline') return '#9aa3b0';
+    return '#3dce7c';
+  }
+
+  function rtLabel(status, registered) {
+    if (status === 'ready') {
+      var n = (registered && registered.length) || 0;
+      return 'RT·' + n;
+    }
+    if (status === 'connecting' || status === 'loading_io') return 'RT…';
+    if (status === 'error') return 'RT✕';
+    if (status === 'offline') return 'RT–';
+    return 'SDK';
+  }
+
+  function updateChipRealtime(chip, state) {
+    if (!chip || !state) return;
+    var dot = chip.querySelector('[data-mb-dot]');
+    var label = chip.querySelector('[data-mb-label]');
+    if (dot) dot.style.background = rtDotColor(state.status);
+    if (label) {
+      var email = MineralBarApp.getEmail() || '';
+      var role = MineralBarApp.getRole();
+      var roleLabel = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role] || role;
+      var user = MineralBarApp.getUser() || {};
+      label.textContent =
+        (email || user.name || 'מחובר') + ' · ' + roleLabel + ' · ' + rtLabel(state.status, state.registered);
+    }
+    if (state.status === 'ready' && state.registered) {
+      chip.title =
+        'Socket registered:\n' +
+        state.registered.join('\n');
+    } else if (state.error) {
+      chip.title = 'Socket error: ' + state.error;
+    }
+  }
+
+  function bootUi() {
+    var user = MineralBarApp.getUser() || {};
+    var role = MineralBarApp.getRole();
+    var email = MineralBarApp.getEmail() || user.email || '';
+
+    // Visible on-screen socket debug (so logs are obvious without Console filters)
+    var dbg = document.createElement('div');
+    dbg.id = 'mb-socket-debug';
+    dbg.style.cssText = [
+      'position:fixed', 'bottom:10px', 'left:10px', 'z-index:2147483001',
+      'width:min(92vw,360px)', 'max-height:220px', 'overflow:auto',
+      'background:rgba(8,14,28,.94)', 'color:#d7e3ff',
+      'font:600 11px/1.35 ui-monospace,Menlo,monospace',
+      'padding:8px 10px', 'border-radius:12px',
+      'box-shadow:0 8px 24px rgba(0,0,0,.35)',
+      'white-space:pre-wrap', 'word-break:break-word'
+    ].join(';');
+    dbg.textContent = '[SocketDebug] waiting for connect…';
+    document.body.appendChild(dbg);
+    function dbgLine(msg) {
+      var t = new Date().toLocaleTimeString();
+      dbg.textContent = '[' + t + '] ' + msg + '\n' + dbg.textContent.split('\n').slice(0, 12).join('\n');
+    }
+    window.addEventListener('mineralbar:socket-debug', function (ev) {
+      var d = (ev && ev.detail) || {};
+      if (d.type === 'connect') dbgLine('CONNECTED id=' + (d.id || ''));
+      else if (d.type === 'ready') dbgLine('READY events=' + (((d.payload && d.payload.events) || []).length));
+      else if (d.type === 'event') dbgLine('EVENT ' + (d.key || '?') + ' group=' + (d.group || '?'));
+      else if (d.type === 'onAny') dbgLine('onAny ' + (d.eventName || '?'));
+      else if (d.type === 'error') dbgLine('ERROR ' + (d.error || ''));
+      else if (d.type === 'disconnect') dbgLine('DISCONNECTED ' + (d.reason || ''));
+      else if (d.type === 'cursor_reset') dbgLine('CURSOR RESET was=' + (d.previous || 0));
+      else dbgLine(JSON.stringify(d));
+    });
+    window.addEventListener('mineralbar:realtime', function (ev) {
+      var d = (ev && ev.detail) || {};
+      dbgLine('APP realtime key=' + (d.key || '?') + ' group=' + (d.group || '?'));
+    });
+    dbgLine('boot start role=' + role + ' page=' + ((location.pathname || '').split('/').pop() || ''));
+
+    var chip = document.createElement('div');
+    chip.id = 'mb-sdk-chip';
+    chip.setAttribute('dir', 'rtl');
+    chip.style.cssText = [
+      'position:fixed', 'top:10px', 'left:10px', 'z-index:2147483000',
+      'display:flex', 'align-items:center', 'gap:8px',
+      'background:rgba(22,34,58,.92)', 'color:#fff',
+      'font:600 11px/1.2 Heebo,sans-serif',
+      'padding:7px 10px', 'border-radius:999px',
+      'box-shadow:0 6px 18px rgba(15,24,40,.28)',
+      'max-width:min(92vw,360px)'
+    ].join(';');
+
+    var roleLabel = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role] || role;
+    chip.innerHTML =
+      '<span data-mb-dot style="width:8px;height:8px;border-radius:50%;background:#e6b422;flex:none;"></span>' +
+      '<span data-mb-label style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+      (email || user.name || 'מחובר') + ' · ' + roleLabel + ' · RT…' +
+      '</span>' +
+      '<button type="button" id="mb-logout-btn" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:99px;padding:4px 8px;cursor:pointer;font:700 10px Heebo,sans-serif;flex:none;">יציאה</button>';
+
+    document.body.appendChild(chip);
+    document.getElementById('mb-logout-btn').addEventListener('click', function () {
+      MineralBarApp.clearSession();
+      location.href = 'login.html';
+    });
+
+    window.addEventListener('mineralbar:socket-status', function (ev) {
+      updateChipRealtime(chip, ev.detail || {});
+    });
+    window.addEventListener('mineralbar:auth-refreshed', function () {
+      updateChipRealtime(chip, MineralBarApp.getRealtimeState() || { status: 'ready' });
+      var label = chip.querySelector('[data-mb-label]');
+      if (label) {
+        var role2 = MineralBarApp.getRole();
+        var roleLabel2 = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role2] || role2;
+        label.textContent =
+          (MineralBarApp.getEmail() || 'מחובר') + ' · ' + roleLabel2 + ' · ' +
+          rtLabel((MineralBarApp.getRealtimeState() || {}).status || 'ready',
+            (MineralBarApp.getRealtimeState() || {}).registered);
+      }
+    });
+
+    // Smart socket -> page update behavior for all pages.
+    // Pages can opt-out by setting: <body data-live-refresh="off">
+    // Optional controls:
+    //  - data-live-refresh-mode="soft|hard" (default: soft)
+    //  - data-live-reload="hard" (forces hard reload fallback)
+    (function setupSocketPageRefresh() {
+      var refreshTimer = null;
+      var minGapMs = 1200;
+      var lastRefreshAt = 0;
+      var allowAutoRefresh = (document.body.getAttribute('data-live-refresh') || 'on') !== 'off';
+      if (!allowAutoRefresh) return;
+
+      function getCurrentPageName() {
+        var path = (location.pathname || '').split('/').pop() || '';
+        return path.toLowerCase();
+      }
+
+      function inferGroupFromKey(key) {
+        var k = String(key || '').toLowerCase();
+        if (!k) return 'unknown';
+        if (/product|inventory|categorie|entries|statuses/.test(k)) return 'inventory';
+        if (/mission|task|ticket|meeting|appointment|reminder/.test(k)) return 'missions';
+        if (/message|chat|email|inbox|whatsapp|conversation/.test(k)) return 'messages';
+        if (/lead|customer|crm/.test(k)) return 'leads';
+        return 'unknown';
+      }
+
+      function pageGroups(pageName) {
+        var p = String(pageName || '');
+        if (p.indexOf('service-inventory') !== -1) return ['inventory', 'leads', 'messages', 'missions', 'other', 'unknown'];
+        if (p.indexOf('service-all-calls') !== -1) return ['missions', 'leads'];
+        if (p.indexOf('service-call-details') !== -1) return ['missions', 'leads', 'messages'];
+        if (p.indexOf('calls-list') !== -1 || p.indexOf('chat-customer') !== -1) return ['messages', 'leads'];
+        if (p.indexOf('customers') !== -1 || p.indexOf('leads-list') !== -1) return ['leads', 'messages', 'missions', 'other', 'unknown'];
+        if (p.indexOf('sales-tasks') !== -1 || p.indexOf('mission') !== -1 || p.indexOf('task') !== -1) return ['missions'];
+        // default: update all unknown pages for known data groups
+        return ['inventory', 'missions', 'messages', 'leads', 'other', 'unknown'];
+      }
+
+      function isRelevantForPage(detail) {
+        var pageName = getCurrentPageName();
+        var groups = pageGroups(pageName);
+        var rawGroup = String((detail && detail.group) || '').toLowerCase();
+        var eventGroup = rawGroup && rawGroup !== 'unknown' && rawGroup !== 'other'
+          ? String(detail.group).toLowerCase()
+          : inferGroupFromKey(detail.key);
+        var ok = groups.indexOf(eventGroup) !== -1;
+        return ok;
+      }
+
+      function runSoftRefresh(detail) {
+        // Notify pages to patch only changed data — do NOT re-fire mineralbar:ready
+        window.dispatchEvent(new CustomEvent('mineralbar:page-refresh', { detail: detail }));
+      }
+
+      window.addEventListener('mineralbar:realtime', function (ev) {
+        var detail = (ev && ev.detail) || {};
+        var key = String(detail.key || '').toLowerCase();
+        if (!key) {
+          console.warn('[SocketUI] skip: empty key');
+          return;
+        }
+
+        // Skip noisy presence/system events; refresh for data-changing events.
+        if (key.indexOf('socket') !== -1 || key.indexOf('connected') !== -1) {
+          return;
+        }
+        if (!isRelevantForPage(detail)) {
+          return;
+        }
+
+        var now = Date.now();
+        var waitMs = Math.max(100, minGapMs - (now - lastRefreshAt));
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(function () {
+          lastRefreshAt = Date.now();
+          var mode = (document.body.getAttribute('data-live-refresh-mode') || 'soft').toLowerCase();
+          var forceHard = (document.body.getAttribute('data-live-reload') || '').toLowerCase() === 'hard';
+
+          if (mode === 'hard' || forceHard) {
+            if (!document.hidden) location.reload();
+            return;
+          }
+
+          runSoftRefresh(detail);
+        }, waitMs);
+      });
+
+      window.addEventListener('mineralbar:socket', function (ev) {
+      });
+      window.addEventListener('mineralbar:socket-status', function (ev) {
+      });
+    })();
+
+    try {
+      var name = user.name || (email.split('@')[0] || '');
+      if (name) {
+        document.querySelectorAll('div').forEach(function (el) {
+          if (el.children.length) return;
+          var t = (el.textContent || '').trim();
+          if (/^בוקר טוב,/.test(t) || /^צהריים טובים,/.test(t) || /^ערב טוב,/.test(t)) {
+            el.textContent = t.replace(/,.*/, ', ' + name + ' 👋');
+          }
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    window.dispatchEvent(new CustomEvent('mineralbar:ready', {
+      detail: { role: role, user: user, client: MineralBarApp.getClient() }
+    }));
+
+    MineralBarApp.connectRealtime()
+      .then(function (handle) {
+        return handle.promise.then(function (payload) {
+          var registered = (payload && payload.events) || [];
+          return payload;
+        });
+      })
+      .catch(function (err) {
+        console.error('[SocketUI] socket connect FAILED', err);
+      });
+  }
+
+  ready(function () {
+    applyLanguage();
+
+    if (!window.MineralBarApp) {
+      console.error('[MineralBar] biz1-app.js missing');
+      return;
+    }
+
+    var path = (location.pathname || '').toLowerCase();
+    var isLogin = path.indexOf('login.html') !== -1 || path.indexOf('התחברות') !== -1;
+    if (isLogin) return;
+
+    MineralBarApp.ensureAuth('login.html').then(function (client) {
+      if (!client) return;
+      bootUi();
+    }).catch(function (err) {
+      console.warn('[MineralBar] ensureAuth failed', err);
+      location.href = 'login.html';
+    });
+  });
+})();

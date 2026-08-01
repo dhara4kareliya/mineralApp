@@ -1,0 +1,735 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-role="tech" data-active-tab="clock">
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
+<!-- header -->
+<div style="display:flex; align-items:flex-start; justify-content:space-between; padding:6px 18px 12px; flex:none;">
+<div>
+<div style="font-size:13px; color:#8a93a3; font-weight:600;" data-no-i18n="true">{{ labelTimeClock }}</div>
+<div style="font-size:22px; font-weight:800; color:#1f2a3a; margin-top:1px;" data-no-i18n="true">{{ userName }}</div>
+</div>
+<div style="display:inline-flex; align-items:center; gap:6px; background:{{ statusBg }}; color:{{ statusColor }}; font-size:12.5px; font-weight:700; padding:7px 13px; border-radius:99px;">
+<span style="width:8px; height:8px; border-radius:50%; background:{{ statusColor }};"></span>{{ statusLabel }}
+        </div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ loading }}">
+<div style="text-align:center; padding:28px 12px; color:#8a93a3; font-size:13.5px; font-weight:600;">Loading…</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
+<div style="background:#fbeeed; border:1px solid #f1c9c4; border-radius:14px; padding:12px 14px; margin-bottom:13px; color:#a3302e; font-size:13px; font-weight:600;">{{ errorMsg }}</div>
+</sc-if>
+<!-- live clock card -->
+<div style="background:#16223a; border-radius:20px; padding:22px 19px; color:#fff; margin-bottom:13px; text-align:center; position:relative; overflow:hidden;">
+<div style="position:absolute; top:-40px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.05);"></div>
+<div style="position:relative;">
+<div style="font-size:13px; opacity:.7; font-weight:600;">{{ clockCaption }}</div>
+<div style="font-size:46px; font-weight:800; line-height:1.05; margin-top:4px; letter-spacing:1px;">{{ elapsed }}</div>
+<div style="font-size:12.5px; opacity:.65; margin-top:4px;">{{ sinceLabel }}</div>
+</div>
+</div>
+<!-- action button -->
+<div style="display:flex; gap:10px; margin-bottom:16px;">
+<button onclick="{{ primaryAction }}" disabled="{{ busy }}" style="flex:1; padding:16px; border:none; border-radius:15px; background:{{ primaryBg }}; color:#fff; font-size:16px; font-weight:800; cursor:{{ primaryCursor }}; opacity:{{ primaryOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ primaryShadow }};">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ iconIn }}"><svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="18"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5M15 12H3"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ iconOut }}"><svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5M21 12H9"></path></svg></sc-if>
+            {{ primaryLabel }}
+          </button>
+</div>
+<!-- today summary -->
+<div style="display:flex; gap:11px; margin-bottom:13px;">
+<div style="flex:1; background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+<div style="display:flex; align-items:center; gap:6px; color:#8a93a3; margin-bottom:8px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+<span style="font-size:12px; font-weight:600;" data-no-i18n="true">{{ labelToday }}</span>
+</div>
+<div style="font-size:23px; font-weight:800; color:#1f2a3a; line-height:1;">{{ todayHours }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:4px;" data-no-i18n="true">{{ labelTotalTime }}</div>
+</div>
+<div style="flex:1; background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+<div style="display:flex; align-items:center; gap:6px; color:#8a93a3; margin-bottom:8px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect><path d="M3 9h18M8 2.5v4M16 2.5v4"></path></svg>
+<span style="font-size:12px; font-weight:600;" data-no-i18n="true">{{ labelThisMonth }}</span>
+</div>
+<div style="font-size:23px; font-weight:800; color:#1f2a3a; line-height:1;">{{ monthHours }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:4px;" data-no-i18n="true">{{ labelTotalTime }}</div>
+</div>
+</div>
+<!-- today timeline -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;" data-no-i18n="true">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:13px;">{{ labelTodayCourse }}</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ todayEmpty }}">
+<div style="font-size:13px; color:#9aa3b0; font-weight:600; padding:6px 0;">{{ emptyTodayMsg }}</div>
+</sc-if>
+<sc-for as="e" hint-placeholder-count="2" list="{{ today }}">
+<div style="display:flex; align-items:center; gap:11px; padding:8px 0;">
+<div style="width:30px; height:30px; border-radius:8px; background:{{ e.iconBg }}; color:{{ e.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ e.isEnter }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5M15 12H3"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ e.isLeave }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5M21 12H9"></path></svg></sc-if>
+</div>
+<div style="flex:1; font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ e.label }}</div>
+<div style="font-size:13.5px; font-weight:700; color:#5a6473;">{{ e.time }}</div>
+</div>
+</sc-for>
+</div>
+<!-- history -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:4px 2px 10px;" data-no-i18n="true">{{ labelHistory }}</div>
+<div style="background:#fff; border-radius:16px; padding:5px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:6px;" data-no-i18n="true">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ historyEmpty }}">
+<div style="font-size:13px; color:#9aa3b0; font-weight:600; padding:14px 0;">{{ emptyHistoryMsg }}</div>
+</sc-if>
+<sc-for as="h" hint-placeholder-count="5" list="{{ history }}">
+<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid {{ h.border }};">
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:42px; text-align:center;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a; line-height:1;">{{ h.day }}</div>
+<div style="font-size:10.5px; color:#9aa3b0; margin-top:2px;">{{ h.dow }}</div>
+</div>
+<div>
+<div style="font-size:13px; color:#5a6473; font-weight:600;">{{ h.range }}</div>
+<div style="font-size:11px; color:#9aa3b0; margin-top:1px;">{{ h.note }}</div>
+</div>
+</div>
+<div style="font-size:14px; font-weight:800; color:{{ h.hoursColor }};">{{ h.hours }}</div>
+</div>
+</sc-for>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showHistoryPager }}">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0 8px; border-top:1px solid #f0f2f5;">
+<button type="button" onclick="{{ prevHistory }}" disabled="{{ histPrevDisabled }}" style="padding:8px 12px; border:1px solid #e4e8ee; border-radius:10px; background:{{ histPrevBg }}; color:{{ histPrevColor }}; font-size:12.5px; font-weight:700; cursor:{{ histPrevCursor }};">‹ Prev</button>
+<span style="font-size:12px; color:#8a93a3; font-weight:600;">{{ historyPageLabel }}</span>
+<button type="button" onclick="{{ nextHistory }}" disabled="{{ histNextDisabled }}" style="padding:8px 12px; border:1px solid #e4e8ee; border-radius:10px; background:{{ histNextBg }}; color:{{ histNextColor }}; font-size:12.5px; font-weight:700; cursor:{{ histNextCursor }};">Next ›</button>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    loading: true,
+    busy: false,
+    errorMsg: '',
+    userName: '',
+    running: false,
+    teamHoursId: null,
+    startTime: null,
+    elapsedRaw: '00:00:00',
+    fetchedAt: Date.now(),
+    tickNow: Date.now(),
+    sessions: [],
+    hoursTodayApi: null,
+    historyPage: 1,
+    historyPageSize: 5,
+    langTick: 0
+  };
+
+  _tickTimer = null;
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  componentDidMount() {
+    this.initData();
+    window.addEventListener('mineralbar:ready', (ev) => {
+      if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      this.initData();
+    });
+    window.addEventListener('mineralbar:realtime', (ev) => {
+      var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
+      if (/team_hours|teamhours/.test(key)) this.refreshQuiet();
+    });
+    this._tickTimer = setInterval(() => {
+      if (this.state.running) this.setState({ tickNow: Date.now() });
+    }, 1000);
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+          if (typeof applyTranslations === 'function') {
+            applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+          }
+        }, 80);
+      }
+    });
+  }
+
+  componentWillUnmount() {
+    if (this._tickTimer) clearInterval(this._tickTimer);
+  }
+
+  getClient() {
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return null;
+    try { return MineralBarApp.getClient(); } catch (e) { return null; }
+  }
+
+  resolveUserName() {
+    try {
+      var u = (window.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser()) || null;
+      if (!u) return this.t('Technician', 'טכנאי');
+      return u.name || u.full_name || u.display_name || u.user_name ||
+        [u.first_name, u.last_name].filter(Boolean).join(' ') ||
+        u.email || this.t('Technician', 'טכנאי');
+    } catch (e) {
+      return this.t('Technician', 'טכנאי');
+    }
+  }
+
+  pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  // API stores timestamps in UTC (Y-m-d H:i:s) — convert to local for display
+  parseDateTime(str) {
+    if (!str) return null;
+    var s = String(str).trim().replace('T', ' ');
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ ](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (m) {
+      return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)));
+    }
+    var d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  dateKey(strOrDate) {
+    if (!strOrDate) return '';
+    var d = (strOrDate instanceof Date) ? strOrDate : this.parseDateTime(strOrDate);
+    if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+    return this.ymdLocal(d);
+  }
+
+  extractRows(res) {
+    if (!res) return [];
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.list)) return res.list;
+    if (Array.isArray(res)) return res;
+    return [];
+  }
+
+  elapsedToSeconds(val) {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number' && isFinite(val)) {
+      // WhenStop.hours_today is decimal hours; large numbers are seconds
+      if (val > 0 && val < 100) return Math.round(val * 3600);
+      return Math.round(val);
+    }
+    var s = String(val).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) return this.elapsedToSeconds(Number(s));
+    var parts = s.split(':').map(Number);
+    if (parts.length === 3 && parts.every(function (n) { return isFinite(n); })) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    if (parts.length === 2 && parts.every(function (n) { return isFinite(n); })) {
+      return parts[0] * 3600 + parts[1] * 60;
+    }
+    return 0;
+  }
+
+  formatHm(totalSec) {
+    totalSec = Math.max(0, Math.floor(totalSec || 0));
+    var h = Math.floor(totalSec / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    var s = totalSec % 60;
+    return h + ':' + this.pad(m) + ':' + this.pad(s);
+  }
+
+  formatClock(totalSec) {
+    totalSec = Math.max(0, Math.floor(totalSec || 0));
+    var h = Math.floor(totalSec / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    var s = totalSec % 60;
+    return this.pad(h) + ':' + this.pad(m) + ':' + this.pad(s);
+  }
+
+  localTimeLabel(date) {
+    if (!date) return '--:--:--';
+    return this.pad(date.getHours()) + ':' + this.pad(date.getMinutes()) + ':' + this.pad(date.getSeconds());
+  }
+
+  ymdLocal(d) {
+    return d.getFullYear() + '-' + this.pad(d.getMonth() + 1) + '-' + this.pad(d.getDate());
+  }
+
+  ymdUtc(d) {
+    return d.getUTCFullYear() + '-' + this.pad(d.getUTCMonth() + 1) + '-' + this.pad(d.getUTCDate());
+  }
+
+  dowLabel(date) {
+    if (this.isEn()) return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+    return ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'][date.getDay()];
+  }
+
+  isSameLocalDay(a, b) {
+    return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  isTodaySession(row) {
+    var start = this.parseDateTime(row && row.start_time);
+    return this.isSameLocalDay(start, new Date());
+  }
+
+  isThisMonthSession(row) {
+    var start = this.parseDateTime(row && row.start_time);
+    if (!start) return false;
+    var now = new Date();
+    return start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear();
+  }
+
+  sessionSeconds(row, allowLive) {
+    if (!row) return 0;
+    var running = Number(row.status) === 1 || (!row.end_time && allowLive && this.state.running &&
+      String(row.id) === String(this.state.teamHoursId));
+    if (running && allowLive) return this.liveElapsedSeconds();
+
+    var sec = this.elapsedToSeconds(row.elapsed);
+    if (sec > 0) return sec;
+    var start = this.parseDateTime(row.start_time);
+    var end = this.parseDateTime(row.end_time);
+    if (start && end) return Math.max(0, Math.floor((end - start) / 1000));
+    return 0;
+  }
+
+  liveElapsedSeconds() {
+    var st = this.state;
+    if (!st.running) return this.elapsedToSeconds(st.elapsedRaw);
+    var base = this.elapsedToSeconds(st.elapsedRaw);
+    var drift = Math.floor((Date.now() - (st.fetchedAt || Date.now())) / 1000);
+    if (drift > 0) return base + drift;
+    var start = this.parseDateTime(st.startTime);
+    if (start) return Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
+    return base;
+  }
+
+  async initData() {
+    this.setState({ loading: true, errorMsg: '', userName: this.resolveUserName() });
+    await this.refreshAll(true);
+  }
+
+  async refreshQuiet() {
+    await this.refreshAll(false);
+  }
+
+  async fetchSessions(client, fromDate, toDate) {
+    var all = [];
+    var seen = {};
+    for (var page = 1; page <= 20; page++) {
+      var body = { page: page, limit: 25, from_date: fromDate };
+      if (toDate) body.to_date = toDate;
+      var res = await client.request('TeamHours.List', body);
+      var rows = this.extractRows(res);
+      rows.forEach((r) => {
+        var id = String((r && (r.id || r.team_hours_id)) || '') + '|' + String((r && r.start_time) || '');
+        if (seen[id]) return;
+        seen[id] = true;
+        all.push(r);
+      });
+      if (rows.length < 25) break;
+      var total = Number(res && (res.total || res.count)) || 0;
+      if (total && all.length >= total) break;
+    }
+    return all;
+  }
+
+  async refreshAll(showLoading) {
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ loading: false, errorMsg: 'SDK not ready' });
+      return;
+    }
+
+    if (showLoading) this.setState({ loading: true });
+
+    try {
+      var now = new Date();
+      var fromMonth = now.getFullYear() + '-' + this.pad(now.getMonth() + 1) + '-01';
+      var todayLocal = this.ymdLocal(now);
+      var todayUtc = this.ymdUtc(now);
+
+      var statusRes = await client.request('TeamHours.Get', {});
+      var monthSessions = await this.fetchSessions(client, fromMonth, null);
+
+      var todaySessions = await this.fetchSessions(client, todayLocal, todayLocal);
+      if (todayUtc !== todayLocal) {
+        var todayUtcSessions = await this.fetchSessions(client, todayUtc, todayUtc);
+        todaySessions = todaySessions.concat(todayUtcSessions);
+      }
+
+      var byId = {};
+      monthSessions.concat(todaySessions).forEach((r) => {
+        var id = String((r && (r.id || r.team_hours_id)) || Math.random());
+        byId[id] = r;
+      });
+      var sessions = Object.keys(byId).map((k) => byId[k]);
+
+      var whenStop = null;
+      try {
+        whenStop = await client.request('TeamHours.WhenStop', {});
+      } catch (e) { /* optional */ }
+
+      var running = !!(statusRes && (statusRes.running === true || statusRes.running === 1 ||
+        (statusRes.data && (Number(statusRes.data.status) === 1 || statusRes.data.running))));
+      var data = (statusRes && statusRes.data) || {};
+      var teamHoursId = statusRes.team_hours_id || data.id || null;
+      var elapsedRaw = data.elapsed || statusRes.elapsed || '00:00:00';
+      var startTime = data.start_time || statusRes.start_time || null;
+
+      if (running && startTime) {
+        var hasActive = sessions.some((r) => String(r.id) === String(teamHoursId));
+        if (!hasActive) {
+          sessions.push({
+            id: teamHoursId,
+            status: 1,
+            start_time: startTime,
+            end_time: null,
+            elapsed: elapsedRaw
+          });
+        }
+      }
+
+      var hoursTodayApi = null;
+      if (whenStop && Number(whenStop.success) !== 0 && whenStop.hours_today != null) {
+        hoursTodayApi = whenStop.hours_today;
+      }
+
+      this.setState({
+        loading: false,
+        errorMsg: '',
+        userName: this.resolveUserName(),
+        running: running,
+        teamHoursId: teamHoursId,
+        startTime: startTime,
+        elapsedRaw: elapsedRaw,
+        fetchedAt: Date.now(),
+        sessions: sessions,
+        hoursTodayApi: hoursTodayApi,
+        historyPage: showLoading ? 1 : (this.state.historyPage || 1),
+        tickNow: Date.now()
+      });
+    } catch (e) {
+      console.error('[TimeClock] refresh failed', e);
+      this.setState({
+        loading: false,
+        errorMsg: (e && e.message) || 'Failed to load time clock'
+      });
+    }
+  }
+
+  async primary() {
+    if (this.state.busy) return;
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ errorMsg: 'SDK not ready' });
+      return;
+    }
+
+    var starting = !this.state.running;
+    this.setState({ busy: true, errorMsg: '' });
+
+    try {
+      if (starting) {
+        var startRes = await client.request('TeamHours.StartStop', { timer_action: 'start' });
+        var startOk = startRes && (Number(startRes.success) === 1 || startRes.success === true);
+        if (!startOk) throw new Error((startRes && startRes.message) || 'Failed to clock in');
+      } else {
+        try { await client.request('TeamHours.WhenStop', {}); } catch (e) { /* continue */ }
+        var stopPayload = { timer_action: 'stop' };
+        if (this.state.teamHoursId) {
+          stopPayload.team_hours_id = this.state.teamHoursId;
+          stopPayload.id = this.state.teamHoursId;
+        }
+        var stopRes = await client.request('TeamHours.StartStop', stopPayload);
+        var stopOk = stopRes && (Number(stopRes.success) === 1 || stopRes.success === true);
+        if (!stopOk) throw new Error((stopRes && stopRes.message) || 'Failed to clock out');
+      }
+      await this.refreshAll(false);
+    } catch (e) {
+      console.error('[TimeClock] StartStop failed', e);
+      this.setState({ errorMsg: (e && e.message) || 'Clock action failed' });
+    } finally {
+      this.setState({ busy: false });
+    }
+  }
+
+  // Newest entry/exit first so latest punches are visible at the top
+  buildTodayEvents(sessions, running, startTime) {
+    var events = [];
+    var now = new Date();
+    var enterLabel = this.t('Entry', 'כניסה');
+    var exitLabel = this.t('Exit', 'יציאה');
+
+    (sessions || []).forEach((row) => {
+      if (!this.isTodaySession(row)) return;
+      var start = this.parseDateTime(row.start_time);
+      if (start) events.push({ kind: 'enter', at: start, ts: start.getTime(), label: enterLabel });
+      var end = this.parseDateTime(row.end_time);
+      if (end && Number(row.status) !== 1) {
+        events.push({ kind: 'leave', at: end, ts: end.getTime(), label: exitLabel });
+      }
+    });
+
+    if (running && startTime) {
+      var liveStart = this.parseDateTime(startTime);
+      var key = this.dateKey(startTime);
+      if (liveStart && (this.isSameLocalDay(liveStart, now) || key === this.ymdLocal(now) || key === this.ymdUtc(now))) {
+        var already = events.some((e) => e.kind === 'enter' && Math.abs(e.ts - liveStart.getTime()) < 60000);
+        if (!already) events.push({ kind: 'enter', at: liveStart, ts: liveStart.getTime(), label: enterLabel });
+      }
+    }
+
+    events.sort((a, b) => b.ts - a.ts);
+
+    // Show only the most recent punch (last entry or exit)
+    return events.slice(0, 1).map((e) => ({
+      label: e.label,
+      time: this.localTimeLabel(e.at),
+      isEnter: e.kind === 'enter',
+      isLeave: e.kind === 'leave',
+      iconBg: e.kind === 'enter' ? '#e9f5ee' : '#fbeeed',
+      iconColor: e.kind === 'enter' ? '#2e8a63' : '#c0392b'
+    }));
+  }
+
+  buildHistoryRows(sessions) {
+    return (sessions || [])
+      .map((row) => {
+        var start = this.parseDateTime(row.start_time);
+        var end = this.parseDateTime(row.end_time);
+        var sec = this.sessionSeconds(row, true);
+        return { row: row, start: start, end: end, sec: sec };
+      })
+      .filter((x) => x.start)
+      .sort((a, b) => b.start - a.start);
+  }
+
+  buildHistoryPage(sessions) {
+    var pageSize = Math.max(1, Number(this.state.historyPageSize) || 5);
+    var all = this.buildHistoryRows(sessions);
+    var totalPages = Math.max(1, Math.ceil(all.length / pageSize) || 1);
+    var page = Math.min(Math.max(1, Number(this.state.historyPage) || 1), totalPages);
+    var startIdx = (page - 1) * pageSize;
+    var slice = all.slice(startIdx, startIdx + pageSize);
+
+    var history = slice.map((x, i, arr) => {
+      var running = Number(x.row.status) === 1 || (!x.end && this.state.running && String(x.row.id) === String(this.state.teamHoursId));
+      var range = this.localTimeLabel(x.start) + ' – ' + (x.end ? this.localTimeLabel(x.end) : (running ? '…' : '--:--:--'));
+      var note = running
+        ? this.t('In progress', 'בתהליך')
+        : (x.row.note || x.row.project_name || (x.sec >= 8 * 3600 ? this.t('Full day', 'יום מלא') : this.t('Session', 'משמרת')));
+      var ok = x.sec >= 7 * 3600;
+      return {
+        day: String(x.start.getDate()),
+        dow: this.dowLabel(x.start),
+        range: range,
+        note: note,
+        hours: this.formatHm(x.sec),
+        hoursColor: running ? '#1d60a2' : (ok ? '#2e8a63' : '#bd8324'),
+        border: i === arr.length - 1 ? 'transparent' : '#f0f2f5'
+      };
+    });
+
+    return {
+      history: history,
+      historyEmpty: all.length === 0,
+      showHistoryPager: all.length > pageSize,
+      historyPage: page,
+      historyTotalPages: totalPages,
+      historyTotal: all.length
+    };
+  }
+
+  prevHistory() {
+    var page = Math.max(1, (Number(this.state.historyPage) || 1) - 1);
+    this.setState({ historyPage: page });
+  }
+
+  nextHistory() {
+    var pageSize = Math.max(1, Number(this.state.historyPageSize) || 5);
+    var total = this.buildHistoryRows(this.state.sessions).length;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+    var page = Math.min(totalPages, (Number(this.state.historyPage) || 1) + 1);
+    this.setState({ historyPage: page });
+  }
+
+  sumTodaySeconds(sessions) {
+    var total = 0;
+    var liveCounted = false;
+    (sessions || []).forEach((row) => {
+      if (!this.isTodaySession(row)) return;
+      var running = Number(row.status) === 1 || (!row.end_time && this.state.running && String(row.id) === String(this.state.teamHoursId));
+      if (running) {
+        total += this.liveElapsedSeconds();
+        liveCounted = true;
+        return;
+      }
+      total += this.sessionSeconds(row, false);
+    });
+    if (this.state.running && !liveCounted) total += this.liveElapsedSeconds();
+
+    if (this.state.hoursTodayApi != null) {
+      var apiSec = this.elapsedToSeconds(this.state.hoursTodayApi);
+      if (apiSec > total) total = apiSec;
+    }
+    return total;
+  }
+
+  sumMonthSeconds(sessions) {
+    var total = 0;
+    var liveCounted = false;
+    (sessions || []).forEach((row) => {
+      if (!this.isThisMonthSession(row)) return;
+      var running = Number(row.status) === 1 || (!row.end_time && this.state.running && String(row.id) === String(this.state.teamHoursId));
+      if (running) {
+        total += this.liveElapsedSeconds();
+        liveCounted = true;
+        return;
+      }
+      total += this.sessionSeconds(row, false);
+    });
+    if (this.state.running && !liveCounted) total += this.liveElapsedSeconds();
+    return total;
+  }
+
+  renderVals() {
+    void this.state.langTick;
+    var st = this.state;
+    var running = !!st.running;
+    var liveSec = this.liveElapsedSeconds();
+    var todayEvents = this.buildTodayEvents(st.sessions, running, st.startTime);
+    var hist = this.buildHistoryPage(st.sessions);
+
+    var todaySec = this.sumTodaySeconds(st.sessions);
+    var monthSec = this.sumMonthSeconds(st.sessions);
+
+    var sinceLabel;
+    if (running && st.startTime) {
+      var start = this.parseDateTime(st.startTime);
+      sinceLabel = start
+        ? (this.t('Since ', 'מ־') + this.localTimeLabel(start))
+        : this.t('Shift active', 'משמרת פעילה');
+    } else {
+      sinceLabel = this.t('Total today', 'סה״כ היום');
+    }
+
+    var primaryLabel, primaryBg, primaryShadow;
+    if (st.busy) {
+      primaryLabel = this.t('Saving…', 'שומר…');
+      primaryBg = '#cdd2da';
+      primaryShadow = 'none';
+    } else if (!running) {
+      primaryLabel = this.t('Clock in', 'החתם כניסה');
+      primaryBg = 'linear-gradient(#33a571,#2c8a60)';
+      primaryShadow = '0 6px 16px rgba(44,138,96,.3)';
+    } else {
+      primaryLabel = this.t('Clock out', 'החתם יציאה');
+      primaryBg = 'linear-gradient(#d65745,#c0392b)';
+      primaryShadow = '0 6px 16px rgba(192,57,43,.28)';
+    }
+
+    var canPrev = hist.historyPage > 1;
+    var canNext = hist.historyPage < hist.historyTotalPages;
+
+    return {
+      userName: st.userName || this.t('Technician', 'טכנאי'),
+      labelTimeClock: this.t('time clock', 'שעון נוכחות'),
+      loading: !!st.loading,
+      hasError: !!st.errorMsg,
+      errorMsg: st.errorMsg || '',
+
+      statusLabel: running ? this.t('On shift', 'בעבודה') : this.t('Off shift', 'לא בעבודה'),
+      statusBg: running ? '#e6f4ec' : '#f0f1f4',
+      statusColor: running ? '#2e8a63' : '#8a93a3',
+
+      clockCaption: running ? this.t('Shift active', 'משמרת פעילה') : this.t('Shift ended', 'משמרת הסתיימה'),
+      elapsed: this.formatClock(liveSec),
+      sinceLabel: sinceLabel,
+
+      primaryAction: () => this.primary(),
+      primaryLabel: primaryLabel,
+      primaryBg: primaryBg,
+      primaryShadow: primaryShadow,
+      primaryCursor: st.busy ? 'wait' : 'pointer',
+      primaryOpacity: st.busy ? '0.75' : '1',
+      busy: !!st.busy,
+      iconIn: !running,
+      iconOut: running,
+
+      todayHours: this.formatHm(todaySec),
+      monthHours: this.formatHm(monthSec),
+
+      today: todayEvents,
+      todayEmpty: todayEvents.length === 0,
+      history: hist.history,
+      historyEmpty: hist.historyEmpty,
+      showHistoryPager: hist.showHistoryPager,
+      historyPageLabel: this.t('Page ', 'עמוד ') + hist.historyPage + ' / ' + hist.historyTotalPages,
+      prevHistory: () => this.prevHistory(),
+      nextHistory: () => this.nextHistory(),
+      histPrevDisabled: !canPrev,
+      histNextDisabled: !canNext,
+      histPrevBg: canPrev ? '#fff' : '#f4f5f7',
+      histNextBg: canNext ? '#fff' : '#f4f5f7',
+      histPrevColor: canPrev ? '#1f2a3a' : '#b0b7c3',
+      histNextColor: canNext ? '#1f2a3a' : '#b0b7c3',
+      histPrevCursor: canPrev ? 'pointer' : 'not-allowed',
+      histNextCursor: canNext ? 'pointer' : 'not-allowed',
+      labelToday: this.t('today', 'היום'),
+      labelThisMonth: this.t('this month', 'החודש'),
+      labelTotalTime: this.t('total time', 'סה״כ זמן'),
+      labelTodayCourse: this.t('the course of the day', 'מהלך היום'),
+      labelHistory: this.t('attendance history', 'היסטוריית נוכחות'),
+      emptyTodayMsg: this.t('No punches today', 'אין חתימות היום'),
+      emptyHistoryMsg: this.t('No history yet', 'אין היסטוריה עדיין')
+    };
+  }
+}
+
+</script>
+
+<script>
+  window.addEventListener('load', function () {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    if (typeof applyTranslations === 'function') applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+  });
+  setTimeout(function () {
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }, 300);
+  setTimeout(function () {
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }, 1000);
+</script>
+</body>
+</html>

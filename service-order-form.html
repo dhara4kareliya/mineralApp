@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, a, input, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .gv-in { width:100%; border:1.5px solid #e4e8ee; border-radius:12px; padding:12px 13px; font-size:14px; font-weight:600; color:#1f2a3a; background:#fff; outline:none; }
+  .gv-in::placeholder { color:#b6bdc8; font-weight:600; }
+  .gv-in:focus { border-color:#1d60a2; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- navy header -->
+<div style="background:#16223a; padding:10px 16px 16px; flex:none;">
+<div style="display:flex; justify-content:center; padding:2px 0 10px;">
+<div style="width:42px; height:5px; border-radius:99px; background:rgba(255,255,255,.22);"></div>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<div style="width:38px;"></div>
+<div style="font-size:18px; font-weight:800; color:#fff;">order form</div>
+<a href="service-customer-card.html" style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.12); color:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</a>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:0 16px 16px;">
+<!-- auto-fill banner -->
+<div style="display:flex; align-items:center; gap:8px; background:#eafaf0; border-bottom:1px solid #d4ecdd; margin:0 -16px 14px; padding:11px 16px; color:#2e8a63; font-size:12.5px; font-weight:700;">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="16"><path d="M20 6 9 17l-5-5"></path></svg>
+          Details were filled in automatically from the quote
+        </div>
+<!-- customer summary -->
+<div style="display:flex; align-items:center; gap:11px; margin-bottom:16px;">
+<div style="flex:1; text-align:left;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;">{{ name }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:2px;">T.Z. {{ tz }} · {{ phone }}</div>
+</div>
+<div style="width:46px; height:46px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">{{ initials }}</div>
+</div>
+<!-- customer details -->
+<div style="font-size:12.5px; font-weight:800; color:#5a6473; margin:0 2px 9px;">Customer details</div>
+<div style="margin-bottom:11px;">
+<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
+<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
+            Mobile phone 2 (optional)
+          </label>
+<input class="gv-in" placeholder="05X-XXXXXXX" type="tel"/>
+</div>
+<div style="margin-bottom:18px;">
+<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
+<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+            Exact address <span style="color:#c0392b;">*</span>
+</label>
+<input class="gv-in" style="background:#eafaf0; border-color:#bfe6cd;" type="text" value="{{ address }}"/>
+</div>
+<!-- products -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin:0 2px 10px;">
+<div style="font-size:12.5px; font-weight:800; color:#5a6473;">products <span style="color:#c0392b;">*</span></div>
+<span style="display:inline-flex; align-items:center; gap:4px; background:#e6f4ec; color:#2e8a63; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px;">
+<span style="width:6px; height:6px; border-radius:50%; background:#2e8a63;"></span>Filled with an offer
+          </span>
+</div>
+
+<sc-for as="p" list="{{ products }}">
+<div style="background:#eef4fb; border:1px solid #dbe6f5; border-radius:14px; padding:14px; margin-bottom:11px; position:relative;">
+
+<div style="font-size:11px; font-weight:700; color:#9aa3b0; margin-bottom:3px;">Product {{ p.index }}</div>
+<div style="font-size:15px; font-weight:800; color:#1d60a2;">{{ p.name }}</div>
+<div style="font-size:12px; color:#7b8595; margin-top:2px;">{{ p.sub }} · {{ p.price }}</div>
+
+
+
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid #dbe6f5;">
+<span style="font-size:12.5px; font-weight:600; color:#5a6473;">Discount (NIS)</span>
+<div style="display:flex; align-items:center; gap:8px;">
+<input class="gv-in" oninput="{{ p.onDiscountChange }}" style="width:78px; text-align:center; padding:8px;" type="number" value="{{ p.discountAmt }}"/>
+<span style="font-size:12px; color:#9aa3b0;">- {{ p.discountText }}</span>
+</div>
+</div>
+</div>
+</sc-for>
+<a href="{{ selectProductUrl }}" style="display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:12px; border:1.5px dashed #aebfd6; border-radius:12px; background:#f4f8fd; color:#1d60a2; font-size:13.5px; font-weight:700; cursor:pointer; margin-bottom:18px; text-decoration:none;">
+<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M12 5v14M5 12h14"></path></svg>
+          Add another product
+        </a>
+<!-- sales commitments / free text under products -->
+<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
+<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M9 11l3 3 8-8"></path><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"></path></svg>
+          Additional obligations to the customer
+        </label><textarea class="gv-in" placeholder="For example: arrive with two faucets, install an additional filter at no cost..." style="resize:none; height:74px; margin-bottom:18px;"></textarea>
+<!-- summary -->
+<div style="font-size:12.5px; font-weight:800; color:#5a6473; margin:0 2px 9px;">Summary</div>
+<div style="background:#fff; border-radius:16px; padding:14px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:16px;">
+  <sc-for as="p" list="{{ products }}">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0;">
+      <span style="font-size:13.5px; color:#5a6473; text-align:start;">{{ p.name }}</span>
+      <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ p.price }}</span>
+    </div>
+  </sc-for>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0;">
+    <span style="font-size:13.5px; color:#5a6473; text-align:start;">discount</span>
+    <span style="font-size:13.5px; font-weight:700; color:#2e8a63; text-align:end;">- {{ totalDiscountAmt }}₪</span>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-top:1px solid #f0f2f5; margin-top:4px; padding-top:8px;">
+    <span style="font-size:13.5px; color:#5a6473; text-align:start;">Intermediate amount (before VAT)</span>
+    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ beforeVat }} NIS/month</span>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0;">
+    <span style="font-size:13.5px; color:#5a6473; text-align:start;">VAT 18%</span>
+    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ vatAmt }} NIS/month</span>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0 4px; margin-top:6px; border-top:1px solid #f0f2f5;">
+    <span style="font-size:14px; font-weight:800; color:#1f2a3a; text-align:start;">Total monthly</span>
+    <span style="font-size:18px; font-weight:800; color:#2e8a63; text-align:end;">{{ totalPayable }}</span>
+  </div>
+</div>
+<!-- notes -->
+<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
+<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M6 2h9l4 4v16H6z"></path><path d="M14 2v5h5"></path></svg>
+          Notes (optional)
+        </label>
+<textarea class="gv-in" placeholder="Additional notes for ordering..." style="resize:none; height:74px;"></textarea>
+</div>
+<!-- pinned CTA -->
+<div style="background:#fff; border-top:1px solid #eceef1; padding:13px 16px 20px; flex:none;">
+<a href="{{ collectionPaymentUrl }}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:15px; border-radius:14px; background:#1d60a2; color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(29,96,162,.28);">
+          Continue collection
+          <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    customer_id: '',
+    name: 'Moshe Cohen',
+    phone: '050-1234567',
+    tz: '123456789',
+    address: '12 Herzl St., 3rd floor, apartment 8, Tel Aviv',
+    products: []
+  };
+
+  componentDidMount() {
+    this.initData();
+    window.addEventListener('mineralbar:ready', () => this.initData());
+  }
+
+  getCustomerId() {
+    var p = new URLSearchParams(window.location.search);
+    var id = p.get('customer_id') || p.get('cust_id') || p.get('contactus_id') ||
+      p.get('lead_id') || p.get('id') || '';
+    if (!id && window.location.hash) {
+      var h = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+      id = h.get('customer_id') || h.get('cust_id') || h.get('id') || '';
+    }
+    if (!id) {
+      var m = String(window.location.href || '').match(/[?&#](?:customer_id|cust_id|contactus_id|lead_id)=([^&#]+)/i);
+      if (m && m[1]) {
+        try { id = decodeURIComponent(m[1]); } catch (e) { id = m[1]; }
+      }
+    }
+    if (!id) {
+      try { id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || ''; } catch (e2) { /* ignore */ }
+    }
+    if (id === '0' || id === 'null' || id === 'undefined') id = '';
+    return String(id || '').trim();
+  }
+
+  async initData() {
+    try {
+      var q = new URLSearchParams(window.location.search);
+      var customerId = this.getCustomerId() || '1';
+      var name = q.get('name') || '';
+      var phone = q.get('phone') || '';
+      var tz = q.get('tz') || q.get('id') || '';
+      var address = q.get('address') || '';
+      var productIdsStr = q.get('product_ids') || '';
+
+      var stateUpdate = { customer_id: customerId };
+      if (name) stateUpdate.name = name;
+      if (phone) stateUpdate.phone = phone;
+      if (tz) stateUpdate.tz = tz;
+      if (address) stateUpdate.address = address;
+
+      // Fetch products
+      var productsList = [];
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        try {
+          var client = MineralBarApp.getClient();
+          var res = await client.request('Products.List', { limit: 25 });
+          var data = res && (res.data || res.output || res);
+          if (Array.isArray(data) && data.length > 0) {
+            productsList = data.map(function(item) {
+              var priceVal = Math.round(Number(item.price || item.cost || 89));
+              var desc = item.description || item.desc || 'מסלול';
+              var isDroplet = item.product_name && (item.product_name.indexOf('בר') !== -1 || item.product_name.indexOf('סנן') !== -1 || item.product_name.indexOf('horizon') !== -1 || item.product_name.indexOf('filter') !== -1);
+              
+              var discountVal = Number(item.discount_price || item.discount || 0);
+              var isPercent = Number(item.is_price_percent || 0) === 1;
+              var discountAmt = isPercent ? Math.round(priceVal * (discountVal / 100)) : Math.round(discountVal);
+              var discountText = discountAmt > 0 ? (discountAmt + '₪') : '0₪';
+
+              return {
+                id: String(item.id),
+                name: item.product_name || item.name || 'מוצר',
+                sub: desc,
+                price: priceVal + ' NIS/month',
+                priceNum: priceVal,
+                discountAmt: discountAmt,
+                discountText: discountText,
+                isDroplet: !!isDroplet
+              };
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch products list', err);
+        }
+      }
+
+      if (!productsList || productsList.length === 0) {
+        productsList = [
+          { id: '200094', name: 'Filter main horizon', sub: 'Annual route', price: '89 NIS/month', priceNum: 89, discountAmt: 0, discountText: '0₪', isDroplet: true },
+          { id: '200092', name: 'Annual product insurance', sub: 'Full coverage', price: '29 NIS/month', priceNum: 29, discountAmt: 0, discountText: '0₪', isDroplet: false }
+        ];
+      }
+
+      var finalProducts = [];
+      if (productIdsStr) {
+        var ids = productIdsStr.split(',');
+        ids.forEach(function(productId) {
+          var found = productsList.find(function(p) { return p.id === productId; });
+          if (found) {
+            finalProducts.push(JSON.parse(JSON.stringify(found)));
+          }
+        });
+      }
+      productsList = finalProducts;
+
+      stateUpdate.products = productsList;
+      this.setState(stateUpdate);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  onRemoveProduct(productId) {
+    var updated = this.state.products.filter(p => p.id !== productId);
+    this.setState({ products: updated });
+  }
+
+  onDiscountInput(productId, val) {
+    var updated = this.state.products.map(p => {
+      if (p.id === productId) {
+        var discountAmt = Number(val || 0);
+        return {
+          ...p,
+          discountAmt: discountAmt,
+          discountText: discountAmt + '₪'
+        };
+      }
+      return p;
+    });
+    this.setState({ products: updated });
+  }
+
+  getInitials(name) {
+    var p = String(name || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+    return ((p[0][0] || '') + (p[1][0] || '')).toUpperCase();
+  }
+
+  renderVals() {
+    var s = this.state;
+    var initials = this.getInitials(s.name);
+    var productsWithIndex = (s.products || []).map((p, idx) => ({
+      ...p,
+      index: idx + 1,
+      remove: () => this.onRemoveProduct(p.id),
+      onDiscountChange: (e) => this.onDiscountInput(p.id, e.target.value)
+    }));
+
+    var totalDiscount = (s.products || []).reduce((sum, p) => sum + (p.discountAmt || 0), 0);
+    var subTotal = (s.products || []).reduce((sum, p) => sum + (p.priceNum || 0), 0);
+    var beforeVat = Math.max(0, subTotal - totalDiscount);
+    var vatAmt = Math.round(beforeVat * 0.18);
+    var totalPayableVal = beforeVat + vatAmt;
+    var totalPayable = totalPayableVal + ' NIS/month';
+
+    var nextUrl = 'collection-payment.html' + (window.location.search || '');
+
+    var selectProductQuery = new URLSearchParams(window.location.search);
+    selectProductQuery.set('from', 'order');
+    var selectProductUrl = 'service-select-product.html?' + selectProductQuery.toString();
+
+    return {
+      name: s.name,
+      phone: s.phone,
+      tz: s.tz,
+      initials: initials,
+      address: s.address,
+      products: productsWithIndex,
+      totalDiscountAmt: totalDiscount,
+      beforeVat: beforeVat,
+      vatAmt: vatAmt,
+      totalPayable: totalPayable,
+      collectionPaymentUrl: nextUrl,
+      selectProductUrl: selectProductUrl,
+      onRemoveProduct: (id) => this.onRemoveProduct(id),
+      onDiscountInput: (id, val) => this.onDiscountInput(id, val)
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,591 @@
+﻿<!DOCTYPE html>
+
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <script src="./support.js"></script>
+  <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+  <script src="./biz1-app.js"></script>
+  <script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+
+<body>
+  <x-dc>
+    <helmet>
+      <link href="https://fonts.googleapis.com" rel="preconnect" />
+      <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+      <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+      <style>
+        * {
+          box-sizing: border-box;
+        }
+
+        html,
+        body {
+          margin: 0;
+          direction: rtl;
+          font-family: 'Heebo', sans-serif;
+          -webkit-font-smoothing: antialiased;
+        }
+
+        button {
+          font-family: 'Heebo', sans-serif;
+        }
+
+        .dc-scroll::-webkit-scrollbar {
+          width: 0;
+        }
+      </style>
+    </helmet>
+    <div 
+      style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+      <div
+        style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+        <div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px;">
+          <!-- status bar -->
+          <div id="common-app-header" class="status-bar status-bar-light" data-common-header="1"
+            style="display:flex; align-items:center; justify-content:space-between; padding:11px 22px 4px; font-size:13px; font-weight:700; color:#1f2a3a;">
+            <span class="status-clock"></span> <button type="button" class="lang-translator-btn" id="btn-lang-toggle">🌐 EN</button>
+            <div style="display:flex; gap:5px; align-items:center;">
+              
+              
+            </div>
+          </div>
+          <!-- header: back (right) · title · search (left) -->
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px 10px; background:#eef0f3; direction:ltr;"> 
+            <button onclick="{{ onBack }}"
+            style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06);">
+              <svg fill="none" height="20" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round"
+                stroke-width="2" viewbox="0 0 24 24" width="20">
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+            </button>
+            
+            <div style="text-align:center; direction:rtl;" data-no-i18n="true">
+              <div style="font-size:19px; font-weight:800; color:#1f2a3a;">{{ pageTitle }}</div>
+              <div style="font-size:12.5px; color:#8a93a3; margin-top:1px;">{{ subtitle }}</div>
+            </div>
+          </div>
+          <div style="padding:0 16px 10px; background:#eef0f3;">
+            <div style="position:relative;">
+              <input
+                oninput="{{ onSearchInput }}"
+                value="{{ query }}"
+                placeholder="{{ searchPlaceholder }}"
+                data-no-i18n="true"
+                style="width:100%; padding:10px 12px 10px 36px; border:1.4px solid #dbe1ea; border-radius:11px; background:#fff; font-size:13px; color:#1f2a3a; text-align:start;"
+                type="text"
+                id="all-docs-search-input"
+              />
+              <svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15" style="position:absolute; inset-inline-start:11px; top:50%; transform:translateY(-50%);">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+              </svg>
+            </div>
+          </div>
+          <!-- filter chips -->
+          <div class="dc-scroll"
+            style="display:flex; gap:8px; padding:4px 16px 12px; overflow-x:auto; background:#eef0f3;">
+            <sc-for as="f" hint-placeholder-count="5" list="{{ filters }}">
+              <button onclick="{{ f.pick }}"
+                style="flex:none; padding:8px 15px; border-radius:99px; font-size:13px; font-weight:{{ f.weight }}; cursor:pointer; white-space:nowrap; background:{{ f.bg }}; color:{{ f.color }}; border:1.4px solid {{ f.border }};">{{
+                f.label }}</button>
+            </sc-for>
+          </div>
+          <div class="dc-scroll" style="height:622px; overflow-y:auto; padding:4px 16px 40px;">
+            <sc-for as="d" hint-placeholder-count="6" list="{{ docs }}">
+              <div
+                style="background:#fff; border-radius:16px; padding:13px 14px; margin-bottom:11px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+                <div style="display:flex; align-items:flex-start; gap:12px;">
+                  <!-- icon -->
+                  <div
+                    style="width:44px; height:44px; border-radius:12px; background:{{ d.iconBg }}; color:{{ d.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <sc-if hint-placeholder-val="{{ true }}" value="{{ d.isInvoice }}"><svg fill="none" height="22"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                        viewbox="0 0 24 24" width="22">
+                        <path d="M6 2h9l4 4v16l-2.5-1.5L14 22l-2.5-1.5L9 22l-2.5-1.5L4 22V4a2 2 0 0 1 2-2z"></path>
+                        <path d="M8 8h7M8 12h7M8 16h4"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isReceipt }}"><svg fill="none" height="22"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                        viewbox="0 0 24 24" width="22">
+                        <path d="M5 3h14v18l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3L5 21z"></path>
+                        <path d="M9 8h6M9 12h6"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isOrder }}"><svg fill="none" height="22"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                        viewbox="0 0 24 24" width="22">
+                        <rect height="17" rx="2" width="16" x="4" y="4"></rect>
+                        <path d="M9 2v4M15 2v4M8 11l2 2 3.5-3.5M8 16h6"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isQuote }}"><svg fill="none" height="22"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                        viewbox="0 0 24 24" width="22">
+                        <rect height="18" rx="2" width="16" x="4" y="3"></rect>
+                        <path d="M8 8h8M8 12h8M8 16h5"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isCredit }}"><svg fill="none" height="22"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                        viewbox="0 0 24 24" width="22">
+                        <path d="M6 2h9l4 4v16l-2.5-1.5L14 22l-2.5-1.5L9 22l-2.5-1.5L4 22V4a2 2 0 0 1 2-2z"></path>
+                        <path d="M8.5 12h7"></path>
+                      </svg></sc-if>
+                  </div>
+                  <!-- middle -->
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ d.type }}</div>
+                    <div style="font-size:12px; color:#9aa3b0; margin-top:2px;">{{ d.num }} · {{ d.date }}</div>
+                  </div>
+                  <!-- amount + status -->
+                  <div style="text-align:left; flex:none;">
+                    <div style="font-size:16px; font-weight:800; color:{{ d.amountColor }};">{{ d.amount }}</div>
+                    <div
+                      style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:{{ d.statusBg }}; color:{{ d.statusColor }}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px;">
+                      <span style="width:6px; height:6px; border-radius:50%; background:{{ d.statusColor }};"></span>
+                      {{ d.status }}
+                    </div>
+                  </div>
+                </div>
+                <!-- share row -->
+                <div
+                  style="display:flex; align-items:center; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid #f0f2f5;" data-no-i18n="true">
+                  <span style="font-size:12px; color:#9aa3b0; font-weight:600; margin-left:auto;">{{ shareLabel }}</span>
+                  <button
+                    onclick="{{ d.sendWhatsApp }}"
+                    style="display:flex; align-items:center; justify-content:center; gap:6px; padding:7px 12px; border:none; border-radius:9px; background:#eafaf0; color:#1f9d55; font-size:12.5px; font-weight:700; cursor:pointer;">
+                    <svg fill="currentColor" height="14" viewbox="0 0 24 24" width="14">
+                      <path
+                        d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.4-.1.7.2.3.8 1.4 1.8 2.2 1.2 1.1 2.2 1.4 2.5 1.6.3.1.5.1.6-.1l.7-.9c.2-.3.4-.2.6-.1l1.9.9c.3.1.4.2.5.3 0 .1 0 .6-.2 1.2z">
+                      </path>
+                    </svg>
+                    WhatsApp
+                  </button>
+                  <button
+                    onclick="{{ d.sendMail }}"
+                    style="display:flex; align-items:center; justify-content:center; padding:7px 11px; border:none; border-radius:9px; background:#eaf2fb; color:#1d60a2; font-size:12.5px; font-weight:700; cursor:pointer; gap:6px;">
+                    <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" viewbox="0 0 24 24" width="14">
+                      <rect height="14" rx="2.5" width="18" x="3" y="5"></rect>
+                      <path d="m3.5 6.5 8.5 6 8.5-6"></path>
+                    </svg>
+                    {{ mailLabel }}
+                  </button>
+                  <button
+                    onclick="{{ d.downloadPdf }}"
+                    style="display:flex; align-items:center; justify-content:center; padding:7px 11px; border:none; border-radius:9px; background:#fbeeed; color:#c0392b; font-size:12.5px; font-weight:700; cursor:pointer; gap:6px;">
+                    <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" viewbox="0 0 24 24" width="14">
+                      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                      <path d="M14 3v5h5"></path>
+                    </svg>
+                    PDF
+                  </button>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if hint-placeholder-val="{{ false }}" value="{{ empty }}">
+              <div style="text-align:center; padding:48px 20px; color:#9aa3b0;" data-no-i18n="true">
+                <div style="font-size:14px; font-weight:600;">{{ emptyMsg }}</div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </x-dc>
+  <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = { filter: 'all', query: '', docsData: [], customerName: '', customer: null, langTick: 0 };
+
+  ICONS = {
+    invoice: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l4 4v16l-2.5-1.5L14 22l-2.5-1.5L9 22l-2.5-1.5L4 22V4a2 2 0 0 1 2-2z"/><path d="M8 8h7M8 12h7M8 16h4"/></svg>',
+    receipt: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3L5 21z"/><path d="M9 8h6M9 12h6"/></svg>',
+    order: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M9 2v4M15 2v4M8 11l2 2 3.5-3.5M8 16h6"/></svg>',
+    quote: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+    credit: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l4 4v16l-2.5-1.5L14 22l-2.5-1.5L9 22l-2.5-1.5L4 22V4a2 2 0 0 1 2-2z"/><path d="M9 12h6"/></svg>',
+  };
+
+  TYPEMAP = {
+    invoice: { iconBg: '#eaf2fb', iconColor: '#1d60a2', cat: 'invoices' },
+    receipt: { iconBg: '#e9f5ee', iconColor: '#2e8a63', cat: 'receipts' },
+    order: { iconBg: '#fdf1dd', iconColor: '#bd8324', cat: 'orders' },
+    quote: { iconBg: '#eef0fb', iconColor: '#50439d', cat: 'quotes' },
+    credit: { iconBg: '#fbeeed', iconColor: '#c0392b', cat: 'invoices' },
+  };
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  statusMeta(pay) {
+    if (pay === 'paid') {
+      return { status: this.t('Paid', 'שולם'), statusColor: '#1f9d55', statusBg: '#eafaf0' };
+    }
+    return { status: this.t('Unpaid', 'לא שולם'), statusColor: '#bd8324', statusBg: '#fdf1dd' };
+  }
+
+  componentDidMount() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var f = p.get('filter') || '';
+      if (f === 'invoices' || f === 'invoice' || f === 'receipts' || f === 'orders' || f === 'quotes' || f === 'all') {
+        this.setState({ filter: f === 'invoice' ? 'invoices' : f });
+      }
+    } catch (e) { /* ignore */ }
+    this.loadData();
+    window.addEventListener('mineralbar:ready', () => this.loadData());
+    window.addEventListener('mineralbar:page-refresh', () => this.loadData());
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+          if (typeof applyTranslations === 'function') applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+        }, 80);
+      }
+    });
+  }
+
+  getCustomerId() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var id = p.get('customer_id') || p.get('cust_id') || p.get('id') || '';
+      if (!id && window.location.hash) {
+        var h = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+        id = h.get('customer_id') || h.get('cust_id') || h.get('id') || '';
+      }
+      if (!id) id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || '';
+      return String(id || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  inferKind(raw) {
+    var t = String(raw.type || raw.doc_type || raw.document_type || raw.name || '').toLowerCase();
+    if (/credit/.test(t)) return 'credit';
+    if (/receipt_tax|tax_receipt|קבלה.*מס|מס.*קבלה/.test(t)) return 'receipt';
+    if (/^receipt$|קבלה/.test(t) && !/invoice/.test(t)) return 'receipt';
+    if (/quote|proposal|הצעת/.test(t)) return 'quote';
+    if (/order|הזמנה|delivery/.test(t)) return 'order';
+    return 'invoice';
+  }
+
+  typeLabel(raw) {
+    var t = String(raw.type || raw.doc_type || raw.document_type || '').toLowerCase();
+    if (t === 'invoice') return this.t('Tax Invoice', 'חשבונית מס');
+    if (t === 'credit_invoice') return this.t('Credit Invoice', 'חשבונית זיכוי');
+    if (t === 'receipt') return this.t('Receipt', 'קבלה');
+    if (t === 'receipt_tax_invoice') return this.t('Receipt Tax Invoice', 'חשבונית מס קבלה');
+    if (t === 'delivery_invoice') return this.t('Delivery', 'משלוח');
+    if (t === 'order_proposals') return this.t('Transaction Invoice', 'חשבונית עסקה');
+    if (t === 'proforma_invoice') return this.t('Proforma Invoice', 'חשבונית פרופורמה');
+    if (t === 'gi_ir' || t === 'gr_ir') return this.t('GR/IR', 'קבלת סחורה / חשבונית');
+    if (t === 'organization_receipt' || t === 'donation_receipt') return this.t('Donation Receipt', 'קבלת תרומה');
+    return raw.type || this.t('Document', 'מסמך');
+  }
+
+  inferStatus(raw) {
+    var paidVal = raw && raw.paid;
+    if (paidVal === 1 || paidVal === '1' || paidVal === true) return 'paid';
+    if (paidVal === 0 || paidVal === '0' || paidVal === false) return 'unpaid';
+
+    var s = String(raw.status || raw.doc_status || raw.payment_status || '').toLowerCase();
+    if (/paid|שולם|closed|done/.test(s)) return 'paid';
+    return 'unpaid';
+  }
+
+  fmtAmount(v) {
+    var n = Number(v);
+    if (Number.isNaN(n)) return '-';
+    var sign = n < 0 ? '-' : '';
+    var abs = Math.abs(n);
+    var text = (Math.round(abs * 100) / 100).toFixed(2);
+    if (text.indexOf('.00') === text.length - 3) text = String(Math.round(abs));
+    return sign + '₪' + text;
+  }
+
+  fmtDate(v) {
+    if (!v) return '';
+    try {
+      var d = new Date(v);
+      if (Number.isNaN(d.getTime())) return String(v).slice(0, 10);
+      var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+      return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+    } catch (e) {
+      return String(v);
+    }
+  }
+
+  documentId(raw) {
+    return raw && (raw.document_id || raw.doc_id || raw.id || raw.ID || '');
+  }
+
+  findPdfUrl(value, depth) {
+    if (!value || depth > 4) return '';
+    if (typeof value === 'string') {
+      var text = value.trim();
+      if (/^(https?:)?\/\//i.test(text) || /^\//.test(text) || /\.pdf(?:$|[?#])/i.test(text)) return text;
+      return '';
+    }
+    if (Array.isArray(value)) {
+      for (var a = 0; a < value.length; a++) {
+        var arrayUrl = this.findPdfUrl(value[a], depth + 1);
+        if (arrayUrl) return arrayUrl;
+      }
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+
+    var preferred = ['pdf_url', 'pdfUrl', 'download_url', 'downloadUrl', 'document_url', 'documentUrl', 'file_url', 'fileUrl', 'pdf', 'file', 'url', 'path'];
+    for (var i = 0; i < preferred.length; i++) {
+      if (value[preferred[i]] != null) {
+        var preferredUrl = this.findPdfUrl(value[preferred[i]], depth + 1);
+        if (preferredUrl) return preferredUrl;
+      }
+    }
+    var keys = Object.keys(value);
+    for (var k = 0; k < keys.length; k++) {
+      if (/pdf|file|download|document/i.test(keys[k])) {
+        var nestedUrl = this.findPdfUrl(value[keys[k]], depth + 1);
+        if (nestedUrl) return nestedUrl;
+      }
+    }
+    return '';
+  }
+
+  absoluteUrl(url) {
+    if (!url) return '';
+    try { return new URL(url, window.location.href).href; } catch (e) { return String(url); }
+  }
+
+  async getPdfUrl(doc) {
+    var direct = this.findPdfUrl(doc.raw, 0);
+    if (direct) return this.absoluteUrl(direct);
+
+    var id = this.documentId(doc.raw);
+    if (!id) throw new Error(this.t('This document has no downloadable PDF', 'למסמך זה אין PDF להורדה'));
+    var payload = { document_id: id, doc_id: id, id: id, customer_id: this.getCustomerId() };
+    var response = null;
+    try {
+      response = await MineralBarApp.getClient().request('Documents.View', payload);
+    } catch (viewError) {
+      response = await MineralBarApp.getClient().request('Documents.Get', payload);
+    }
+    var url = this.findPdfUrl(response, 0);
+    if (!url) throw new Error(this.t('No PDF file was returned for this document', 'לא הוחזר קובץ PDF עבור מסמך זה'));
+    return this.absoluteUrl(url);
+  }
+
+  showFeedback(message, isError) {
+    var old = document.getElementById('all-documents-feedback');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.id = 'all-documents-feedback';
+    box.textContent = message;
+    box.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;padding:10px 16px;border-radius:10px;color:#fff;background:' +
+      (isError ? '#c0392b' : '#1f2a3a') + ';font:600 13px Heebo,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.2);';
+    document.body.appendChild(box);
+    setTimeout(() => { if (box.parentNode) box.remove(); }, 2800);
+  }
+
+  async downloadDocument(doc) {
+    try {
+      var url = await this.getPdfUrl(doc);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = (String(doc.type || 'document') + '-' + String(doc.num || '').replace(/^#/, '') + '.pdf').replace(/[^\w.-]+/g, '-');
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (e) {
+      this.showFeedback((e && e.message) || this.t('PDF download failed', 'הורדת ה-PDF נכשלה'), true);
+    }
+  }
+
+  async sendDocument(doc, channel) {
+    try {
+      var url = await this.getPdfUrl(doc);
+      var customer = this.state.customer || {};
+      var message = String(doc.type || 'Document') + ' ' + String(doc.num || '') + '\n' + url;
+      var payload = {
+        customer_id: this.getCustomerId(),
+        cust_id: this.getCustomerId(),
+        message: message,
+        msg: message,
+        from: channel === 'whatsapp' ? 'send_whatsapp' : 'send_email_quick'
+      };
+      var email = customer.email || customer.email_address || '';
+      var phone = customer.phone || customer.mobile || customer.phone_no || '';
+      if (email) {
+        payload.email = email;
+        payload.chart_selected_email = email;
+      }
+      if (phone) {
+        payload.phone = phone;
+        payload.chart_selected_phone_no = phone;
+      }
+      await MineralBarApp.sendCustomerMessage(payload);
+      this.showFeedback(
+        channel === 'whatsapp'
+          ? this.t('Document sent by WhatsApp', 'המסמך נשלח ב-WhatsApp')
+          : this.t('Document sent by email', 'המסמך נשלח בדוא״ל'),
+        false
+      );
+    } catch (e) {
+      this.showFeedback((e && e.message) || this.t('Document could not be sent', 'לא ניתן היה לשלוח את המסמך'), true);
+    }
+  }
+
+  async loadData() {
+    if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) return;
+    var cid = this.getCustomerId();
+    if (!cid) return;
+    try {
+      var customerName = this.t('Customer', 'לקוח');
+      var customer = null;
+      if (typeof MineralBarApp.getCustomer === 'function') {
+        var cRes = await MineralBarApp.getCustomer(cid).catch(() => null);
+        var c = cRes && cRes.customer;
+        if (c && c.data && typeof c.data === 'object') c = c.data;
+        customer = c || null;
+        if (c && c.name) customerName = c.name;
+      }
+
+      var raw = await MineralBarApp.getClient().request('Documents.List', {
+        customer_id: cid,
+        length: 50,
+        start: 0,
+        draw: 1
+      });
+      var rows = (raw && (raw.rows || raw.data || raw.output)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      var docsData = rows.map((r) => {
+        var num = r.last_documents_id || r.number || r.doc_no || r.id || '-';
+        return {
+          kind: this.inferKind(r),
+          typeKey: String(r.type || r.doc_type || r.document_type || ''),
+          num: '#' + num,
+          date: this.fmtDate(r.date_created || r.inserted_date || r.date || r.create_date || r.created_at || ''),
+          amount: this.fmtAmount(r.final_amount != null ? r.final_amount : (r.total != null ? r.total : (r.amount || r.price || 0))),
+          pay: this.inferStatus(r),
+          raw: r
+        };
+      });
+
+      this.setState({
+        docsData: docsData,
+        customerName: customerName,
+        customer: customer
+      });
+    } catch (e) {
+      console.warn('[all-documents] loadData failed', e);
+      this.setState({ docsData: [], customerName: this.t('Customer', 'לקוח') });
+    }
+  }
+
+  goBack() {
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (e) {
+      /* ignore and use fallback */
+    }
+    window.location.href = 'chat-customer.html';
+  }
+
+  openSearch() {
+    var input = document.getElementById('all-docs-search-input');
+    if (!input) return;
+    input.focus();
+    try { input.select(); } catch (e) {}
+  }
+
+  FILTERS = [
+    { id: 'all', en: 'All', he: 'הכל' },
+    { id: 'invoices', en: 'Invoices', he: 'חשבוניות' },
+    { id: 'receipts', en: 'Receipts', he: 'קבלות' },
+    { id: 'orders', en: 'Orders', he: 'הזמנות' },
+    { id: 'quotes', en: 'Price Quotes', he: 'הצעות מחיר' },
+  ];
+
+  renderVals() {
+    void this.state.langTick;
+    const cur = this.state.filter;
+    const q = String(this.state.query || '').toLowerCase();
+    const filters = this.FILTERS.map(f => {
+      const on = f.id === cur;
+      return {
+        label: this.t(f.en, f.he),
+        pick: () => this.setState({ filter: f.id }),
+        bg: on ? '#1d60a2' : '#fff',
+        color: on ? '#fff' : '#5a6473',
+        border: on ? '#1d60a2' : '#e4e8ee',
+        weight: on ? '700' : '600',
+      };
+    });
+
+    const docs = (this.state.docsData || [])
+      .filter(d => cur === 'all' || this.TYPEMAP[d.kind].cat === cur)
+      .filter(d => {
+        if (!q) return true;
+        var typeText = this.typeLabel(d.raw || { type: d.typeKey });
+        var hay = (String(typeText || '') + ' ' + String(d.num || '') + ' ' + String(d.date || '') + ' ' + String(d.amount || '')).toLowerCase();
+        return hay.indexOf(q) !== -1;
+      })
+      .map(d => {
+        const t = this.TYPEMAP[d.kind];
+        const s = this.statusMeta(d.pay);
+        return {
+          type: this.typeLabel(d.raw || { type: d.type }),
+          num: d.num, date: d.date, amount: d.amount,
+          isInvoice: d.kind === 'invoice', isReceipt: d.kind === 'receipt', isOrder: d.kind === 'order', isQuote: d.kind === 'quote', isCredit: d.kind === 'credit',
+          iconBg: t.iconBg, iconColor: t.iconColor,
+          amountColor: '#1f2a3a',
+          status: s.status, statusColor: s.statusColor, statusBg: s.statusBg,
+          sendWhatsApp: () => this.sendDocument(d, 'whatsapp'),
+          sendMail: () => this.sendDocument(d, 'email'),
+          downloadPdf: () => this.downloadDocument(d),
+        };
+      });
+
+    var custName = this.state.customerName || (this.state.customer && this.state.customer.name) || this.t('Customer', 'לקוח');
+    var count = (this.state.docsData || []).length;
+    var subtitle = custName + ' · ' + count + ' ' + this.t('documents', 'מסמכים');
+
+    return {
+      filters,
+      docs,
+      empty: docs.length === 0,
+      pageTitle: this.t('All the documents', 'כל המסמכים'),
+      subtitle: subtitle,
+      searchPlaceholder: this.t('Search documents', 'חיפוש מסמכים'),
+      shareLabel: this.t('Fast sharing', 'שיתוף מהיר'),
+      mailLabel: this.t('mail', 'דוא״ל'),
+      emptyMsg: this.t('There are no such documents', 'אין מסמכים כאלה'),
+      query: this.state.query,
+      onBack: () => this.goBack(),
+      onSearch: () => this.openSearch(),
+      onSearchInput: (e) => this.setState({ query: String((e && e.target && e.target.value) || '') })
+    };
+  }
+}
+</script>
+</body>
+
+</html>

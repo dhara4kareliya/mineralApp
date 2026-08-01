@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .ds-input::placeholder { color: #aeb6c2; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- navy header -->
+<div style="background:#16223a; padding:13px 16px 16px; flex:none;">
+<div style="display:flex; align-items:center; gap:11px;">
+<a href="service-all-calls.html" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
+<div style="flex:1;">
+<div style="font-size:16px; font-weight:800; color:#fff;">New service call</div>
+<div style="font-size:11.5px; color:#9fb0c8; margin-top:2px;">Step 1 of 2 · Client association</div>
+</div>
+<div style="display:flex; gap:5px; align-items:center; flex:none;">
+<span style="width:22px; height:5px; border-radius:99px; background:#3c8be0;"></span>
+<span style="width:22px; height:5px; border-radius:99px; background:rgba(255,255,255,.18);"></span>
+</div>
+</div>
+<!-- search bar -->
+<div style="position:relative; margin-top:14px;">
+<svg fill="none" height="18" stroke="#8a93a3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="position:absolute; inset-inline-start:13px; top:50%; transform:translateY(-50%); pointer-events:none; z-index:1;" viewbox="0 0 24 24" width="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<input class="ds-input" oninput="{{ onSearch }}" placeholder="Customer search by name, phone or address" style="width:100%; box-sizing:border-box; padding-block:13px; padding-inline-start:42px; padding-inline-end:{{ searchPadEnd }}; border:none; border-radius:13px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff; outline:none;" value="{{ query }}"/>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasQuery }}">
+<button type="button" onclick="{{ clearSearch }}" aria-label="Clear search" style="position:absolute; inset-inline-end:9px; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:50%; border:none; background:#eef0f3; color:#8a93a3; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2;">✕</button>
+</sc-if>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 16px;">
+<!-- add-new-customer card -->
+<!-- <button onclick="{{ toggleNew }}" style="width:100%; display:flex; align-items:center; gap:12px; background:{{ newCardBg }}; border:1.6px {{ newCardBorderStyle }} {{ newCardBorder }}; border-radius:15px; padding:13px 14px; cursor:pointer; text-align:left; margin-bottom:16px;">
+<div style="width:42px; height:42px; border-radius:12px; background:{{ newIconBg }}; color:#fff; flex:none; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1" viewbox="0 0 24 24" width="22"><circle cx="9" cy="8" r="4"></circle><path d="M2.5 21c0-3.6 3-6 6.5-6 1 0 1.9.2 2.7.5"></path><path d="M18 14v6M15 17h6"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">new customer</div>
+<div style="font-size:12px; color:#8a93a3; margin-top:1px;">Opening a call to a client who is not in the system</div>
+</div>
+<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none; transform:rotate({{ newChevronRot }}); transition:transform .2s;" viewbox="0 0 24 24" width="20"><path d="m6 9 6 6 6-6"></path></svg>
+</button> -->
+<!-- new-customer quick form -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ newOpen }}">
+<div style="background:#fff; border:1.6px solid #d8e3f1; border-radius:15px; padding:15px; margin:-6px 0 16px;">
+<div style="font-size:13px; color:#7b8595; font-weight:800; margin:0 0 12px;">New customer details</div>
+<div style="margin-bottom:11px;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">full name <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNName }}" placeholder="First name and last name" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nName }}"/>
+</div>
+<div style="margin-bottom:13px;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">phone <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNPhone }}" placeholder="050-0000000" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nPhone }}"/>
+</div>
+<div style="height:1px; background:#eef1f5; margin:0 0 13px;"></div>
+<div style="font-size:13px; color:#7b8595; font-weight:800; margin:0 0 11px;">address</div>
+<div style="display:flex; gap:11px; margin-bottom:11px;">
+<div style="flex:1;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">city <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNCity }}" placeholder="city" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nCity }}"/>
+</div>
+<div style="flex:1.4;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">street <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNStreet }}" placeholder="street name" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nStreet }}"/>
+</div>
+</div>
+<div style="display:flex; gap:9px; margin-bottom:13px;">
+<div style="flex:1;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">house number</label>
+<input class="ds-input" oninput="{{ onNHouse }}" placeholder="12" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nHouse }}"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">entry</label>
+<input class="ds-input" oninput="{{ onNEntrance }}" placeholder="A" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nEntrance }}"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">floor</label>
+<input class="ds-input" oninput="{{ onNFloor }}" placeholder="3" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nFloor }}"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">apartment</label>
+<input class="ds-input" oninput="{{ onNApt }}" placeholder="4" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nApt }}"/>
+</div>
+</div>
+<button disabled="{{ newDisabled }}" onclick="{{ saveNew }}" style="width:100%; padding:12px; border:none; border-radius:11px; background:{{ saveBg }}; color:#fff; font-size:14px; font-weight:800; cursor:{{ saveCursor }};">Save and read</button>
+</div>
+</sc-if>
+<!-- results header -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin:2px 2px 11px;">
+<div style="font-size:13px; color:#6a7382; font-weight:800;">{{ listLabel }}</div>
+<!-- <div style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ resultCount }} customers</div> -->
+</div>
+<!-- customer results -->
+<sc-for as="c" hint-placeholder-count="5" list="{{ results }}">
+<button onclick="{{ c.pick }}" style="width:100%; display:flex; align-items:center; gap:12px; background:{{ c.bg }}; border:1.6px solid {{ c.border }}; border-radius:15px; padding:13px 14px; cursor:pointer; text-align:left; margin-bottom:10px;">
+<div style="width:44px; height:44px; border-radius:50%; background:{{ c.avatarBg }}; color:{{ c.avatarColor }}; font-weight:800; font-size:15px; flex:none; display:flex; align-items:center; justify-content:center;">{{ c.initials }}</div>
+<div style="flex:1; min-width:0;">
+<div style="display:flex; align-items:center; gap:7px;">
+<span style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ c.name }}</span>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ c.openCount }}">
+<span style="font-size:10.5px; font-weight:700; color:#bd8324; background:#fdf1dd; padding:2px 7px; border-radius:99px;">{{ c.openLabel }}</span>
+</sc-if>
+</div>
+<div style="display:flex; align-items:center; gap:9px; margin-top:3px;">
+<span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#7b8595;">
+<svg fill="none" height="12" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
+                  {{ c.phone }}
+                </span>
+<span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#7b8595;">
+<svg fill="none" height="12" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+                  {{ c.city }}
+                </span>
+</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:3px;">{{ c.product }}</div>
+</div>
+<div style="width:24px; height:24px; border-radius:50%; border:1.8px solid {{ c.radioBorder }}; background:{{ c.radioBg }}; flex:none; display:flex; align-items:center; justify-content:center;">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ c.selected }}"><svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="13"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</div>
+</button>
+</sc-for>
+<!-- empty state -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ isEmpty }}">
+<div style="text-align:center; padding:30px 20px;">
+<div style="width:56px; height:56px; border-radius:50%; background:#e9edf2; display:flex; align-items:center; justify-content:center; margin:0 auto 13px;">
+<svg fill="none" height="26" stroke="#aab2bf" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="26"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+</div>
+<div style="font-size:14.5px; font-weight:800; color:#5a6473;">No matching customers found</div>
+<div style="font-size:12.5px; color:#9aa3b0; margin-top:5px; line-height:1.5;">Open a new client to associate it with the call</div>
+</div>
+</sc-if>
+</div>
+<!-- footer CTA -->
+<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:13px 16px 20px;">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasSelection }}">
+<div style="display:flex; align-items:center; gap:9px; background:#eaf2fb; border-radius:12px; padding:9px 12px; margin-bottom:11px;">
+<div style="width:32px; height:32px; border-radius:50%; background:#2f6aa6; color:#fff; font-weight:800; font-size:12px; flex:none; display:flex; align-items:center; justify-content:center;">{{ selInitials }}</div>
+<div style="flex:1;">
+<div style="font-size:13px; font-weight:800; color:#194f84;">{{ selName }}</div>
+<div style="font-size:11px; color:#5e80a6;">A client is associated with a call</div>
+</div>
+<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="18"><path d="M20 6 9 17l-5-5"></path></svg>
+</div>
+</sc-if>
+<button disabled="{{ nextDisabled }}" onclick="{{ goNext }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ nextBg }}; color:{{ nextColor }}; font-size:16px; font-weight:800; cursor:{{ nextCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ nextShadow }};">
+          {{ nextLabel }}
+          <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="17"><path d="m14 6-6 6 6 6"></path></svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    query: '',
+    selectedId: null,
+    newOpen: false,
+    nName: '', nPhone: '', nCity: '',
+    nStreet: '', nHouse: '', nFloor: '', nApt: '', nEntrance: '',
+  };
+
+  AVATARS = [
+    { bg: '#e6f0fb', color: '#1d60a2' },
+    { bg: '#e9f4ec', color: '#2e8a63' },
+    { bg: '#f3eefb', color: '#6a4fa0' },
+    { bg: '#fdf1dd', color: '#bd8324' },
+    { bg: '#fbeeed', color: '#c0392b' },
+  ];
+
+  CUSTOMERS = [];
+
+  componentDidMount() {
+    this.loadCustomers();
+    window.addEventListener('mineralbar:ready', () => this.loadCustomers());
+  }
+
+  async loadCustomers() {
+    try {
+      if (!window.MineralBarApp) return;
+      const res = await window.MineralBarApp.listCustomers({ length: 100 });
+      if (res && res.data) {
+        this.CUSTOMERS = res.data.map((c, i) => {
+          return {
+            id: String(c.customer_id),
+            name: c.company || c.name || 'Unknown',
+            phone: c.phone || c.cellular || 'N/A',
+            email: c.email || c.e_mail || '',
+            city: c.city || c.address || 'Unknown',
+            address: c.address || '',
+            open: 0 // Optional: Could be matched with tickets if needed
+          };
+        });
+        this.forceUpdate();
+      }
+    } catch (e) {
+      console.error('Failed to load customers', e);
+    }
+  }
+
+  initials(name) {
+    const parts = (name || '').trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2);
+    return parts[0][0] + parts[1][0];
+  }
+
+  onSearch(e) { this.setState({ query: e.target.value }); }
+  clearSearch() { this.setState({ query: '' }); }
+  toggleNew() { this.setState(s => ({ newOpen: !s.newOpen, selectedId: s.newOpen ? s.selectedId : null })); }
+  pick(id) { this.setState({ selectedId: id == null ? null : String(id), newOpen: false }); }
+
+  filtered() {
+    const q = this.state.query.trim().toLowerCase();
+    if (!q) return this.CUSTOMERS;
+    return this.CUSTOMERS.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.phone.replace(/[-\s]/g, '').includes(q.replace(/[-\s]/g, '')) ||
+      c.city.toLowerCase().includes(q)
+    );
+  }
+
+  proceed(name) {
+    try { localStorage.setItem('mineral_new_call_customer', JSON.stringify(name)); } catch (e) {}
+    window.location.href = 'service-open-call.html';
+  }
+
+  fullAddress() {
+    const s = this.state;
+    const street = [s.nStreet.trim(), s.nHouse.trim()].filter(Boolean).join(' ');
+    const extra = [];
+    if (s.nEntrance.trim()) extra.push('כניסה ' + s.nEntrance.trim());
+    if (s.nFloor.trim()) extra.push('קומה ' + s.nFloor.trim());
+    if (s.nApt.trim()) extra.push('דירה ' + s.nApt.trim());
+    return [street, extra.join(', '), s.nCity.trim()].filter(Boolean).join(', ');
+  }
+
+  saveNew() {
+    const s = this.state;
+    if (!s.nName.trim() || !s.nPhone.trim() || !s.nCity.trim() || !s.nStreet.trim()) return;
+    this.proceed({
+      name: s.nName.trim(), phone: s.nPhone.trim(), city: s.nCity.trim(),
+      address: this.fullAddress(), isNew: true, customer_id: '', id: '',
+    });
+  }
+
+  goNext() {
+    const c = this.CUSTOMERS.find(x => String(x.id) === String(this.state.selectedId));
+    if (!c) return;
+    this.proceed({
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+      city: c.city,
+      address: c.address,
+      isNew: false,
+      customer_id: c.id,
+      id: c.id,
+    });
+  }
+
+  renderVals() {
+    const st = this.state;
+    const list = this.filtered();
+    const sel = this.CUSTOMERS.find(c => String(c.id) === String(st.selectedId));
+
+    const results = list.map((c, i) => {
+      const on = String(c.id) === String(st.selectedId);
+      const av = this.AVATARS[i % this.AVATARS.length];
+      return {
+        name: c.name, phone: c.phone, city: c.city, product: c.product,
+        initials: this.initials(c.name),
+        pick: () => this.pick(c.id),
+        selected: on,
+        openCount: c.open > 0, openLabel: c.open + (c.open === 1 ? ' קריאה פתוחה' : ' קריאות פתוחות'),
+        bg: on ? '#f3f8fe' : '#fff',
+        border: on ? '#1d60a2' : '#eceff3',
+        avatarBg: on ? '#1d60a2' : av.bg, avatarColor: on ? '#fff' : av.color,
+        radioBorder: on ? '#1d60a2' : '#cfd6df', radioBg: on ? '#1d60a2' : '#fff',
+      };
+    });
+
+    const newReady = st.nName.trim() && st.nPhone.trim() && st.nCity.trim() && st.nStreet.trim();
+    const hasSel = !!sel;
+
+    return {
+      query: st.query,
+      hasQuery: st.query.length > 0,
+      searchPadEnd: st.query.length > 0 ? '40px' : '14px',
+      onSearch: (e) => this.onSearch(e),
+      clearSearch: () => this.clearSearch(),
+
+      newOpen: st.newOpen,
+      toggleNew: () => this.toggleNew(),
+      newCardBg: st.newOpen ? '#f3f8fe' : '#fff',
+      newCardBorder: st.newOpen ? '#1d60a2' : '#cdddef',
+      newCardBorderStyle: st.newOpen ? 'solid' : 'dashed',
+      newIconBg: st.newOpen ? '#1d60a2' : '#3c8be0',
+      newChevronRot: st.newOpen ? '180deg' : '0deg',
+
+      nName: st.nName, nPhone: st.nPhone, nCity: st.nCity,
+      nStreet: st.nStreet, nHouse: st.nHouse, nFloor: st.nFloor, nApt: st.nApt, nEntrance: st.nEntrance,
+      onNName: (e) => this.setState({ nName: e.target.value }),
+      onNPhone: (e) => this.setState({ nPhone: e.target.value }),
+      onNCity: (e) => this.setState({ nCity: e.target.value }),
+      onNStreet: (e) => this.setState({ nStreet: e.target.value }),
+      onNHouse: (e) => this.setState({ nHouse: e.target.value }),
+      onNFloor: (e) => this.setState({ nFloor: e.target.value }),
+      onNApt: (e) => this.setState({ nApt: e.target.value }),
+      onNEntrance: (e) => this.setState({ nEntrance: e.target.value }),
+      saveNew: () => this.saveNew(),
+      newDisabled: !newReady,
+      saveBg: newReady ? '#1d60a2' : '#b9c4d2',
+      saveCursor: newReady ? 'pointer' : 'not-allowed',
+
+      listLabel: st.query.trim() ? 'Search results' : 'Recent customers',
+      resultCount: list.length,
+      results,
+      isEmpty: list.length === 0,
+
+      hasSelection: hasSel,
+      selName: sel ? sel.name : '',
+      selInitials: sel ? this.initials(sel.name) : '',
+      goNext: () => this.goNext(),
+      nextDisabled: !hasSel,
+      nextLabel: hasSel ? 'Continue to call details' : 'Select customer to continue',
+      nextBg: hasSel ? '#1d60a2' : '#e3e7ed',
+      nextColor: hasSel ? '#fff' : '#9aa3b0',
+      nextCursor: hasSel ? 'pointer' : 'not-allowed',
+      nextShadow: hasSel ? '0 6px 16px rgba(29,96,162,.28)' : 'none',
+    };
+  }
+}
+</script>
+</body>
+</html>

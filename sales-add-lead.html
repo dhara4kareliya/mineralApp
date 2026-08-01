@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .ds-input::placeholder { color: #aeb6c2; }
+  html[dir="ltr"] .ds-input { text-align:left !important; }
+  select.ds-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 13px center; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#fff; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- navy header: back button only (depth screen, no nav bar) -->
+<div style="background:#101d33; padding:16px 18px; flex:none; display:flex; align-items:center; justify-content:space-between;">
+<a aria-label="חזרה" href="#" onclick="{{ goBack }}" style="width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.1); text-decoration:none; flex:none;">
+<svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="22"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
+</a>
+<div style="font-size:19px; font-weight:800; color:#fff; white-space:nowrap;">New lead</div>
+<div style="width:38px; height:38px; flex:none;"></div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto;">
+<!-- Personal details -->
+<div style="padding:18px 16px; border-bottom:1px solid #eef0f3;">
+<div style="font-size:14px; color:#8a93a3; font-weight:700; margin-bottom:12px;">Personal details</div>
+<div style="margin-bottom:14px;">
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"></path></svg>
+              full name <span style="color:#c0392b;">*</span>
+</label>
+<input class="ds-input" oninput="{{ onName }}" value="{{ name }}" placeholder="Full name" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:right; background:#fff;"/>
+</div>
+<div style="display:flex; gap:11px;">
+<div style="flex:1;">
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L19 13l2 5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>
+                phone <span style="color:#c0392b;">*</span>
+</label>
+<input class="ds-input" oninput="{{ onPhone }}" value="{{ phone }}" placeholder="05X-XXXXXXX" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background:#fff;"/>
+</div>
+<div style="flex:1;">
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><rect height="14" rx="2.5" width="18" x="3" y="5"></rect><path d="m3.5 7 8.5 6 8.5-6"></path></svg>
+                Email
+              </label>
+<input class="ds-input" oninput="{{ onEmail }}" value="{{ email }}" placeholder="Email address" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:right; background:#fff;"/>
+</div>
+</div>
+</div>
+<!-- Address -->
+<div style="padding:18px 16px; border-bottom:1px solid #eef0f3;">
+<div style="font-size:14px; color:#8a93a3; font-weight:700; margin-bottom:12px;">Address</div>
+<div style="margin-bottom:14px;">
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M12 21c5-5.5 7.5-9 7.5-12a7.5 7.5 0 0 0-15 0c0 3 2.5 6.5 7.5 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>
+              Residential address
+            </label>
+<input class="ds-input" oninput="{{ onAddress }}" value="{{ address }}" placeholder="Street, number, city" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:right; background:#fff;"/>
+</div>
+</div>
+<!-- Lead source -->
+<div style="padding:18px 16px; border-bottom:1px solid #eef0f3;">
+<div style="font-size:14px; color:#8a93a3; font-weight:700; margin-bottom:12px;">Lead source <span style="color:#c0392b;">*</span></div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:9px;">
+<sc-for as="s" hint-placeholder-count="6" list="{{ sources }}">
+<button onclick="{{ s.pick }}" style="display:flex; align-items:center; justify-content:flex-start; gap:9px; padding:13px 14px; border-radius:12px; cursor:pointer; text-align:left; background:{{ s.bg }}; border:1.6px solid {{ s.border }};">
+<span style="font-size:14px; font-weight:700; color:{{ s.textColor }};">{{ s.label }}</span>
+<span style="color:{{ s.iconColor }}; flex:none; display:flex; margin-right:auto;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ s.iFb }}"><svg fill="currentColor" height="18" viewbox="0 0 24 24" width="18"><path d="M14 9V7c0-1 .4-1.5 1.6-1.5H17V2.5h-2.4C11.8 2.5 11 4.2 11 6.6V9H8.5v3H11v9.5h3V12h2.3l.4-3z"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ s.iIg }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><rect height="18" rx="5" width="18" x="3" y="3"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.3" cy="6.7" fill="currentColor" r="1.1" stroke="none"></circle></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ s.iGlobe }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ s.iPhone }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path><path d="M15 3h6m0 0v6m0-6-7 7"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ s.iRef }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><circle cx="9" cy="8" r="3"></circle><path d="M3 20c0-3 2.7-4.8 6-4.8s6 1.8 6 4.8"></path><circle cx="17.5" cy="7" r="2.5"></circle><path d="M16 14.4c2.8.2 5 1.9 5 4.6"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ s.iDoc }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h6"></path></svg></sc-if>
+</span>
+</button>
+</sc-for>
+</div>
+</div>
+<!-- Status and affiliation -->
+<div style="padding:18px 16px; border-bottom:1px solid #eef0f3;">
+<div style="font-size:14px; color:#8a93a3; font-weight:700; margin-bottom:12px;">Status and affiliation</div>
+<div style="margin-bottom:14px;">
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:8px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg>
+              opening status
+            </label>
+<div style="display:flex; flex-wrap:wrap; background:#f1f3f6; border:1.5px solid #e4e8ee; border-radius:12px; padding:3px; gap:2px;">
+<sc-for as="st" hint-placeholder-count="4" list="{{ statuses }}">
+<button data-no-i18n="true" onclick="{{ st.pick }}" style="flex:1 1 72px; padding:9px 4px; border:none; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:700; background:{{ st.bg }}; color:{{ st.color }}; box-shadow:{{ st.shadow }};">{{ st.label }}</button>
+</sc-for>
+</div>
+</div>
+</div>
+<!-- Comments -->
+<div style="padding:18px 16px 22px;">
+<div style="font-size:14px; color:#8a93a3; font-weight:700; margin-bottom:12px;">Comments</div>
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
+            A preliminary note <span style="color:#9aa3b0; font-weight:500;">(optional)</span>
+</label>
+<textarea class="ds-input" oninput="{{ onComments }}" placeholder='For example: "Interested in a primary filter, also talking about a water softener"' style="width:100%; min-height:92px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; resize:none; background:#fff; line-height:1.6;">{{ comments }}</textarea>
+</div>
+</div>
+<!-- submit -->
+<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:13px 16px 20px;">
+<button onclick="{{ submit }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.28); opacity:{{ submitting ? 0.6 : 1 }};">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ submitting }}">
+<span style="font-size:16px;">Submitting...</span>
+</sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ !submitting }}">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M5 12h14M12 5v14"></path></svg>
+          Add a lead
+</sc-if>
+        </button>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = { 
+    name: '', phone: '', email: '', address: '',
+    source: 'site', status: '', statusesData: [], comments: '',
+    submitting: false, error: ''
+  };
+
+  inputValue(e) {
+    if (e && e.target) return e.target.value;
+    if (e && typeof e.value === 'string') return e.value;
+    if (e && e.detail && typeof e.detail.value === 'string') return e.detail.value;
+    return typeof e === 'string' ? e : '';
+  }
+  onName(e) { this.setState({ name: this.inputValue(e) }); }
+  onPhone(e) { this.setState({ phone: this.inputValue(e) }); }
+  onEmail(e) { this.setState({ email: this.inputValue(e) }); }
+  onAddress(e) { this.setState({ address: this.inputValue(e) }); }
+  onComments(e) { this.setState({ comments: this.inputValue(e) }); }
+  goBack() { window.history.back(); }
+
+  componentDidMount() {
+    this.loadStatuses();
+    window.addEventListener('mineralbar:ready', () => this.loadStatuses());
+    window.addEventListener('mineralbar:language-changed', () => this.loadStatuses());
+  }
+
+  SOURCES = [
+    { id: 'fb', label: 'פייסבוק', icon: 'iFb' },
+    { id: 'ig', label: 'אינסטגרם', icon: 'iIg' },
+    { id: 'site', label: 'אתר', icon: 'iGlobe' },
+    { id: 'ref', label: 'הפניה', icon: 'iRef' },
+    { id: 'call', label: 'שיחה נכנסת', icon: 'iPhone' },
+    { id: 'other', label: 'אחר', icon: 'iDoc' },
+  ];
+
+  async loadStatuses() {
+    try {
+      const client = window.MineralBarApp && window.MineralBarApp.getClient
+        ? window.MineralBarApp.getClient()
+        : null;
+      if (!client || !client.getToken || !client.getToken()) return;
+      const res = await client.request('Statuses.List', { type: 'status', limit: 25 });
+      let rows = (res && (res.data || res.output || res.rows || res.list)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      const isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+      const statusesData = rows.map(row => ({
+        id: String(row.status_id || row.id || row.data_id || ''),
+        label: isEn
+          ? (row.name_en || row.name_for || row.name_he)
+          : (row.name_he || row.name_for || row.name_en)
+      })).filter(row => row.id && row.label);
+      const selectedExists = statusesData.some(row => row.id === String(this.state.status));
+      this.setState({
+        statusesData,
+        status: selectedExists ? this.state.status : (statusesData[0] ? statusesData[0].id : '')
+      });
+    } catch (e) {
+      console.error('[sales-add-lead] Statuses.List failed', e);
+      this.setState({ error: (e && e.message) || 'Failed to load statuses' });
+    }
+  }
+
+  renderVals() {
+    const sources = this.SOURCES.map(s => {
+      const on = s.id === this.state.source;
+      return {
+        label: s.label,
+        pick: () => this.setState({ source: s.id }),
+        iFb: s.icon === 'iFb', iIg: s.icon === 'iIg', iGlobe: s.icon === 'iGlobe',
+        iRef: s.icon === 'iRef', iPhone: s.icon === 'iPhone', iDoc: s.icon === 'iDoc',
+        bg: on ? '#eaf2fb' : '#fff',
+        border: on ? '#aecbe9' : '#e4e8ee',
+        iconColor: on ? '#1d60a2' : '#9aa3b0',
+        textColor: on ? '#194f84' : '#5a6473',
+      };
+    });
+
+    const statuses = this.state.statusesData.map(st => {
+      const on = String(st.id) === String(this.state.status);
+      return {
+        label: st.label,
+        pick: () => this.setState({ status: st.id }),
+        bg: on ? '#1d60a2' : 'transparent',
+        color: on ? '#fff' : '#5a6473',
+        shadow: on ? '0 2px 6px rgba(29,96,162,.3)' : 'none',
+      };
+    });
+
+    return { 
+      name: this.state.name || '',
+      phone: this.state.phone || '',
+      email: this.state.email || '',
+      address: this.state.address || '',
+      comments: String(this.state.comments == null ? '' : this.state.comments),
+      submitting: !!this.state.submitting,
+      error: this.state.error || '',
+      sources, statuses,
+      onName: (e) => this.onName(e),
+      onPhone: (e) => this.onPhone(e),
+      onEmail: (e) => this.onEmail(e),
+      onAddress: (e) => this.onAddress(e),
+      onComments: (e) => this.onComments(e),
+      goBack: () => this.goBack(),
+      submit: () => this.submit()
+    };
+  }
+
+  async submit() {
+    if (this.state.submitting) return;
+    if (!this.state.name || !this.state.phone) {
+      alert('Please fill the required fields (name and phone)');
+      return;
+    }
+    this.setState({ submitting: true, error: '' });
+    try {
+      const payload = {
+        name: this.state.name,
+        phone: this.state.phone,
+        email: this.state.email,
+        address: this.state.address,
+        source: this.state.source,
+        note: this.state.comments,
+        folder_id: '1',
+        status_id: this.state.status,
+        force: '0'
+      };
+      
+      const res = await MineralBarApp.createCustomer(payload);
+      if (res && res.ok) {
+        alert('Lead added successfully!');
+        window.location.href = 'leads-list.html?refresh=' + Date.now();
+      } else {
+        const err = (res && res.raw && res.raw.message) || 'Failed to add lead';
+        this.setState({ error: err });
+        alert('Error: ' + err);
+      }
+    } catch (e) {
+      const err = String(e.message || e);
+      this.setState({ error: err });
+      alert('Error: ' + err);
+    } finally {
+      this.setState({ submitting: false });
+    }
+  }
+}
+</script>
+</body>
+</html>

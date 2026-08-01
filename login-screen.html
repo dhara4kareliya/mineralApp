@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, a { font-family: 'Heebo', sans-serif; }
+  .ds-input::placeholder { color: #aeb6c2; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div data-screen-label="connection" class="screen-card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- brand hero -->
+<div style="background:linear-gradient(165deg,#1d60a2 0%,#16223a 100%); padding:36px 22px 42px; flex:none; text-align:center; color:#fff; position:relative; overflow:hidden;">
+<div style="position:absolute; top:-40px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.06);"></div>
+<div style="position:absolute; bottom:-50px; left:-20px; width:160px; height:160px; border-radius:50%; background:rgba(255,255,255,.04);"></div>
+<div style="width:72px; height:72px; border-radius:20px; background:rgba(255,255,255,.14); margin:0 auto 18px; display:flex; align-items:center; justify-content:center; position:relative;">
+<svg fill="none" height="36" stroke="#9cc3ec" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="36"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
+</div>
+<div style="font-size:28px; font-weight:900; letter-spacing:-.4px; position:relative;">mineral bar</div>
+<div style="font-size:14px; color:rgba(255,255,255,.78); margin-top:8px; font-weight:600; position:relative;">Login to the management system</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:0 16px 20px; margin-top:-18px; position:relative;">
+<!-- login card -->
+<div style="background:#fff; border-radius:20px; padding:22px 18px 20px; box-shadow:0 8px 28px rgba(15,24,40,.12);">
+<div style="font-size:18px; font-weight:800; color:#16223a; margin-bottom:18px;">Login to the account</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showError }}">
+<div style="display:flex; align-items:flex-start; gap:9px; background:#fbeeed; border:1px solid #f0c9c4; border-radius:12px; padding:11px 13px; margin-bottom:16px;">
+<svg fill="none" height="18" stroke="#c0392b" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none; margin-top:1px;" viewbox="0 0 24 24" width="18"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>
+<div style="font-size:13.5px; font-weight:600; color:#c0392b; line-height:1.45;">{{ errorText }}</div>
+</div>
+</sc-if>
+<div style="margin-bottom:14px;">
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"></path></svg>
+              user name <span style="color:#c0392b;">*</span>
+</label>
+<input autocomplete="username" class="ds-input" oninput="{{ onUsername }}" placeholder="Enter a username" style="width:100%; padding:13px; border:1.5px solid {{ userBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="text" value="{{ username }}"/>
+</div>
+<div style="margin-bottom:8px;">
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><rect height="11" rx="2.5" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+              password <span style="color:#c0392b;">*</span>
+</label>
+<div style="position:relative;">
+<input autocomplete="current-password" class="ds-input" oninput="{{ onPassword }}" placeholder="Enter a password" style="width:100%; padding-block:13px; padding-inline-start:46px; padding-inline-end:13px; border:1.5px solid {{ passBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="{{ passwordType }}" value="{{ password }}"/>
+<button aria-label="Show or hide password" onclick="{{ togglePassword }}" style="position:absolute; inset-inline-start:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:9px; background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#9aa3b0;" type="button">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showPassword }}">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><path d="m1 1 22 22"></path></svg>
+</sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ hidePassword }}">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</sc-if>
+</button>
+</div>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; margin:4px 0 20px;">
+<label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+<button onclick="{{ toggleRemember }}" style="width:20px; height:20px; border-radius:6px; border:1.6px solid {{ rememberBorder }}; background:{{ rememberBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; flex:none;" type="button">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ remember }}">
+<svg fill="none" height="12" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="12"><path d="M20 6 9 17l-5-5"></path></svg>
+</sc-if>
+</button>
+<span style="font-size:13px; font-weight:600; color:#5a6473;">remember me</span>
+</label>
+<button style="background:none; border:none; padding:0; cursor:pointer; font-size:13px; font-weight:700; color:#1d60a2;" type="button">I forgot password</button>
+</div>
+<button onclick="{{ onLogin }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ loginBg }}; color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ loginShadow }};" type="button">
+<svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg>
+            connect
+          </button>
+</div>
+<!-- demo role shortcuts (prototype only) -->
+<div style="margin-top:18px; padding:0 2px;">
+<div style="font-size:12.5px; font-weight:700; color:#8a93a3; margin-bottom:10px; text-align:center;">Quick entry to demo by role</div>
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+<a href="sales-home.html" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 6px; border-radius:13px; background:#fff; border:1.5px solid #e4e8ee; text-decoration:none; box-shadow:0 1px 3px rgba(0,0,0,.04);">
+<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="20"><path d="M3 11 12 3l9 8"></path><path d="M5 9.5V20h14V9.5"></path></svg>
+<span style="font-size:12px; font-weight:700; color:#1f2a3a;">Sales</span>
+</a>
+<a href="service-all-calls.html" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 6px; border-radius:13px; background:#fff; border:1.5px solid #e4e8ee; text-decoration:none; box-shadow:0 1px 3px rgba(0,0,0,.04);">
+<svg fill="none" height="20" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="20"><path d="M4 13a8 8 0 0 1 16 0"></path><rect height="7" rx="1.6" width="4" x="2.5" y="13"></rect><rect height="7" rx="1.6" width="4" x="17.5" y="13"></rect></svg>
+<span style="font-size:12px; font-weight:700; color:#1f2a3a;">Service</span>
+</a>
+<a href="tech-dashboard.html" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 6px; border-radius:13px; background:#fff; border:1.5px solid #e4e8ee; text-decoration:none; box-shadow:0 1px 3px rgba(0,0,0,.04);">
+<svg fill="none" height="20" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="20"><path d="M14.6 6.3a3.6 3.6 0 0 0-4.9 4.9l-5.4 5.4a1.5 1.5 0 0 0 2.1 2.1l5.4-5.4a3.6 3.6 0 0 0 4.9-4.9l-2.2 2.2-1.9-.2-.2-1.9z"></path></svg>
+<span style="font-size:12px; font-weight:700; color:#1f2a3a;">technician</span>
+</a>
+</div>
+</div>
+<div style="text-align:center; margin-top:22px; font-size:12px; color:#9aa3b0; font-weight:600;">
+          Mineral Bar · CRM system
+        </div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    username: '',
+    password: '',
+    showPassword: false,
+    remember: false,
+    error: '',
+  };
+
+  // Prototype credentials → role home
+  USERS = {
+    sales: { password: '1234', dest: 'sales-home.html' },
+    service: { password: '1234', dest: 'service-all-calls.html' },
+    tech: { password: '1234', dest: 'tech-dashboard.html' },
+    מכירות: { password: '1234', dest: 'sales-home.html' },
+    שירות: { password: '1234', dest: 'service-all-calls.html' },
+    טכנאי: { password: '1234', dest: 'tech-dashboard.html' },
+  };
+
+  t(enText) {
+    var lang = 'he';
+    try {
+      lang = (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : null) ||
+        localStorage.getItem('app_lang') || 'he';
+    } catch (e) {}
+    if (lang === 'en') return enText;
+    var dict = (window.i18nTranslations && window.i18nTranslations.he) || {};
+    return dict[enText] || dict[enText.toLowerCase()] || enText;
+  }
+
+  renderVals() {
+    const { username, password, showPassword, remember, error } = this.state;
+    const hasError = !!error;
+    return {
+      username,
+      password,
+      showPassword,
+      hidePassword: !showPassword,
+      remember,
+      showError: hasError,
+      errorText: error || this.t('Wrong username or password'),
+      passwordType: showPassword ? 'text' : 'password',
+      userBorder: hasError && !username.trim() ? '#e8a49c' : '#dde2ea',
+      passBorder: hasError && !password ? '#e8a49c' : '#dde2ea',
+      rememberBorder: remember ? '#1d60a2' : '#c9d0da',
+      rememberBg: remember ? '#1d60a2' : '#fff',
+      loginBg: 'linear-gradient(135deg,#1d60a2,#16487c)',
+      loginShadow: '0 6px 16px rgba(29,96,162,.28)',
+      onUsername: (e) => this.setState({ username: e.target.value, error: '' }),
+      onPassword: (e) => this.setState({ password: e.target.value, error: '' }),
+      togglePassword: () => this.setState({ showPassword: !this.state.showPassword }),
+      toggleRemember: () => this.setState({ remember: !this.state.remember }),
+      onLogin: () => this.login(),
+    };
+  }
+
+  login() {
+    const user = this.state.username.trim();
+    const pass = this.state.password;
+    if (!user || !pass) {
+      this.setState({ error: this.t('Please fill username and password') });
+      return;
+    }
+    const match = this.USERS[user.toLowerCase()] || this.USERS[user];
+    if (!match || match.password !== pass) {
+      this.setState({ error: this.t('Wrong username or password') });
+      return;
+    }
+    window.location.href = match.dest;
+  }
+}
+</script>
+</body>
+</html>

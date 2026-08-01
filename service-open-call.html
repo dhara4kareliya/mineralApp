@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .ds-input::placeholder { color: #aeb6c2; }
+  .soc-drop-zone { border: 1.5px dashed #dde2ea; border-radius: 12px; background: #fff; transition: border-color .15s, background .15s; }
+  .soc-drop-zone.is-dragover { border-color: #1d60a2; background: #eaf2fb; }
+  select.ds-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 13px center; }
+  input[type="date"].ds-input, input[type="time"].ds-input {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- navy header -->
+<div style="background:#16223a; padding:14px 16px; flex:none; display:flex; align-items:center; gap:11px;">
+<a href="service-select-customer.html" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
+<div style="width:42px; height:42px; border-radius:50%; background:#2f6aa6; color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none;">{{ custInitials }}</div>
+<div style="flex:1;">
+<div style="display:flex; align-items:center; gap:7px;">
+<div style="font-size:16px; font-weight:800; color:#fff;">{{ custName }}</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ custIsNew }}"><span style="font-size:10px; font-weight:700; color:#bfe0c9; background:rgba(46,138,99,.32); padding:2px 8px; border-radius:99px;">new customer</span></sc-if>
+</div>
+<div style="font-size:12px; color:#9fb0c8; margin-top:1px;">{{ custMeta }}</div>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 20px;">
+<!-- Row 1: Email, Phone -->
+<div style="display:flex; gap:11px; margin-bottom:13px;">
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Email</label>
+    <input oninput="{{ onEmail }}" value="{{ email }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="audit@example.com" />
+  </div>
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Phone</label>
+    <input oninput="{{ onPhone }}" value="{{ phone }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="972505555555" />
+  </div>
+</div>
+
+<!-- Row 2: Address, phone 2 -->
+<div style="display:flex; gap:11px; margin-bottom:13px;">
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Address</label>
+    <input oninput="{{ onAddress }}" value="{{ address }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Address" />
+  </div>
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">phone 2</label>
+    <input oninput="{{ onPhone2 }}" value="{{ phone2 }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="0505555555" />
+  </div>
+</div>
+
+<!-- Row 3: City -->
+<div style="margin-bottom:13px;">
+  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">City</label>
+  <input oninput="{{ onCity }}" value="{{ city }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Enter City Name" />
+</div>
+
+<!-- Row 4: Topic, URGENCY -->
+<div style="display:flex; gap:11px; margin-bottom:13px;">
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Topic</label>
+    <input oninput="{{ onTopic }}" value="{{ topic }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Topic" />
+  </div>
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">URGENCY</label>
+    <div style="display:flex; align-items:center; gap:6px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; background:#fff; height:46px;">
+      <!-- stars -->
+      <sc-for as="s" hint-placeholder-count="5" list="{{ stars }}">
+        <svg onclick="{{ s.pick }}" fill="currentColor" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20" style="color:{{ s.color }}; cursor:pointer;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      </sc-for>
+    </div>
+  </div>
+</div>
+
+<!-- Row 5: Due date, Team member -->
+<div style="display:flex; gap:11px; margin-bottom:13px;">
+  <div style="flex:1; min-width:0;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Due date</label>
+    <input type="date" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select due date" />
+  </div>
+  <div style="flex:1; min-width:0;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Team member</label>
+    <select onchange="{{ onTeamMember }}" class="ds-input" style="width:100%; height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;">
+      <option value="">Select</option>
+      <sc-for as="member" list="{{ teamMembers }}">
+        <option value="{{ member.id }}" selected="{{ member.selected }}">{{ member.name }}</option>
+      </sc-for>
+    </select>
+  </div>
+</div>
+
+<!-- Row 6: From, To -->
+<div style="display:flex; gap:11px; margin-bottom:13px;">
+  <div style="flex:1; min-width:0;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">From</label>
+    <input type="time" oninput="{{ onFromTime }}" value="{{ fromTime }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select from time" />
+  </div>
+  <div style="flex:1; min-width:0;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">To</label>
+    <input type="time" oninput="{{ onToTime }}" value="{{ toTime }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select to time" />
+  </div>
+</div>
+
+<!-- Row 7: CHOOSE PRODUCT, CHOOSE DEPARTMEN -->
+<div style="display:flex; gap:11px; margin-bottom:18px;">
+  <div style="flex:1; min-width:0;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">CHOOSE PRODUCT</label>
+    <select onchange="{{ onProduct }}" class="ds-input" style="width:100%; height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;">
+      <option value="">{{ productPlaceholder }}</option>
+      <sc-for as="prod" list="{{ productsList }}">
+        <option value="{{ prod.id }}" selected="{{ prod.selected }}">{{ prod.name }}</option>
+      </sc-for>
+    </select>
+  </div>
+  <div style="flex:1; min-width:0;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">CHOOSE DEPARTMENT</label>
+    <select onchange="{{ onDepartment }}" class="ds-input" style="width:100%; height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;">
+      <option value="">Select Department</option>
+      <sc-for as="dep" list="{{ departmentsList }}">
+        <option value="{{ dep.id }}" selected="{{ dep.selected }}">{{ dep.name }}</option>
+      </sc-for>
+    </select>
+  </div>
+</div>
+
+<!-- Row 7: PROBLEM -->
+<div style="margin-bottom:18px;">
+  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">PROBLEM</label>
+  <textarea oninput="{{ onProblem }}" value="{{ problem }}" class="ds-input" placeholder="Text" style="width:100%; min-height:100px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; resize:vertical; background:#fff;"></textarea>
+</div>
+
+<!-- Row 8: Drag & Drop a file -->
+<div style="margin-bottom:18px;">
+  <div class="soc-drop-zone {{ dropZoneClass }}" style="position:relative; display:flex; align-items:center; gap:10px; padding:12px 14px; min-height:48px;" ondragenter="{{ onDragEnter }}" ondragover="{{ onDragOver }}" ondragleave="{{ onDragLeave }}" ondrop="{{ onDrop }}">
+    <label style="position:absolute; inset:0; cursor:pointer; z-index:1;">
+      <input type="file" accept="image/*,.pdf,.doc,.docx,.png,.jpg,.jpeg" onchange="{{ onFileChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;" />
+    </label>
+    <span style="background:#eef0f3; padding:6px 8px; border-radius:8px; flex:none; display:flex; align-items:center; justify-content:center; pointer-events:none; position:relative; z-index:0;">
+      <svg fill="none" height="16" stroke="#5a6473" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
+    </span>
+    <div style="flex:1; min-width:0; pointer-events:none; position:relative; z-index:0;">
+      <div style="font-size:13px; font-weight:600; color:#1f2a3a;">{{ dropLabel }}</div>
+      <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFile }}">
+        <div style="font-size:11.5px; color:#5a6473; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ fileName }}</div>
+      </sc-if>
+    </div>
+    <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFile }}">
+      <button type="button" onclick="{{ clearFile }}" style="position:relative; z-index:3; width:28px; height:28px; border-radius:50%; border:none; background:#eef0f3; color:#8a93a3; font-size:14px; cursor:pointer; flex:none;">✕</button>
+    </sc-if>
+  </div>
+</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
+  <div role="alert" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:#fbeeed; color:#a3302e; font-size:12.5px; font-weight:600;">{{ errorMsg }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasSuccess }}">
+  <div role="status" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:#e9f4ec; color:#257550; font-size:12.5px; font-weight:700;">{{ successMsg }}</div>
+</sc-if>
+</div>
+<!-- submit -->
+<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:13px 16px 20px;">
+<button disabled="{{ submitDisabled }}" onclick="{{ createTicket }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:#fff; font-size:16px; font-weight:800; cursor:{{ submitCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.28);">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M5 12h14M12 5v14"></path></svg>
+          {{ submitLabel }}
+        </button>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = { callType: 'tech', priority: 'normal', charge: true, cust: null, email: '', phone: '', address: '', phone2: '', city: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '', products: [], productId: '', productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '' };
+
+  componentDidMount() {
+    try {
+      const raw = localStorage.getItem('mineral_new_call_customer');
+      if (raw) {
+        const cust = JSON.parse(raw);
+        this.setState({ 
+          cust: cust,
+          email: cust.email || '',
+          phone: cust.phone || '',
+          address: cust.address || '',
+          city: cust.city || ''
+        });
+      }
+    } catch (e) {}
+    
+    this.loadFormOptions();
+    this.loadPaidProducts();
+    window.addEventListener('mineralbar:ready', () => {
+      this.loadFormOptions();
+      this.loadPaidProducts();
+    });
+  }
+
+  async loadFormOptions() {
+    try {
+      if (!window.MineralBarApp) return;
+      if (window.MineralBarApp.getTeamMembers) {
+        var team = window.MineralBarApp.getTeamMembers();
+        this.setState({ teamMembers: team || [] });
+      }
+      var client = window.MineralBarApp.getClient ? window.MineralBarApp.getClient() : null;
+      if (!client || !client.getToken || !client.getToken()) return;
+      var res = await client.request('Ticket.Department', { limit: 100 });
+      var departments = [];
+      if (res && Array.isArray(res.data)) departments = res.data;
+      else if (res && Array.isArray(res.output)) departments = res.output;
+      else if (Array.isArray(res)) departments = res;
+      this.setState({ departments: departments });
+    } catch (e) {
+      console.warn('[service-open-call] Failed to load ticket form options', e);
+    }
+  }
+
+  getCustomerId() {
+    try {
+      const cust = this.state.cust || JSON.parse(localStorage.getItem('mineral_new_call_customer') || 'null') || {};
+      return String(cust.customer_id || cust.id || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  isPaidDoc(row) {
+    if (!row) return false;
+    var pv = row.paid;
+    if (pv === 1 || pv === '1' || pv === true) return true;
+    var s = String(row.status || row.doc_status || row.payment_status || '').toLowerCase();
+    return /paid|שולם|closed|done/.test(s);
+  }
+
+  docIdOf(row) {
+    if (!row) return '';
+    return String(row.document_id || row.id || row.doc_id || '').trim();
+  }
+
+  normalizeProducts(raw) {
+    var list = [];
+    if (!raw) return list;
+    if (Array.isArray(raw)) list = raw;
+    else if (Array.isArray(raw.products)) list = raw.products;
+    else if (Array.isArray(raw.data)) list = raw.data;
+    else if (Array.isArray(raw.output)) list = raw.output;
+    else if (Array.isArray(raw.rows)) list = raw.rows;
+    else if (raw.output && Array.isArray(raw.output.products)) list = raw.output.products;
+    else if (raw.data && Array.isArray(raw.data.products)) list = raw.data.products;
+
+    return list.map(function (p) {
+      if (!p) return null;
+      var productName = String(
+        p.product_name || p.item_name || p.name || p.title || p.label || p.product || ''
+      ).trim();
+      if (!productName) return null;
+      return {
+        id: productName,
+        name: productName,
+        product_name: productName,
+        product_id: String(p.product_id || p.id || ''),
+        document_id: String(p.document_id || p.doc_id || ''),
+        raw: p
+      };
+    }).filter(Boolean);
+  }
+
+  async fetchProductsForCustomer(client, customerId, documentId) {
+    var cid = String(customerId || '').trim();
+    if (!cid) return [];
+
+    var attempts = [];
+    if (documentId) {
+      attempts.push({ customer_id: cid, document_id: documentId });
+      attempts.push({ cust_id: cid, document_id: documentId });
+    } else {
+      attempts.push({ customer_id: cid });
+      attempts.push({ cust_id: cid });
+      attempts.push({ customer_id: cid, length: 100, start: 0, draw: 1 });
+    }
+
+    for (var i = 0; i < attempts.length; i++) {
+      try {
+        var res = await client.request('Documents.Products', attempts[i]);
+        var products = this.normalizeProducts(res);
+        if (products.length) return products;
+        if (res && String(res.success) !== '0' && !res.error) return products;
+      } catch (e) { /* try next */ }
+    }
+    return [];
+  }
+
+  async loadPaidProducts() {
+    try {
+      if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return;
+      var client = MineralBarApp.getClient();
+      if (!client || !client.getToken || !client.getToken()) return;
+
+      this.setState({ productsLoading: true });
+
+      var cid = this.getCustomerId();
+      if (!cid) {
+        console.warn('[service-open-call] No customer_id — cannot load Documents.Products');
+        this.setState({ products: [], productsLoading: false });
+        return;
+      }
+
+      // 1) Documents.List → paid document_ids (status lives here)
+      var dRes = await client.request('Documents.List', {
+        customer_id: cid,
+        length: 50,
+        start: 0,
+        draw: 1
+      }).catch(function (err) {
+        console.warn('[service-open-call] Documents.List failed', err);
+        return null;
+      });
+
+      var rows = (dRes && (dRes.rows || dRes.data || dRes.output)) || [];
+      if (!Array.isArray(rows)) rows = [];
+
+      var paidIdSet = {};
+      var paidDocIds = [];
+      rows.filter((r) => this.isPaidDoc(r)).forEach((r) => {
+        var id = this.docIdOf(r);
+        if (!id || paidIdSet[id]) return;
+        paidIdSet[id] = true;
+        paidDocIds.push(id);
+      });
+
+      var allProducts = [];
+      var productSeen = {};
+
+      function addProducts(products, requirePaidDoc) {
+        (products || []).forEach(function (p) {
+          var docId = String(p.document_id || '');
+          if (requirePaidDoc) {
+            if (!docId || !paidIdSet[docId]) return;
+          }
+          var key = String(p.product_name || p.id).toLowerCase();
+          if (!key || productSeen[key]) return;
+          productSeen[key] = true;
+          allProducts.push(p);
+        });
+      }
+
+      // 2) Documents.Products for customer → keep only rows whose document_id is paid
+      var customerProducts = await this.fetchProductsForCustomer(client, cid, null);
+      if (customerProducts.length && paidDocIds.length) {
+        addProducts(customerProducts, true);
+      }
+
+      // 3) Fallback: fetch products only for paid document_ids
+      if (!allProducts.length && paidDocIds.length) {
+        var maxDocs = paidDocIds.slice(0, 15);
+        for (var i = 0; i < maxDocs.length; i++) {
+          var products = await this.fetchProductsForCustomer(client, cid, maxDocs[i]);
+          products.forEach(function (p) {
+            if (!p.document_id) p.document_id = maxDocs[i];
+          });
+          addProducts(products, false);
+        }
+      }
+
+      this.setState({
+        products: allProducts,
+        productsLoading: false,
+        productId: allProducts.some(p => String(p.product_id || p.id || p.product_name) === String(this.state.productId))
+          ? this.state.productId
+          : ''
+      });
+    } catch (e) {
+      console.warn('[service-open-call] loadPaidProducts failed', e);
+      this.setState({ products: [], productsLoading: false });
+    }
+  }
+
+  initials(name) {
+    const parts = (name || '').trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2);
+    return parts[0][0] + parts[1][0];
+  }
+
+  setFile(file) {
+    if (!file) {
+      this.setState({ file: null, fileName: '', dragOver: false });
+      return;
+    }
+    this.setState({ file: file, fileName: file.name || 'Selected file', dragOver: false });
+  }
+
+  onFileChange(e) {
+    const file = e && e.target && e.target.files && e.target.files[0];
+    this.setFile(file || null);
+  }
+
+  onDragEnter(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setState({ dragOver: true });
+  }
+
+  onDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    if (!this.state.dragOver) this.setState({ dragOver: true });
+  }
+
+  onDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setState({ dragOver: false });
+  }
+
+  onDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    this.setFile(file || null);
+  }
+
+  clearFile(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    this.setFile(null);
+  }
+
+  dueDateUtc() {
+    if (!this.state.dueDate) return '';
+    var dateParts = this.state.dueDate.split('-').map(Number);
+    var timeParts = (this.state.fromTime || '00:00').split(':').map(Number);
+    var localDate = new Date(
+      dateParts[0],
+      dateParts[1] - 1,
+      dateParts[2],
+      timeParts[0] || 0,
+      timeParts[1] || 0,
+      0
+    );
+    // The SDK converts Date values to UTC exactly once for known date fields.
+    return localDate;
+  }
+
+  selectedProduct() {
+    return (this.state.products || []).find((p) => {
+      var id = String(p.product_id || p.id || p.product_name || '');
+      return id === String(this.state.productId);
+    }) || null;
+  }
+
+  async createTicket() {
+    if (this.state.submitting) return;
+    var topic = String(this.state.topic || '').trim();
+    var problem = String(this.state.problem || '').trim();
+    if (!topic || !problem) {
+      this.setState({ errorMsg: 'Topic and problem are required.', successMsg: '' });
+      return;
+    }
+
+    try {
+      var client = window.MineralBarApp && window.MineralBarApp.getClient
+        ? window.MineralBarApp.getClient()
+        : null;
+      if (!client || !client.getToken || !client.getToken()) {
+        throw new Error('Please log in before creating a ticket.');
+      }
+
+      this.setState({ submitting: true, errorMsg: '', successMsg: '' });
+      var customerId = this.getCustomerId();
+      var customer = this.state.cust || {};
+      var product = this.selectedProduct();
+      var customFields = {};
+      if (this.state.city) customFields.city = this.state.city;
+      if (this.state.phone2) customFields.second_phone = this.state.phone2;
+      if (this.state.urgency) customFields.urgency = this.state.urgency;
+      if (product && product.product_name) customFields.product_name = product.product_name;
+
+      var payload = {
+        topic: topic,
+        messages: problem,
+        customername: customer.name || '',
+        email: String(this.state.email || '').trim(),
+        phone: String(this.state.phone || '').trim(),
+        mobile: String(this.state.phone2 || '').trim(),
+        address: String(this.state.address || '').trim()
+      };
+      if (customerId) {
+        payload.cust_id = customerId;
+        payload.customer_id = customerId;
+      }
+      if (this.state.teamMemberId) payload.assign_member_id = String(this.state.teamMemberId);
+      if (this.state.departmentId) payload.department = String(this.state.departmentId);
+      if (product && product.product_id) payload.product_id = String(product.product_id);
+      if (this.state.dueDate) payload.due_date = this.dueDateUtc();
+      if (this.state.fromTime) payload.ticket_from_time = this.state.fromTime + ':00';
+      if (this.state.toTime) payload.ticket_to_time = this.state.toTime + ':00';
+      if (Object.keys(customFields).length) payload.custom_fields = customFields;
+
+      var result = await client.request('Ticket.Add', payload);
+      var output = result && result.output;
+      var ticketId = result && (
+        result.ticket_id ||
+        result.insert_id ||
+        (result.data && (result.data.ticket_id || result.data.insert_id || result.data.id)) ||
+        (output && typeof output === 'object' && (output.ticket_id || output.insert_id || output.id))
+      );
+      if (!result || !(Number(result.success) === 1 || result.success === true || ticketId)) {
+        throw new Error(
+          (result && (result.message || result.error || (result.data && result.data.message))) ||
+          'Ticket could not be created.'
+        );
+      }
+
+      var uploadWarning = '';
+      if (this.state.file) {
+        if (!customerId) {
+          uploadWarning = ' Ticket created, but the file needs an existing customer.';
+        } else {
+          try {
+            await window.MineralBarApp.uploadCustomerFile(customerId, this.state.file, {
+              file_name: this.state.fileName,
+              folder: 'default'
+            });
+          } catch (uploadError) {
+            uploadWarning = ' Ticket created, but the file upload failed.';
+          }
+        }
+      }
+
+      this.setState({
+        submitting: false,
+        successMsg: 'Ticket created successfully.' + uploadWarning,
+        errorMsg: ''
+      });
+      try { localStorage.removeItem('mineral_new_call_customer'); } catch (e) {}
+
+      window.setTimeout(function () {
+        window.location.href = ticketId
+          ? 'service-call-details.html?ticket_id=' + encodeURIComponent(ticketId)
+          : 'service-all-calls.html';
+      }, 900);
+    } catch (e) {
+      console.error('[service-open-call] Ticket.Add failed', e && (e.raw || e));
+      this.setState({
+        submitting: false,
+        successMsg: '',
+        errorMsg: (e && (e.message || (e.raw && e.raw.message))) || 'Ticket could not be created.'
+      });
+    }
+  }
+
+  TYPES = [
+    { id: 'tech', label: 'שירות טכני', icon: 'iWrench', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'center', label: 'התקנת מרכך מים', icon: 'iDrop', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'mainbar', label: 'התקנת בר ראשי', icon: 'iBar', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'bidet', label: 'התקנת בידה חשמלי', icon: 'iBidet', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'under', label: 'מערכת תת כיורית', icon: 'iUnder', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'waterbar', label: 'התקנת בר מים', icon: 'iDrop', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'undergrind', label: 'תת כיורי + טוחן', icon: 'iGrind', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'filter', label: 'החלפת סנן', icon: 'iUnder', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'disposal', label: 'התקנת טוחן אשפה', icon: 'iTrash', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' }, full: true },
+  ];
+
+  PRIOS = [
+    { id: 'normal', label: 'רגיל', dot: '#1d60a2', tone: { bg: '#eaf2fb', border: '#aecbe9', color: '#194f84' } },
+    { id: 'urgent', label: 'דחוף', dot: '#c0392b', tone: { bg: '#fbeeed', border: '#f1c9c4', color: '#a3302e' } },
+    { id: 'low', label: 'נמוכה', dot: '#8a93a3', tone: { bg: '#f1f3f6', border: '#d3d9e0', color: '#5a6473' } },
+  ];
+
+  pickType(id) { this.setState({ callType: id }); }
+  pickPrio(id) { this.setState({ priority: id }); }
+  toggleCharge() { this.setState(s => ({ charge: !s.charge })); }
+
+  renderVals() {
+    const callTypes = this.TYPES.map(t => {
+      const on = t.id === this.state.callType;
+      return {
+        label: t.label, pick: () => this.pickType(t.id),
+        span: t.full ? '1 / -1' : 'auto',
+        iWrench: t.icon === 'iWrench', iDrop: t.icon === 'iDrop', iBar: t.icon === 'iBar',
+        iBidet: t.icon === 'iBidet', iUnder: t.icon === 'iUnder', iGrind: t.icon === 'iGrind', iTrash: t.icon === 'iTrash',
+        bg: on ? t.tone.bg : '#fff', border: on ? t.tone.border : '#e4e8ee',
+        iconColor: on ? t.tone.icon : '#9aa3b0',
+        textColor: on ? t.tone.text : '#5a6473',
+      };
+    });
+
+    const priorities = this.PRIOS.map(p => {
+      const on = p.id === this.state.priority;
+      return {
+        label: p.label, pick: () => this.pickPrio(p.id), dot: p.dot,
+        bg: on ? p.tone.bg : '#fff', border: on ? p.tone.border : '#e4e8ee',
+        color: on ? p.tone.color : '#5a6473',
+      };
+    });
+
+    const charge = this.state.charge;
+    const cust = this.state.cust || { name: 'משה כהן', phone: '050-1234567', city: 'תל אביב', isNew: false };
+    const custMeta = [cust.phone, cust.city].filter(Boolean).join(' · ');
+    const stars = [1, 2, 3, 4, 5].map(v => {
+      const active = v <= this.state.urgency;
+      return {
+        color: active ? '#bd8324' : '#d1d5db',
+        pick: () => this.setState({ urgency: v })
+      };
+    });
+    
+    const teamMembersList = this.state.teamMembers.map(m => ({
+      id: m.id || m.user_id,
+      name: m.name,
+      selected: this.state.teamMemberId == (m.id || m.user_id)
+    }));
+    
+    const departmentsList = (this.state.departments || []).map(d => ({
+      id: d.id || d.department_id || d.code || d.name,
+      name: d.name || d.label || d.department_name || d.id,
+      selected: this.state.departmentId == (d.id || d.department_id || d.code || d.name)
+    }));
+
+    const productsList = (this.state.products || []).map(p => {
+      var productName = p.product_name || p.name || p.id;
+      var productId = p.product_id || p.id || productName;
+      return {
+        id: productId,
+        product_name: productName,
+        name: p.name || productName,
+        selected: String(this.state.productId) === String(productId)
+      };
+    });
+
+    var productPlaceholder = 'Select Some Options';
+    if (this.state.productsLoading) productPlaceholder = 'Loading products...';
+    else if (!(this.state.products || []).length) productPlaceholder = 'No paid products';
+
+    return {
+      email: this.state.email, onEmail: e => this.setState({ email: e.target.value }),
+      phone: this.state.phone, onPhone: e => this.setState({ phone: e.target.value }),
+      address: this.state.address, onAddress: e => this.setState({ address: e.target.value }),
+      phone2: this.state.phone2, onPhone2: e => this.setState({ phone2: e.target.value }),
+      city: this.state.city, onCity: e => this.setState({ city: e.target.value }),
+      topic: this.state.topic, onTopic: e => this.setState({ topic: e.target.value }),
+      problem: this.state.problem, onProblem: e => this.setState({ problem: e.target.value }),
+      dueDate: this.state.dueDate, onDueDate: e => this.setState({ dueDate: e.target.value }),
+      fromTime: this.state.fromTime, onFromTime: e => this.setState({ fromTime: e.target.value }),
+      toTime: this.state.toTime, onToTime: e => this.setState({ toTime: e.target.value }),
+      teamMembers: teamMembersList, onTeamMember: e => this.setState({ teamMemberId: e.target.value }),
+      departmentsList, onDepartment: e => this.setState({ departmentId: e.target.value }),
+      productsList,
+      productPlaceholder,
+      onProduct: e => this.setState({ productId: e.target.value }),
+      stars,
+      callTypes, priorities,
+      custName: cust.name,
+      custInitials: this.initials(cust.name),
+      custMeta,
+      custIsNew: !!cust.isNew,
+      custAddress: cust.address || 'הרצל 12, דירה 4, תל אביב',
+      charge,
+      toggleCharge: () => this.toggleCharge(),
+      createTicket: () => this.createTicket(),
+      submitDisabled: this.state.submitting,
+      submitLabel: this.state.submitting ? 'Creating ticket...' : 'Create Ticket',
+      submitBg: this.state.submitting ? '#7fa4c8' : '#1d60a2',
+      submitCursor: this.state.submitting ? 'wait' : 'pointer',
+      hasError: !!this.state.errorMsg,
+      errorMsg: this.state.errorMsg,
+      hasSuccess: !!this.state.successMsg,
+      successMsg: this.state.successMsg,
+      hasFile: !!this.state.fileName,
+      fileName: this.state.fileName,
+      dropLabel: this.state.fileName ? 'File selected' : 'Drag & Drop a file',
+      dropZoneClass: this.state.dragOver ? 'is-dragover' : '',
+      onFileChange: (e) => this.onFileChange(e),
+      onDragEnter: (e) => this.onDragEnter(e),
+      onDragOver: (e) => this.onDragOver(e),
+      onDragLeave: (e) => this.onDragLeave(e),
+      onDrop: (e) => this.onDrop(e),
+      clearFile: (e) => this.clearFile(e),
+      chargeBg: charge ? '#fdf6e8' : '#fff',
+      chargeBorder: charge ? '#f2e2bd' : '#e4e8ee',
+      chargeCheckBorder: charge ? '#d6a93a' : '#cbd3de',
+      chargeCheckBg: charge ? '#d6a93a' : '#fff',
+    };
+  }
+}
+</script>
+</body>
+</html>

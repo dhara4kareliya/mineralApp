@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+<html dir="ltr" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>mineral bar</title>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  try {
+    var client = await MineralBarApp.ensureAuth('login.html');
+    if (client) {
+      location.replace(MineralBarApp.homeForRole(MineralBarApp.getRole()));
+    }
+  } catch (e) {
+    location.replace('login.html');
+  }
+})();
+</script>
+</body>
+</html>

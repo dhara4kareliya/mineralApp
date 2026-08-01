@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, a { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div data-screen-label="Signature alert" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- status bar -->
+<div class="status-bar" style="display:flex; align-items:center; justify-content:space-between; padding:11px 22px 4px; font-size:13px; font-weight:700; flex:none; background:#0e2342; color:#fff;">
+<span class="status-clock" style="color:#fff;">9:41</span>
+<div style="display:flex; gap:5px; align-items:center;">
+
+</div>
+<button type="button" class="lang-translator-btn" id="btn-lang-toggle" style="background:transparent; border:none; color:#fff; cursor:pointer; font-weight:700; font-size:11px; padding:0; font-family:'Heebo',sans-serif;">🌐 EN</button>
+</div>
+<!-- navy hero -->
+<div style="background:radial-gradient(120% 90% at 50% 26%, #163a66 0%, #102a4d 42%, #0c2042 100%); padding:8px 18px 30px; flex:none; color:#fff; position:relative;">
+<!-- header: back button only (depth screen, no nav bar) -->
+<div style="display:flex; align-items:center; justify-content:flex-start; min-height:38px;">
+<a aria-label="חזרה" href="{{ backUrl }}" style="width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.08); text-decoration:none;">
+<svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="22"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
+</a>
+</div>
+<div style="text-align:center; padding:6px 4px 0;">
+<div style="width:108px; height:108px; border-radius:50%; background:radial-gradient(circle at 50% 38%, #25b07a 0%, #189163 60%, #137a53 100%); margin:0 auto 26px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 1px rgba(37,176,122,.35), 0 14px 38px rgba(20,140,90,.45), 0 0 60px rgba(37,176,122,.4);">
+<svg fill="none" height="50" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1" viewbox="0 0 24 24" width="50"><path d="M3 13c2.5 0 2.5-4 5-4s2.5 4 5 4 2.5-4 5-4"></path><path d="M4 18h16"></path></svg>
+</div>
+<div style="font-size:28px; font-weight:800; line-height:1.12;">{{ name }} signed! 🎉</div>
+<div style="font-size:15px; color:rgba(255,255,255,.82); margin-top:14px; line-height:1.6;">
+            Quote #{{ quoteNum }} approved<br/>
+            Now we continue with the collection
+          </div>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:20px 16px 18px;">
+<!-- customer card -->
+<div style="background:#f4f6f8; border:1px solid #e7eaee; border-right:4px solid #1f9d6b; border-radius:18px; padding:18px 18px 16px; margin-bottom:18px;">
+<div style="font-size:18px; font-weight:800; color:#1f2a3a; text-align:left;">{{ name }}</div>
+<div style="font-size:14px; color:#7b8595; font-weight:600; margin-top:6px; text-align:left;">{{ phone }} · {{ city }} · Signed {{ signedTime }}</div>
+
+<sc-for as="item" list="{{ products }}">
+<div style="display:flex; align-items:center; gap:8px; margin-top:9px; justify-content:flex-start;">
+<sc-if value="{{ item.isDroplet }}">
+<svg fill="none" height="17" stroke="#1f9d6b" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" style="flex:none;" viewbox="0 0 24 24" width="17"><path d="M12 2.5C9 7 5.5 10.2 5.5 14a6.5 6.5 0 0 0 13 0c0-3.8-3.5-7-6.5-11.5z"></path></svg>
+</sc-if>
+<sc-if value="{{ item.isShield }}">
+<svg fill="none" height="17" stroke="#1f9d6b" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" style="flex:none;" viewbox="0 0 24 24" width="17"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+</sc-if>
+<sc-if value="{{ item.isGeneric }}">
+<svg fill="none" height="17" stroke="#1f9d6b" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" style="flex:none;" viewbox="0 0 24 24" width="17"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+</sc-if>
+<span style="font-size:14.5px; font-weight:700; color:#1f2a3a;">{{ item.name }}</span>
+</div>
+</sc-for>
+
+<div style="font-size:22px; font-weight:800; color:#1f9d6b; margin-top:15px; text-align:left;">{{ totalPayable }}</div>
+</div>
+<!-- primary action: continue to billing -->
+<a href="{{ orderFormUrl }}" style="display:flex; align-items:center; gap:12px; background:#1d60a2; border:none; border-radius:16px; padding:16px 16px; margin-bottom:12px; text-decoration:none; box-shadow:0 8px 20px rgba(29,96,162,.26);">
+<svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" style="flex:none;" viewbox="0 0 24 24" width="22"><rect height="4" rx="1" width="8" x="8" y="2"></rect><path d="M9 4H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"></path><path d="M9 12h6M9 16h4"></path></svg>
+<span style="flex:1; text-align:center;">
+<span style="display:block; font-size:16.5px; font-weight:800; color:#fff;">Open an order form and charge it</span>
+<span style="display:block; font-size:12.5px; font-weight:600; color:rgba(255,255,255,.82); margin-top:2px;">Continues to bill the customer</span>
+</span>
+<svg fill="none" height="20" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" style="flex:none;" viewbox="0 0 24 24" width="20"><path d="m9 18 6-6-6-6"></path></svg>
+</a>
+<!-- secondary action: customer card -->
+<a href="{{ customerCardUrl }}" style="display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #e2e6ea; border-radius:16px; padding:16px 16px; text-decoration:none;">
+<svg fill="none" height="22" stroke="#7b8595" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" style="flex:none;" viewbox="0 0 24 24" width="22"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"></path></svg>
+<span style="flex:1; text-align:center;">
+<span style="display:block; font-size:16.5px; font-weight:800; color:#1f2a3a;">Go to customer card</span>
+<span style="display:block; font-size:12.5px; font-weight:600; color:#9aa3b0; margin-top:2px;">View the full details</span>
+</span>
+<svg fill="none" height="20" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" style="flex:none;" viewbox="0 0 24 24" width="20"><path d="m9 18 6-6-6-6"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    name: '',
+    phone: '',
+    city: '',
+    signedTime: '',
+    quoteNum: '',
+    totalPayable: '',
+    backUrl: '',
+    orderFormUrl: '',
+    customerCardUrl: 'service-customer-card.html',
+    products: []
+  };
+
+  componentDidMount() {
+    this.initData();
+    window.addEventListener('mineralbar:ready', () => this.initData());
+  }
+
+  getCustomerId() {
+    var p = new URLSearchParams(window.location.search);
+    var id = p.get('customer_id') || p.get('cust_id') || p.get('contactus_id') ||
+      p.get('lead_id') || p.get('id') || '';
+    if (!id && window.location.hash) {
+      var h = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+      id = h.get('customer_id') || h.get('cust_id') || h.get('id') || '';
+    }
+    if (!id) {
+      var m = String(window.location.href || '').match(/[?&#](?:customer_id|cust_id|contactus_id|lead_id)=([^&#]+)/i);
+      if (m && m[1]) {
+        try { id = decodeURIComponent(m[1]); } catch (e) { id = m[1]; }
+      }
+    }
+    if (!id) {
+      try { id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || ''; } catch (e2) { /* ignore */ }
+    }
+    if (id === '0' || id === 'null' || id === 'undefined') id = '';
+    return String(id || '').trim();
+  }
+
+  async initData() {
+    try {
+      var q = new URLSearchParams(window.location.search);
+      var customerId = this.getCustomerId();
+      var name = q.get('name') || '';
+      var phone = q.get('phone') || '';
+      var address = q.get('address') || '';
+      var tz = q.get('tz') || '';
+      var quoteNum = q.get('quote_num') || q.get('quoteNum') || 'QT-0041';
+      var productIdsStr = q.get('product_ids') || '';
+      var discount = Number(q.get('discount') || 0);
+
+      // Current formatted time for "Signed at"
+      var now = new Date();
+      var month = String(now.getMonth() + 1).padStart(2, '0');
+      var day = String(now.getDate()).padStart(2, '0');
+      var year = String(now.getFullYear()).slice(-2);
+      var hours = now.getHours();
+      var minutes = String(now.getMinutes()).padStart(2, '0');
+      var ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      var formattedTime = month + '/' + day + '/' + year + ', ' + hours + ':' + minutes + ' ' + ampm;
+
+      var stateUpdate = {
+        signedTime: formattedTime,
+        quoteNum: quoteNum
+      };
+
+      if (name) stateUpdate.name = name;
+      if (phone) stateUpdate.phone = phone;
+      if (address) {
+        stateUpdate.city = address.split(',').pop().trim();
+      }
+
+      var backUrl = 'final-quote.html';
+      var orderFormUrl = 'service-order-form.html';
+      var customerCardUrl = 'service-customer-card.html';
+
+      if (customerId) {
+        backUrl += '?customer_id=' + customerId;
+        orderFormUrl += '?customer_id=' + customerId;
+        customerCardUrl += '?customer_id=' + customerId;
+      }
+      var paramsStr = q.toString();
+      if (paramsStr) {
+        backUrl = 'final-quote.html?' + paramsStr;
+        orderFormUrl = 'service-order-form.html?' + paramsStr;
+        customerCardUrl = 'service-customer-card.html?' + paramsStr;
+      }
+
+      stateUpdate.backUrl = backUrl;
+      stateUpdate.orderFormUrl = orderFormUrl;
+      stateUpdate.customerCardUrl = customerCardUrl;
+
+      this.setState(stateUpdate);
+
+      // Load products list if needed
+      var productsList = [];
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        try {
+          var client = MineralBarApp.getClient();
+          var res = await client.request('Products.List', { limit: 25 });
+          var data = res && (res.data || res.output || res);
+          if (Array.isArray(data) && data.length > 0) {
+            productsList = data.map(function(item) {
+              var isDroplet = /filter|سائل|סנן|מים/i.test(item.product_name || item.name || '');
+              var isShield = /insurance|coverage|ביטוח|אחריות/i.test(item.product_name || item.name || '');
+              var priceVal = Math.round(Number(item.price || item.cost || 89));
+              var discountVal = Number(item.discount_price || item.discount || 0);
+              var isPercent = Number(item.is_price_percent || 0) === 1;
+              var discountAmt = isPercent ? Math.round(priceVal * (discountVal / 100)) : Math.round(discountVal);
+
+              return {
+                id: String(item.id),
+                name: item.product_name || item.name || 'מוצר',
+                priceNum: priceVal,
+                discountAmt: discountAmt,
+                isDroplet: isDroplet || (!isShield),
+                isShield: isShield,
+                isGeneric: !isDroplet && !isShield
+              };
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch products list', err);
+        }
+      }
+
+      var finalProducts = [];
+      if (productIdsStr) {
+        var ids = productIdsStr.split(',');
+        ids.forEach(function(productId) {
+          var found = productsList.find(function(p) { return p.id === productId; });
+          if (found) {
+            finalProducts.push(JSON.parse(JSON.stringify(found)));
+          }
+        });
+      }
+      productsList = finalProducts;
+
+      var subTotal = productsList.reduce((sum, p) => sum + (p.priceNum || 0), 0);
+      var discountAmt = productsList.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
+      var beforeVat = subTotal - discountAmt;
+      var vatAmt = Math.round(beforeVat * 0.18);
+      var totalPayableVal = beforeVat + vatAmt;
+      var totalPayable = totalPayableVal + ' NIS/month';
+
+      this.setState({
+        products: productsList,
+        totalPayable: totalPayable
+      });
+
+      // Load customer from API if id is available
+      if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+        try {
+          var res2 = await MineralBarApp.getCustomer(customerId);
+          var c = res2 && res2.customer;
+          if (c) {
+            if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) {
+              c = c.data;
+            }
+            var fullAddress = c.address || '';
+            var cityVal = c.city || c.city_name || 'Tel Aviv';
+            this.setState({
+              name: c.name || this.state.name || name || ('#' + customerId),
+              phone: c.phone || c.mobile || this.state.phone || phone,
+              city: cityVal
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch customer details', err);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  renderVals() {
+    var s = this.state;
+    return {
+      name: s.name,
+      phone: s.phone,
+      city: s.city,
+      signedTime: s.signedTime,
+      quoteNum: s.quoteNum,
+      totalPayable: s.totalPayable,
+      backUrl: s.backUrl,
+      orderFormUrl: s.orderFormUrl,
+      customerCardUrl: s.customerCardUrl,
+      products: s.products || []
+    };
+  }
+}
+</script>
+</body>
+</html>

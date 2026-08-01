@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Mineral Bar — login</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; background: #e6e8ec; }
+  button, input { font-family: 'Heebo', sans-serif; }
+  .ds-input::placeholder { color: #aeb6c2; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .hidden { display: none !important; }
+  .btn:disabled { opacity: .65; cursor: wait; }
+</style>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div data-screen-label="connection" class="screen-card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+
+
+<div style="background:linear-gradient(165deg,#1d60a2 0%,#16223a 100%); padding:36px 22px 42px; flex:none; text-align:center; color:#fff; position:relative; overflow:hidden;">
+<div style="position:absolute; top:-40px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.06);"></div>
+<div style="position:absolute; bottom:-50px; left:-20px; width:160px; height:160px; border-radius:50%; background:rgba(255,255,255,.04);"></div>
+<div style="width:72px; height:72px; border-radius:20px; background:rgba(255,255,255,.14); margin:0 auto 18px; display:flex; align-items:center; justify-content:center; position:relative;">
+<svg fill="none" height="36" stroke="#9cc3ec" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="36"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
+</div>
+<div style="font-size:28px; font-weight:900; letter-spacing:-.4px; position:relative;">mineral bar</div>
+<div style="font-size:14px; color:rgba(255,255,255,.78); margin-top:8px; font-weight:600; position:relative;">Login to the management system</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:0 16px 20px; margin-top:-18px; position:relative;">
+<form id="loginForm" style="background:#fff; border-radius:20px; padding:22px 18px 20px; box-shadow:0 8px 28px rgba(15,24,40,.12);">
+<div style="font-size:18px; font-weight:800; color:#16223a; margin-bottom:6px;">Login to the account</div>
+<div style="font-size:12.5px; color:#8a93a3; font-weight:600; margin-bottom:16px;">mineral.bull36.com · Biz1 SDK</div>
+<div class="hidden" id="errorBox" style="display:flex; align-items:flex-start; gap:9px; background:#fbeeed; border:1px solid #f0c9c4; border-radius:12px; padding:11px 13px; margin-bottom:16px;">
+<svg fill="none" height="18" stroke="#c0392b" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none; margin-top:1px;" viewbox="0 0 24 24" width="18"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>
+<div data-no-i18n="true" id="errorText" style="font-size:13.5px; font-weight:600; color:#c0392b; line-height:1.45;"></div>
+</div>
+<div style="margin-bottom:14px;">
+<label for="username" style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"></path></svg>
+              Email / Username <span style="color:#c0392b;">*</span>
+</label>
+<input autocomplete="username" class="ds-input" id="username" placeholder="sales@mineral.co.il" required="" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="email"/>
+</div>
+<div style="margin-bottom:8px;">
+<label for="password" style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><rect height="11" rx="2.5" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+              password <span style="color:#c0392b;">*</span>
+</label>
+<div style="position:relative;">
+<input autocomplete="current-password" class="ds-input" id="password" placeholder="Enter a password" required="" style="width:100%; padding-block:13px; padding-inline-start:46px; padding-inline-end:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="password"/>
+<button aria-label="Show or hide password" id="togglePassword" style="position:absolute; inset-inline-start:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:9px; background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#9aa3b0;" type="button">
+<svg fill="none" height="18" id="eyeIcon" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+</div>
+<div class="hidden" id="otpWrap" style="margin:12px 0 8px;">
+<label for="otp" style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+              verification code (OTP) <span style="color:#c0392b;">*</span>
+</label>
+<input autocomplete="one-time-code" class="ds-input" id="otp" inputmode="numeric" placeholder="Enter a code" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:center; letter-spacing:3px; background:#fff;" type="text"/>
+<button data-no-i18n="true" disabled="" id="resendOtpBtn" style="display:block; margin:10px auto 0; padding:5px 8px; border:none; background:transparent; color:#1d60a2; font-size:12.5px; font-weight:700; cursor:pointer;" type="button"></button>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; margin:4px 0 20px;">
+<label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+<input id="remember" style="width:18px; height:18px; accent-color:#1d60a2;" type="checkbox"/>
+<span style="font-size:13px; font-weight:600; color:#5a6473;">remember me</span>
+</label>
+<span style="font-size:12px; font-weight:600; color:#9aa3b0;">Biz1</span>
+</div>
+<button class="btn" id="loginBtn" style="width:100%; padding:15px; border:none; border-radius:14px; background:linear-gradient(135deg,#1d60a2,#16487c); color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.28);" type="submit">
+<svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg>
+<span id="loginBtnText">connect</span>
+</button>
+</form>
+<div style="margin-top:18px; padding:14px 12px; background:#fff; border-radius:16px; border:1px solid #e4e8ee;">
+<div style="font-size:12.5px; font-weight:700; color:#8a93a3; margin-bottom:10px; text-align:center;">team users</div>
+<div style="display:flex; flex-direction:column; gap:8px;">
+<button class="fillUser" data-user="sales@mineral.co.il" style="text-align:start; padding:10px 12px; border-radius:11px; border:1.5px solid #e4e8ee; background:#f7f9fc; cursor:pointer; font-size:13px; font-weight:700; color:#1f2a3a;" type="button">Sales · mineral.co.il</button>
+<button class="fillUser" data-user="service@mineral.co.il" style="text-align:start; padding:10px 12px; border-radius:11px; border:1.5px solid #e4e8ee; background:#f7f9fc; cursor:pointer; font-size:13px; font-weight:700; color:#1f2a3a;" type="button">Service · mineral.co.il</button>
+<button class="fillUser" data-user="tech@mineral.co.il" style="text-align:start; padding:10px 12px; border-radius:11px; border:1.5px solid #e4e8ee; background:#f7f9fc; cursor:pointer; font-size:13px; font-weight:700; color:#1f2a3a;" type="button">Technician · mineral.co.il</button>
+</div>
+</div>
+<div style="text-align:center; margin-top:18px; font-size:12px; color:#9aa3b0; font-weight:600;">
+          Mineral Bar · CRM system
+        </div>
+</div>
+</div>
+</div>
+</div>
+<script>
+(function () {
+  var form = document.getElementById('loginForm');
+  var usernameEl = document.getElementById('username');
+  var passwordEl = document.getElementById('password');
+  var otpEl = document.getElementById('otp');
+  var otpWrap = document.getElementById('otpWrap');
+  var resendOtpBtn = document.getElementById('resendOtpBtn');
+  var errorBox = document.getElementById('errorBox');
+  var errorText = document.getElementById('errorText');
+  var loginBtn = document.getElementById('loginBtn');
+  var loginBtnText = document.getElementById('loginBtnText');
+  var rememberEl = document.getElementById('remember');
+  var waitingOtp = false;
+  var resendSeconds = 0;
+  var resendTimer = null;
+  var lastApiMessage = '';
+  var lastApiFallback = '';
+
+  function currentLang() {
+    try {
+      return (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : null) ||
+        localStorage.getItem('app_lang') || 'he';
+    } catch (e) {
+      return 'he';
+    }
+  }
+
+  function t(enText) {
+    var lang = currentLang();
+    if (lang === 'en') return enText;
+    var dict = (window.i18nTranslations && window.i18nTranslations.he) || {};
+    return dict[enText] || dict[enText.toLowerCase()] || enText;
+  }
+
+  // Backend replies in Hebrew regardless of the UI language, so every server
+  // message is matched to a canonical pair before it reaches the error box.
+  var API_MESSAGES = [
+    {
+      re: /(קוד|code|otp).{0,25}(נשלח|נשלחה|sent)|(נשלח|נשלחה|sent).{0,25}(קוד|code|otp)/i,
+      en: 'A verification code was sent to your email',
+      he: 'קוד אימות נשלח לאימייל שלך'
+    },
+    {
+      re: /(נדרש|חובה|required).{0,25}(קוד|אימות|otp|code)|(קוד|אימות|otp|code).{0,25}(נדרש|required)/i,
+      en: 'Verification code required — check your messages',
+      he: 'נדרש קוד אימות שנשלח אליך'
+    },
+    {
+      re: /(קוד|אימות|otp|code).{0,25}(שגוי|שגויה|לא תקין|לא נכון|פג|invalid|incorrect|wrong|expired|mismatch)/i,
+      en: 'Invalid verification code',
+      he: 'קוד אימות שגוי'
+    },
+    {
+      re: /שם משתמש או סיסמה|סיסמה שגויה|סיסמה לא נכונה|invalid credentials|wrong password|incorrect password|unauthorized/i,
+      en: 'Wrong username or password',
+      he: 'שם משתמש או סיסמה שגויים'
+    },
+    {
+      re: /יותר מדי|ניסיונות|too many|rate.?limit/i,
+      en: 'Too many login attempts. Please try again later.',
+      he: 'יותר מדי ניסיונות התחברות. נסה שוב מאוחר יותר.'
+    },
+    {
+      re: /פג תוקף|session expired|token expired/i,
+      en: 'Session expired. Please login again.',
+      he: 'פג תוקף ההתחברות. התחבר מחדש.'
+    },
+    {
+      re: /ההתחברות נכשלה|login failed/i,
+      en: 'Login failed',
+      he: 'ההתחברות נכשלה'
+    }
+  ];
+
+  function localizeApiMessage(rawText, fallbackEn) {
+    var text = String(rawText || '').trim();
+    var lang = currentLang();
+    if (!text) return t(fallbackEn || 'Login error');
+
+    for (var i = 0; i < API_MESSAGES.length; i++) {
+      if (API_MESSAGES[i].re.test(text)) {
+        return lang === 'en' ? API_MESSAGES[i].en : API_MESSAGES[i].he;
+      }
+    }
+
+    var dict = (window.i18nTranslations && window.i18nTranslations[lang === 'en' ? 'en' : 'he']) || {};
+    if (dict[text]) return dict[text];
+    if (dict[text.toLowerCase()]) return dict[text.toLowerCase()];
+
+    var isHebrew = /[\u0590-\u05FF]/.test(text);
+    if ((lang === 'en') === !isHebrew) return text;
+    return t(fallbackEn || 'Login error');
+  }
+
+  function langText(enText, heText) {
+    return currentLang() === 'en' ? enText : heText;
+  }
+
+  function updateResendLabel() {
+    if (!resendOtpBtn) return;
+    if (resendSeconds > 0) {
+      resendOtpBtn.disabled = true;
+      resendOtpBtn.style.opacity = '.55';
+      resendOtpBtn.style.cursor = 'wait';
+      resendOtpBtn.textContent = currentLang() === 'en'
+        ? 'Resend code in ' + resendSeconds + 's'
+        : 'שלח קוד מחדש בעוד ' + resendSeconds + ' שנ׳';
+      return;
+    }
+    resendOtpBtn.disabled = false;
+    resendOtpBtn.style.opacity = '1';
+    resendOtpBtn.style.cursor = 'pointer';
+    resendOtpBtn.textContent = langText('Resend code', 'שלח קוד מחדש');
+  }
+
+  function startResendTimer() {
+    if (resendTimer) clearInterval(resendTimer);
+    resendSeconds = 20;
+    updateResendLabel();
+    resendTimer = setInterval(function () {
+      resendSeconds -= 1;
+      updateResendLabel();
+      if (resendSeconds <= 0) {
+        clearInterval(resendTimer);
+        resendTimer = null;
+      }
+    }, 1000);
+  }
+
+  function setLoginBtnLabel(enLabel) {
+    loginBtnText.setAttribute('data-i18n-en', enLabel);
+    loginBtnText.textContent = t(enLabel);
+    var tn = loginBtnText.firstChild;
+    if (tn && tn.nodeType === 3) tn._origText = enLabel;
+  }
+
+  function refreshI18n() {
+    if (typeof applyTranslations === 'function') {
+      applyTranslations(currentLang());
+    }
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    var btnEn = loginBtnText.getAttribute('data-i18n-en') || (waitingOtp ? 'Verify and connect' : 'connect');
+    setLoginBtnLabel(btnEn);
+    updateResendLabel();
+    if (errorBox && !errorBox.classList.contains('hidden')) {
+      if (lastApiMessage) {
+        showApiError(lastApiMessage, lastApiFallback);
+      } else if (errorText.getAttribute('data-i18n-en')) {
+        errorText.textContent = t(errorText.getAttribute('data-i18n-en'));
+        var etn = errorText.firstChild;
+        if (etn && etn.nodeType === 3) etn._origText = errorText.getAttribute('data-i18n-en');
+      }
+    }
+  }
+
+  function showError(msg, enKey) {
+    lastApiMessage = '';
+    lastApiFallback = '';
+    if (enKey) errorText.setAttribute('data-i18n-en', enKey);
+    else errorText.removeAttribute('data-i18n-en');
+    errorText.textContent = msg || t('Login error');
+    errorBox.classList.remove('hidden');
+  }
+
+  function showApiError(rawMsg, fallbackEn) {
+    errorText.removeAttribute('data-i18n-en');
+    lastApiMessage = String(rawMsg || '');
+    lastApiFallback = fallbackEn || 'Login error';
+    errorText.textContent = localizeApiMessage(lastApiMessage, lastApiFallback);
+    errorBox.classList.remove('hidden');
+  }
+
+  function clearError() {
+    errorBox.classList.add('hidden');
+    errorText.textContent = '';
+    errorText.removeAttribute('data-i18n-en');
+    lastApiMessage = '';
+    lastApiFallback = '';
+  }
+
+  function prefillRemembered() {
+    try {
+      var email = MineralBarApp.getEmail() || '';
+      if (email) usernameEl.value = email;
+      if (localStorage.getItem('mineralbar_remember') === '1') {
+        rememberEl.checked = true;
+        var saved = null;
+        try {
+          saved = JSON.parse(decodeURIComponent(escape(atob(localStorage.getItem('mineralbar_cred') || ''))));
+        } catch (e) { saved = null; }
+        if (saved && saved.password) passwordEl.value = saved.password;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  async function tryAutoEnter() {
+    try {
+      var client = MineralBarApp.getClient();
+      if (client.getToken() && MineralBarApp.getRole()) {
+        location.href = MineralBarApp.homeForRole(MineralBarApp.getRole());
+        return true;
+      }
+      if (MineralBarApp.canAutoRefresh && MineralBarApp.canAutoRefresh()) {
+        loginBtn.disabled = true;
+        setLoginBtnLabel('Refreshing session…');
+        var refreshed = await MineralBarApp.refreshSession();
+        if (refreshed && refreshed.ok) {
+          location.href = refreshed.dest || MineralBarApp.homeForRole(refreshed.role);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('[MineralBar] login auto-refresh failed', e);
+      setLoginBtnLabel('connect');
+      loginBtn.disabled = false;
+    }
+    return false;
+  }
+
+  prefillRemembered();
+  tryAutoEnter();
+  refreshI18n();
+  setTimeout(refreshI18n, 200);
+  setTimeout(refreshI18n, 800);
+  window.addEventListener('storage', function (ev) {
+    if (ev && ev.key === 'app_lang') refreshI18n();
+  });
+  document.addEventListener('click', function (ev) {
+    if (ev.target && ev.target.closest && ev.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+      setTimeout(refreshI18n, 50);
+    }
+  });
+
+  document.getElementById('togglePassword').addEventListener('click', function () {
+    passwordEl.type = passwordEl.type === 'password' ? 'text' : 'password';
+  });
+
+  document.querySelectorAll('.fillUser').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      usernameEl.value = btn.getAttribute('data-user');
+      passwordEl.focus();
+      clearError();
+    });
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    clearError();
+
+    var username = usernameEl.value.trim();
+    var password = passwordEl.value;
+    var otp = otpEl.value.trim();
+    var remember = !!(rememberEl && rememberEl.checked);
+
+    if (!username || !password) {
+      showError(t('Please fill email and password'), 'Please fill email and password');
+      return;
+    }
+    if (waitingOtp && !otp) {
+      showError(t('Please enter verification code (OTP)'), 'Please enter verification code (OTP)');
+      return;
+    }
+
+    loginBtn.disabled = true;
+    setLoginBtnLabel(waitingOtp ? 'Verifying…' : 'Connecting…');
+
+    try {
+      var result = await MineralBarApp.login({
+        username: username,
+        password: password,
+        otp: otp,
+        remember: remember
+      });
+
+      if (result.otpRequired) {
+        var enteringOtpMode = !waitingOtp;
+        waitingOtp = true;
+        otpWrap.classList.remove('hidden');
+        otpEl.focus();
+        if (enteringOtpMode) startResendTimer();
+        if (result.message) {
+          showApiError(result.message, 'Verification code required — check your messages');
+        } else {
+          showError(
+            t('Verification code required — check your messages'),
+            'Verification code required — check your messages'
+          );
+        }
+        setLoginBtnLabel('Verify and connect');
+        return;
+      }
+
+      if (result.ok) {
+        location.href = result.dest;
+        return;
+      }
+
+      showError(t('Login failed'), 'Login failed');
+    } catch (err) {
+      var msg = (err && err.raw && err.raw.message) || (err && err.message) || '';
+      showApiError(msg, 'Login failed');
+    } finally {
+      loginBtn.disabled = false;
+      setLoginBtnLabel(waitingOtp ? 'Verify and connect' : 'connect');
+    }
+  });
+
+  resendOtpBtn.addEventListener('click', async function () {
+    if (resendSeconds > 0 || resendOtpBtn.disabled) return;
+    clearError();
+    resendOtpBtn.disabled = true;
+    resendOtpBtn.textContent = langText('Sending…', 'שולח…');
+
+    try {
+      var result = await MineralBarApp.login({
+        username: usernameEl.value.trim(),
+        password: passwordEl.value,
+        otp: '',
+        remember: !!(rememberEl && rememberEl.checked)
+      });
+
+      if (result && result.ok) {
+        location.href = result.dest;
+        return;
+      }
+
+      showApiError(
+        (result && result.message) || '',
+        'A verification code was sent to your email'
+      );
+      otpEl.value = '';
+      otpEl.focus();
+      startResendTimer();
+    } catch (err) {
+      var msg = (err && err.raw && err.raw.message) || (err && err.message) || '';
+      showApiError(msg, 'Login failed');
+      updateResendLabel();
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <script src="./support.js"></script>
+  <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+  <script src="./biz1-app.js"></script>
+  <script src="./page-boot.js"></script>
+  <link rel="stylesheet" href="./common.css" />
+  <script src="./i18n-translations.js"></script>
+  <script src="./common-header-footer.js"></script>
+</head>
+
+<body data-role="service" data-active-tab="service">
+  <x-dc>
+    <helmet>
+      <link href="https://fonts.googleapis.com" rel="preconnect" />
+      <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+      <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+      <style>
+        * {
+          box-sizing: border-box;
+        }
+
+        html,
+        body {
+          margin: 0;
+          direction: rtl;
+          font-family: 'Heebo', sans-serif;
+          -webkit-font-smoothing: antialiased;
+        }
+
+        button,
+        select {
+          font-family: 'Heebo', sans-serif;
+        }
+
+        .dc-scroll::-webkit-scrollbar {
+          width: 0;
+        }
+      </style>
+    </helmet>
+    <div
+      style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+      <div
+        style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+        <div class="screen-card"
+          style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+          <!-- header: search · title · filter -->
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 12px; flex:none;">
+            <sc-if hint-placeholder-val="{{ false }}" value="{{ searchOpen }}">
+              <input oninput="{{ onSearch }}" value="{{ search }}" type="text" placeholder="חיפוש קריאות (שם, מס׳)..." style="flex:1; border:none; background:#fff; border-radius:99px; padding:10px 16px; font-family:Heebo; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06);" />
+              <button onclick="{{ toggleSearch }}" style="margin-right:10px; border:none; background:none; font-weight:700; color:#1d60a2; cursor:pointer; font-family:Heebo;">ביטול</button>
+            </sc-if>
+            <sc-if hint-placeholder-val="{{ true }}" value="{{ notSearchOpen }}">
+              <button onclick="{{ toggleSearch }}"
+                style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06);">
+                <svg fill="none" height="18" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round"
+                  stroke-width="2" viewbox="0 0 24 24" width="18">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m20 20-3.5-3.5"></path>
+                </svg>
+              </button>
+              <div style="font-size:20px; font-weight:800; color:#1f2a3a;">Service calls</div>
+            </sc-if>
+          </div>
+          <!-- stat cards (also act as status tabs) -->
+          <!-- <div style="display:flex; gap:9px; padding:0 16px 12px; flex:none;">
+            <sc-for as="s" hint-placeholder-count="3" list="{{ stats }}">
+              <button onclick="{{ s.pick }}"
+                style="flex:1; background:{{ s.bg }}; border:1.6px solid {{ s.border }}; border-radius:15px; padding:13px 8px; cursor:pointer; text-align:center;">
+                <div style="font-size:24px; font-weight:800; color:{{ s.numColor }}; line-height:1;">{{ s.count }}</div>
+                <div style="font-size:11.5px; color:{{ s.labelColor }}; margin-top:5px; font-weight:700;">{{ s.label }}
+                </div>
+              </button>
+            </sc-for>
+          </div> -->
+          
+          <div style="display:flex; gap:9px; padding:0 16px 12px; flex:none;">
+            <button onclick="{{ setFilterOpen }}" style="display:flex; align-items:center; gap:6px; background:{{ pillOpenBg }}; border:1.6px solid {{ pillOpenBorder }}; border-radius:99px; padding:6px 12px; cursor:pointer;">
+              <svg fill="none" height="14" stroke="{{ pillOpenIconColor }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span style="font-size:12px; font-weight:700; color:{{ pillOpenColor }};">Open ticket</span>
+            </button>
+            <button onclick="{{ setFilterClosed }}" style="display:flex; align-items:center; gap:6px; background:{{ pillClosedBg }}; border:1.6px solid {{ pillClosedBorder }}; border-radius:99px; padding:6px 12px; cursor:pointer;">
+              <svg fill="none" height="14" stroke="{{ pillClosedIconColor }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><rect height="14" rx="2" ry="2" width="20" x="2" y="5"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>
+              <span style="font-size:12px; font-weight:700; color:{{ pillClosedColor }};">Close ticket</span>
+            </button>
+          </div>
+          <!-- wait-time legend -->
+          <div style="display:flex; align-items:center; gap:13px; padding:0 18px 12px; flex:none;">
+            <span style="font-size:11.5px; color:#8a93a3; font-weight:600;">Waiting time:</span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#9aa3b0;"><span
+                style="width:7px; height:7px; border-radius:50%; background:#c0392b;"></span>over 3 days</span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#9aa3b0;"><span
+                style="width:7px; height:7px; border-radius:50%; background:#e0a13c;"></span>1–3 days</span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#9aa3b0;"><span
+                style="width:7px; height:7px; border-radius:50%; background:#2e8a63;"></span>until today</span>
+          </div>
+          <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin:2px 2px 11px;">
+              <div style="font-size:13px; color:#6a7382; font-weight:800;">{{ sectionLabel }}</div>
+              <button onclick="{{ goOpen }}"
+                style="display: flex; align-items: center; gap: 5px; padding: 7px 12px; border: none; border-radius: 99px; color: #e9f0f7; font-size: 12.5px; font-weight: 800; cursor: pointer; background-color: #0c56e9">
+                <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                  stroke-width="2.4" viewbox="0 0 24 24" width="15">
+                  <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                new reading
+              </button>
+            </div>
+            <sc-for as="c" hint-placeholder-count="4" list="{{ calls }}">
+              <div
+                style="background:#fff; border-radius:16px; padding:14px; margin-bottom:11px; box-shadow:0 1px 3px rgba(0,0,0,.05); border-right:4px solid {{ c.waitColor }};">
+                <!-- top -->
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+                  <div onclick="{{ c.goCustomer }}" style="flex:1; cursor:pointer;">
+                    <div
+                      style="display:flex; align-items:center; gap:4px; font-size:16px; font-weight:800; color:#1f2a3a;">
+                      {{ c.name }}
+                      
+                    </div>
+                    <div style="font-size:12px; color:#9aa3b0; margin-top:2px;">{{ c.id }} · {{ c.age }}</div>
+                  </div>
+                  <div
+                    style="display:inline-flex; align-items:center; gap:4px; background:{{ c.badgeBg }}; color:{{ c.badgeColor }}; font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap; flex:none;">
+                    <sc-if hint-placeholder-val="{{ true }}" value="{{ c.isToSchedule }}"><svg fill="none" height="12"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                        viewbox="0 0 24 24" width="12">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 7v5l3 2"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isScheduled }}"><svg fill="none" height="12"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                        viewbox="0 0 24 24" width="12">
+                        <rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect>
+                        <path d="M3 9h18M8 2.5v4M16 2.5v4"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isNew }}"><svg fill="none" height="12"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"
+                        viewbox="0 0 24 24" width="12">
+                        <path d="M12 5v14M5 12h14"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isDone }}"><svg fill="none" height="12"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6"
+                        viewbox="0 0 24 24" width="12">
+                        <path d="M20 6 9 17l-5-5"></path>
+                      </svg></sc-if>
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isToCollect }}"><svg fill="none" height="12"
+                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        viewbox="0 0 24 24" width="12">
+                        <rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect>
+                        <circle cx="12" cy="12" r="2.4"></circle>
+                      </svg></sc-if>
+                    {{ c.badge }}
+                  </div>
+                </div>
+                <!-- type + collection pills -->
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:11px;">
+                  <span
+                    style="display:inline-flex; align-items:center; gap:4px; background:#eaf2fb; color:#1d60a2; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">
+                    <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" viewbox="0 0 24 24" width="12">
+                      <path
+                        d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z">
+                      </path>
+                    </svg>
+                    {{ c.type }}
+                  </span>
+                  <span
+                    style="display:inline-flex; align-items:center; gap:4px; background:{{ c.waitBg }}; color:{{ c.waitColor }}; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">
+                    <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2.2" viewbox="0 0 24 24" width="12">
+                      <circle cx="12" cy="12" r="9"></circle>
+                      <path d="M12 7v5l3 2"></path>
+                    </svg>
+                    {{ c.wait }}
+                  </span>
+                  <!-- Department Name Pill -->
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.department }}">
+                    <span
+                      style="display:inline-flex; align-items:center; gap:4px; background:#f0f7f4; color:#2e8a63; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">
+                      <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2" viewbox="0 0 24 24" width="12">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                      {{ c.department }}
+                    </span>
+                  </sc-if>
+                  <!-- Rating Pill -->
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.rating }}">
+                    <span
+                      style="display:inline-flex; align-items:center; gap:4px; background:#fff9e6; color:#b08000; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px; border:1px solid #ffe89e;">
+                      ⭐ {{ c.rating }}
+                    </span>
+                  </sc-if>
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.charge }}">
+                    <span
+                      style="display:inline-flex; align-items:center; gap:4px; background:#fdf1dd; color:#bd8324; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">
+                      <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2" viewbox="0 0 24 24" width="12">
+                        <rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect>
+                        <circle cx="12" cy="12" r="2.4"></circle>
+                      </svg>
+                      charge service fees
+                    </span>
+                  </sc-if>
+                </div>
+                <!-- address -->
+                <div style="display:flex; align-items:center; gap:13px; margin-top:10px;">
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.address }}">
+                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:#7b8595;">
+                      <svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2" viewbox="0 0 24 24" width="13">
+                        <path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path>
+                        <circle cx="12" cy="10" r="2.5"></circle>
+                      </svg>
+                      {{ c.address }}
+                    </span>
+                  </sc-if>
+                </div>
+                <!-- due date + customer number -->
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:13px; margin-top:8px;">
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.dueDate }}">
+                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:#7b8595;">
+                      <svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2" viewbox="0 0 24 24" width="13">
+                        <rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect>
+                        <path d="M3 9h18M8 2.5v4M16 2.5v4"></path>
+                      </svg>
+                      Due date: {{ c.dueDate }}
+                    </span>
+                  </sc-if>
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.cust_id }}">
+                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:#7b8595;">
+                      <svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2" viewbox="0 0 24 24" width="13">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
+                      Customer number: {{ c.cust_id }}
+                    </span>
+                  </sc-if>
+                </div>
+                <!-- description -->
+                <div
+                  style="font-size:13px; color:#5a6473; margin-top:9px; line-height:1.5; background:#f7f9fc; border-radius:9px; padding:9px 11px;">
+                  "{{ c.desc }}"</div>
+                <!-- actions -->
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                  <button onclick="{{ c.goCard }}"
+                    style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:1.5px solid #dde2ea; border-radius:11px; background:#fff; color:#5a6473; font-size:13px; font-weight:700; cursor:pointer;">
+                    <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" viewbox="0 0 24 24" width="14">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Reading details
+                  </button>
+                  <button
+                    style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:none; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:700; cursor:pointer;">
+                    <svg fill="currentColor" height="14" viewbox="0 0 24 24" width="14">
+                      <path
+                        d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z">
+                      </path>
+                    </svg>
+                    Called the customer
+                  </button>
+                </div>
+              </div>
+            </sc-for>
+            <button onclick="{{ goOpen }}"
+              style="width:100%; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26); margin-top:4px;">
+              <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
+                stroke-width="2.2" viewbox="0 0 24 24" width="17">
+                <path d="M5 12h14M12 5v14"></path>
+              </svg>
+              Open a new service call
+            </button>
+          </div>
+
+         
+        </div>
+      </div>
+    </div>
+  </x-dc>
+  <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    tab: 'toschedule',
+    sort: 'wait',
+    ticketStatus: 'all',
+    search: '',
+    searchOpen: false,
+    filtersOpen: false,
+  };
+
+  BADGE = {
+    toschedule: { label: 'To schedule', color: '#1d60a2', bg: '#eaf2fb' },
+    scheduled: { label: 'Scheduled', color: '#50439d', bg: '#eef0fb' },
+    new: { label: 'New', color: '#2e8a63', bg: '#e6f4ec' },
+    done: { label: 'Done', color: '#2e8a63', bg: '#e6f4ec' },
+    tocollect: { label: 'For collection', color: '#bd8324', bg: '#fdf1dd' },
+  };
+
+  // bucket: which top tab a call belongs to
+  CALLS = [];
+
+  TABS = [
+    { id: 'toschedule', label: 'To schedule' },
+    { id: 'tocollect', label: 'For collection' },
+    { id: 'done', label: 'Completed' },
+  ];
+
+  REGIONS = ['Center', 'North', 'South', 'Jerusalem'];
+  TYPES = ['Technical Service', 'Main filter installation', 'Water softener installation', 'Electric bidet installation', 'Filter replacement', 'Under sink system', 'Under sink + grinder', 'Garbage disposal installation', 'Water bar installation'];
+  PRIO = { urgent: { label: 'Urgent' }, normal: { label: 'Normal' }, low: { label: 'Low' } };
+  PRIO_LIST = ['urgent', 'normal', 'low'];
+
+  SORTS = [
+    { id: 'wait', label: 'Waiting time' },
+    { id: 'date', label: 'Date' },
+    { id: 'name', label: 'Name' },
+  ];
+
+  STAT_TONE = {
+    toschedule: { num: '#1d60a2', activeBg: '#eaf2fb', activeBorder: '#1d60a2' },
+    tocollect: { num: '#bd8324', activeBg: '#fdf1dd', activeBorder: '#e0a13c' },
+    done: { num: '#2e8a63', activeBg: '#e6f4ec', activeBorder: '#2e8a63' },
+  };
+
+  waitTone(d) {
+    if (d > 3) return { color: '#c0392b', bg: '#fbeeed' };
+    if (d >= 1) return { color: '#bd8324', bg: '#fdf1dd' };
+    return { color: '#2e8a63', bg: '#e6f4ec' };
+  }
+  waitLabel(d) {
+    if (d === 0) return 'Opened today';
+    return 'Waiting ' + d + (d === 1 ? ' day' : ' days');
+  }
+
+  setTab(id) { this.setState({ tab: id }); }
+  openFilters() { this.setState({ filtersOpen: true }); }
+  closeFilters() { this.setState({ filtersOpen: false }); }
+  clearFilters() { this.setState({ ticketStatus: 'all', sort: 'wait' }); }
+  setFilter(key, val) { this.setState(s => ({ [key]: s[key] === val ? 'all' : val })); }
+  setSort(id) { this.setState({ sort: id }); }
+  
+  toggleSearch() { this.setState(s => ({ searchOpen: !s.searchOpen, search: '' })); }
+  onSearch(e) { this.setState({ search: e.target.value }); }
+
+  isTicketClosed(t) {
+    if (!t) return false;
+    if (t.is_done === 1 || t.closed === 1 || t.is_closed === 1 || t.close_date) return true;
+    var st = String(t.status_name || t.status_label || t.status || '').toLowerCase();
+    if (st === '2' || st === 'closed' || st === 'done' || st === 'completed' || st === 'סגור' || st === 'נסגר' || st === 'הושלם' || st === 'נסגרה') return true;
+    var sid = Number(t.status_id != null ? t.status_id : t.status);
+    if (sid === 2 || sid === 4 || sid === 5) return true;
+    var msgs = t.messages || t.message || '';
+    if (Array.isArray(msgs)) {
+      msgs = msgs.map(function (m) { return (m && (m.message || m.msg || m.text)) || ''; }).join('\n');
+    }
+    var msg = String(msgs || '');
+    if (/BIZ1_MEDIA\s*:/i.test(msg) || /Client signature saved/i.test(msg)) return true;
+    return false;
+  }
+
+  filtered() {
+    const st = this.state;
+    const q = st.search.toLowerCase();
+    const statusFilter = st.ticketStatus;
+
+    let list = this.CALLS.filter(c => {
+      // Open / Close pills: show matching tickets across buckets
+      if (statusFilter === 'open') {
+        if (c.isDoneFlag) return false;
+      } else if (statusFilter === 'closed') {
+        if (!c.isDoneFlag) return false;
+      } else if (c.bucket !== st.tab) {
+        return false;
+      }
+
+      if (q) {
+        if (!c.name.toLowerCase().includes(q) && !c.id.toLowerCase().includes(q)) {
+          return false;
+        }
+      }
+      return true;
+    });
+    if (st.sort === 'wait') list = [...list].sort((a, b) => b.wait - a.wait);
+    else if (st.sort === 'date') list = [...list].sort((a, b) => b.ts - a.ts);
+    else if (st.sort === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'he'));
+    return list;
+  }
+
+  componentDidMount() {
+    this.loadTickets();
+    window.addEventListener('mineralbar:ready', () => this.loadTickets());
+  }
+
+  async loadTickets() {
+    try {
+      if (!window.MineralBarApp || !window.MineralBarApp.getClient) return;
+      const client = window.MineralBarApp.getClient();
+      if (!client || !client.getToken()) {
+        console.warn('MineralBar client not authenticated yet. Waiting for mineralbar:ready event...');
+        return;
+      }
+      const res = await client.request('Ticket.List', {
+        start: 0,
+        length: 100,
+        draw: 1
+      });
+      if (res && res.data) {
+        this.CALLS = res.data.map(t => {
+          let badge = 'new';
+          let bucket = 'toschedule';
+          const closed = this.isTicketClosed(t);
+          const sid = Number(t.status_id != null ? t.status_id : t.status);
+
+          if (closed) {
+            badge = 'done';
+            bucket = 'done';
+          } else if (sid === 3) {
+            badge = 'tocollect';
+            bucket = 'tocollect';
+          } else if (t.ticket_from_time || t.from_time || t.due_date) {
+            badge = 'scheduled';
+            bucket = 'toschedule';
+          } else {
+            badge = 'toschedule';
+            bucket = 'toschedule';
+          }
+          
+          let wait = 0;
+          let age = 'Opened today';
+          if (t.open_date) {
+            const open = new Date(t.open_date);
+            const now = new Date();
+            const diff = Math.floor((now - open) / (1000 * 60 * 60 * 24));
+            if (diff > 0) {
+              wait = diff;
+              if (diff === 1) age = '1 day ago';
+              else if (diff === 2) age = '2 days ago';
+              else age = diff + ' days ago';
+            }
+          }
+          
+          let prio = 'normal';
+          if (t.rating === '5' || t.rating === '4') {
+            prio = 'urgent';
+          } else if (t.rating === '1') {
+            prio = 'low';
+          }
+          
+          let descText = '';
+          if (t.messages && t.messages.length) {
+            descText = t.messages[0].message;
+            if (descText.indexOf('biz1upload/') === 0) {
+              descText = 'Attachment';
+            }
+          } else {
+            descText = t.subject || '';
+          }
+          
+          let dueDateStr = '';
+          if (t.due_date) {
+            const d = new Date(t.due_date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            dueDateStr = day + '/' + month + '/' + year;
+          }
+
+          return {
+            id: '#SRV-' + t.ticket_id,
+            name: t.joined_customer_name || t.customer_name || 'לקוח',
+            age: age,
+            bucket: bucket,
+            badge: badge,
+            type: t.subject || 'שירות טכני',
+            wait: wait,
+            charge: t.approved_by_customer === 1 || sid === 3,
+            isDoneFlag: closed,
+            address: t.address || '',
+            region: t.city_id && t.city_id !== 'undefined' ? t.city_id : 'מרכז',
+            prio: prio,
+            desc: descText,
+            ts: t.open_date ? new Date(t.open_date).getTime() / 1000 : 0,
+            department: t.department === 341 ? 'שירות לקוחות' : 'שירות טכני',
+            rating: t.rating || '0',
+            dueDate: dueDateStr,
+            cust_id: t.cust_id || ''
+          };
+        });
+        this.forceUpdate();
+      }
+    } catch (e) {
+      console.error('Failed to load tickets:', e);
+    }
+  }
+
+  chip(on) {
+    return { bg: on ? '#1d60a2' : '#fff', color: on ? '#fff' : '#5a6473', border: on ? '#1d60a2' : '#e4e8ee', weight: on ? '700' : '600' };
+  }
+
+  renderVals() {
+    const st = this.state;
+
+    const counts = {
+      toschedule: this.CALLS.filter(c => c.bucket === 'toschedule').length,
+      tocollect: this.CALLS.filter(c => c.bucket === 'tocollect').length,
+      done: this.CALLS.filter(c => c.bucket === 'done').length,
+    };
+
+    const stats = this.TABS.map(t => {
+      const on = t.id === st.tab;
+      const tone = this.STAT_TONE[t.id];
+      return {
+        label: t.label, count: counts[t.id], pick: () => this.setTab(t.id),
+        bg: on ? tone.activeBg : '#fff', border: on ? tone.activeBorder : '#e8eaee',
+        numColor: tone.num, labelColor: on ? '#1f2a3a' : '#8a93a3',
+      };
+    });
+
+    const list = this.filtered();
+    const calls = list.map(c => {
+      const b = this.BADGE[c.badge] || { label: c.badge, color: '#1d60a2', bg: '#eaf2fb' };
+      const wt = this.waitTone(c.wait);
+      return {
+        id: c.id, name: c.name, age: c.age, type: c.type, address: c.address, desc: c.desc, charge: c.charge,
+        badge: b.label, badgeColor: b.color, badgeBg: b.bg,
+        isToSchedule: c.badge === 'toschedule', isScheduled: c.badge === 'scheduled', isNew: c.badge === 'new', isDone: c.badge === 'done', isToCollect: c.badge === 'tocollect',
+        wait: this.waitLabel(c.wait), waitColor: wt.color, waitBg: wt.bg,
+        department: c.department,
+        rating: c.rating,
+        dueDate: c.dueDate,
+        cust_id: c.cust_id,
+        goCard: () => { window.location.href = 'service-call-details.html?ticket_id=' + c.id.replace('#SRV-', ''); },
+        goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id; }
+      };
+    });
+
+    const curTab = this.TABS.find(t => t.id === st.tab);
+    const sectionTitle = { toschedule: 'Waiting for scheduling', tocollect: 'Waiting for collection', done: 'Recently completed' };
+    let sectionLabel = sectionTitle[st.tab];
+    if (st.ticketStatus === 'closed') sectionLabel = 'Recently completed';
+    else if (st.ticketStatus === 'open') sectionLabel = 'Open tickets';
+
+    const sorts = this.SORTS.map(s => { const on = s.id === st.sort; return { label: s.label, pick: () => this.setSort(s.id), ...this.chip(on) }; });
+
+    const mkOpts = (arr, key, getLabel) => arr.map(v => {
+      const on = st[key] === v;
+      return { label: getLabel ? getLabel(v) : v, pick: () => this.setFilter(key, v), ...this.chip(on) };
+    });
+    const isEn = typeof window !== 'undefined' && typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+
+
+    const isFiltOpen = st.ticketStatus === 'open';
+    const isFiltClosed = st.ticketStatus === 'closed';
+
+    return {
+      searchOpen: st.searchOpen,
+      notSearchOpen: !st.searchOpen,
+      search: st.search,
+      onSearch: e => this.onSearch(e),
+      toggleSearch: () => this.toggleSearch(),
+      stats,
+      sectionLabel: sectionLabel,
+      calls,
+      openFilters: () => this.openFilters(),
+      closeFilters: () => this.closeFilters(),
+      clearFilters: () => this.clearFilters(),
+      filtersOpen: st.filtersOpen,
+      sorts,
+      resultCount: list.length,
+      showResultsLabel: 'Show ' + list.length + ' results',
+      hasActiveFilters: false,
+      setFilterOpen: () => this.setState({ ticketStatus: isFiltOpen ? 'all' : 'open' }),
+      setFilterClosed: () => this.setState({ ticketStatus: isFiltClosed ? 'all' : 'closed' }),
+      pillOpenBg: isFiltOpen ? '#fdf1dd' : '#fff',
+      pillOpenBorder: isFiltOpen ? '#bd8324' : '#e4e8ee',
+      pillOpenColor: isFiltOpen ? '#bd8324' : '#5a6473',
+      pillOpenIconColor: isFiltOpen ? '#bd8324' : '#aab2bf',
+      pillOpenBadgeBg: isFiltOpen ? '#bd8324' : '#e9edf2',
+      pillOpenBadgeColor: isFiltOpen ? '#fff' : '#5a6473',
+      pillClosedBg: isFiltClosed ? '#e6f4ec' : '#fff',
+      pillClosedBorder: isFiltClosed ? '#2e8a63' : '#e4e8ee',
+      pillClosedColor: isFiltClosed ? '#2e8a63' : '#5a6473',
+      pillClosedIconColor: isFiltClosed ? '#2e8a63' : '#aab2bf',
+      pillClosedBadgeBg: isFiltClosed ? '#2e8a63' : '#e9edf2',
+      pillClosedBadgeColor: isFiltClosed ? '#fff' : '#5a6473',
+      goCard: () => { window.location.href = 'service-call-details.html'; },
+      goCustomer: () => { window.location.href = 'service-customer-card.html'; },
+      goOpen: () => { window.location.href = 'service-select-customer.html'; },
+      goInventory: () => { window.location.href = 'service-inventory.html'; },
+      goTasks: () => { window.location.href = 'sales-tasks.html'; },
+    };
+  }
+}
+</script>
+<script>
+  window.addEventListener('load', function() {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    
+    if (typeof applyDomTranslation === 'function' && typeof getCurrentLanguage === 'function') {
+      var observer = new MutationObserver(function() {
+        applyDomTranslation(document.body, getCurrentLanguage());
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+  });
+</script>
+</body>
+
+</html>

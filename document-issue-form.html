@@ -1,0 +1,1224 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<script src="./sales-static-live.js?v=sales-live-1"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .ds-input::placeholder { color: #aeb6c2; }
+  select.ds-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 13px center; }
+  .type-tabs-scroll {
+    display: block;
+    margin-top: 13px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+    cursor: grab;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.35) transparent;
+  }
+  .type-tabs-scroll:active { cursor: grabbing; }
+  .type-tabs-scroll::-webkit-scrollbar { height: 4px; }
+  .type-tabs-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.35);
+    border-radius: 99px;
+  }
+  .type-tabs-track {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 7px;
+    width: max-content;
+    min-width: min-content;
+    padding: 2px 0 6px;
+  }
+  .type-tabs-track > button,
+  .type-tabs-track button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- navy header -->
+<div style="background:#16223a; padding:14px 18px 13px; flex:none; min-width:0; overflow:visible;">
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<button type="button" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+<div style="text-align:center;" data-no-i18n="true">
+<div style="font-size:17.5px; font-weight:800; color:#fff;">{{ title }}</div>
+<div style="font-size:11.5px; color:#9fb0c8; margin-top:1px;">{{ headerSub }}</div>
+</div>
+<div style="width:34px; height:34px;"></div>
+</div>
+<!-- type switcher: track is wider than viewport; mouse drag + wheel also scroll -->
+<div id="type-tabs-scroll" class="type-tabs-scroll" data-no-i18n="true">
+<div class="type-tabs-track">
+<sc-for as="t" hint-placeholder-count="9" list="{{ types }}">
+<button type="button" onclick="{{ t.pick }}" style="flex:0 0 auto; padding:7px 13px; border-radius:99px; font-size:12.5px; font-weight:{{ t.weight }}; cursor:pointer; white-space:nowrap; border:1.4px solid {{ t.border }}; background:{{ t.bg }}; color:{{ t.color }};">{{ t.label }}</button>
+</sc-for>
+</div>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 12px;">
+<!-- client card -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ custLoading }}">
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; text-align:center; color:#7b8595; font-size:14px; font-weight:700;" data-no-i18n="true">{{ loadingCustomerMsg }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ custNotFound }}">
+<div style="background:#fbeeed; border:1px solid #f0c9c4; border-radius:16px; padding:15px; margin-bottom:14px; text-align:center; color:#c0392b; font-size:14px; font-weight:700;" data-no-i18n="true">{{ custNotFoundMsg }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ hasCustomer }}">
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:44px; height:44px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">{{ custInitials }}</div>
+<div style="flex:1;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;">{{ custName }}</div>
+<div style="font-size:12.5px; color:#9aa3b0; margin-top:1px;">{{ custMeta }}</div>
+</div>
+</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasAddress }}">
+<div style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:#7b8595; margin-top:11px; padding-top:11px; border-top:1px solid #f0f2f5;">
+<svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="14"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+{{ custAddress }}
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<!-- ALL invoices of this type (dashboard Tax Invoices list) -->
+<div style="margin-bottom:14px;" data-no-i18n="true">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+<div style="font-size:13px; color:#7b8595; font-weight:700;">{{ listTitle }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; font-weight:700;">{{ listSummary }}</div>
+</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ docsLoading }}">
+<div style="padding:14px; border-radius:12px; background:#f6f8fa; color:#7b8595; font-size:13px; font-weight:700; text-align:center; margin-bottom:10px;">{{ loadingDocsMsg }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ docsNotFound }}">
+<div style="padding:14px; border-radius:12px; background:#fbeeed; border:1px solid #f0c9c4; color:#c0392b; font-size:13px; font-weight:700; text-align:center; margin-bottom:10px;">{{ docsNotFoundMsg }}</div>
+</sc-if>
+<sc-for as="d" hint-placeholder-count="3" list="{{ docsList }}">
+<button type="button" onclick="{{ d.select }}" style="width:100%; text-align:left; background:#fff; border:1.6px solid {{ d.border }}; border-radius:14px; padding:12px 13px; margin-bottom:9px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.04);">
+<div style="display:flex; align-items:center; gap:10px;">
+<div style="flex:1; min-width:0;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">{{ d.label }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:2px;">{{ d.meta }}</div>
+</div>
+<div style="text-align:left; flex:none;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ d.amount }}</div>
+<div style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:{{ d.statusBg }}; color:{{ d.statusColor }}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px;">
+<span style="width:6px; height:6px; border-radius:50%; background:{{ d.statusColor }};"></span>{{ d.status }}
+</div>
+</div>
+</div>
+</button>
+</sc-for>
+</div>
+
+<!-- selected doc details: date + due -->
+<div style="display:flex; gap:11px; margin-bottom:14px;">
+<div style="flex:1;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;" data-no-i18n="true">{{ labelProduceDate }}</label>
+<input class="ds-input" readonly="" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ produceDate }}"/>
+</div>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showDue }}">
+<div style="flex:1;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;" data-no-i18n="true">{{ labelDueDate }}</label>
+<input class="ds-input" readonly="" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ dueDate }}"/>
+</div>
+</sc-if>
+</div>
+<!-- ITEMS of selected invoice -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showItems }}">
+<div style="margin-bottom:14px;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ itemsLabel }}</div>
+<sc-for as="it" hint-placeholder-count="2" list="{{ items }}">
+<div style="background:#fff; border-radius:14px; padding:13px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:10px;">
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a;">{{ it.name }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:2px;">{{ it.sub }}</div>
+<div style="display:flex; align-items:center; gap:10px; margin-top:11px;">
+<div style="flex:none;">
+<label style="display:block; font-size:11.5px; color:#9aa3b0; font-weight:600; margin-bottom:5px;" data-no-i18n="true">{{ labelQty }}</label>
+<input class="ds-input" readonly="" inputmode="numeric" style="width:64px; padding:9px 10px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14px; color:#1f2a3a; text-align:center; background:#f6f8fa;" value="{{ it.qty }}"/>
+</div>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showPrices }}">
+<div style="flex:1;">
+<label style="display:block; font-size:11.5px; color:#9aa3b0; font-weight:600; margin-bottom:5px;" data-no-i18n="true">{{ labelUnitPrice }}</label>
+<div style="position:relative;">
+<input class="ds-input" readonly="" inputmode="numeric" style="width:100%; padding:9px 28px 9px 10px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ it.price }}"/>
+<span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:13px;">₪</span>
+</div>
+</div>
+<div style="flex:none; text-align:left;">
+<label style="display:block; font-size:11.5px; color:#9aa3b0; font-weight:600; margin-bottom:5px;" data-no-i18n="true">{{ labelLineTotal }}</label>
+<div style="font-size:15px; font-weight:800; color:{{ accent }}; padding-top:8px;">{{ it.total }}</div>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<!-- CREDIT reference -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showCredit }}">
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;" data-no-i18n="true">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:12px;">{{ labelCreditDetails }}</div>
+<div style="margin-bottom:13px;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelCreditOriginal }} <span style="color:#c0392b;">*</span></label>
+<select class="ds-input" disabled="" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background-color:#f6f8fa;">
+<sc-for as="cr" hint-placeholder-count="2" list="{{ creditOptions }}">
+<option>{{ cr.label }}</option>
+</sc-for>
+</select>
+</div>
+<div>
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelCreditReason }} <span style="color:#c0392b;">*</span></label>
+<select class="ds-input" disabled="" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background-color:#f6f8fa;">
+<sc-for as="rr" hint-placeholder-count="4" list="{{ creditReasons }}">
+<option>{{ rr.label }}</option>
+</sc-for>
+</select>
+</div>
+</div>
+</sc-if>
+<!-- DELIVERY -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showDelivery }}">
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;" data-no-i18n="true">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:12px;">{{ labelShippingDetails }}</div>
+<div style="margin-bottom:13px;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelDeliveryAddress }}</label>
+<input class="ds-input" readonly="" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ deliveryAddress }}"/>
+</div>
+<div style="display:flex; gap:11px;">
+<div style="flex:1;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelDeliveryDate }}</label>
+<input class="ds-input" readonly="" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ deliveryDate }}"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelDeliveryRecipient }}</label>
+<input class="ds-input" readonly="" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ deliveryRecipient }}"/>
+</div>
+</div>
+</div>
+</sc-if>
+<!-- TOTALS -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showTotals }}">
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;" data-no-i18n="true">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+<span style="font-size:13.5px; color:#7b8595;">{{ labelSubtotal }}</span>
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ subtotal }}</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+<span style="font-size:13.5px; color:#7b8595;">{{ discountLabel }}</span>
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ discount }}</span>
+</div>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showVat }}">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+<span style="font-size:13.5px; color:#7b8595;">{{ vatLabel }}</span>
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ vat }}</span>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showRoundUp }}">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+<span style="font-size:13.5px; color:#7b8595;">{{ roundUpLabel }}</span>
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ roundUp }}</span>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showExtraCharge }}">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+<span style="font-size:13.5px; color:#7b8595;">{{ extraChargeLabel }}</span>
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ extraCharge }}</span>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ noVat }}">
+<div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#9aa3b0; margin-bottom:11px;">
+<svg fill="none" height="13" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="13"><circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01M11 12h1v4h1"></path></svg>
+                {{ noVatLabel }}
+              </div>
+</sc-if>
+<div style="display:flex; align-items:center; justify-content:space-between; padding-top:12px; border-top:1.5px solid #f0f2f5;">
+<span style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ labelTotalPayable }}</span>
+<span style="font-size:20px; font-weight:800; color:{{ accent }};">{{ total }}</span>
+</div>
+</div>
+</sc-if>
+</div>
+<!-- bottom actions stay above common footer menu -->
+<div id="doc-issue-bottom-actions" style="flex:none;">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showPdfAction }}">
+<div style="background:#fff; border-top:1px solid #eceef1; padding:13px 16px 12px; display:flex; gap:11px;">
+<button type="button" onclick="{{ onPrimaryAction }}" data-no-i18n="true" style="flex:1; padding:14px; border:none; border-radius:13px; background:{{ accent }}; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 6px 16px {{ accentShadow }};">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 15h6M9 11h6"></path></svg>
+          {{ submitLabel }}
+        </button>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showReadOnlyBar }}">
+<div style="background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px; text-align:center; font-size:13px; font-weight:700; color:#9aa3b0;" data-no-i18n="true">{{ readOnlyHint }}</div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    type: 'tax',
+    payMethod: 'card',
+    items: [],
+    custLoading: true,
+    custNotFound: false,
+    custNotFoundMsg: 'not found',
+    customerId: '',
+    customer: null,
+    docsLoading: false,
+    docsNotFound: false,
+    docsRows: [],
+    selectedDocId: '',
+    produceDate: '—',
+    dueDate: '—',
+    docNo: '',
+    document: null,
+    apiSubtotal: null,
+    apiVat: null,
+    apiTotal: null,
+    apiDiscount: 0,
+    apiDiscountType: 'price',
+    apiTaxRate: 0,
+    apiRoundUp: 0,
+    apiExtraCharge: 0,
+    paymentDate: '—',
+    paymentsCount: '1',
+    amountReceived: '0₪',
+    creditOptions: [],
+    deliveryAddress: '',
+    deliveryDate: '—',
+    deliveryRecipient: '',
+    langTick: 0
+  };
+
+  TYPES = [
+    { id: 'tax', labelHe: 'חשבונית מס', labelEn: 'Tax Invoice', titleHe: 'חשבונית מס', titleEn: 'Tax Invoice', accent: '#1d60a2', apiType: 'invoice', prefix: 'INV' },
+    { id: 'taxreceipt', labelHe: 'חשבונית מס קבלה', labelEn: 'Receipt tax invoice', titleHe: 'חשבונית מס קבלה', titleEn: 'Receipt tax invoice', accent: '#2e8a63', apiType: 'receipt_tax_invoice', prefix: 'INR' },
+    { id: 'deal', labelHe: 'חשבונית עסקה', labelEn: 'Transaction Invoice', titleHe: 'חשבונית עסקה', titleEn: 'Transaction Invoice', accent: '#bd8324', apiType: 'order_proposals', prefix: 'DL' },
+    { id: 'receipt', labelHe: 'קבלה', labelEn: 'Receipt', titleHe: 'קבלה', titleEn: 'Receipt', accent: '#2e8a63', apiType: 'receipt', prefix: 'REC' },
+    { id: 'credit', labelHe: 'חשבונית זיכוי', labelEn: 'Credit Invoice', titleHe: 'חשבונית זיכוי', titleEn: 'Credit Invoice', accent: '#c0392b', apiType: 'credit_invoice', prefix: 'CRN' },
+    { id: 'delivery', labelHe: 'תעודת משלוח', labelEn: 'Shipping certificate', titleHe: 'תעודת משלוח', titleEn: 'Shipping certificate', accent: '#50439d', apiType: 'delivery_invoice', prefix: 'DN' },
+    { id: 'proforma', labelHe: 'חשבונית פרופורמה', labelEn: 'Proforma Invoice', titleHe: 'חשבונית פרופורמה', titleEn: 'Proforma Invoice', accent: '#bd8324', apiType: 'proforma_invoice', prefix: 'PRO' },
+    { id: 'grir', labelHe: 'קבלת סחורה / חשבונית', labelEn: 'GR/IR', titleHe: 'קבלת סחורה / חשבונית', titleEn: 'GR/IR', accent: '#1a7a8c', apiType: 'gi_ir', prefix: 'GR' },
+    { id: 'donation', labelHe: 'קבלת תרומה', labelEn: 'Donation receipt', titleHe: 'קבלת תרומה', titleEn: 'Donation receipt', accent: '#c2185b', apiType: 'organization_receipt', prefix: 'DON' },
+  ];
+
+  CFG = {
+    tax:        { items:1, prices:1, totals:1, vat:1, due:1, payment:0, credit:0, delivery:0, submitHe:'הפק חשבונית מס', submitEn:'invoice no' },
+    taxreceipt: { items:1, prices:1, totals:1, vat:1, due:0, payment:0, credit:0, delivery:0, submitHe:'הפק חשבונית מס קבלה', submitEn:'Receipt tax invoice' },
+    deal:       { items:1, prices:1, totals:1, vat:0, due:1, payment:0, credit:0, delivery:0, submitHe:'הפק חשבונית עסקה', submitEn:'transaction invoice' },
+    receipt:    { items:0, prices:0, totals:0, vat:0, due:0, payment:0, credit:0, delivery:0, submitHe:'הפק קבלה', submitEn:'reception' },
+    credit:     { items:1, prices:1, totals:1, vat:1, due:0, payment:0, credit:1, delivery:0, submitHe:'הפק חשבונית זיכוי', submitEn:'Credit invoice' },
+    delivery:   { items:1, prices:0, totals:0, vat:0, due:0, payment:0, credit:0, delivery:1, submitHe:'הפק תעודת משלוח', submitEn:'Shipping certificate' },
+    proforma:   { items:1, prices:1, totals:1, vat:0, due:1, payment:0, credit:0, delivery:0, submitHe:'הפק חשבונית פרופורמה', submitEn:'Proforma Invoices' },
+    grir:       { items:1, prices:1, totals:1, vat:0, due:0, payment:0, credit:0, delivery:0, submitHe:'הפק קבלת סחורה / חשבונית', submitEn:'GR/IR' },
+    donation:   { items:0, prices:0, totals:1, vat:0, due:0, payment:0, credit:0, delivery:0, submitHe:'הפק קבלת תרומה', submitEn:'Donation receipt' },
+  };
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  componentDidMount() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var type = p.get('type') || '';
+      if (type && this.TYPES.some(t => t.id === type)) this.setState({ type: type });
+    } catch (e) { /* ignore */ }
+    this.boot();
+    window.addEventListener('mineralbar:ready', () => this.boot());
+    window.addEventListener('mineralbar:page-refresh', () => this.boot());
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () { self.setState({ langTick: Date.now() }); }, 80);
+      }
+    });
+    setTimeout(function () { self.bindTypeTabsScroll(); }, 100);
+    setTimeout(function () { self.bindTypeTabsScroll(); self.pinBottomChrome(); }, 600);
+  }
+
+  bindTypeTabsScroll() {
+    var el = document.getElementById('type-tabs-scroll');
+    if (!el || el.getAttribute('data-mb-scroll') === '1') return;
+    el.setAttribute('data-mb-scroll', '1');
+
+    // Mouse wheel → horizontal scroll
+    el.addEventListener('wheel', function (e) {
+      var dx = e.deltaX;
+      var dy = e.deltaY;
+      if (Math.abs(dy) >= Math.abs(dx) && dy !== 0) {
+        el.scrollLeft += dy;
+        e.preventDefault();
+      } else if (dx !== 0) {
+        el.scrollLeft += dx;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    // Drag-to-scroll only after real movement — simple clicks must still select tabs
+    var tracking = false;
+    var dragging = false;
+    var startX = 0;
+    var startLeft = 0;
+    var pointerId = null;
+
+    el.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      tracking = true;
+      dragging = false;
+      startX = e.clientX;
+      startLeft = el.scrollLeft;
+      pointerId = e.pointerId;
+      // Do NOT setPointerCapture here — it steals the click from tab buttons
+    });
+
+    el.addEventListener('pointermove', function (e) {
+      if (!tracking || e.pointerId !== pointerId) return;
+      var delta = e.clientX - startX;
+      if (!dragging && Math.abs(delta) > 12) {
+        dragging = true;
+        try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+      if (dragging) {
+        el.scrollLeft = startLeft - delta;
+        e.preventDefault();
+      }
+    });
+
+    function endDrag(e) {
+      if (!tracking || e.pointerId !== pointerId) return;
+      var wasDrag = dragging;
+      tracking = false;
+      dragging = false;
+      pointerId = null;
+      if (wasDrag) {
+        try { el.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        var block = function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          el.removeEventListener('click', block, true);
+        };
+        el.addEventListener('click', block, true);
+        setTimeout(function () { el.removeEventListener('click', block, true); }, 80);
+      }
+    }
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+  }
+
+  async boot() {
+    await this.loadCustomer();
+    if (this.state.customerId && !this.state.custNotFound) await this.loadDocumentData();
+  }
+
+  getCustomerId() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var id = p.get('customer_id') || p.get('cust_id') || p.get('id') || '';
+      if (!id) id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || '';
+      if (id === '0' || id === 'null' || id === 'undefined') id = '';
+      return String(id || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  rememberCustomerId(id) {
+    if (!id) return;
+    try {
+      sessionStorage.setItem('mb_customer_id', String(id));
+      localStorage.setItem('mb_customer_id', String(id));
+    } catch (e) { /* ignore */ }
+  }
+
+  initials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase();
+  }
+
+  fmtDate(v) {
+    if (!v) return '—';
+    try {
+      var d = new Date(v);
+      if (Number.isNaN(d.getTime())) return String(v).slice(0, 10);
+      var pad = (n) => (n < 10 ? '0' + n : '' + n);
+      return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(-2);
+    } catch (e) {
+      return '—';
+    }
+  }
+
+  mapApiType(formType) {
+    var t = this.TYPES.find(x => x.id === formType) || this.TYPES[0];
+    return t.apiType || 'invoice';
+  }
+
+  parseItems(rawItems) {
+    var list = [];
+    if (!rawItems) return list;
+    if (typeof rawItems === 'string') {
+      try { rawItems = JSON.parse(rawItems); } catch (e) { return list; }
+    }
+    if (!Array.isArray(rawItems)) {
+      if (typeof rawItems === 'object') rawItems = Object.values(rawItems);
+      else return list;
+    }
+    rawItems.forEach((it, idx) => {
+      if (!it || typeof it !== 'object') return;
+      var name = it.item_name || it.product_name || it.name || ('Item ' + (idx + 1));
+      var qty = Number(it.item_qty != null ? it.item_qty : (it.qty != null ? it.qty : 1)) || 1;
+      var price = Number(it.item_price != null ? it.item_price : (it.price != null ? it.price : 0)) || 0;
+      var notes = it.item_notes || it.item_productdesc || it.item_SKU || it.item_sku || '';
+      list.push({
+        id: it.item_auto_g_id || it.iteeeem_id || it.product_id || (Date.now() + idx),
+        name: String(name),
+        sub: String(notes || ''),
+        qty: qty,
+        price: price
+      });
+    });
+    return list;
+  }
+
+  async loadCustomer() {
+    var cid = this.getCustomerId();
+    if (!cid) {
+      this.setState({ custLoading: false, custNotFound: true, custNotFoundMsg: 'not found', customerId: '', customer: null, items: [], docsNotFound: true });
+      return;
+    }
+    if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) {
+      this.setState({ custLoading: true, custNotFound: false, customerId: cid });
+      return;
+    }
+    this.setState({ custLoading: true, custNotFound: false, customerId: cid });
+    try {
+      var res = await MineralBarApp.getCustomer(cid);
+      var c = res && res.customer;
+      if (c && c.data && typeof c.data === 'object') c = c.data;
+      var name = (c && (c.name || c.client_name || c.company)) || '';
+      if (!c || !name) {
+        this.setState({ custLoading: false, custNotFound: true, custNotFoundMsg: 'not found', customerId: cid, customer: null, items: [], docsNotFound: true });
+        return;
+      }
+      this.rememberCustomerId(c.customer_id || c.id || cid);
+      this.setState({
+        custLoading: false,
+        custNotFound: false,
+        customerId: String(c.customer_id || c.id || cid),
+        customer: c
+      });
+    } catch (e) {
+      var msg = (e && e.message) ? String(e.message).replace(/<[^>]+>/g, ' ').trim() : '';
+      this.setState({
+        custLoading: false,
+        custNotFound: true,
+        custNotFoundMsg: /not found|לא נמצא|Customer not found/i.test(msg) ? 'not found' : (msg || 'not found'),
+        customerId: cid,
+        customer: null,
+        items: [],
+        docsNotFound: true
+      });
+    }
+  }
+
+  fmtMoney(n) {
+    var x = Math.round(Number(n) * 100) / 100;
+    if (Number.isNaN(x)) return '₪0';
+    var t = x.toFixed(2);
+    if (t.slice(-3) === '.00') t = String(Math.round(x));
+    return '₪' + t;
+  }
+
+  isPaid(doc) {
+    var paidVal = doc && doc.paid;
+    return paidVal === 1 || paidVal === '1' || paidVal === true;
+  }
+
+  mapPayMethod(doc) {
+    var typeCode = String((doc && doc.c_type_paytype) || '').trim();
+    var codeMap = { '1': 'card', '2': 'cash', '3': 'transfer', '4': 'standing', '5': 'bit', '6': 'check' };
+    if (codeMap[typeCode]) return codeMap[typeCode];
+    var raw = String(
+      (doc && (doc.other_paymenttype || doc.payment_mode || doc.pay_method || doc.payment_method)) || ''
+    ).toLowerCase();
+    if (/cash|מזומן/.test(raw)) return 'cash';
+    if (/transfer|העברה|bank/.test(raw)) return 'transfer';
+    if (/standing|הוראת/.test(raw)) return 'standing';
+    if (/\bbit\b/.test(raw)) return 'bit';
+    if (/check|cheque|צ.?ק/.test(raw)) return 'check';
+    if (/card|אשראי|credit|regular/.test(raw)) return 'card';
+    return 'card';
+  }
+
+  applyDocument(doc) {
+    if (!doc) {
+      this.setState({
+        items: [],
+        produceDate: '—',
+        dueDate: '—',
+        docNo: '',
+        document: null,
+        selectedDocId: '',
+        apiSubtotal: null,
+        apiVat: null,
+        apiTotal: null,
+        apiDiscount: 0,
+        apiDiscountType: 'price',
+        apiTaxRate: 0,
+        apiRoundUp: 0,
+        apiExtraCharge: 0,
+        paymentDate: '—',
+        paymentsCount: '1',
+        amountReceived: '0₪',
+        deliveryAddress: '',
+        deliveryDate: '—',
+        deliveryRecipient: ''
+      });
+      return;
+    }
+    var typeMeta = this.TYPES.find(t => t.id === this.state.type) || this.TYPES[0];
+    var items = this.parseItems(doc.items);
+    var num = doc.last_documents_id || doc.id || '';
+    var docNo = num ? (typeMeta.prefix + '-' + num) : '';
+    var subtotal = Number(doc.total);
+    if (Number.isNaN(subtotal)) subtotal = items.reduce((a, i) => a + (Number(i.qty) * Number(i.price)), 0);
+    var finalAmt = Number(doc.final_amount != null ? doc.final_amount : doc.final_amount_main);
+    if (Number.isNaN(finalAmt)) finalAmt = subtotal;
+    var discRaw = Number(doc.discount);
+    if (Number.isNaN(discRaw)) discRaw = 0;
+    var discType = String(doc.discount_type || 'price').toLowerCase();
+    var discAmt = 0;
+    if (discRaw) {
+      discAmt = (discType === 'percentage' || discType === 'percent')
+        ? Math.round(subtotal * discRaw) / 100
+        : discRaw;
+    }
+    var taxRate = Number(doc.tax);
+    if (Number.isNaN(taxRate) || taxRate < 0) taxRate = 0;
+    var roundUp = Number(doc.round_up_price != null ? doc.round_up_price : doc.round_up);
+    if (Number.isNaN(roundUp) || roundUp < 0) roundUp = 0;
+    var afterDisc = Math.round((subtotal - discAmt) * 100) / 100;
+    var vatAmt = 0;
+    if (taxRate > 0) {
+      vatAmt = Math.round(afterDisc * taxRate) / 100;
+    } else {
+      vatAmt = Math.round((finalAmt - afterDisc - roundUp) * 100) / 100;
+      if (vatAmt < 0) vatAmt = 0;
+    }
+    var explained = Math.round((afterDisc + vatAmt + roundUp) * 100) / 100;
+    var extraCharge = Math.round((finalAmt - explained) * 100) / 100;
+    if (Math.abs(extraCharge) < 0.005) extraCharge = 0;
+    var payN = Number(doc.number_of_payments);
+    if (!payN || Number.isNaN(payN)) payN = 1;
+    var payDate = this.fmtDate(doc.last_pay_date || doc.approve_datetime || doc.date_created || doc.default_date);
+    var fmtMoney = (n) => {
+      var x = Math.round(Number(n) * 100) / 100;
+      if (Number.isNaN(x)) return '0₪';
+      var t = x.toFixed(2);
+      if (t.slice(-3) === '.00') t = String(Math.round(x));
+      return t + '₪';
+    };
+    var docAddr = [doc.address, doc.city].filter(Boolean).join(', ');
+    var docRecipient = doc.name || doc.document_for || doc.company_name || '';
+    this.setState({
+      selectedDocId: String(doc.id || ''),
+      items: items,
+      produceDate: this.fmtDate(doc.date_created || doc.inserted_date || doc.default_date),
+      dueDate: this.fmtDate(doc.due_date || doc.last_pay_date || doc.date_created),
+      docNo: docNo,
+      document: doc,
+      apiSubtotal: subtotal,
+      apiVat: vatAmt,
+      apiTotal: finalAmt,
+      apiDiscount: discAmt,
+      apiDiscountType: discType,
+      apiTaxRate: taxRate,
+      apiRoundUp: roundUp,
+      apiExtraCharge: extraCharge,
+      amountReceived: fmtMoney(finalAmt),
+      paymentDate: payDate || '—',
+      paymentsCount: String(payN),
+      payMethod: this.mapPayMethod(doc),
+      deliveryAddress: docAddr,
+      deliveryDate: this.fmtDate(doc.due_date || doc.date_created || doc.default_date || doc.inserted_date),
+      deliveryRecipient: String(docRecipient || ''),
+      docsNotFound: false
+    });
+  }
+
+  selectDoc(id) {
+    var rows = this.state.docsRows || [];
+    var doc = rows.find(r => String(r.id) === String(id));
+    if (doc) this.applyDocument(doc);
+  }
+
+  async loadDocumentData() {
+    var cid = this.state.customerId || this.getCustomerId();
+    if (!cid || !window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
+      this.setState({ docsLoading: false, docsNotFound: true, docsRows: [], items: [], produceDate: '—', dueDate: '—', docNo: '', document: null });
+      return;
+    }
+    var typeMeta = this.TYPES.find(t => t.id === this.state.type) || this.TYPES[0];
+    var apiType = typeMeta.apiType;
+    this.setState({ docsLoading: true, docsNotFound: false });
+    try {
+      var client = MineralBarApp.getClient();
+      var raw = await client.request('Documents.List', {
+        customer_id: cid,
+        cust_id: cid,
+        type: apiType,
+        length: 25,
+        start: 0,
+        draw: 1
+      });
+      var rows = (raw && (raw.data || raw.rows || raw.output)) || [];
+      if (!Array.isArray(rows)) rows = [];
+
+      if (!rows.length) {
+        var all = await client.request('Documents.List', {
+          customer_id: cid,
+          cust_id: cid,
+          length: 25,
+          start: 0,
+          draw: 1
+        });
+        var allRows = (all && (all.data || all.rows || all.output)) || [];
+        if (!Array.isArray(allRows)) allRows = [];
+        var want = String(apiType || '').toLowerCase();
+        var aliases = {
+          invoice: ['invoice'],
+          receipt_tax_invoice: ['receipt_tax_invoice', 'tax_receipt', 'receipttax'],
+          order_proposals: ['order_proposals', 'proposal', 'deal'],
+          receipt: ['receipt'],
+          credit_invoice: ['credit_invoice', 'credit'],
+          delivery_invoice: ['delivery_invoice', 'delivery'],
+          proforma_invoice: ['proforma_invoice', 'proforma'],
+          gi_ir: ['gi_ir', 'gr_ir', 'grir'],
+          organization_receipt: ['organization_receipt', 'donation_receipt', 'donation', 'donations']
+        };
+        var matchSet = aliases[want] || [want];
+        rows = allRows.filter(r => {
+          var t = String(r.type || r.document_type || r.doc_type || '').toLowerCase();
+          return matchSet.indexOf(t) !== -1 || t === want;
+        });
+      }
+
+      if (!rows.length) {
+        this.setState({
+          docsLoading: false,
+          docsNotFound: true,
+          docsRows: [],
+          items: [],
+          produceDate: '—',
+          dueDate: '—',
+          docNo: '',
+          document: null,
+          selectedDocId: '',
+          apiSubtotal: null,
+          apiVat: null,
+          apiTotal: null,
+          apiDiscount: 0,
+          apiTaxRate: 0,
+          apiRoundUp: 0,
+          apiExtraCharge: 0,
+          amountReceived: '0₪',
+          paymentDate: '—',
+          paymentsCount: '1',
+          creditOptions: []
+        });
+        return;
+      }
+
+      var creditOptions = [];
+      try {
+        var invRaw = await client.request('Documents.List', {
+          customer_id: cid,
+          cust_id: cid,
+          type: 'invoice',
+          length: 25,
+          start: 0,
+          draw: 1
+        });
+        var invRows = (invRaw && (invRaw.data || invRaw.rows || invRaw.output)) || [];
+        if (!Array.isArray(invRows)) invRows = [];
+        creditOptions = invRows.map(inv => {
+          var n = inv.last_documents_id || inv.id || '-';
+          var x = Math.round(Number(inv.final_amount != null ? inv.final_amount : inv.total) * 100) / 100;
+          var amtText = Number.isNaN(x) ? '0₪' : ((String(x).indexOf('.') >= 0 && !/\.0+$/.test(String(x)) ? x.toFixed(2) : String(Math.round(x))) + '₪');
+          return { label: this.t('Tax invoice', 'חשבונית מס') + ' #INV-' + n + ' · ' + amtText };
+        });
+      } catch (e2) {
+        creditOptions = [];
+      }
+      if (!creditOptions.length) {
+        creditOptions = [{ label: this.t('No tax invoices found', 'לא נמצאו חשבוניות מס') }];
+      }
+
+      this.setState({ docsLoading: false, docsNotFound: false, docsRows: rows, creditOptions: creditOptions });
+      this.applyDocument(rows[0]);
+    } catch (e) {
+      console.warn('[document-issue-form] Documents.List failed', e);
+      this.setState({
+        docsLoading: false,
+        docsNotFound: true,
+        docsRows: [],
+        items: [],
+        produceDate: '—',
+        dueDate: '—',
+        docNo: '',
+        document: null,
+        selectedDocId: ''
+      });
+    }
+  }
+
+  pick(id) {
+    // Clear previous type's list immediately so stale invoices don't look like this type's data
+    this.setState({
+      type: id,
+      docsLoading: true,
+      docsNotFound: false,
+      docsRows: [],
+      items: [],
+      produceDate: '—',
+      dueDate: '—',
+      docNo: '',
+      document: null,
+      selectedDocId: '',
+      apiSubtotal: null,
+      apiVat: null,
+      apiTotal: null,
+      apiDiscount: 0,
+      apiTaxRate: 0,
+      apiRoundUp: 0,
+      apiExtraCharge: 0,
+      amountReceived: '0₪',
+      paymentDate: '—',
+      paymentsCount: '1',
+      deliveryAddress: '',
+      deliveryDate: '—',
+      deliveryRecipient: ''
+    });
+    var self = this;
+    setTimeout(function () {
+      if (self.state.customerId && !self.state.custNotFound) self.loadDocumentData();
+    }, 30);
+  }
+  onPayMethod(e) { this.setState({ payMethod: e.target.value }); }
+  addItem() {
+    this.setState(s => ({ items: [...s.items, { id: Date.now(), name: 'New item', sub: '', qty: 1, price: 0 }], docsNotFound: false }));
+  }
+  removeItem(id) {
+    this.setState(s => ({ items: s.items.filter(i => i.id !== id) }));
+  }
+
+  goBack() {
+    var cid = this.state.customerId || this.getCustomerId();
+    var q = cid ? ('?customer_id=' + encodeURIComponent(cid)) : '';
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (e) { /* fallback below */ }
+    window.location.href = 'document-issuance.html' + q;
+  }
+
+  goAllDocuments() {
+    var cid = this.state.customerId || this.getCustomerId();
+    var q = cid ? ('?customer_id=' + encodeURIComponent(cid)) : '';
+    window.location.href = 'all-documents.html' + q;
+  }
+
+  goPaySelected() {
+    var cid = this.state.customerId || this.getCustomerId();
+    var docId = this.state.selectedDocId || '';
+    var q = new URLSearchParams();
+    if (cid) q.set('customer_id', cid);
+    if (docId) q.set('document_id', docId);
+    window.location.href = 'collection-payment.html' + (q.toString() ? ('?' + q.toString()) : '');
+  }
+
+  findPdfUrl(value, depth) {
+    if (!value || depth > 4) return '';
+    if (typeof value === 'string') {
+      var text = value.trim();
+      if (/^(https?:)?\/\//i.test(text) || /^\//.test(text) || /\.pdf(?:$|[?#])/i.test(text)) return text;
+      return '';
+    }
+    if (Array.isArray(value)) {
+      for (var a = 0; a < value.length; a++) {
+        var u = this.findPdfUrl(value[a], depth + 1);
+        if (u) return u;
+      }
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+    var preferred = ['pdf_url', 'pdfUrl', 'download_url', 'downloadUrl', 'document_url', 'documentUrl', 'file_url', 'fileUrl', 'pdf', 'file', 'url', 'path'];
+    for (var i = 0; i < preferred.length; i++) {
+      if (value[preferred[i]] != null) {
+        var preferredUrl = this.findPdfUrl(value[preferred[i]], depth + 1);
+        if (preferredUrl) return preferredUrl;
+      }
+    }
+    var keys = Object.keys(value);
+    for (var k = 0; k < keys.length; k++) {
+      if (/pdf|file|download|document/i.test(keys[k])) {
+        var nestedUrl = this.findPdfUrl(value[keys[k]], depth + 1);
+        if (nestedUrl) return nestedUrl;
+      }
+    }
+    return '';
+  }
+
+  absoluteUrl(url) {
+    if (!url) return '';
+    try { return new URL(url, window.location.href).href; } catch (e) { return String(url); }
+  }
+
+  showFeedback(message, isError) {
+    var old = document.getElementById('doc-issue-feedback');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.id = 'doc-issue-feedback';
+    box.textContent = message;
+    box.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;padding:10px 16px;border-radius:10px;color:#fff;background:' +
+      (isError ? '#c0392b' : '#1f2a3a') + ';font:600 13px Heebo,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.2);';
+    document.body.appendChild(box);
+    setTimeout(function () { if (box.parentNode) box.remove(); }, 2800);
+  }
+
+  async downloadSelectedPdf() {
+    var doc = this.state.document;
+    if (!doc) {
+      this.showFeedback(this.t('No document selected', 'לא נבחר מסמך'), true);
+      return;
+    }
+    try {
+      var direct = this.findPdfUrl(doc, 0);
+      var url = direct ? this.absoluteUrl(direct) : '';
+      if (!url) {
+        var id = doc.id || doc.document_id || this.state.selectedDocId;
+        if (!id) throw new Error(this.t('This document has no downloadable PDF', 'למסמך זה אין PDF להורדה'));
+        var client = MineralBarApp.getClient();
+        var payload = {
+          document_id: id,
+          doc_id: id,
+          id: id,
+          customer_id: this.state.customerId || this.getCustomerId()
+        };
+        var response = null;
+        try {
+          response = await client.request('Documents.View', payload);
+        } catch (viewError) {
+          try {
+            response = await client.request('Documents.Get', payload);
+          } catch (getError) {
+            response = null;
+          }
+        }
+        url = this.absoluteUrl(this.findPdfUrl(response, 0) || this.findPdfUrl(doc, 0));
+      }
+      if (!url) throw new Error(this.t('No PDF file was returned for this document', 'לא הוחזר קובץ PDF עבור מסמך זה'));
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = String(this.state.docNo || 'document').replace(/[^\w.-]+/g, '-') + '.pdf';
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (e) {
+      this.showFeedback((e && e.message) || this.t('PDF download failed', 'הורדת ה-PDF נכשלה'), true);
+    }
+  }
+
+  pinBottomChrome() {
+    try {
+      var actions = document.getElementById('doc-issue-bottom-actions');
+      var footer = document.getElementById('common-app-footer');
+      var screen = actions && actions.parentElement;
+      if (!screen) return;
+      // Order: page actions first, then bottom menu last
+      if (actions && screen.contains(actions)) screen.appendChild(actions);
+      if (footer && screen.contains(footer)) screen.appendChild(footer);
+      else if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+      footer = document.getElementById('common-app-footer');
+      if (footer && screen.contains(footer)) screen.appendChild(footer);
+    } catch (e) { /* ignore */ }
+  }
+
+  onPrimaryAction() {
+    var doc = this.state.document;
+    if (!doc || !this.isPaid(doc)) {
+      this.showFeedback(this.t('PDF is available only for paid documents', 'PDF זמין רק למסמכים ששולמו'), true);
+      return;
+    }
+    this.downloadSelectedPdf();
+  }
+
+  renderVals() {
+    const isEn = this.isEn();
+    void this.state.langTick;
+    var self = this;
+    setTimeout(function () {
+      self.bindTypeTabsScroll();
+      self.pinBottomChrome();
+    }, 0);
+    setTimeout(function () { self.pinBottomChrome(); }, 120);
+    const cur = this.TYPES.find(t => t.id === this.state.type) || this.TYPES[0];
+    const cfg = this.CFG[this.state.type] || this.CFG.tax;
+    const accent = cur.accent;
+    const curTitle = isEn ? (cur.titleEn || cur.labelEn) : (cur.titleHe || cur.labelHe);
+    const c = this.state.customer;
+    const custName = (c && (c.name || c.client_name || c.company)) || '';
+    const phone = (c && (c.mobile || c.phone)) || '';
+    const tz = (c && (c.company_id || c.csv_id || c.id_number || c.tz)) || '';
+    const address = [c && c.address, c && c.city].filter(Boolean).join(', ');
+    const metaParts = [];
+    if (tz) metaParts.push(String(tz));
+    if (phone) metaParts.push(String(phone));
+    if (!metaParts.length && this.state.customerId) metaParts.push('#' + this.state.customerId);
+
+    const types = this.TYPES.map(t => {
+      const on = t.id === this.state.type;
+      return {
+        label: isEn ? t.labelEn : t.labelHe,
+        pick: () => this.pick(t.id),
+        bg: on ? '#fff' : 'rgba(255,255,255,.08)',
+        color: on ? '#16223a' : '#cfd8e6',
+        border: on ? '#fff' : 'rgba(255,255,255,.18)',
+        weight: on ? '800' : '600',
+      };
+    });
+
+    const items = this.state.items.map(it => ({
+      name: it.name,
+      sub: it.sub || '',
+      qty: it.qty,
+      price: String(it.price),
+      total: (Number(it.qty) * Number(it.price)).toFixed(0) + '₪',
+      remove: () => this.removeItem(it.id),
+    }));
+
+    const calcSub = this.state.items.reduce((a, i) => a + (Number(i.qty) * Number(i.price)), 0);
+    const sub = (this.state.apiSubtotal != null && !Number.isNaN(Number(this.state.apiSubtotal)))
+      ? Number(this.state.apiSubtotal)
+      : calcSub;
+    const discAmt = Math.max(0, Number(this.state.apiDiscount) || 0);
+    const taxRate = Number(this.state.apiTaxRate) || 0;
+    const roundUpAmt = Math.max(0, Number(this.state.apiRoundUp) || 0);
+    const extraChargeAmt = Number(this.state.apiExtraCharge) || 0;
+    const vatAmt = (this.state.apiVat != null && !Number.isNaN(Number(this.state.apiVat)))
+      ? Number(this.state.apiVat)
+      : (taxRate > 0
+          ? Math.round((sub - discAmt) * taxRate) / 100
+          : (cfg.vat ? Math.round((sub - discAmt) * 0.18 * 100) / 100 : 0));
+    const tot = (this.state.apiTotal != null && !Number.isNaN(Number(this.state.apiTotal)))
+      ? Number(this.state.apiTotal)
+      : (sub - discAmt + vatAmt + roundUpAmt + extraChargeAmt);
+    const hasTax = vatAmt > 0.004;
+    const hasRound = roundUpAmt > 0.004;
+    const hasExtra = Math.abs(extraChargeAmt) > 0.004;
+
+    const fmtMoney = (n) => {
+      var x = Math.round(Number(n) * 100) / 100;
+      if (Number.isNaN(x)) return '0₪';
+      var t = x.toFixed(2);
+      if (t.slice(-3) === '.00') t = String(Math.round(x));
+      return t + '₪';
+    };
+
+    var vatLabelText;
+    if (taxRate > 0) {
+      var rateText = (Math.round(taxRate * 100) / 100);
+      if (taxRate === 17 || taxRate === 18) {
+        vatLabelText = this.t('VAT (' + rateText + '%)', 'מע"מ (' + rateText + '%)');
+      } else {
+        vatLabelText = this.t('Tax (' + rateText + '%)', 'מס (' + rateText + '%)');
+      }
+    } else {
+      vatLabelText = this.t('VAT / Tax', 'מע"מ / מס');
+    }
+
+    const hexA = accent.replace('#', '');
+    const r = parseInt(hexA.slice(0,2),16), g = parseInt(hexA.slice(2,4),16), b = parseInt(hexA.slice(4,6),16);
+    const cid = this.state.customerId || '';
+    const docNo = this.state.docNo || '—';
+
+    const rows = this.state.docsRows || [];
+    const unpaidCount = rows.filter(r => !this.isPaid(r)).length;
+    const paidCount = rows.filter(r => this.isPaid(r)).length;
+    const selectedId = String(this.state.selectedDocId || '');
+    const docsList = rows.map(doc => {
+      var num = doc.last_documents_id || doc.id || '-';
+      var on = String(doc.id) === selectedId;
+      var paid = this.isPaid(doc);
+      return {
+        label: (cur.prefix || 'INV') + '-' + num,
+        meta: this.fmtDate(doc.date_created || doc.inserted_date),
+        amount: this.fmtMoney(doc.final_amount != null ? doc.final_amount : doc.total),
+        status: paid ? this.t('Paid', 'שולם') : this.t('Unpaid', 'לא שולם'),
+        statusBg: paid ? '#eafaf0' : '#fdf1dd',
+        statusColor: paid ? '#1f9d55' : '#bd8324',
+        border: on ? accent : '#e4e8ee',
+        select: () => this.selectDoc(doc.id)
+      };
+    });
+
+    const headerSub = rows.length
+      ? this.t(
+          (rows.length + ' invoices · ' + unpaidCount + ' Unpaid · ' + paidCount + ' Paid'),
+          (rows.length + ' מסמכים · ' + unpaidCount + ' לא שולם · ' + paidCount + ' שולם')
+        )
+      : this.t('Selected · ' + (this.state.docNo || '—'), 'נבחר · ' + (this.state.docNo || '—'));
+
+    const listTitleMap = {
+      tax: this.t('Tax Invoice', 'חשבוניות מס'),
+      taxreceipt: this.t('Receipt tax invoice', 'חשבוניות מס קבלה'),
+      deal: this.t('Transaction Invoice', 'חשבוניות עסקה'),
+      receipt: this.t('Receipt', 'קבלות'),
+      credit: this.t('Credit Invoice', 'חשבוניות זיכוי'),
+      delivery: this.t('Shipping certificate', 'תעודות משלוח'),
+      proforma: this.t('Proforma Invoice', 'חשבוניות פרופורמה'),
+      grir: this.t('GR/IR', 'קבלות סחורה / חשבונית'),
+      donation: this.t('Donation receipt', 'קבלות תרומה')
+    };
+
+    return {
+      types,
+      title: curTitle,
+      headerSub: headerSub,
+      listTitle: listTitleMap[this.state.type] || this.t('Documents', 'מסמכים'),
+      listSummary: this.t(
+        unpaidCount + ' unpaid · ' + paidCount + ' paid',
+        unpaidCount + ' לא שולם · ' + paidCount + ' שולם'
+      ),
+      docsList: docsList,
+      onClose: () => this.goBack(),
+      onPrimaryAction: () => this.onPrimaryAction(),
+      docNo: docNo,
+      accent,
+      accentShadow: `rgba(${r},${g},${b},.28)`,
+      showDue: !!cfg.due,
+      showItems: !!cfg.items,
+      showPrices: !!cfg.prices,
+      itemsLabel: this.t('items', 'פריטים') + ' · ' + (this.state.docNo || ''),
+      showTotals: !!cfg.totals,
+      showVat: hasTax,
+      noVat: !!(cfg.totals && !hasTax),
+      noVatLabel: this.t('This document does not include VAT', 'מסמך זה אינו כולל מע"מ'),
+      vatLabel: vatLabelText,
+      discountLabel: this.t('discount', 'הנחה'),
+      discount: fmtMoney(discAmt),
+      showRoundUp: hasRound,
+      roundUpLabel: this.t('Round up', 'עיגול'),
+      roundUp: fmtMoney(roundUpAmt),
+      showExtraCharge: hasExtra,
+      extraChargeLabel: this.t('Additional charges', 'חיובים נוספים'),
+      extraCharge: fmtMoney(extraChargeAmt),
+      showPayment: false,
+      showCredit: !!cfg.credit,
+      showDelivery: !!cfg.delivery,
+      items,
+      subtotal: fmtMoney(sub),
+      vat: fmtMoney(vatAmt),
+      total: fmtMoney(tot),
+      selectedPaid: !!(this.state.document && this.isPaid(this.state.document)),
+      showPdfAction: !!(this.state.document && this.isPaid(this.state.document)),
+      showReadOnlyBar: !(this.state.document && this.isPaid(this.state.document)),
+      readOnlyHint: this.state.document
+        ? this.t('View only · Pay from collection', 'לצפייה בלבד · תשלום דרך גבייה')
+        : this.t('View only', 'לצפייה בלבד'),
+      submitLabel: this.t('PDF', 'PDF'),
+      amountReceived: this.state.amountReceived || fmtMoney(tot),
+      paymentDate: this.state.paymentDate || this.state.produceDate || '—',
+      paymentsCount: this.state.paymentsCount || '1',
+      bitPhone: phone || '—',
+      creditOptions: this.state.creditOptions || [],
+      deliveryAddress: this.state.deliveryAddress || address || this.t('No address', 'אין כתובת'),
+      deliveryDate: this.state.deliveryDate || this.state.produceDate || '—',
+      deliveryRecipient: this.state.deliveryRecipient || custName || '—',
+      addItem: () => this.addItem(),
+      custLoading: !!this.state.custLoading,
+      custNotFound: !!this.state.custNotFound,
+      custNotFoundMsg: this.state.custNotFoundMsg || this.t('not found', 'לא נמצא'),
+      hasCustomer: !this.state.custLoading && !this.state.custNotFound && !!custName,
+      custName: custName,
+      custMeta: metaParts.join(' · '),
+      custInitials: this.initials(custName),
+      hasAddress: !!address,
+      custAddress: address,
+      produceDate: this.state.produceDate || '—',
+      dueDate: this.state.dueDate || '—',
+      docsLoading: !!this.state.docsLoading,
+      docsNotFound: !!this.state.docsNotFound && !this.state.docsLoading && !rows.length,
+      loadingCustomerMsg: this.t('Loading customer…', 'טוען לקוח…'),
+      loadingDocsMsg: this.t('Loading documents…', 'טוען מסמכים…'),
+      docsNotFoundMsg: this.t('not found', 'לא נמצא'),
+      labelProduceDate: this.t('Date of production', 'תאריך הפקה'),
+      labelDueDate: this.t('Date for payment', 'תאריך לתשלום'),
+      labelQty: this.t('amount', 'כמות'),
+      labelUnitPrice: this.t('unit price', 'מחיר יחידה'),
+      labelLineTotal: this.t('Total', 'סה״כ'),
+      labelCreditDetails: this.t('Credit details', 'פרטי זיכוי'),
+      labelCreditOriginal: this.t('Original document for credit', 'מסמך מקור לזיכוי'),
+      labelCreditReason: this.t('The reason for the credit', 'סיבת הזיכוי'),
+      creditReasons: [
+        { label: this.t('Cancellation of transaction', 'ביטול עסקה') },
+        { label: this.t('Product return', 'החזרת מוצר') },
+        { label: this.t('Correction of billing error', 'תיקון טעות חיוב') },
+        { label: this.t('Partial credit', 'זיכוי חלקי') }
+      ],
+      labelShippingDetails: this.t('Shipping details', 'פרטי משלוח'),
+      labelDeliveryAddress: this.t('Delivery address', 'כתובת משלוח'),
+      labelDeliveryDate: this.t('Delivery date', 'תאריך משלוח'),
+      labelDeliveryRecipient: this.t('The recipient of the shipment', 'מקבל המשלוח'),
+      labelSubtotal: this.t('an interim sum', 'סכום ביניים'),
+      labelTotalPayable: this.t('Total payable', 'סה״כ לתשלום')
+    };
+  }
+}
+</script>
+</body>
+</html>

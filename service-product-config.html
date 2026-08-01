@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, a, input, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px;">
+<!-- faded parent (quote screen) peeking above the sheet -->
+<div style="position:absolute; inset:0; background:#eef0f3;">
+<div style="background:#fff; border-radius:0 0 22px 22px; padding:9px 18px 18px;">
+<div style="display:flex; justify-content:center; padding:3px 0 12px;">
+<div style="width:42px; height:5px; border-radius:99px; background:#dadfe6;"></div>
+</div>
+<div style="font-size:17px; font-weight:700; color:#b3bbc6; text-align:left;">Price offer - {{ name }}</div>
+<div style="margin-top:14px; height:46px; border-radius:13px; background:#f3f5f8; box-shadow:0 1px 3px rgba(0,0,0,.04);"></div>
+</div>
+</div>
+<!-- bottom sheet -->
+<div style="position:absolute; left:0; right:0; bottom:0; top:178px; background:#fff; border-radius:26px 26px 0 0; box-shadow:0 -10px 34px rgba(15,24,40,.14); display:flex; flex-direction:column; overflow:hidden;">
+<!-- sheet header -->
+<div style="flex:none; padding:8px 18px 14px;">
+<div style="display:flex; justify-content:center; padding:3px 0 12px;">
+<div style="width:42px; height:5px; border-radius:99px; background:#dadfe6;"></div>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<div style="font-size:19px; font-weight:800; color:#1f2a3a;">Define a product</div>
+<a href="{{ backUrl }}" style="width:38px; height:38px; border-radius:50%; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</a>
+</div>
+</div>
+<!-- selected product summary -->
+<div style="flex:none; display:flex; flex-direction:row-reverse; align-items:center; gap:13px; background:#eef4fb; border-top:1px solid #e4ebf5; border-bottom:1px solid #e4ebf5; padding:14px 18px;">
+<div style="text-align:left; flex:none;">
+<div style="font-size:16px; font-weight:800; color:#2e8a63;">{{ product.price }}</div>
+</div>
+<div style="flex:1; text-align:left;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;">{{ product.name }}</div>
+<div style="font-size:12.5px; color:#9aa3b0; margin-top:2px;">{{ product.sub }}</div>
+</div>
+<div style="width:44px; height:44px; border-radius:12px; background:#dbeafb; color:#2f6aa6; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><path d="M12 3c3 4 6 7 6 10a6 6 0 0 1-12 0c0-3 3-6 6-10z"></path></svg>
+</div>
+</div>
+<!-- config card -->
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 18px;">
+<div style="border:1.5px solid #eceef2; border-radius:18px; padding:18px;"> 
+
+<!-- quantity -->
+<div style="display:flex; flex-direction:row-reverse; align-items:center; justify-content:space-between; margin-top:22px;">
+<div style="display:flex; align-items:center; gap:18px;">
+<button onclick="{{ onDecrement }}" style="width:38px; height:38px; border-radius:50%; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; font-size:24px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">−</button>
+<span style="font-size:18px; font-weight:800; color:#1f2a3a; min-width:18px; text-align:center;">{{ amount }}</span>
+<button onclick="{{ onIncrement }}" style="width:38px; height:38px; border-radius:50%; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
+</div>
+<span style="font-size:14.5px; font-weight:700; color:#1f2a3a;">product Item</span>
+</div>
+<!-- stock -->
+<div style="display:flex; align-items:center; justify-content:flex-start; gap:7px; margin-top:16px;">
+<span style="font-size:13px; font-weight:700; color:#2e8a63;">In stock: {{ product.stock }} units</span>
+<svg fill="none" height="16" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="16"><path d="M3 7l9-4 9 4-9 4z"></path><path d="M3 7v10l9 4 9-4V7"></path><path d="M12 11v10"></path></svg>
+</div>
+<!-- line total -->
+<div style="display:flex; flex-direction:row-reverse; align-items:center; justify-content:space-between; margin-top:16px; padding-top:15px; border-top:1px solid #f0f2f5;">
+<span style="font-size:18px; font-weight:800; color:#2e8a63;">{{ lineTotal }}</span>
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">Total for this line</span>
+</div>
+</div>
+</div>
+<!-- pinned CTA -->
+<div style="flex:none; padding:13px 18px 20px;">
+<a href="{{ addUrl }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:16px; border-radius:14px; background:#1d60a2; color:#fff; font-size:16px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(29,96,162,.28);">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="18"><path d="M12 5v14M5 12h14"></path></svg>
+            Add to offer
+          </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    name: 'Moshe Cohen',
+    productId: '',
+    amount: 1,
+    products: []
+  };
+
+  componentDidMount() {
+    this.initData();
+    window.addEventListener('mineralbar:ready', () => this.initData());
+  }
+
+  async initData() {
+    try {
+      var q = new URLSearchParams(window.location.search);
+      var name = q.get('name') || 'Moshe Cohen';
+      var selectedId = q.get('selected_id') || '200094';
+
+      var productsList = [];
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        try {
+          var client = MineralBarApp.getClient();
+          var res = await client.request('Products.List', { limit: 25 });
+          var data = res && (res.data || res.output || res);
+          if (Array.isArray(data) && data.length > 0) {
+            productsList = data.map(function(item) {
+              var priceVal = Math.round(Number(item.price || item.cost || 89));
+              var desc = item.discription || item.desc || '';
+              var pName = item.product_name || item.name || '';
+              var stock = item.stock !== undefined ? Number(item.stock) : 10;
+
+              return {
+                id: String(item.id),
+                name: pName,
+                price: priceVal + (priceVal < 200 ? ' NIS/month' : '₪'),
+                priceNum: priceVal,
+                sub: desc,
+                stock: stock
+              };
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch products list', err);
+        }
+      }
+
+      if (!productsList || productsList.length === 0) {
+        productsList = [
+          { id: '200094', name: 'Filter main horizon', price: '89 NIS/month', priceNum: 89, sub: 'Two-year course', stock: 12 },
+          { id: '200095', name: 'Office water bar', price: '149 NIS/month', priceNum: 149, sub: 'Annual track', stock: 5 },
+          { id: '200096', name: 'Water center', price: '199 NIS/month', priceNum: 199, sub: 'Installation + service', stock: 2 },
+          { id: '200097', name: 'Electric bidet', price: '890₪', priceNum: 890, sub: 'One time purchase', stock: 8 },
+          { id: '200092', name: 'Annual product insurance', price: '29 NIS/month', priceNum: 29, sub: 'Full coverage', stock: 99 }
+        ];
+      }
+
+      this.setState({
+        name: name,
+        productId: selectedId,
+        products: productsList
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  onIncrement() {
+    this.setState({ amount: this.state.amount + 1 });
+  }
+
+  onDecrement() {
+    if (this.state.amount > 1) {
+      this.setState({ amount: this.state.amount - 1 });
+    }
+  }
+
+  renderVals() {
+    var s = this.state;
+    var product = s.products.find(p => p.id === s.productId) || s.products[0];
+    
+    if (!product) {
+      return {
+        name: s.name,
+        product: { id: s.productId, name: 'Loading...', price: '0 NIS/month', priceNum: 0, sub: '', stock: 0 },
+        amount: s.amount,
+        lineTotal: '0 NIS/month',
+        backUrl: '',
+        addUrl: '#',
+        onIncrement: () => {},
+        onDecrement: () => {}
+      };
+    }
+    
+    var lineTotalNum = product.priceNum * s.amount;
+    var lineTotal = lineTotalNum + (product.price.indexOf('NIS') !== -1 ? ' NIS/month' : '₪');
+
+    var q = new URLSearchParams(window.location.search);
+    
+    // Back URL goes back to select screen preserving context
+    var backUrl = 'service-select-product.html?' + q.toString();
+
+    // Add to offer adds selected_id to product_ids parameters and goes back to order form
+    var queryCopy = new URLSearchParams(q.toString());
+    var currentIds = queryCopy.get('product_ids') || '';
+    var idList = currentIds ? currentIds.split(',') : [];
+    
+    // Add multiple copies if amount > 1
+    for (var i = 0; i < s.amount; i++) {
+      idList.push(s.productId);
+    }
+    
+    queryCopy.set('product_ids', idList.join(','));
+    queryCopy.delete('selected_id'); // clean up temp param
+
+    var addUrl = 'service-order-form.html?' + queryCopy.toString();
+
+    return {
+      name: s.name,
+      product: product,
+      amount: s.amount,
+      lineTotal: lineTotal,
+      backUrl: backUrl,
+      addUrl: addUrl,
+      onIncrement: () => this.onIncrement(),
+      onDecrement: () => this.onDecrement()
+    };
+  }
+}
+</script>
+</body>
+</html>

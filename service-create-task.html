@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <title>Mineral Bar — Create Task</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
+  <script src="./support.js"></script>
+  <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+  <script src="./biz1-app.js?v=home-11"></script>
+  <script src="./page-boot.js?v=home-11"></script>
+  <script src="./mission-create-live.js?v=home-12"></script>
+  <style>
+    .mb-adv-section { margin-bottom: 16px; }
+    .mb-adv-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-title);
+      margin-bottom: 10px;
+    }
+    .mb-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .mb-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 12px;
+      border-radius: 99px;
+      border: 1.5px solid var(--border-panel);
+      background: #fff;
+      color: var(--text-title);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .mb-pill.active {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      background: #f3f8fd;
+    }
+    .mb-pill-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.8px solid #c5ccd6;
+      flex: none;
+      position: relative;
+    }
+    .mb-pill.active .mb-pill-dot {
+      border-color: var(--color-primary);
+    }
+    .mb-pill.active .mb-pill-dot::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: var(--color-primary);
+    }
+    .mb-pill-input {
+      width: 36px;
+      border: none;
+      border-bottom: 1px solid #c5ccd6;
+      background: transparent;
+      text-align: center;
+      font: inherit;
+      color: inherit;
+      outline: none;
+      padding: 0 2px;
+    }
+    .mb-date-preview {
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+    #mb-choose-date-wrap {
+      display: none;
+      margin-top: 10px;
+    }
+  </style>
+  <link rel="stylesheet" href="./common.css" />
+  <script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-active-tab="tasks">
+  <div class="app-viewport">
+    <div class="phone-container">
+      <div class="screen-card">
+
+        <!-- Scrollable Form Container -->
+        <div class="dc-scroll" id="mb-mission-form" style="flex:1; overflow-y:auto; padding:12px 16px 24px;">
+          <div id="mb-mission-status" style="display:none;"></div>
+
+          <!-- Title & Navigation Header -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <a href="sales-tasks.html" id="mb-mission-close" style="width:34px; height:34px; border-radius:50%; background:var(--bg-panel); border:1px solid var(--border-panel); color:var(--text-title); display:flex; align-items:center; justify-content:center; text-decoration:none; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+                <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+              </a>
+              <div id="mb-form-header-title" style="font-size:20px; font-weight:800; color:var(--text-title);">Add a task</div>
+            </div>
+            
+            <!-- Private Toggle Badge -->
+            <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px; border:1px solid var(--border-panel); background:var(--bg-panel); font-size:12.5px; font-weight:700; color:var(--text-sub); cursor:pointer; user-select:none;">
+              <input id="mb-task-private" type="checkbox" style="accent-color:var(--color-primary); width:15px; height:15px;" />
+              <span>🔒 Private</span>
+            </label>
+          </div>
+
+          <!-- Linked Customer Box (Shown when customer_id query param exists) -->
+          <div id="mb-linked-customer" style="display:none; align-items:center; gap:11px; margin-bottom:14px; background:var(--bg-panel); padding:12px 14px; border-radius:14px; border:1px solid var(--border-panel);">
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#e6f4ec; color:#2e8a63; font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; flex:none;">
+              <span style="width:6px; height:6px; border-radius:50%; background:#2e8a63;"></span>Linked
+            </span>
+            <div style="flex:1;">
+              <div id="mb-linked-name" style="font-size:15px; font-weight:800; color:var(--text-title);"></div>
+              <div id="mb-linked-meta" style="font-size:12px; color:var(--text-sub); margin-top:2px;"></div>
+            </div>
+            <div id="mb-linked-av" style="width:40px; height:40px; border-radius:50%; background:#eaf2fb; color:var(--color-primary); font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none;">?</div>
+          </div>
+
+          <!-- Card 1: Details -->
+          <div class="form-card">
+            <div class="card-header-title">Details</div>
+            
+            <div style="margin-bottom:14px;">
+              <label class="field-label">
+                Task description <span style="color:#c0392b;">*</span>
+              </label>
+              <input class="gv-in" id="mb-mission-title" placeholder="For example: Check if they received quote" style="width:100%; box-sizing:border-box;" type="text"/>
+            </div>
+
+            <div>
+              <label class="field-label">Notes (optional)</label>
+              <textarea class="gv-in" id="mb-mission-note" placeholder="Add context..." style="width:100%; box-sizing:border-box; resize:none; height:74px;"></textarea>
+            </div>
+          </div>
+
+          <!-- Card 3: Assignments -->
+          <div class="form-card">
+            <div class="card-header-title">Association & Resources</div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div>
+                <label class="field-label">Customer Name</label>
+                <select class="gv-in" id="mb-customer-name" style="width:100%; box-sizing:border-box;">
+                  <option value="">Choose Customer</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">Staff member</label>
+                <select class="gv-in" id="mb-mission-assignee" style="width:100%; box-sizing:border-box;"></select>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+              <div>
+                <label class="field-label">Project</label>
+                <select class="gv-in" id="mb-project-name" style="width:100%; box-sizing:border-box;">
+                  <option value="">—</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">Color</label>
+                <select class="gv-in" id="mb-choose-color" style="width:100%; box-sizing:border-box;">
+                  <option value="transparent">Default</option>
+                  <option value="red">Red</option>
+                  <option value="yellow" selected>Yellow</option>
+                  <option value="green">Green</option>
+                  <option value="blue">Blue</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">Step</label>
+                <select class="gv-in" id="mb-mission-step" style="width:100%; box-sizing:border-box;">
+                  <option value="">—</option>
+                  <option value="1">Step 1</option>
+                  <option value="2">Step 2</option>
+                  <option value="3">Step 3</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Schedule -->
+          <div class="form-card">
+            <div class="mb-adv-section">
+              <div class="mb-adv-label">Time</div>
+              <div class="mb-pill-row" id="mb-time-pills">
+                <button type="button" class="mb-pill active" data-time="30min"><span class="mb-pill-dot"></span>30 minutes</button>
+                <button type="button" class="mb-pill" data-time="1h"><span class="mb-pill-dot"></span>1 hour</button>
+                <button type="button" class="mb-pill" data-time="2h"><span class="mb-pill-dot"></span>2 hours</button>
+                <button type="button" class="mb-pill" data-time="custom_hours"><span class="mb-pill-dot"></span>Hours <input class="mb-pill-input" id="mb-time-hours" type="number" min="1" inputmode="numeric" /></button>
+                <button type="button" class="mb-pill" data-time="custom_days"><span class="mb-pill-dot"></span>Days <input class="mb-pill-input" id="mb-time-days" type="number" min="1" inputmode="numeric" /></button>
+              </div>
+            </div>
+
+            <div class="mb-adv-section">
+              <div class="mb-adv-label">Duration</div>
+              <div class="mb-pill-row" id="mb-duration-pills">
+                <button type="button" class="mb-pill active" data-duration="today"><span class="mb-pill-dot"></span>Today</button>
+                <button type="button" class="mb-pill" data-duration="tomorrow"><span class="mb-pill-dot"></span>Tomorrow</button>
+                <button type="button" class="mb-pill" data-duration="next_week"><span class="mb-pill-dot"></span>Next Week</button>
+                <button type="button" class="mb-pill" data-duration="choose_date"><span class="mb-pill-dot"></span>Choose Date</button>
+                <button type="button" class="mb-pill" data-duration="days_after"><span class="mb-pill-dot"></span>Days <input class="mb-pill-input" id="mb-duration-days" type="number" min="1" inputmode="numeric" /></button>
+              </div>
+              <div id="mb-choose-date-wrap">
+                <input class="gv-in" id="mb-mission-date" type="date" style="width:100%; box-sizing:border-box;" />
+              </div>
+              <div class="mb-date-preview" id="mb-date-preview">Date to do: —</div>
+            </div>
+
+            <div class="mb-adv-section">
+              <div class="mb-adv-label">Return</div>
+              <div class="mb-pill-row" id="mb-repeat-pills">
+                <button type="button" class="mb-pill" data-repeat="monthly"><span class="mb-pill-dot"></span>Monthly</button>
+                <button type="button" class="mb-pill" data-repeat="weekly"><span class="mb-pill-dot"></span>Weekly</button>
+                <button type="button" class="mb-pill" data-repeat="daily"><span class="mb-pill-dot"></span>Daily</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="field-label">Status / Column</label>
+              <select class="gv-in" id="mb-project-column" style="width:100%; box-sizing:border-box;">
+                <option value="">Loading columns...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Card 5: Media & Recordings -->
+          <div class="form-card">
+            <div class="card-header-title">MEDIA & RECORDINGS</div>
+            <div style="display:grid; grid-template-columns:1fr; gap:12px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button id="mb-record-btn" type="button" class="btn-record-audio" style="padding:8px 14px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); font-size:12.5px; font-weight:700; color:var(--text-title); cursor:pointer; display:flex; align-items:center; gap:5px; flex:none;">
+                    <span>►</span> Recording
+                  </button>
+                  <input class="gv-in" id="mb-recording-link" placeholder="Recording link..." style="flex:1; box-sizing:border-box; border-radius:10px;" type="text"/>
+                </div>
+              </div>
+
+              <div>
+                <div id="mb-drop-zone" style="border:2px dashed var(--border-panel); border-radius:14px; padding:18px 14px; background:var(--bg-form); text-align:center; transition:all 0.2s ease; cursor:pointer;">
+                  <label style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    <span style="font-size:14px; font-weight:800; color:var(--text-title);">📷 Select or drag pictures</span>
+                    <span style="font-size:11.5px; color:var(--text-sub);">Click here or drop files to upload</span>
+                    <input id="mb-file-input" type="file" accept="image/*" style="display:none;" multiple />
+                  </label>
+                </div>
+                <div id="mb-image-previews" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 6: Advanced Options -->
+          <div class="form-card">
+            <div class="card-header-title">Reminder</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+                <input id="mb-use-template" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+                <span>Use as template</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+                <input id="mb-email-me" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+                <span>Email Me / Employee</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+                <input id="mb-whatsapp-reminder" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+                <span>WhatsApp Reminder</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+                <input id="mb-notify-client" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+                <span>Notify Client</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Save CTA Button -->
+          <div style="margin-top:20px; margin-bottom:10px;">
+            <button id="mb-create-mission" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:15px; border:none; border-radius:14px; background:var(--color-primary); color:#fff; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 6px 16px rgba(29,96,162,.28);" type="button">
+              <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="18"><path d="M20 6 9 17l-5-5"></path></svg>
+              <span>Add a task</span>
+            </button>
+          </div>
+
+        </div>
+
+
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

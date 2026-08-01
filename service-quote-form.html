@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, a, input, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .gv-in { width:100%; border:1.5px solid #e4e8ee; border-radius:12px; padding:12px 13px; font-size:14px; font-weight:600; color:#1f2a3a; background:#fff; outline:none; }
+  .gv-in::placeholder { color:#b6bdc8; font-weight:600; }
+  .gv-in:focus { border-color:#1d60a2; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- white header -->
+<div style="background:#fff; padding:9px 16px 14px; flex:none; box-shadow:0 1px 0 #edeff2;">
+<div style="display:flex; justify-content:center; padding:3px 0 9px;">
+<div style="width:42px; height:5px; border-radius:99px; background:#dadfe6;"></div>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<div style="width:38px; height:38px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center;">{{ initials }}</div>
+<div style="font-size:18px; font-weight:800; color:#1f2a3a;">quotation</div>
+<a href="{{ backUrl }}" style="width:38px; height:38px; border-radius:50%; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m15 18-6-6 6-6"></path></svg>
+</a>
+</div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 18px;">
+<!-- customer summary -->
+<div style="display:flex; align-items:center; gap:11px; margin-bottom:16px;">
+<div style="flex:1; text-align:left;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;">{{ name }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:2px;">{{ subText }}</div>
+</div>
+<div style="width:46px; height:46px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">{{ initials }}</div>
+</div>
+<!-- sales rep box -->
+<div style="background:#eef4fb; border:1px solid #dbe6f5; border-radius:14px; padding:13px; margin-bottom:18px;">
+<div style="display:flex; align-items:center; gap:7px; font-size:13px; font-weight:800; color:#1d60a2; margin-bottom:9px;">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="16"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
+            A salesperson makes the offer
+          </div>
+<input class="gv-in" type="text" value="{{ userName }}"/>
+</div>
+<!-- products in quote -->
+<div style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:800; color:#5a6473; margin:0 2px 10px;">
+<svg fill="none" height="15" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><circle cx="12" cy="12" r="9"></circle></svg>
+          Products on offer
+        </div>
+<sc-for as="p" hint-placeholder-count="2" list="{{ products }}">
+<div style="background:#fff; border-radius:14px; padding:13px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:10px; position:relative;">
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:38px; height:38px; border-radius:11px; background:#eef3fd; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="20"><path d="M12 3c3 4 6 7 6 10a6 6 0 0 1-12 0c0-3 3-6 6-10z"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">{{ p.name }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:1px;">{{ p.sub }}</div>
+</div>
+<div style="text-align:left; flex:none; display:flex; flex-direction:column; align-items:flex-end;">
+<div style="font-size:14px; font-weight:800; color:#2e8a63;">{{ p.price }}</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ p.hasDiscount }}">
+<div style="font-size:11px; color:#e35d4f; font-weight:700; margin-top:2px;">—{{ p.discountText }} discount</div>
+</sc-if>
+</div>
+<button onclick="{{ p.remove }}" style="width:24px; height:24px; border-radius:50%; border:none; background:#fbeeed; color:#c0392b; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; margin-right:2px;">
+<svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="12"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</button>
+</div>
+</div>
+</sc-for>
+<a href="{{ selectProductUrl }}" style="display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:12px; border:1.5px dashed #aebfd6; border-radius:12px; background:#f4f8fd; color:#1d60a2; font-size:13.5px; font-weight:700; cursor:pointer; margin-bottom:18px; text-decoration:none;">
+<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M12 5v14M5 12h14"></path></svg>
+          Add another product
+        </a>
+<!-- install address -->
+<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
+<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+          Installation address
+        </label>
+<input class="gv-in" style="margin-bottom:13px;" type="text" value="{{ address }}"/>
+<!-- ID -->
+<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
+<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
+          identity card
+        </label>
+<input class="gv-in" placeholder="Enter a postal code number." style="margin-bottom:18px;" type="text"/>
+<!-- deal summary -->
+<div style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:800; color:#5a6473; margin:0 2px 9px;">
+<svg fill="none" height="15" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M6 2h9l4 4v16H6z"></path><path d="M14 2v5h5"></path></svg>
+          transaction summary
+        </div>
+<div style="background:#fff; border-radius:16px; padding:14px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:16px;">
+<sc-for as="p" hint-placeholder-count="2" list="{{ products }}">
+<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0;">
+<div style="display:flex; align-items:center; gap:8px;">
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ p.price }}</span>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ p.hasDiscount }}">
+<span style="font-size:11.5px; color:#e35d4f; font-weight:700;">(—{{ p.discountText }})</span>
+</sc-if>
+</div>
+<span style="font-size:13.5px; color:#5a6473;">{{ p.name }}</span>
+</div>
+</sc-for>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-top:1px solid #f0f2f5; margin-top:4px;">
+<span style="font-size:13.5px; font-weight:700; color:#c0392b;">- {{ discountAmt }} NIS/month</span>
+<span style="font-size:13.5px; color:#5a6473;">discount</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0 4px; margin-top:4px; border-top:1px solid #f0f2f5;">
+<span style="font-size:18px; font-weight:800; color:#2e8a63;">{{ totalAmt }} NIS/month</span>
+<span style="font-size:14px; font-weight:800; color:#1f2a3a;">Total monthly</span>
+</div>
+</div>
+<!-- whatsapp CTA -->
+<a href="{{ sendUrl }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:15px; border-radius:14px; background:linear-gradient(135deg,#2bb05c,#1f9a4e); color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(37,179,94,.28);">
+<svg fill="#fff" height="20" viewbox="0 0 24 24" width="20"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg>
+          Send for a digital signature on WhatsApp
+        </a>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">class Component extends DCLogic {
+  state = {
+    customer_id: '',
+    name: '',
+    phone: '',
+    city: '',
+    address: '',
+    userName: '',
+    backUrl: 'service-customer-card.html',
+    products: [],
+    discount: 0,
+    discountAmt: 0,
+    totalAmt: 0
+  };
+
+  componentDidMount() {
+    this.initData();
+    window.addEventListener('mineralbar:ready', () => this.initData());
+  }
+
+  getCustomerId() {
+    var p = new URLSearchParams(window.location.search);
+    var id = p.get('customer_id') || p.get('cust_id') || p.get('contactus_id') ||
+      p.get('lead_id') || p.get('id') || '';
+    if (!id && window.location.hash) {
+      var h = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+      id = h.get('customer_id') || h.get('cust_id') || h.get('id') || '';
+    }
+    if (!id) {
+      var m = String(window.location.href || '').match(/[?&#](?:customer_id|cust_id|contactus_id|lead_id)=([^&#]+)/i);
+      if (m && m[1]) {
+        try { id = decodeURIComponent(m[1]); } catch (e) { id = m[1]; }
+      }
+    }
+    if (!id) {
+      try { id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || ''; } catch (e2) { /* ignore */ }
+    }
+    if (id === '0' || id === 'null' || id === 'undefined') id = '';
+    return String(id || '').trim();
+  }
+
+  async initData() {
+    try {
+      var q = new URLSearchParams(window.location.search);
+      var customerId = this.getCustomerId() || '1';
+      var name = q.get('name') || '';
+      var phone = q.get('phone') || '';
+      var email = q.get('email') || '';
+      
+      var backUrl = 'service-customer-card.html';
+      if (customerId && customerId !== '1') {
+        backUrl = 'chat-customer.html?customer_id=' + customerId;
+      }
+      
+      var stateUpdate = {
+        discount: 0,
+        customer_id: customerId,
+        backUrl: backUrl
+      };
+      if (name) stateUpdate.name = name;
+      if (phone) stateUpdate.phone = phone;
+
+      if (window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
+        var user = MineralBarApp.getUser();
+        var emailUser = MineralBarApp.getEmail() || (user && user.email) || '';
+        if (user) {
+          stateUpdate.userName = user.name || (emailUser ? emailUser.split('@')[0] : '') || user.username || 'יוסי כהן';
+        }
+      }
+
+      this.setState(stateUpdate);
+
+      // Load products
+      var productsList = [];
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        try {
+          var client = MineralBarApp.getClient();
+          var res = await client.request('Products.List', { limit: 25 });
+          var data = res && (res.data || res.output || res);
+          if (Array.isArray(data) && data.length > 0) {
+            productsList = data.map(function(item) {
+              var name = item.product_name || item.name || 'מוצר';
+              var priceVal = Math.round(Number(item.price || item.cost || 89));
+              var desc = item.description || item.desc || 'מסלול';
+              
+              var discountVal = Number(item.discount_price || item.discount || 0);
+              var isPercent = Number(item.is_price_percent || 0) === 1;
+              var discountAmt = isPercent ? Math.round(priceVal * (discountVal / 100)) : Math.round(discountVal);
+              var discountText = '';
+              if (discountAmt > 0) {
+                discountText = isPercent ? (discountVal + '%') : (discountAmt + ' NIS');
+              }
+              return {
+                id: String(item.id || Math.random()),
+                name: name,
+                sub: desc,
+                price: priceVal + ' NIS/month',
+                priceNum: priceVal,
+                discountVal: discountVal,
+                discountAmt: discountAmt,
+                discountText: discountText,
+                hasDiscount: discountAmt > 0
+              };
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch products list', err);
+        }
+      }
+      
+      var productIdsStr = q.get('product_ids') || '';
+      var finalProducts = [];
+      if (productIdsStr) {
+        var ids = productIdsStr.split(',');
+        ids.forEach(function(productId) {
+          var found = productsList.find(function(p) { return p.id === productId; });
+          if (found) {
+            finalProducts.push(JSON.parse(JSON.stringify(found)));
+          }
+        });
+      } else {
+        var fallback = productsList.find(p => p.id === '200094') || productsList[0];
+        if (fallback) {
+          finalProducts.push(JSON.parse(JSON.stringify(fallback)));
+        }
+      }
+      productsList = finalProducts;
+
+      var subTotal = productsList.reduce((sum, p) => sum + (p.priceNum || 0), 0);
+      var discountAmt = productsList.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
+      var totalAmt = subTotal - discountAmt;
+      this.setState({
+        products: productsList,
+        discountAmt: discountAmt,
+        totalAmt: totalAmt
+      });
+
+      // Load customer details
+      if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+        try {
+          var res = await MineralBarApp.getCustomer(customerId);
+          var c = res && res.customer;
+          if (c) {
+            if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) {
+              c = c.data;
+            }
+            var fullAddress = c.address || '';
+            if (c.city || c.city_name) {
+              fullAddress += (fullAddress ? ', ' : '') + (c.city || c.city_name);
+            }
+            this.setState({
+              name: c.name || this.state.name || name || ('#' + customerId),
+              phone: c.phone || c.mobile || this.state.phone || phone,
+              city: c.city || c.city_name || this.state.city,
+              address: fullAddress || this.state.address
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch customer details', err);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  getInitials(name) {
+    var p = String(name || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+    return ((p[0][0] || '') + (p[1][0] || '')).toUpperCase();
+  }
+
+  removeProduct(id) {
+    this.setState(s => {
+      var nextProducts = s.products.filter(p => p.id !== id);
+      var subTotal = nextProducts.reduce((sum, p) => sum + (p.priceNum || 0), 0);
+      var discountAmt = nextProducts.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
+      var totalAmt = subTotal - discountAmt;
+      return {
+        products: nextProducts,
+        discountAmt: discountAmt,
+        totalAmt: totalAmt
+      };
+    });
+  }
+
+  renderVals() {
+    var s = this.state;
+    var initials = this.getInitials(s.name);
+    var subText = s.phone + (s.city ? ' · ' + s.city : '');
+    
+    var productsMapped = (s.products || []).map(p => ({
+      ...p,
+      remove: () => this.removeProduct(p.id)
+    }));
+
+    var q = new URLSearchParams();
+    if (s.customer_id) {
+      q.set('customer_id', s.customer_id);
+      q.set('cust_id', s.customer_id);
+    }
+    if (s.name) q.set('name', s.name);
+    if (s.phone) q.set('phone', s.phone);
+    if (s.city) q.set('city', s.city);
+    if (s.address) q.set('address', s.address);
+    q.set('discount', String(s.discountAmt || 0));
+    if (s.userName) q.set('userName', s.userName);
+    
+    var productIds = (s.products || []).map(p => p.id).join(',');
+    q.set('product_ids', productIds);
+    
+    var selectProductQuery = new URLSearchParams(q.toString());
+    selectProductQuery.set('from', 'quote');
+    
+    return {
+      name: s.name,
+      subText: subText,
+      initials: initials,
+      userName: s.userName,
+      address: s.address,
+      backUrl: s.backUrl,
+      products: productsMapped,
+      discountAmt: s.discountAmt || 0,
+      totalAmt: s.totalAmt || 0,
+      sendUrl: 'final-quote.html?' + q.toString(),
+      selectProductUrl: 'service-select-product.html?' + selectProductQuery.toString()
+    };
+  }
+}</script>
+</body>
+</html>

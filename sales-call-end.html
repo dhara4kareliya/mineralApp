@@ -1,0 +1,248 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<script src="./sales-static-live.js?v=sales-live-1"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .ds-input::placeholder, textarea::placeholder { color: #aeb6c2; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<!-- status bar -->
+<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 22px 4px; font-size:13px; font-weight:700; color:#1f2a3a; flex:none; background:#fff;">
+<span class="status-clock"></span> <button type="button" class="lang-translator-btn" id="btn-lang-toggle">🌐 EN</button>
+<div style="display:flex; gap:5px; align-items:center;">
+
+
+</div>
+</div>
+<!-- call context header -->
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 18px 13px; flex:none; background:#fff; border-bottom:1px solid #eef0f3;">
+<div style="text-align:left;">
+<div style="font-size:18px; font-weight:800; color:#16223a;">Moshe Cohen</div>
+<div style="font-size:13.5px; font-weight:600; color:#9aa3b0; margin-top:1px; white-space:nowrap;">050-1234567</div>
+</div>
+<span style="width:40px; height:40px; border-radius:50%; background:#e6f4ec; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="19" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="19"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>
+</span>
+</div>
+<!-- background: call-ended screen -->
+<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 24px; text-align:center;">
+<div style="width:84px; height:84px; border-radius:50%; background:#dfe7f1; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800; color:#1d60a2;">from</div>
+<div style="font-size:21px; font-weight:800; color:#16223a; margin-top:16px;">Moshe Cohen</div>
+<div style="font-size:14px; font-weight:600; color:#9aa3b0; margin-top:2px;">050-1234567</div>
+<div style="display:inline-flex; align-items:center; gap:6px; margin-top:14px; padding:6px 13px; border-radius:99px; background:#e6f4ec; color:#2e8a63; font-size:12.5px; font-weight:700;">
+<svg fill="none" height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="13"><path d="M20 6 9 17l-5-5"></path></svg>
+          The call ended · 04:12
+        </div>
+<button onclick="{{ reopen }}" style="margin-top:26px; padding:13px 22px; border:none; border-radius:13px; background:#1d60a2; color:#fff; font-size:14.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 6px 16px rgba(29,96,162,.26);">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v5h-5"></path></svg>
+          Update call status
+        </button>
+</div>
+<!-- ============ OUTCOME / IRRELEVANT SHEET ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ sheetOpen }}">
+<div style="position:absolute; inset:0; z-index:20;">
+<div onclick="{{ closeSheet }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.42;"></div>
+<div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; padding:14px 18px 20px; max-height:93%; overflow-y:auto;">
+<!-- handle + close -->
+<div style="position:relative; height:18px; margin-bottom:6px;">
+<div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:7px auto 0;"></div>
+<button onclick="{{ closeSheet }}" style="position:absolute; top:0; left:0; width:32px; height:32px; border-radius:50%; border:none; background:#f1f3f6; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="16" stroke="#6b7585" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="16"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</button>
+</div>
+<!-- title -->
+<div style="text-align:center; font-size:21px; font-weight:800; color:#16223a; margin-bottom:4px;">{{ title }}</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showSubtitle }}">
+<div style="text-align:center; font-size:13.5px; font-weight:600; color:#8a93a3; margin-bottom:14px;">{{ subtitle }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showSpacer }}">
+<div style="height:14px;"></div>
+</sc-if>
+<!-- option rows -->
+<sc-for as="o" hint-placeholder-count="5" list="{{ options }}">
+<button onclick="{{ o.pick }}" style="position:relative; width:100%; padding:15px 46px; border-radius:14px; cursor:pointer; background:{{ o.bg }}; border:1.6px solid {{ o.border }}; margin-bottom:10px; text-align:center;">
+<span style="position:absolute; right:15px; top:50%; transform:translateY(-50%); display:flex; color:{{ o.iconColor }};">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ o.iSend }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iPhoneMissed }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path><path d="M15.5 4.5 21 10M21 4.5 15.5 10"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iClock }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iX }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="21"><path d="M18 6 6 18M6 6l12 12"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iCart }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><circle cx="9.5" cy="20" r="1.5"></circle><circle cx="17" cy="20" r="1.5"></circle><path d="M2.5 4h2.3l2.2 11h10l2-8H6.4"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iDocPlus }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><path d="M6 3h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M14 3v4h4"></path><path d="M9 14h6M12 11v6"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iDrop }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><path d="M12 3s6 5.5 6 10a6 6 0 0 1-12 0c0-4.5 6-10 6-10z"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iPeople }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><circle cx="9" cy="8" r="3"></circle><path d="M3 20c0-3 2.7-4.8 6-4.8s6 1.8 6 4.8"></path><circle cx="17.5" cy="7" r="2.5"></circle><path d="M16 14.4c2.8.2 5 1.9 5 4.6"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iBank }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><path d="M4 9 12 4l8 5"></path><path d="M5 9v8M9 9v8M15 9v8M19 9v8"></path><path d="M3 20h18"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iShield }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.iPhone }}"><svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg></sc-if>
+</span>
+<span style="font-size:15.5px; font-weight:{{ o.weight }}; color:{{ o.color }}; white-space:nowrap;">{{ o.label }}</span>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ o.hasBadge }}">
+<span style="position:absolute; left:13px; top:50%; transform:translateY(-50%); white-space:nowrap; font-size:11.5px; font-weight:700; color:#fff; background:#1d60a2; padding:4px 11px; border-radius:99px;">{{ o.badge }}</span>
+</sc-if>
+</button>
+</sc-for>
+<!-- callback task with date + time (followup only) -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showFollowupTask }}">
+<div style="background:#eaf2fb; border:1.6px solid #aecbe9; border-radius:14px; padding:13px 15px; margin-bottom:10px;">
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+<span style="display:flex; flex:none; color:#1d60a2;">
+<svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
+</span>
+<span style="flex:1; text-align:left; font-size:14px; font-weight:800; color:#1d60a2; line-height:1.4;">A task will be opened to return to the client</span>
+</div>
+<div style="display:flex; gap:9px;">
+<span style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px; border-radius:11px; background:#fff; border:1.5px solid #bcd6f0; font-size:13.5px; font-weight:700; color:#7b8595; letter-spacing:.5px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><rect height="16" rx="2.5" width="18" x="3" y="5"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>
+                    DD/MM/YY
+                  </span>
+<span style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px; border-radius:11px; background:#fff; border:1.5px solid #bcd6f0; font-size:13.5px; font-weight:700; color:#7b8595; letter-spacing:.5px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                    HH:MM
+                  </span>
+</div>
+</div>
+</sc-if>
+<!-- callback task row (irrelevant only) -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showTaskRow }}">
+<button onclick="{{ toggleTask }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:13px 15px; border-radius:14px; cursor:pointer; background:{{ taskBg }}; border:1.6px solid {{ taskBorder }}; margin-bottom:10px;">
+<span style="display:flex; flex:none; color:{{ taskIcon }};">
+<svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="21"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
+</span>
+<span style="flex:1; text-align:left; font-size:14px; font-weight:700; color:{{ taskColor }}; line-height:1.45;">A task to return to the client will open - select a date</span>
+<span style="margin-right:auto; flex:none; display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border-radius:9px; background:#fff; border:1.5px solid {{ taskBorder }}; font-size:13px; font-weight:700; color:#7b8595; letter-spacing:.5px;">
+<svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="14"><rect height="16" rx="2.5" width="18" x="3" y="5"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>
+                  DD/MM/YY
+                </span>
+</button>
+</sc-if>
+<!-- note -->
+<div style="display:flex; align-items:center; gap:7px; margin:16px 2px 9px;">
+<svg fill="none" height="16" stroke="#7b8595" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="16"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+<span style="font-size:14px; font-weight:700; color:#46505f;">{{ noteLabel }}</span>
+</div>
+<textarea placeholder="{{ notePlaceholder }}" style="width:100%; min-height:78px; resize:none; border:1.5px solid #dde2ea; border-radius:13px; padding:12px 14px; font-size:14px; color:#1f2a3a; outline:none; text-align:left; line-height:1.5;"></textarea>
+<!-- submit -->
+<button style="width:100%; margin-top:16px; padding:16px; border:none; border-radius:14px; background:{{ btnBg }}; color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ btnCheck }}"><svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="18"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ btnX }}"><svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="18"><path d="M18 6 6 18M6 6l12 12"></path></svg></sc-if>
+              {{ btnText }}
+            </button>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = { sheet: 'outcome', outcomeSel: 'quote', reasonSel: 'price', taskOn: true };
+
+  OUTCOME = [
+    { id: 'quote', label: 'נשלחה הצעת מחיר', icon: 'send' },
+    { id: 'noanswer', label: 'אין מענה — ניסיון שני', icon: 'phonemissed' },
+    { id: 'followup', label: 'פולואפ — תאריך לחזרה', icon: 'clock' },
+    { id: 'irrelevant', label: 'לא רלוונטי — בחר סיבה', icon: 'x' },
+    { id: 'order', label: 'בוצעה הזמנה!', icon: 'cart' },
+  ];
+
+  REASONS = [
+    { id: 'price', label: 'מחיר', icon: 'docplus' },
+    { id: 'size', label: 'גודל מוצר', icon: 'drop' },
+    { id: 'competitors', label: 'עדיפות למתחרים', icon: 'people' },
+    { id: 'kitchen', label: 'מטבח לא מוכן', icon: 'clock', badge: 'פותח משימה' },
+    { id: 'standing', label: 'נחסם בהוראת קבע', icon: 'bank' },
+    { id: 'insured', label: 'מבוטח בחברה מתחרה', icon: 'shield' },
+    { id: 'wrongnum', label: 'מספר שגוי', icon: 'phone' },
+  ];
+
+  iconFlags(name) {
+    return {
+      iSend: name === 'send', iPhoneMissed: name === 'phonemissed', iClock: name === 'clock',
+      iX: name === 'x', iCart: name === 'cart', iDocPlus: name === 'docplus', iDrop: name === 'drop',
+      iPeople: name === 'people', iBank: name === 'bank', iShield: name === 'shield', iPhone: name === 'phone',
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isIrr = s.sheet === 'irrelevant';
+    const defs = isIrr ? this.REASONS : this.OUTCOME;
+    const selId = isIrr ? s.reasonSel : s.outcomeSel;
+
+    const options = defs.map(o => {
+      const sel = (!isIrr && o.id === 'irrelevant') ? false : (selId === o.id);
+      let st;
+      if (sel) {
+        st = isIrr
+          ? { bg: '#fbeeed', border: '#ecb8b1', color: '#c0392b', icon: '#c0392b', weight: '800' }
+          : { bg: '#eaf2fb', border: '#aecbe9', color: '#1d60a2', icon: '#1d60a2', weight: '800' };
+      } else {
+        st = { bg: '#fff', border: '#e6e9ee', color: '#26303f', icon: '#8a93a3', weight: '700' };
+      }
+      return {
+        label: o.label,
+        pick: () => {
+          if (!isIrr && o.id === 'irrelevant') this.setState({ sheet: 'irrelevant' });
+          else if (isIrr) this.setState({ reasonSel: o.id });
+          else this.setState({ outcomeSel: o.id });
+        },
+        bg: st.bg, border: st.border, color: st.color, iconColor: st.icon, weight: st.weight,
+        hasBadge: !!o.badge, badge: o.badge || '',
+        ...this.iconFlags(o.icon),
+      };
+    });
+
+    const taskActive = s.taskOn;
+
+    return {
+      sheetOpen: s.sheet !== null,
+      closeSheet: () => this.setState({ sheet: isIrr ? 'outcome' : null }),
+      reopen: () => this.setState({ sheet: 'outcome' }),
+      title: isIrr ? 'למה לא רלוונטי?' : 'איך הלכה השיחה?',
+      showSubtitle: isIrr,
+      subtitle: 'בחר סיבה כדי לסגור את הליד',
+      showSpacer: !isIrr,
+      options,
+      showTaskRow: isIrr,
+      showFollowupTask: !isIrr && s.outcomeSel === 'followup',
+      toggleTask: () => this.setState(p => ({ taskOn: !p.taskOn })),
+      taskBg: taskActive ? '#eaf2fb' : '#fff',
+      taskBorder: taskActive ? '#aecbe9' : '#e6e9ee',
+      taskColor: taskActive ? '#1d60a2' : '#26303f',
+      taskIcon: taskActive ? '#1d60a2' : '#8a93a3',
+      noteLabel: isIrr ? 'הערה (אופציונלי)' : 'הוסף הערה לשיחה',
+      notePlaceholder: isIrr ? 'פרטים נוספים על הסיבה...' : 'לדוגמה: הלקוח ביקש לחזור אחרי 14:00, מעוניין בדגם אופק...',
+      btnText: isIrr ? 'סגור ליד כ"לא רלוונטי"' : 'שמור ועדכן סטטוס',
+      btnBg: isIrr ? '#a8322f' : '#1d60a2',
+      btnCheck: !isIrr,
+      btnX: isIrr,
+    };
+  }
+}
+</script>
+</body>
+</html>

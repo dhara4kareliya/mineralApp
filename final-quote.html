@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<script src="./sales-static-live.js?v=sales-live-1"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, a { font-family: 'Heebo', sans-serif; }
+  .qd-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+
+<!-- header -->
+<div style="background:#fff; padding:4px 14px 12px; flex:none; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 0 #edeff2;">
+<button style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><circle cx="12" cy="13" r="3"></circle><path d="M12 10V3M9 5l3-3 3 3"></path><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path></svg>
+</button>
+<div style="font-size:18px; font-weight:800; color:#1f2a3a; white-space:nowrap;">quotation</div>
+<a href="price-quotes.html" style="width:38px; height:38px; border-radius:50%; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+</div>
+<div class="qd-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 120px;">
+<!-- ===== letterhead ===== -->
+<div style="background:linear-gradient(135deg,#16223a 0%,#1d3a5f 100%); border-radius:20px 20px 0 0; padding:20px 18px 18px; color:#fff; position:relative; overflow:hidden;">
+<div style="position:absolute; top:-30px; left:-20px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.05);"></div>
+<div style="display:flex; align-items:center; gap:11px; position:relative;">
+<div style="width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="24" stroke="#9cc3ec" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="24"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:19px; font-weight:900; letter-spacing:-.3px;">mineral bar</div>
+<div style="font-size:11.5px; color:#9fb6d4; margin-top:1px;">clean water healthy life</div>
+</div>
+<div style="text-align:left; flex:none; font-size:10.5px; color:#9fb6d4; line-height:1.7;">
+<div>03-555-1234</div>
+<div>service@mineralbar.co.il</div>
+</div>
+</div>
+</div>
+<!-- quote meta strip -->
+<div style="background:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f0f2f5;">
+<div style="text-align:left;">
+<div style="font-size:11.5px; color:#9aa3b0; font-weight:600;">Offer number</div>
+<div style="font-size:17px; font-weight:800; color:#1f2a3a; margin-top:1px; white-space:nowrap; direction:ltr; text-align:left;">#QT-0041</div>
+</div>
+<div style="display:inline-flex; align-items:center; gap:5px; background:#fdf1dd; color:#bd8324; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:99px;">
+<svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="12"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+            Awaiting signature
+          </div>
+</div>
+<!-- validity banner -->
+<div style="background:#fbf4e6; padding:10px 18px; display:flex; align-items:center; gap:8px; color:#a9781f; border-bottom:1px solid #f3e6cb;">
+<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none;" viewbox="0 0 24 24" width="15"><rect height="17" rx="2.5" width="18" x="3" y="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+<span style="font-size:12.5px; font-weight:700;">Valid until 06/22/2025</span>
+<span style="font-size:12px; font-weight:600; color:#c39a51; margin-right:auto;">5 days left</span>
+</div>
+<!-- ===== parties ===== -->
+<div style="background:#fff; padding:16px 18px 4px; display:flex; flex-direction:column; gap:14px;">
+<!-- for (customer) -->
+<div>
+<div style="font-size:11.5px; font-weight:800; color:#9aa3b0; margin-bottom:8px;">offer for</div>
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:44px; height:44px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">{{ initials }}</div>
+<div style="flex:1;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;">{{ name }}</div>
+<div style="font-size:12.5px; color:#8a93a3; margin-top:1px;">{{ idText }}</div>
+</div>
+</div>
+<div style="margin-top:11px; display:flex; flex-direction:column; gap:9px;">
+<div style="display:flex; align-items:center; gap:9px;">
+<svg fill="none" height="15" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none;" viewbox="0 0 24 24" width="15"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>
+<span style="font-size:13.5px; color:#46505f; font-weight:600;">{{ phone }}</span>
+</div>
+<div style="display:flex; align-items:flex-start; gap:9px;">
+<svg fill="none" height="15" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none; margin-top:1px;" viewbox="0 0 24 24" width="15"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+<span style="font-size:13.5px; color:#46505f; font-weight:600;">{{ address }} <span style="color:#9aa3b0; font-weight:500;">· Installation address</span></span>
+</div>
+</div>
+</div>
+<div style="height:1px; background:#f0f2f5;"></div>
+<!-- from (rep) -->
+<div style="display:flex; align-items:center; gap:9px; padding-bottom:14px;">
+<svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="flex:none;" viewbox="0 0 24 24" width="16"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
+<div style="flex:1; font-size:13px; color:#8a93a3; font-weight:600;">sales person</div>
+<div style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ userName }}</div>
+</div>
+</div>
+<!-- ===== line items ===== -->
+<div style="background:#fff; padding:6px 18px 4px;">
+<div style="font-size:11.5px; font-weight:800; color:#9aa3b0; margin-bottom:4px;">Details of the offer</div>
+<sc-for as="p" hint-placeholder-count="2" list="{{ products }}">
+<div style="display:flex; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid #f3f4f7;">
+<div style="width:40px; height:40px; border-radius:12px; background:#eef3fd; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="21"><path d="M12 3c3 4 6 7 6 10a6 6 0 0 1-12 0c0-3 3-6 6-10z"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">{{ p.name }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ p.sub }}</div>
+</div>
+<div style="text-align:left; flex:none; display:flex; flex-direction:column; align-items:flex-end;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">{{ p.price }}</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ p.hasDiscount }}">
+<div style="font-size:11px; color:#e35d4f; font-weight:700; margin-top:2px;">—{{ p.discountText }} discount</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+<!-- item 3 — install (free) -->
+
+<!-- ===== totals ===== -->
+<div style="background:#fff; padding:14px 18px 16px; border-top:6px solid #f4f6f9;">
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0;">
+    <span style="font-size:13px; color:#8a93a3; text-align:start;">discount</span>
+    <span style="font-size:13.5px; font-weight:700; color:#2e8a63; text-align:end;">- {{ discountAmt }}</span>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0;">
+    <span style="font-size:13px; color:#8a93a3; text-align:start;">Intermediate amount (before VAT)</span>
+    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ subTotal }}</span>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0 12px;">
+    <span style="font-size:13px; color:#8a93a3; text-align:start;">VAT 18%</span>
+    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ vatAmt }}</span>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:linear-gradient(135deg, #1a2947 0%, #111a2e 100%); border-radius:16px; box-shadow:0 8px 24px rgba(22,34,58,0.16); margin-top:6px;">
+    <div style="text-align:start;">
+      <div style="font-size:14.5px; font-weight:800; color:#fff; letter-spacing:-0.1px;">Total payable</div>
+      <!-- <div style="font-size:11px; color:#a3b8d6; margin-top:2px; font-weight:600;">24 month commitment</div> -->
+    </div>
+    <div style="text-align:end; margin-left:12px; margin-right:12px;">
+      <div style="font-size:24px; font-weight:900; color:#fff; line-height:1; white-space:nowrap;">{{ totalPayable }}₪<span style="font-size:13.5px; font-weight:700; color:#a3b8d6; margin-left:2px; margin-right:2px;">/month</span></div>
+    </div>
+  </div>
+</div>
+<!-- ===== what's included ===== -->
+<!-- <div style="background:#fff; padding:6px 18px 18px; border-top:6px solid #f4f6f9;">
+<div style="font-size:11.5px; font-weight:800; color:#9aa3b0; margin:8px 0 11px;">The route includes</div>
+<div style="display:flex; flex-direction:column; gap:10px;">
+<div style="display:flex; align-items:center; gap:9px;">
+<span style="width:19px; height:19px; border-radius:50%; background:#eaf7ef; display:flex; align-items:center; justify-content:center; flex:none;"><svg fill="none" height="11" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="11"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="font-size:13px; color:#46505f; font-weight:600;">Periodic replacement of filters at no cost</span>
+</div>
+<div style="display:flex; align-items:center; gap:9px;">
+<span style="width:19px; height:19px; border-radius:50%; background:#eaf7ef; display:flex; align-items:center; justify-content:center; flex:none;"><svg fill="none" height="11" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="11"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="font-size:13px; color:#46505f; font-weight:600;">Technical service and repair availability</span>
+</div>
+<div style="display:flex; align-items:center; gap:9px;">
+<span style="width:19px; height:19px; border-radius:50%; background:#eaf7ef; display:flex; align-items:center; justify-content:center; flex:none;"><svg fill="none" height="11" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewbox="0 0 24 24" width="11"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="font-size:13px; color:#46505f; font-weight:600;">Full warranty for the entire contract period</span>
+</div>
+</div>
+</div> -->
+<!-- terms -->
+<div style="padding:16px 6px 0; font-size:11px; color:#aab2bd; line-height:1.7; text-align:left;">
+          The prices do not include VAT (18%). VAT is calculated separately and added to the final amount. The offer is subject to credit approval and the full contract terms. Cancellation during the commitment period may involve an exit fee. Valid until the specified date.
+        </div>
+</div>
+<!-- sticky footer -->
+<div style="position:absolute; bottom:0; left:0; right:0; background:#fff; box-shadow:0 -2px 14px rgba(15,24,40,.08); padding:11px 16px 22px;">
+<div style="display:flex; gap:9px;">
+<button style="width:48px; height:50px; border-radius:14px; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="20"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
+</button>
+<a href="{{ signatureAlertUrl }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:9px; padding:14px; border-radius:14px; background:linear-gradient(135deg,#2e8a63,#23734f); color:#fff; font-size:15.5px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(46,138,99,.28);">
+<svg fill="none" height="19" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="19"><path d="M3 17c3-1 5-5 9-5s4 3 9 1"></path><path d="M3 12c3-1 5-5 9-5s4 3 9 1"></path></svg>
+            Confirm and sign the offer
+          </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+  class Component extends DCLogic {
+  state = {
+    customer_id: '',
+    name: '',
+    phone: '',
+    tz: '',
+    address: '',
+    backUrl: 'service-quote-form.html'
+  };
+
+  componentDidMount() {
+    this.initData();
+    window.addEventListener('mineralbar:ready', () => this.initData());
+  }
+
+  getCustomerId() {
+    var p = new URLSearchParams(window.location.search);
+    var id = p.get('customer_id') || p.get('cust_id') || p.get('contactus_id') ||
+      p.get('lead_id') || p.get('id') || '';
+    if (!id && window.location.hash) {
+      var h = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+      id = h.get('customer_id') || h.get('cust_id') || h.get('id') || '';
+    }
+    if (!id) {
+      var m = String(window.location.href || '').match(/[?&#](?:customer_id|cust_id|contactus_id|lead_id)=([^&#]+)/i);
+      if (m && m[1]) {
+        try { id = decodeURIComponent(m[1]); } catch (e) { id = m[1]; }
+      }
+    }
+    if (!id) {
+      try { id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || ''; } catch (e2) { /* ignore */ }
+    }
+    if (id === '0' || id === 'null' || id === 'undefined') id = '';
+    return String(id || '').trim();
+  }
+
+  async initData() {
+    try {
+      var q = new URLSearchParams(window.location.search);
+      var customerId = this.getCustomerId() || '1';
+      var name = q.get('name') || '';
+      var phone = q.get('phone') || '';
+      var tz = q.get('tz') || q.get('id') || '025896317';
+      var address = q.get('address') || '';
+      var discount = Number(q.get('discount') || 0);
+      var productIdsStr = q.get('product_ids') || '';
+      
+      var backUrl = 'service-quote-form.html';
+      if (customerId && customerId !== '1') {
+        backUrl = 'service-quote-form.html?customer_id=' + customerId;
+      } else {
+        var paramsStr = q.toString();
+        if (paramsStr) backUrl += '?' + paramsStr;
+      }
+      
+      var userName = q.get('userName') || q.get('username') || q.get('user_name') || '';
+      if (!userName && window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
+        var user = MineralBarApp.getUser();
+        var emailUser = MineralBarApp.getEmail() || (user && user.email) || '';
+        if (user) {
+          userName = user.name || (emailUser ? emailUser.split('@')[0] : '') || user.username || '';
+        }
+      }
+      if (!userName) {
+        userName = 'Yossi Cohen';
+      }
+
+      var stateUpdate = {
+        discount: discount,
+        userName: userName,
+        customer_id: customerId,
+        backUrl: backUrl
+      };
+      if (name) stateUpdate.name = name;
+      if (phone) stateUpdate.phone = phone;
+      if (tz) stateUpdate.tz = tz;
+      if (address) stateUpdate.address = address;
+      this.setState(stateUpdate);
+
+      // Load products
+      var productsList = [];
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        try {
+          var client = MineralBarApp.getClient();
+          var res = await client.request('Products.List', { limit: 25 });
+          var data = res && (res.data || res.output || res);
+          if (Array.isArray(data) && data.length > 0) {
+            productsList = data.map(function(item) {
+              var name = item.product_name || item.name || 'מוצר';
+              var priceVal = Math.round(Number(item.price || item.cost || 89));
+              var desc = item.description || item.desc || 'מסלול';
+              
+              var discountVal = Number(item.discount_price || item.discount || 0);
+              var isPercent = Number(item.is_price_percent || 0) === 1;
+              var discountAmt = isPercent ? Math.round(priceVal * (discountVal / 100)) : Math.round(discountVal);
+              var discountText = '';
+              if (discountAmt > 0) {
+                discountText = isPercent ? (discountVal + '%') : (discountAmt + '₪');
+              }
+
+              return {
+                id: String(item.id),
+                name: name,
+                sub: desc,
+                price: priceVal + '₪/month',
+                priceNum: priceVal,
+                discountVal: discountVal,
+                discountAmt: discountAmt,
+                discountText: discountText,
+                hasDiscount: discountAmt > 0
+              };
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch products list', err);
+        }
+      }
+      
+      if (!productsList || productsList.length === 0) {
+        productsList = [];
+      }
+
+      var finalProducts = [];
+      if (productIdsStr) {
+        var ids = productIdsStr.split(',');
+        ids.forEach(function(productId) {
+          var found = productsList.find(function(p) { return p.id === productId; });
+          if (found) {
+            finalProducts.push(JSON.parse(JSON.stringify(found)));
+          }
+        });
+      }
+      productsList = finalProducts;
+
+      this.setState({ products: productsList });
+
+      if (window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
+        var user = MineralBarApp.getUser();
+        var email = MineralBarApp.getEmail() || (user && user.email) || '';
+        if (user) {
+          this.setState({
+            userName: user.name || (email ? email.split('@')[0] : '') || user.username || 'יוסי כהן'
+          });
+        }
+      }
+
+      if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+        try {
+          var res = await MineralBarApp.getCustomer(customerId);
+          var c = res && res.customer;
+          if (c) {
+            if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) {
+              c = c.data;
+            }
+            var fullAddress = c.address || '';
+            if (c.city || c.city_name) {
+              fullAddress += (fullAddress ? ', ' : '') + (c.city || c.city_name);
+            }
+            this.setState({
+              name: c.name || this.state.name || name || ('#' + customerId),
+              phone: c.phone || c.mobile || this.state.phone || phone,
+              address: fullAddress || this.state.address
+            });
+          }
+        } catch (err) {
+          console.warn('[MineralBar] failed to fetch customer details', err);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  getInitials(name) {
+    var p = String(name || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+    return ((p[0][0] || '') + (p[1][0] || '')).toUpperCase();
+  }
+
+  renderVals() {
+    var s = this.state;
+    var initials = this.getInitials(s.name);
+    
+    var subTotal = (s.products || []).reduce((sum, p) => sum + (p.priceNum || 0), 0);
+    var discountAmt = (s.products || []).reduce((sum, p) => sum + (p.discountAmt || 0), 0);
+    var beforeVat = subTotal - discountAmt;
+    var vatAmt = Math.round(beforeVat * 0.18);
+    var totalPayable = beforeVat + vatAmt;
+
+    var val = {
+      name: s.name,
+      phone: s.phone,
+      idText: 'ת.ז. ' + s.tz,
+      initials: initials,
+      address: s.address,
+      userName: s.userName,
+      backUrl: s.backUrl,
+      products: s.products || [],
+      subTotal: beforeVat + ' NIS/month',
+      discountAmt: discountAmt + '₪',
+      vatAmt: vatAmt + ' NIS/month',
+      totalPayable: totalPayable,
+      signatureAlertUrl: 'signature-alert.html' + (window.location.search || '')
+    }
+    return val;
+  }
+}</script>
+</body>
+</html>

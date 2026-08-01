@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Add New Customer - Biz1</title>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js?v=add-cust-2"></script>
+<script src="./page-boot.js?v=add-cust-2"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: ltr; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; background: #e6e8ec; }
+  .ds-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #dde2ea;
+    border-radius: 11px;
+    font-size: 13.5px;
+    color: #1f2a3a;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .ds-input:focus { border-color: #1d60a2; box-shadow: 0 0 0 3px rgba(29,96,162,0.08); }
+  .field-group { margin-bottom: 11px; }
+  .field-label { display: block; font-size: 12.5px; font-weight: 600; color: #5a6473; margin-bottom: 5px; }
+  .dc-scroll::-webkit-scrollbar { width: 0; height: 0; }
+</style>
+</head>
+<body>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#fff; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+
+  <!-- Header Bar -->
+  <div style="background:#101d33; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; color:#fff; flex:none;">
+    <button type="button" onclick="history.back()" style="width:36px; height:36px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+    </button>
+    <div style="font-size:18px; font-weight:800;">Add New Customer</div>
+    <div style="width:36px;"></div>
+  </div>
+
+  <!-- Scrollable Form Container -->
+  <form id="mb-add-customer-form" class="dc-scroll" style="flex:1; overflow-y:auto; padding:18px 16px;">
+    
+    <div id="mb-status-msg" style="display:none; margin-bottom:14px;"></div>
+
+    <!-- Client Name -->
+    <div class="field-group">
+      <label class="field-label">Client name <span style="color:#e74c3c;">*</span></label>
+      <input id="mb-client-name" class="ds-input" placeholder="Client name" required style="font-weight:600;" />
+    </div>
+
+    <!-- Phone & Email -->
+    <div style="display:flex; gap:10px;" class="field-group">
+      <div style="flex:1;">
+        <label class="field-label">Phone <span style="color:#e74c3c;">*</span></label>
+        <input id="mb-phone" class="ds-input" placeholder="Phone" required />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Email</label>
+        <input id="mb-email" class="ds-input" type="email" placeholder="Email" />
+      </div>
+    </div>
+
+    <!-- City & Followup -->
+    <div style="display:flex; gap:10px;" class="field-group">
+      <div style="flex:1;">
+        <label class="field-label">City</label>
+        <input id="mb-city" class="ds-input" placeholder="City" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Followup</label>
+        <input id="mb-followup" class="ds-input" type="date" />
+      </div>
+    </div>
+
+    <!-- Company & Company ID -->
+    <div style="display:flex; gap:10px;" class="field-group">
+      <div style="flex:1;">
+        <label class="field-label">Company</label>
+        <input id="mb-company" class="ds-input" placeholder="Company" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Company id</label>
+        <input id="mb-company-id" class="ds-input" placeholder="Company id" />
+      </div>
+    </div>
+
+    <!-- Website & Related Number -->
+    <div style="display:flex; gap:10px;" class="field-group">
+      <div style="flex:1;">
+        <label class="field-label">Website</label>
+        <input id="mb-website" class="ds-input" placeholder="Website" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Related Number</label>
+        <input id="mb-related-number" class="ds-input" placeholder="Related Number" />
+      </div>
+    </div>
+
+    <!-- Phone 2 & Email 2 -->
+    <div style="display:flex; gap:10px;" class="field-group">
+      <div style="flex:1;">
+        <label class="field-label">Phone 2</label>
+        <input id="mb-phone-2" class="ds-input" placeholder="Phone 2" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Email 2</label>
+        <input id="mb-email-2" class="ds-input" type="email" placeholder="Email 2" />
+      </div>
+    </div>
+
+    <!-- Source & Address -->
+    <div class="field-group">
+      <label class="field-label">Source</label>
+      <input id="mb-source" class="ds-input" placeholder="Source" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Address</label>
+      <textarea id="mb-address" class="ds-input" rows="2" placeholder="Address" style="resize:vertical;"></textarea>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Note</label>
+      <textarea id="mb-note" class="ds-input" rows="2" placeholder="Note" style="resize:vertical;"></textarea>
+    </div>
+
+    <!-- Folders & Status -->
+    <div style="display:flex; gap:10px;" class="field-group">
+      <div style="flex:1;">
+        <label class="field-label">Folders</label>
+        <select id="mb-folders" class="ds-input">
+          <option value="1">New Leads</option>
+          <option value="2" selected>Customers</option>
+          <option value="3">Archive</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">status</label>
+        <select id="mb-status" class="ds-input">
+          <option value="">Loading statuses...</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Submit CTA Button -->
+    <div style="text-align:center; margin-top:18px; margin-bottom:10px;">
+      <button id="mb-create-client-btn" type="submit" style="width:100%; padding:14px; border:none; border-radius:14px; background:#101d33; color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 6px 18px rgba(16,29,51,0.25);">
+        Create New Client
+      </button>
+    </div>
+
+  </form>
+</div>
+</div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var form = document.getElementById('mb-add-customer-form');
+  var statusMsg = document.getElementById('mb-status-msg');
+
+  async function loadStatuses() {
+    var select = document.getElementById('mb-status');
+    if (!select || !window.MineralBarApp || typeof window.MineralBarApp.getClient !== 'function') return;
+    var client = window.MineralBarApp.getClient();
+    if (!client || !client.getToken || !client.getToken()) return;
+
+    var currentValue = select.value;
+    var isEn = typeof window.getCurrentLanguage === 'function'
+      ? window.getCurrentLanguage() === 'en'
+      : true;
+    select.disabled = true;
+
+    try {
+      var res = await client.request('Statuses.List', { type: 'status', limit: 25 });
+      var rows = (res && (res.data || res.output || res.rows || res.list)) || [];
+      if (!Array.isArray(rows)) rows = [];
+
+      select.innerHTML = '';
+      var placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = isEn ? '--select status option--' : '--בחר סטטוס--';
+      select.appendChild(placeholder);
+
+      rows.forEach(function (row) {
+        var id = row.status_id || row.id || row.data_id;
+        var label = isEn
+          ? (row.name_en || row.name_for || row.name_he)
+          : (row.name_he || row.name_for || row.name_en);
+        if (id == null || !label) return;
+        var option = document.createElement('option');
+        option.value = String(id);
+        option.textContent = String(label);
+        select.appendChild(option);
+      });
+
+      if (currentValue && Array.from(select.options).some(function (option) {
+        return option.value === currentValue;
+      })) {
+        select.value = currentValue;
+      }
+    } catch (e) {
+      console.error('[sales-add-customer] Statuses.List failed', e);
+      select.innerHTML = '';
+      var failed = document.createElement('option');
+      failed.value = '';
+      failed.textContent = isEn ? 'Unable to load statuses' : 'לא ניתן לטעון סטטוסים';
+      select.appendChild(failed);
+    } finally {
+      select.disabled = false;
+    }
+  }
+
+  loadStatuses();
+  window.addEventListener('mineralbar:ready', loadStatuses);
+  window.addEventListener('mineralbar:language-changed', loadStatuses);
+
+  function showMsg(kind, text) {
+    if (!statusMsg) return;
+    var bg = kind === 'error' ? '#fbeeed' : '#e6f4ec';
+    var border = kind === 'error' ? '#f0c9c4' : '#cce8d6';
+    var color = kind === 'error' ? '#7a2e28' : '#1f5c3f';
+    statusMsg.style.display = 'block';
+    statusMsg.innerHTML = '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:10px;padding:10px 14px;color:' + color + ';font-size:13px;font-weight:700;">' + text + '</div>';
+  }
+
+  if (form) {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      var nameIn = document.getElementById('mb-client-name');
+      var phoneIn = document.getElementById('mb-phone');
+      var emailIn = document.getElementById('mb-email');
+      var cityIn = document.getElementById('mb-city');
+      var followupIn = document.getElementById('mb-followup');
+      var companyIn = document.getElementById('mb-company');
+      var companyIdIn = document.getElementById('mb-company-id');
+      var websiteIn = document.getElementById('mb-website');
+      var relatedIn = document.getElementById('mb-related-number');
+      var phone2In = document.getElementById('mb-phone-2');
+      var email2In = document.getElementById('mb-email-2');
+      var sourceIn = document.getElementById('mb-source');
+      var addressIn = document.getElementById('mb-address');
+      var noteIn = document.getElementById('mb-note');
+      var folderSel = document.getElementById('mb-folders');
+      var statusSel = document.getElementById('mb-status');
+
+      var name = nameIn ? nameIn.value.trim() : '';
+      var phone = phoneIn ? phoneIn.value.trim() : '';
+
+      if (!name || !phone) {
+        showMsg('error', 'Please enter Client name and Phone number.');
+        return;
+      }
+
+      var btn = document.getElementById('mb-create-client-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Creating Client…'; }
+      showMsg('info', 'Creating new customer…');
+
+      try {
+        var payload = {
+          name: name,
+          phone: phone,
+          email: emailIn ? emailIn.value.trim() : '',
+          city: cityIn ? cityIn.value.trim() : '',
+          followup: followupIn ? followupIn.value : '',
+          company: companyIn ? companyIn.value.trim() : '',
+          company_id: companyIdIn ? companyIdIn.value.trim() : '',
+          website: websiteIn ? websiteIn.value.trim() : '',
+          second_phone: phone2In ? phone2In.value.trim() : '',
+          second_email: email2In ? email2In.value.trim() : '',
+          source: sourceIn ? sourceIn.value.trim() : '',
+          address: addressIn ? addressIn.value.trim() : '',
+          note: noteIn ? noteIn.value.trim() : '',
+          folder_id: folderSel ? folderSel.value : '2',
+          status_id: statusSel ? statusSel.value : ''
+        };
+
+        if (window.MineralBarApp && typeof MineralBarApp.createCustomer === 'function') {
+          await MineralBarApp.createCustomer(payload);
+        } else {
+          await MineralBarApp.getClient().request('Customer.Add', payload);
+        }
+
+        showMsg('ok', 'Customer created successfully! Redirecting…');
+        setTimeout(function() {
+          location.href = 'customers.html';
+        }, 600);
+      } catch (err) {
+        console.error('Failed to create customer', err);
+        showMsg('error', 'Failed to create customer: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Create New Client'; }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js?v=chat-2"></script>
+<script src="./page-boot.js?v=chat-2"></script>
+<script src="./messages-live.js?v=chat-2"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-role="sales" data-active-tab="messages" data-header-title="messages" data-header-subtitle-id="mb-messages-total" data-header-action-id="mb-messages-refresh" data-header-action-svg='<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>'>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .ds-search::placeholder { color: #9aa3b0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div class="screen-card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+
+  <!-- search -->
+  <div style="flex:none; background:var(--bg-panel, #fff); padding:0 16px 13px; border-bottom:1px solid var(--border-panel, #eef0f3);">
+    <div style="display:flex; align-items:center; gap:9px; padding:10px 14px; border:1.5px solid var(--border-panel, #dde2ea); border-radius:13px; background:var(--bg-form, #f1f3f6);">
+      <svg fill="none" height="18" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.2-3.2"></path></svg>
+      <input class="ds-search" id="mb-messages-search" placeholder="Search for conversation..." style="flex:1; border:none; outline:none; background:transparent; font-size:14px; color:var(--text-title, #1f2a3a); text-align:left;"/>
+    </div>
+  </div>
+  <div class="dc-scroll" style="flex:1; overflow-y:auto; background:var(--bg-panel, #fff);">
+    <div id="mb-live-messages"></div>
+  </div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script>
+  window.addEventListener('load', function() {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  });
+</script>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc"></script>
+</body>
+</html>

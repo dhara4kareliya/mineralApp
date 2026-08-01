@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
+<script src="./biz1-app.js"></script>
+<script src="./page-boot.js"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-role="tech" data-active-tab="open_calls">
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
+<!-- header -->
+<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 12px; flex:none;">
+<button type="button" onclick="{{ onClose }}" style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06);">
+<svg fill="none" height="18" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m15 18-6-6 6-6"></path></svg>
+</button>
+<div style="text-align:center;">
+<div style="font-size:18px; font-weight:800; color:#1f2a3a;">open tickets</div>
+<div style="font-size:12px; color:#8a93a3; margin-top:1px;">{{ todayDate }} · {{ userName }}</div>
+</div>
+<div style="width:40px;"></div>
+</div>
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
+<!-- enforcement banner -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ hasOpen }}">
+<div style="display:flex; gap:11px; background:#fbeeed; border:1px solid #f1c9c4; border-radius:15px; padding:14px 15px; margin-bottom:16px;">
+<div style="width:40px; height:40px; border-radius:11px; background:#c0392b; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14px; font-weight:800; color:#a3302e;">You have {{ openCount }} open tickets</div>
+<div style="font-size:12.5px; color:#b5564f; margin-top:2px; line-height:1.5;">It is not possible to sign a departure in the attendance clock until all tickets are closed.</div>
+</div>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ allClosed }}">
+<div style="display:flex; gap:11px; background:#eafaf0; border:1px solid #cdeeda; border-radius:15px; padding:14px 15px; margin-bottom:16px;">
+<div style="width:40px; height:40px; border-radius:11px; background:#25b35e; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="22"><path d="M20 6 9 17l-5-5"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14px; font-weight:800; color:#1f7a45;">All tickets have been addressed</div>
+<div style="font-size:12.5px; color:#4f9b6f; margin-top:2px; line-height:1.5;">It is possible to sign an exit in the attendance clock.</div>
+</div>
+</div>
+</sc-if>
+<!-- open calls list -->
+<sc-for as="c" hint-placeholder-count="3" list="{{ calls }}">
+<div style="background:#fff; border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); border-right:4px solid {{ c.accent }};">
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+<div style="flex:1; text-align:left; min-width:0;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a; text-align:left;">{{ c.name }}</div>
+<div style="font-size:13.5px; color:#5a6473; margin-top:3px; text-align:left; font-weight:600;">{{ c.customerDetail }}</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ c.hasPreview }}">
+<div style="font-size:12.5px; color:#8a93a3; margin-top:5px; text-align:left; line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-word;">{{ c.preview }}</div>
+</sc-if>
+<div style="display:flex; align-items:center; gap:4px; font-size:12.5px; color:#9aa3b0; margin-top:5px; text-align:left;">
+<svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="13"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+                  {{ c.address }}
+                </div>
+</div>
+<div style="display:inline-flex; align-items:center; gap:4px; background:{{ c.badgeBg }}; color:{{ c.badgeColor }}; font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap; flex:none;">
+<span style="width:6px; height:6px; border-radius:50%; background:{{ c.badgeColor }};"></span>{{ c.badge }}
+              </div>
+</div>
+<div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+<div style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#5a6473;">
+<svg fill="none" height="13" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="13"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                {{ c.time }}
+              </div>
+<div style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#5a6473;">
+<svg fill="none" height="13" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="13"><path d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z"></path></svg>
+                {{ c.type }}
+              </div>
+</div>
+<div style="display:flex; gap:8px; margin-top:13px;">
+<button type="button" onclick="{{ c.action }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:none; border-radius:11px; background:{{ c.btnBg }}; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:{{ c.btnShadow }};">
+<svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="{{ c.btnIcon }}"></path></svg>
+                {{ c.btnLabel }}
+              </button>
+</div>
+</div>
+</sc-for>
+<!-- deferred section -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasDeferred }}">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:16px 2px 10px;">Postponed to tomorrow</div>
+<sc-for as="d" hint-placeholder-count="0" list="{{ deferred }}">
+<div style="background:#f6f7f9; border-radius:14px; padding:13px 14px; margin-bottom:10px; display:flex; align-items:center; gap:11px;">
+<div style="width:34px; height:34px; border-radius:9px; background:#e9ebef; color:#8a93a3; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.3 2.6L3 8"></path><path d="M3 4v4h4"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14px; font-weight:700; color:#5a6473;">{{ d.name }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:1px;">Postponed to the next day · {{ d.reason }}</div>
+</div>
+<button onclick="{{ d.restore }}" style="border:none; background:none; color:#1d60a2; font-size:12.5px; font-weight:700; cursor:pointer;">refund</button>
+</div>
+</sc-for>
+</sc-if>
+</div>
+<!-- bottom clock-out bar -->
+<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 10px;">
+<button onclick="{{ clockOut }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ outBg }}; color:{{ outColor }}; font-size:15.5px; font-weight:800; cursor:{{ outCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ outShadow }};">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ blocked }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></sc-if>
+          {{ outLabel }}
+        </button>
+</div>
+<!-- defer confirmation sheet -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ deferOpen }}">
+<div style="position:absolute; inset:0; z-index:50; background:rgba(15,24,40,.45); display:flex; align-items:flex-end;">
+<div style="width:100%; background:#fff; border-radius:22px 22px 0 0; padding:18px 16px 28px;">
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px;">
+<div>
+<div style="font-size:17px; font-weight:800; color:#1f2a3a;">Postpone a call to tomorrow</div>
+<div style="font-size:12.5px; color:#9aa3b0; margin-top:3px;">Select a reason—required for documentation</div>
+</div>
+<button type="button" onclick="{{ cancelDefer }}" style="width:34px; height:34px; border:none; border-radius:50%; background:#f0f2f5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="16" stroke="#5a6473" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="16"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</button>
+</div>
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">Confirmation of rejection</div>
+<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+<sc-for as="r" hint-placeholder-count="4" list="{{ reasons }}">
+<button type="button" onclick="{{ r.pick }}" style="display:flex; align-items:center; gap:11px; width:100%; padding:12px 13px; border:1.5px solid {{ r.border }}; border-radius:12px; background:{{ r.bg }}; color:{{ r.color }}; font-size:14px; font-weight:700; cursor:pointer; text-align:right;">
+<span style="width:18px; height:18px; border-radius:50%; border:2px solid {{ r.radioBorder }}; background:{{ r.radioBg }}; flex:none;"></span>
+<span style="flex:1;">{{ r.label }}</span>
+</button>
+</sc-for>
+</div>
+<button type="button" onclick="{{ confirmDefer }}" style="width:100%; padding:14px; border:none; border-radius:13px; background:{{ confirmBg }}; color:{{ confirmColor }}; font-size:15px; font-weight:800; cursor:{{ confirmCursor }};">Confirm deferral</button>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    calls: [
+      { id: 1, name: 'דוד מזרחי', address: 'גבעתיים · כצנלסון 22', time: '12:00', type: 'תיקון נזילה', status: 'overdue' },
+      { id: 2, name: 'רותם רחמים', address: 'הוד השרון · סוקולוב 5', time: '14:30', type: 'החלפת מרכך', status: 'open' },
+      { id: 3, name: 'נועה ברק', address: 'רעננה · אחוזה 40', time: '16:15', type: 'בדיקת מערכת', status: 'open' },
+    ],
+    deferred: [],
+    deferTarget: null,
+    deferReason: null,
+    langTick: 0,
+  };
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  componentDidMount() {
+    this.initData();
+    window.addEventListener('mineralbar:ready', () => {
+      this.initData();
+    });
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+          if (typeof applyTranslations === 'function') {
+            applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+          }
+        }, 80);
+      }
+    });
+  }
+
+  async initData() {
+    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      try {
+        var client = MineralBarApp.getClient();
+        var res = await client.request('Ticket.List', { limit: 25 });
+        var data = res && (res.data || res.output || res);
+        var self = this;
+
+        if (Array.isArray(data) && data.length > 0) {
+          var openTickets = [];
+          data.forEach(function(item) {
+            var lastMsg = '';
+            if (Array.isArray(item.messages) && item.messages.length > 0) {
+              lastMsg = item.messages[item.messages.length - 1].message || '';
+            } else if (typeof item.messages === 'string') {
+              lastMsg = item.messages;
+            } else if (item.message) {
+              lastMsg = item.message;
+            }
+
+            var closed = self.isTicketClosed(item, lastMsg);
+            var st = String(item.status || '').toLowerCase();
+
+            var name = item.subject || '';
+
+            var address = item.address;
+            if (!address || address === 'null') {
+              address = (item.city_id && item.city_id !== 'undefined') ? item.city_id : '';
+            }
+
+            var dateStr = item.due_date || item.open_date || '';
+            var timeVal = '12:00';
+            if (dateStr && dateStr.includes('T')) {
+              try {
+                var dObj = new Date(dateStr);
+                var hrs = String(dObj.getHours()).padStart(2, '0');
+                var mins = String(dObj.getMinutes()).padStart(2, '0');
+                var day = String(dObj.getDate()).padStart(2, '0');
+                var month = String(dObj.getMonth() + 1).padStart(2, '0');
+                timeVal = day + '/' + month + ' · ' + hrs + ':' + mins;
+              } catch (e) {
+                var timeParts = dateStr.split('T')[1] || '';
+                if (timeParts) {
+                  timeVal = timeParts.substring(0, 5);
+                }
+              }
+            }
+
+            var custName = item.customer_name || item.joined_customer_name || '';
+            var typeVal = item.type || '';
+            var ticketStatus = 'open';
+            if (closed) ticketStatus = 'closed';
+            else if (st === 'overdue' || st === 'delayed' || st === 'late') ticketStatus = 'overdue';
+
+            openTickets.push({
+              id: item.id,
+              name: name,
+              address: address,
+              time: timeVal,
+              type: typeVal,
+              custName: custName,
+              lastMsg: lastMsg,
+              status: ticketStatus,
+              isClosed: closed
+            });
+          });
+
+          // Open first, closed after
+          openTickets.sort(function (a, b) {
+            if (!!a.isClosed === !!b.isClosed) return 0;
+            return a.isClosed ? 1 : -1;
+          });
+
+          this.setState({ calls: openTickets });
+        }
+      } catch (err) {
+        console.warn('[MineralBar] failed to load tickets', err);
+      }
+    }
+  }
+
+  isTicketClosed(item, lastMsg) {
+    if (!item) return false;
+    var st = String(item.status_name || item.status_label || item.status || '').toLowerCase();
+    if (st === '2' || st === 'closed' || st === 'done' || st === 'completed' || st === 'סגור' || st === 'נסגר') return true;
+    var sid = Number(item.status_id != null ? item.status_id : item.status);
+    if (sid === 2 || sid === 4 || sid === 5) return true;
+    var msg = String(lastMsg || '');
+    if (/BIZ1_MEDIA\s*:/i.test(msg) || /Client signature saved/i.test(msg)) return true;
+    return false;
+  }
+
+  reasonOptions() {
+    return [
+      { id: 'noanswer', label: this.t('No answer from customer', 'אין מענה מהלקוח') },
+      { id: 'parts', label: this.t('Missing part / stock', 'חוסר חלק / מלאי') },
+      { id: 'time', label: this.t('Out of time — end of day', 'חוסר זמן — סוף יום') },
+      { id: 'access', label: this.t('No access to address', 'אין גישה לכתובת') },
+    ];
+  }
+
+  reasonShortLabel(id) {
+    var map = {
+      noanswer: this.t('No answer', 'אין מענה'),
+      parts: this.t('Missing part', 'חוסר חלק'),
+      time: this.t('Out of time', 'חוסר זמן'),
+      access: this.t('No access', 'אין גישה'),
+    };
+    return map[id] || id || '';
+  }
+
+  /** Strip close-ticket media blobs / boilerplate from list preview. */
+  cleanMessagePreview(msg) {
+    if (!msg) return '';
+    var text = String(msg);
+    text = text.replace(/BIZ1_MEDIA:\s*\{[\s\S]*?\}\s*/g, '');
+    text = text.replace(/https?:\/\/\S+/gi, '');
+    text = text.replace(/\bBefore photo attached\.?/gi, '');
+    text = text.replace(/\bAfter photo attached\.?/gi, '');
+    text = text.replace(/\bClient signature saved\.?/gi, '');
+    text = text.replace(/^Work summary:\s*/im, '');
+    text = text.replace(/\n+/g, ' · ');
+    text = text.replace(/\s{2,}/g, ' ').replace(/\s·\s·/g, ' · ').trim();
+    text = text.replace(/^[\s·\-]+|[\s·\-]+$/g, '');
+    if (text.length > 90) text = text.slice(0, 87).trim() + '…';
+    return text;
+  }
+
+  closeCall(id) {
+    var q = new URLSearchParams();
+    if (id) q.set('ticket_id', String(id));
+    var call = (this.state.calls || []).find(function (c) { return String(c.id) === String(id); });
+    if (call && call.name) {
+      q.set('name', call.name);
+      q.set('subject', call.name);
+    }
+    if (call && call.custName) q.set('customer', call.custName);
+    if (call && call.isClosed) q.set('view', '1');
+    window.location.href = 'tech-call-close.html?' + q.toString();
+  }
+
+  viewCall(id) {
+    var q = new URLSearchParams();
+    if (id) q.set('ticket_id', String(id));
+    q.set('view', '1');
+    var call = (this.state.calls || []).find(function (c) { return String(c.id) === String(id); });
+    if (call && call.name) {
+      q.set('name', call.name);
+      q.set('subject', call.name);
+    }
+    if (call && call.custName) q.set('customer', call.custName);
+    window.location.href = 'tech-call-close.html?' + q.toString();
+  }
+  openDefer(id) { this.setState({ deferTarget: id, deferReason: null }); }
+  cancelDefer() { this.setState({ deferTarget: null, deferReason: null }); }
+  pickReason(r) { this.setState({ deferReason: r }); }
+  confirmDefer() {
+    const { deferTarget, deferReason } = this.state;
+    if (!deferReason) return;
+    this.setState(s => {
+      const call = s.calls.find(c => c.id === deferTarget);
+      return {
+        calls: s.calls.filter(c => c.id !== deferTarget),
+        deferred: [...s.deferred, { ...call, reasonId: deferReason }],
+        deferTarget: null, deferReason: null,
+      };
+    });
+  }
+  restore(id) {
+    this.setState(s => {
+      const call = s.deferred.find(c => c.id === id);
+      const { reasonId, reason, ...rest } = call;
+      return {
+        deferred: s.deferred.filter(c => c.id !== id),
+        calls: [...s.calls, rest],
+      };
+    });
+  }
+
+  goBack() {
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (e) { /* fallback below */ }
+    window.location.href = 'tech-dashboard.html';
+  }
+
+  renderVals() {
+    void this.state.langTick;
+    const st = this.state;
+    const openOnly = (st.calls || []).filter(function (c) { return !c.isClosed && c.status !== 'closed'; });
+    const openCount = openOnly.length;
+    const hasOpen = openCount > 0;
+    const fallbackCall = this.t('Service call', 'קריאת שירות');
+    const fallbackAddr = this.t('No address listed', 'לא צוינה כתובת');
+    const fallbackCust = this.t('Customer', 'לקוח');
+
+    var userName = 'Yossi Cohen';
+    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      var user = MineralBarApp.getUser();
+      if (user) {
+        userName = user.name || user.first_name || user.user_name || user.email || 'Yossi Cohen';
+      }
+    }
+
+    var today = new Date();
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var dd = String(today.getDate()).padStart(2, '0');
+    var yy = String(today.getFullYear()).slice(-2);
+    var todayDate = mm + '/' + dd + '/' + yy;
+
+    const ST = {
+      overdue: { accent: '#c0392b', badge: this.t('Overdue', 'באיחור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
+      open: { accent: '#e0a13c', badge: this.t('Waiting', 'ממתינה'), badgeBg: '#fdf1dd', badgeColor: '#bd8324' },
+      closed: { accent: '#c0392b', badge: this.t('Closed', 'סגור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
+    };
+
+    const calls = st.calls.map(c => {
+      const custName = c.custName || fallbackCust;
+      const preview = this.cleanMessagePreview(c.lastMsg || c.customerDetail || '');
+      const closed = !!(c.isClosed || c.status === 'closed');
+      const stMeta = ST[c.status] || (closed ? ST.closed : ST.open);
+      return {
+        name: c.name || fallbackCall,
+        address: c.address || fallbackAddr,
+        time: c.time,
+        type: c.type || fallbackCall,
+        customerDetail: custName,
+        preview: preview,
+        hasPreview: !!preview,
+        accent: stMeta.accent,
+        badge: stMeta.badge,
+        badgeBg: stMeta.badgeBg,
+        badgeColor: stMeta.badgeColor,
+        btnBg: closed ? '#c0392b' : '#1d60a2',
+        btnShadow: closed ? '0 4px 12px rgba(192,57,43,.28)' : 'none',
+        btnLabel: closed
+          ? this.t('View', 'צפייה')
+          : this.t('close ticket', 'סגור טיקט'),
+        btnIcon: closed
+          ? 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'
+          : 'M20 6 9 17l-5-5',
+        action: () => closed ? this.viewCall(c.id) : this.closeCall(c.id),
+        close: () => this.closeCall(c.id),
+        defer: () => this.openDefer(c.id),
+      };
+    });
+
+    const deferred = st.deferred.map(d => ({
+      name: d.name || fallbackCall,
+      reason: d.reasonId ? this.reasonShortLabel(d.reasonId) : (d.reason || ''),
+      restore: () => this.restore(d.id),
+    }));
+
+    const reasons = this.reasonOptions().map(r => {
+      const on = st.deferReason === r.id;
+      return {
+        label: r.label, pick: () => this.pickReason(r.id), on,
+        bg: on ? '#eaf2fb' : '#fff', border: on ? '#1d60a2' : '#e4e8ee',
+        color: on ? '#194f84' : '#5a6473',
+        radioBorder: on ? '#1d60a2' : '#cbd3de', radioBg: on ? '#1d60a2' : '#fff',
+      };
+    });
+
+    const canConfirm = !!st.deferReason;
+
+    return {
+      userName,
+      todayDate,
+      hasOpen, allClosed: !hasOpen, openCount,
+      calls,
+      deferred, hasDeferred: deferred.length > 0,
+
+      blocked: hasOpen,
+      clockOut: () => {},
+      outBg: hasOpen ? '#e9ecf0' : 'linear-gradient(#33a571,#2c8a60)',
+      outColor: hasOpen ? '#9aa3b0' : '#fff',
+      outCursor: hasOpen ? 'not-allowed' : 'pointer',
+      outShadow: hasOpen ? 'none' : '0 6px 16px rgba(44,138,96,.32)',
+      outLabel: hasOpen
+        ? this.t('Close tickets to clock out', 'סגור טיקטים כדי להחתים יציאה')
+        : this.t('Clock out · End of day', 'החתם יציאה · סיום יום'),
+
+      deferOpen: st.deferTarget !== null,
+      cancelDefer: () => this.cancelDefer(),
+      confirmDefer: () => this.confirmDefer(),
+      reasons,
+      confirmBg: canConfirm ? '#1d60a2' : '#e9ecf0',
+      confirmColor: canConfirm ? '#fff' : '#9aa3b0',
+      confirmCursor: canConfirm ? 'pointer' : 'not-allowed',
+      onClose: () => this.goBack(),
+    };
+  }
+}
+</script>
+
+<script>
+  window.addEventListener('load', function () {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    if (typeof applyTranslations === 'function') applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+  });
+  setTimeout(function () {
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }, 300);
+  setTimeout(function () {
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }, 1000);
+</script>
+</body>
+</html>

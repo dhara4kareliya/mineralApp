@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script src="./support.js"></script>
+<script src="./biz1-sdk.js?v=socketfix4"></script>
+<script src="./biz1-app.js?v=socketfix4"></script>
+<script src="./page-boot.js?v=socketfix4"></script>
+<link rel="stylesheet" href="./common.css"/>
+<script src="./i18n-translations.js"></script>
+<script src="./common-header-footer.js"></script>
+</head>
+<body data-role="service" data-active-tab="inventory">
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; direction: ltr; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font-family: 'Heebo', sans-serif; }
+  .dc-scroll::-webkit-scrollbar { width: 0; }
+  .dc-hbar::-webkit-scrollbar { height: 0; }
+  .dc-hbar {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  .search-input {
+    width: 100%;
+    padding: 11px 15px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    outline: none;
+    font-size: 14.5px;
+    transition: all 0.2s ease;
+  }
+  .search-input:focus {
+    border-color: #1d60a2;
+    box-shadow: 0 0 0 3px rgba(29, 96, 162, 0.1);
+  }
+  
+  .form-label {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #4a5568;
+    margin-bottom: 6px;
+    text-align: left;
+  }
+  
+  .premium-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.6px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    color: #1a202c;
+    background: #fff;
+    outline: none;
+    transition: all 0.2s ease;
+    text-align: left;
+    margin-bottom: 16px;
+  }
+  
+  .premium-input:focus {
+    border-color: #1d60a2;
+    box-shadow: 0 0 0 3px rgba(29, 96, 162, 0.1);
+  }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:392px; max-width:100%; position:relative; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
+  
+  <!-- header -->
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 10px; flex:none;">
+    <div style="width:40px;"></div>
+    <div style="font-size:20px; font-weight:800; color:#1f2a3a;">inventory</div>
+    <button onclick="{{ openAddModal }}" style="width:40px; height:40px; border-radius:50%; border:none; background:#1d60a2; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(29,96,162,0.3);">
+      <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="20"><path d="M12 5v14M5 12h14"></path></svg>
+    </button>
+  </div>
+
+  <!-- summary cards -->
+  <div style="display:flex; gap:9px; padding:0 16px 12px; flex:none;">
+    <div style="flex:1; background:#fff; border-radius:14px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+      <div style="font-size:21px; font-weight:800; color:#1f2a3a; line-height:1;">{{ inStockQty }}</div>
+      <div style="font-size:11px; color:#8a93a3; margin-top:4px; font-weight:600;">Items in stock</div>
+    </div>
+    <div style="flex:1; background:#fff; border-radius:14px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+      <div style="font-size:21px; font-weight:800; color:#bd8324; line-height:1;">{{ lowStockCount }}</div>
+      <div style="font-size:11px; color:#8a93a3; margin-top:4px; font-weight:600;">Low inventory</div>
+    </div>
+    <div style="flex:1; background:#fff; border-radius:14px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+      <div style="font-size:21px; font-weight:800; color:#c0392b; line-height:1;">{{ outStockCount }}</div>
+      <div style="font-size:11px; color:#8a93a3; margin-top:4px; font-weight:600;">short</div>
+    </div>
+  </div>
+
+  <!-- Active / Inactive tabs -->
+  <div style="display:flex; gap:8px; padding:0 16px 12px; flex:none;">
+    <button onclick="{{ setStatusActive }}" style="flex:1; padding:10px 12px; border-radius:12px; font-size:13.5px; font-weight:700; cursor:pointer; border:1.5px solid {{ statusActiveBorder }}; background:{{ statusActiveBg }}; color:{{ statusActiveColor }};">
+      Active <span style="opacity:0.7; font-weight:600;">({{ activeCount }})</span>
+    </button>
+    <button onclick="{{ setStatusInactive }}" style="flex:1; padding:10px 12px; border-radius:12px; font-size:13.5px; font-weight:700; cursor:pointer; border:1.5px solid {{ statusInactiveBorder }}; background:{{ statusInactiveBg }}; color:{{ statusInactiveColor }};">
+      Inactive <span style="opacity:0.7; font-weight:600;">({{ inactiveCount }})</span>
+    </button>
+  </div>
+
+  <!-- Search input bar -->
+  <div style="padding:0 16px 12px; flex:none;">
+    <div style="position:relative;">
+      <input type="text" class="search-input" oninput="{{ onSearchChange }}" placeholder="Search by product name..." value="{{ searchQuery }}"/>
+    </div>
+  </div>
+
+  <!-- category chips (drag / swipe to scroll) -->
+  <div id="inventory-category-chips" ref="{{ chipsRef }}" class="dc-hbar" style="display:flex; gap:8px; padding:2px 16px 12px; overflow-x:auto; flex:none; cursor:grab;">
+    <sc-for as="c" list="{{ categories }}">
+      <button type="button" onclick="{{ c.pick }}" style="flex:none; padding:8px 15px; border-radius:99px; font-size:13px; font-weight:{{ c.weight }}; cursor:pointer; white-space:nowrap; background:{{ c.bg }}; color:{{ c.color }}; border:1.3px solid {{ c.border }}; pointer-events:auto;">{{ c.label }}</button>
+    </sc-for>
+  </div>
+
+  <!-- product groups scrollable list -->
+  <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 12px;">
+    <sc-for as="g" list="{{ groups }}">
+      <div style="margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:8px; margin:2px 2px 11px;">
+          <div style="width:28px; height:28px; border-radius:8px; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+            <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="16"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path></svg>
+          </div>
+          <span style="font-size:14px; font-weight:800; color:#1f2a3a;">{{ g.title }}</span>
+          <span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ g.count }}</span>
+        </div>
+        <div style="background:#fff; border-radius:16px; padding:5px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+          <sc-for as="it" list="{{ g.items }}">
+            <div onclick="{{ it.click }}" style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid {{ it.border }}; cursor:pointer;">
+              <div style="flex:1; text-align:left;">
+                <div style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ it.name }}</div>
+                <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }} · <span style="color:#2e8a63; font-weight:700;">{{ it.priceText }}</span></div>
+              </div>
+              <div style="display:inline-flex; align-items:center; gap:4px; background:{{ it.tagBg }}; color:{{ it.tagColor }}; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; flex:none;">
+                <span style="width:6px; height:6px; border-radius:50%; background:{{ it.tagColor }};"></span>{{ it.tag }}
+              </div>
+              <div style="text-align:left; flex:none; min-width:42px;">
+                <div style="font-size:17px; font-weight:800; color:{{ it.qtyColor }}; line-height:1;">{{ it.qty }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Add Product Modal Sheet overlay -->
+  <sc-if value="{{ addOpen }}">
+    <div style="position:absolute; inset:0; z-index:40;">
+      <div onclick="{{ closeAdd }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
+      <div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41; text-align:left;">
+        <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px; flex:none;"></div>
+        
+        <div style="font-size:19px; font-weight:800; color:#1f2a3a; margin-bottom:18px;">Add product</div>
+        
+        <!-- Section 1: Basic Info -->
+        <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Basic Info</div>
+        
+        <label class="form-label">Product name *</label>
+        <input class="gv-in premium-input" type="text" placeholder="Enter product name..." value="{{ addName }}" oninput="{{ onAddNameChange }}"/>
+        
+        <label class="form-label">English label</label>
+        <input class="gv-in premium-input" type="text" placeholder="Enter English label..." value="{{ addEnname }}" oninput="{{ onAddEnnameChange }}"/>
+
+        <label class="form-label">Suppliers</label>
+        <div style="position:relative; margin-bottom:16px;">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddSupplierChange }}">
+            <option value="">Select supplier</option>
+            <sc-for as="sup" list="{{ suppliers }}">
+              <option value="{{ sup.id }}" selected="{{ sup.selected }}">{{ sup.name }}</option>
+            </sc-for>
+          </select>
+          <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">SKU</label>
+            <input class="gv-in premium-input" type="text" placeholder="Insert product SKU" value="{{ addSku }}" oninput="{{ onAddSkuChange }}" style="margin-bottom:8px;"/>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:16px; cursor:pointer;">
+              <input type="checkbox" checked="{{ addGenerateSku }}" onchange="{{ onAddGenerateSkuChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+              <span>Generate SKU</span>
+            </label>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Internal product SKU</label>
+            <input class="gv-in premium-input" type="text" placeholder="Insert internal product SKU" value="{{ addInternalSku }}" oninput="{{ onAddInternalSkuChange }}"/>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Category</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddCategoryChange }}">
+                <option value="">Select Category</option>
+                <sc-for as="cat" list="{{ selectableCategories }}">
+                  <option value="{{ cat.id }}" selected="{{ cat.addSelected }}">{{ cat.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Sub Category</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddSubCatChange }}">
+                <option value="0">-- Select Sub Category --</option>
+                <sc-for as="sub" list="{{ subCategories }}">
+                  <option value="{{ sub.id }}" selected="{{ sub.selected }}">{{ sub.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Type</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddTypeChange }}">
+                <sc-for as="t" list="{{ productTypes }}">
+                  <option value="{{ t.value }}" selected="{{ t.addSelected }}">{{ t.label }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Company</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddCompanyChange }}">
+                <option value="">Company</option>
+                <sc-for as="co" list="{{ companies }}">
+                  <option value="{{ co.id }}" selected="{{ co.selected }}">{{ co.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Team member</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddTeamMemberChange }}">
+                <option value="">Select Team Member</option>
+                <sc-for as="tm" list="{{ teamMembers }}">
+                  <option value="{{ tm.id }}" selected="{{ tm.selected }}">{{ tm.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+          <div style="flex:1;"></div>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div style="flex:1.2;">
+            <label class="form-label">Storage Place</label>
+            <input class="gv-in premium-input" type="text" placeholder="Storage Place" value="{{ addStoragePlace }}" oninput="{{ onAddStoragePlaceChange }}" style="margin-bottom:8px;"/>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; min-height:8px; margin-bottom:8px;">
+              <sc-for as="chip" list="{{ selectedStorageChips }}">
+                <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
+                  {{ chip.name }}
+                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">×</button>
+                </span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Select Storage</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddStorageSelect }}">
+                <option value="">All</option>
+                <sc-for as="st" list="{{ storages }}">
+                  <option value="{{ st.id }}">{{ st.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <label class="form-label">Main Image</label>
+        <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:120px; margin-bottom:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; overflow:hidden;">
+          <input type="file" accept="image/*" onchange="{{ onAddImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+          <sc-if value="{{ hasAddImage }}">
+            <img src="{{ addImagePreview }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+            <div style="font-size:12px; font-weight:700; color:#1f2a3a; position:relative; z-index:1;">{{ addImageName }}</div>
+          </sc-if>
+          <sc-if value="{{ noAddImage }}">
+            <div style="width:44px; height:44px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+              <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+            </div>
+            <div style="font-size:13px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1;">Select or drag &amp; drop here your product pictures</div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ isSubscription }}">
+          <div style="background:#f8fafc; border:1px solid #e4e8ee; border-radius:14px; padding:14px; margin-bottom:16px;">
+            <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Subscription</div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:12px; cursor:pointer;">
+              <input type="checkbox" checked="{{ addEndless }}" onchange="{{ onAddEndlessChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+              <span>Endless</span>
+            </label>
+            <div style="display:flex; gap:12px;">
+              <div style="flex:1;">
+                <label class="form-label">Months</label>
+                <div style="position:relative;">
+                  <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddMonthsChange }}">
+                    <sc-for as="m" list="{{ monthOptions }}">
+                      <option value="{{ m.value }}" selected="{{ m.selected }}">{{ m.label }}</option>
+                    </sc-for>
+                  </select>
+                  <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+                </div>
+              </div>
+              <div style="flex:1;">
+                <label class="form-label">Price After</label>
+                <input class="gv-in premium-input" type="number" placeholder="Price After" value="{{ addPriceAfter }}" oninput="{{ onAddPriceAfterChange }}"/>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Stock qty</label>
+            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ addStock }}" oninput="{{ onAddStockChange }}"/>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Min stock</label>
+            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ addMinStock }}" oninput="{{ onAddMinStockChange }}"/>
+          </div>
+        </div>
+
+        <!-- Section 2: Prices -->
+        <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Prices</div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
+            <input type="checkbox" checked="{{ addPriceAsCost }}" onchange="{{ onAddPriceAsCostChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <span>Price as cost + %</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
+            <input type="checkbox" checked="{{ addVatIncluded }}" onchange="{{ onAddVatIncludedChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <span>VAT included</span>
+          </label>
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Price</label>
+            <input class="gv-in premium-input" type="number" placeholder="Insert product price" value="{{ addPrice }}" oninput="{{ onAddPriceChange }}"/>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Cost price</label>
+            <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ addCost }}" oninput="{{ onAddCostChange }}"/>
+          </div>
+        </div>
+
+        <label class="form-label">Discount price</label>
+        <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ addDiscountPrice }}" oninput="{{ onAddDiscountChange }}"/>
+
+        <!-- Section 3: Details (no status on create) -->
+        <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Options</div>
+
+        <label class="form-label">Product details</label>
+        <textarea class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" value="{{ addDesc }}" oninput="{{ onAddDescChange }}"></textarea>
+        
+        <div style="display:flex; gap:12px; align-items:center; margin-top:16px; flex:none;">
+          <button onclick="{{ closeAdd }}" style="flex:1; padding:14px; border:1.6px solid #cbd5e0; border-radius:12px; background:#fff; color:#2d3748; font-size:15px; font-weight:700; cursor:pointer;">Cancel</button>
+          <button onclick="{{ createProduct }}" style="flex:1.5; padding:14px; border:none; border-radius:12px; background:#2bb260; color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(43,178,96,0.24);">Create</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Edit Product Modal Sheet overlay -->
+  <sc-if value="{{ detailOpen }}">
+    <div style="position:absolute; inset:0; z-index:40;">
+      <div onclick="{{ closeDetail }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
+      <div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41; text-align:left;">
+        <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px; flex:none;"></div>
+        
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex:none;">
+          <div style="font-size:19px; font-weight:800; color:#1f2a3a;">Edit product</div>
+          <button onclick="{{ onDeleteClick }}" style="background:none; border:none; color:#c0392b; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:8px;">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
+          </button>
+        </div>
+
+        <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Basic Info</div>
+        
+        <label class="form-label">Product name *</label>
+        <input class="gv-in premium-input" type="text" placeholder="Enter product name..." value="{{ editName }}" oninput="{{ onEditNameChange }}"/>
+        
+        <label class="form-label">English label</label>
+        <input class="gv-in premium-input" type="text" placeholder="Enter English label..." value="{{ editEnname }}" oninput="{{ onEditEnnameChange }}"/>
+
+        <label class="form-label">Suppliers</label>
+        <div style="position:relative; margin-bottom:16px;">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditSupplierChange }}">
+            <option value="">Select supplier</option>
+            <sc-for as="sup" list="{{ suppliers }}">
+              <option value="{{ sup.id }}" selected="{{ sup.editSelected }}">{{ sup.name }}</option>
+            </sc-for>
+          </select>
+          <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">SKU</label>
+            <input class="gv-in premium-input" type="text" placeholder="Insert product SKU" value="{{ editSku }}" oninput="{{ onEditSkuChange }}" style="margin-bottom:8px;"/>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:16px; cursor:pointer;">
+              <input type="checkbox" checked="{{ editGenerateSku }}" onchange="{{ onEditGenerateSkuChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+              <span>Generate SKU</span>
+            </label>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Internal product SKU</label>
+            <input class="gv-in premium-input" type="text" placeholder="Insert internal product SKU" value="{{ editInternalSku }}" oninput="{{ onEditInternalSkuChange }}"/>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Category</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditCategoryChange }}">
+                <option value="">Select Category</option>
+                <sc-for as="cat" list="{{ selectableCategories }}">
+                  <option value="{{ cat.id }}" selected="{{ cat.selected }}">{{ cat.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Sub Category</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditSubCatChange }}">
+                <option value="0">-- Select Sub Category --</option>
+                <sc-for as="sub" list="{{ editSubCategories }}">
+                  <option value="{{ sub.id }}" selected="{{ sub.selected }}">{{ sub.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Type</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditTypeChange }}">
+                <sc-for as="t" list="{{ productTypes }}">
+                  <option value="{{ t.value }}" selected="{{ t.editSelected }}">{{ t.label }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Company</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditCompanyChange }}">
+                <option value="">Company</option>
+                <sc-for as="co" list="{{ companies }}">
+                  <option value="{{ co.id }}" selected="{{ co.editSelected }}">{{ co.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Team member</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditTeamMemberChange }}">
+                <option value="">Select Team Member</option>
+                <sc-for as="tm" list="{{ teamMembers }}">
+                  <option value="{{ tm.id }}" selected="{{ tm.editSelected }}">{{ tm.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+          <div style="flex:1;"></div>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div style="flex:1.2;">
+            <label class="form-label">Storage Place</label>
+            <input class="gv-in premium-input" type="text" placeholder="Storage Place" value="{{ editStoragePlace }}" oninput="{{ onEditStoragePlaceChange }}" style="margin-bottom:8px;"/>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; min-height:8px; margin-bottom:8px;">
+              <sc-for as="chip" list="{{ editSelectedStorageChips }}">
+                <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
+                  {{ chip.name }}
+                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">×</button>
+                </span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Select Storage</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditStorageSelect }}">
+                <option value="">All</option>
+                <sc-for as="st" list="{{ storages }}">
+                  <option value="{{ st.id }}">{{ st.name }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <label class="form-label">Main Image</label>
+        <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:120px; margin-bottom:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; overflow:hidden;">
+          <input type="file" accept="image/*" onchange="{{ onEditImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+          <sc-if value="{{ hasEditImage }}">
+            <img src="{{ editImagePreview }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+            <div style="font-size:12px; font-weight:700; color:#1f2a3a; position:relative; z-index:1;">{{ editImageName }}</div>
+          </sc-if>
+          <sc-if value="{{ noEditImage }}">
+            <div style="width:44px; height:44px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+              <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+            </div>
+            <div style="font-size:13px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1;">Select or drag &amp; drop here your product pictures</div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ isEditSubscription }}">
+          <div style="background:#f8fafc; border:1px solid #e4e8ee; border-radius:14px; padding:14px; margin-bottom:16px;">
+            <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Subscription</div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:12px; cursor:pointer;">
+              <input type="checkbox" checked="{{ editEndless }}" onchange="{{ onEditEndlessChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+              <span>Endless</span>
+            </label>
+            <div style="display:flex; gap:12px;">
+              <div style="flex:1;">
+                <label class="form-label">Months</label>
+                <div style="position:relative;">
+                  <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditMonthsChange }}">
+                    <sc-for as="m" list="{{ editMonthOptions }}">
+                      <option value="{{ m.value }}" selected="{{ m.selected }}">{{ m.label }}</option>
+                    </sc-for>
+                  </select>
+                  <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+                </div>
+              </div>
+              <div style="flex:1;">
+                <label class="form-label">Price After</label>
+                <input class="gv-in premium-input" type="number" placeholder="Price After" value="{{ editPriceAfter }}" oninput="{{ onEditPriceAfterChange }}"/>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Stock qty</label>
+            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ editStockQty }}" oninput="{{ onEditStockChange }}"/>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Min stock</label>
+            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ editMinStock }}" oninput="{{ onEditMinStockChange }}"/>
+          </div>
+        </div>
+
+        <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Prices</div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
+            <input type="checkbox" checked="{{ editPriceAsCost }}" onchange="{{ onEditPriceAsCostChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <span>Price as cost + %</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
+            <input type="checkbox" checked="{{ editVatIncluded }}" onchange="{{ onEditVatIncludedChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <span>VAT included</span>
+          </label>
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Price</label>
+            <input class="gv-in premium-input" type="number" placeholder="Insert product price" value="{{ editPrice }}" oninput="{{ onEditPriceChange }}"/>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Cost price</label>
+            <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ editCost }}" oninput="{{ onEditCostChange }}"/>
+          </div>
+        </div>
+
+        <label class="form-label">Discount price</label>
+        <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ editDiscountPrice }}" oninput="{{ onEditDiscountChange }}"/>
+
+        <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Options</div>
+        
+        <label class="form-label">Status</label>
+        <div style="position:relative; margin-bottom:16px;">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditStatusChange }}">
+            <option value="1" selected="{{ editStatusActive }}">Active</option>
+            <option value="0" selected="{{ editStatusInactive }}">Inactive</option>
+          </select>
+          <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+        </div>
+
+        <label class="form-label">Product details</label>
+        <textarea class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" value="{{ editDesc }}" oninput="{{ onEditDescChange }}"></textarea>
+        
+        <div style="display:flex; gap:12px; align-items:center; margin-top:10px;">
+          <button onclick="{{ closeDetail }}" style="flex:1; padding:14px; border:1.6px solid #cbd5e0; border-radius:12px; background:#fff; color:#2d3748; font-size:15px; font-weight:700; cursor:pointer;">Cancel</button>
+          <button onclick="{{ updateStock }}" style="flex:1.5; padding:14px; border:none; border-radius:12px; background:#1d60a2; color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(29,96,162,0.24);">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- In-app Confirmation Modal overlay -->
+  <sc-if value="{{ confirmDeleteOpen }}">
+    <div style="position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:20px;">
+      <div onclick="{{ closeConfirmDelete }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
+      <div style="background:#fff; border-radius:18px; padding:22px 20px; box-shadow:0 10px 30px rgba(15,24,40,.2); width:100%; max-width:320px; text-align:center; z-index:51; position:relative;">
+        <div style="width:46px; height:46px; border-radius:50%; background:#fbeeed; color:#c0392b; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+          <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
+        </div>
+        <div style="font-size:17.5px; font-weight:800; color:#1f2a3a; margin-bottom:8px;">Delete product?</div>
+        <div style="font-size:13.5px; color:#5a6473; line-height:1.5; margin-bottom:22px;">Are you sure you want to delete this product? This action cannot be undone.</div>
+        
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button onclick="{{ closeConfirmDelete }}" style="flex:1; padding:11px; border:1.6px solid #cbd5e0; border-radius:10px; background:#fff; color:#2d3748; font-size:14.5px; font-weight:700; cursor:pointer;">Cancel</button>
+          <button onclick="{{ executeDelete }}" style="flex:1.2; padding:11px; border:none; border-radius:10px; background:#c0392b; color:#fff; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 10px rgba(192,57,43,0.24);">Delete</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+</div>
+</x-dc>
+
+<script data-dc-script="" type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    confirmDeleteOpen: false,
+    products: [],
+    categories: [],
+    suppliers: [],
+    subCategories: [],
+    teamMembers: [],
+    companies: [],
+    storages: [],
+    selectedCategory: 'all',
+    statusFilter: 'active',
+    searchQuery: '',
+    
+    // Add product state
+    addOpen: false,
+    addName: '',
+    addEnname: '',
+    addSku: '',
+    addInternalSku: '',
+    addGenerateSku: false,
+    addPrice: 0,
+    addStock: 0,
+    addMinStock: 0,
+    addCatId: '',
+    addSubCatId: '0',
+    addSupplierId: '',
+    addTeamMemberId: '',
+    addCompanyId: '',
+    addStoragePlace: '',
+    addStorageIds: [],
+    addImageFile: null,
+    addImagePreview: '',
+    addImageName: '',
+    addType: 'product',
+    addEndless: false,
+    addMonths: '1',
+    addPriceAfter: 0,
+    addCost: 0,
+    addDiscountPrice: 0,
+    addPriceAsCost: false,
+    addVatIncluded: false,
+    addDesc: '',
+    addStatus: 1,
+
+    // Edit product state (mirrors add + status)
+    detailOpen: false,
+    detailProductId: '',
+    editName: '',
+    editEnname: '',
+    editSku: '',
+    editInternalSku: '',
+    editGenerateSku: false,
+    editPrice: 0,
+    editStockQty: 0,
+    editMinStock: 0,
+    detailCatId: '',
+    editSubCatId: '0',
+    editSubCategories: [],
+    editSupplierId: '',
+    editTeamMemberId: '',
+    editCompanyId: '',
+    editStoragePlace: '',
+    editStorageIds: [],
+    editImageFile: null,
+    editImagePreview: '',
+    editImageName: '',
+    editType: 'product',
+    editEndless: false,
+    editMonths: '1',
+    editPriceAfter: 0,
+    editCost: 0,
+    editDiscountPrice: 0,
+    editPriceAsCost: false,
+    editVatIncluded: false,
+    editStatus: 1,
+    editDesc: ''
+  };
+
+  chipsRef = React.createRef();
+  _chipsDragBound = false;
+
+  inputValue(e) {
+    if (e && e.target != null && typeof e.target.value === 'string') return e.target.value;
+    if (e && e.target != null && e.target.value != null) return String(e.target.value);
+    if (e && typeof e.value === 'string') return e.value;
+    if (e && e.detail && typeof e.detail.value === 'string') return e.detail.value;
+    if (typeof e === 'string' || typeof e === 'number') return String(e);
+    return '';
+  }
+
+  componentDidMount() {
+    this.initData();
+    this.setupDragScroll();
+    this.ensureFooter();
+    window.addEventListener('mineralbar:ready', (ev) => {
+      if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      this.initData();
+      this.setupDragScroll();
+      this.ensureFooter();
+    });
+    window.addEventListener('mineralbar:inventory', (ev) => {
+      this.applySocketProductEvent((ev && ev.detail) || {});
+    });
+    window.addEventListener('mineralbar:realtime', (ev) => {
+      var detail = (ev && ev.detail) || {};
+      var key = String(detail.key || '').toLowerCase();
+      if (/product|invent/.test(key)) this.applySocketProductEvent(detail);
+    });
+  }
+
+  applySocketProductEvent(detail) {
+    var key = String((detail && detail.key) || '').toLowerCase();
+    var ev = (detail && detail.event) || {};
+    var payload = ev.payload || ev.data || ev || {};
+    var product = payload.product || payload.data || payload;
+    var id = String(
+      (product && (product.id || product.product_id)) ||
+      payload.product_id ||
+      payload.id ||
+      ''
+    );
+    if (!id && !/delete|deleted/.test(key)) {
+      console.warn('[Inventory] socket product event missing id', detail);
+      return;
+    }
+
+    var products = (this.state.products || []).slice();
+
+    if (/delete|deleted|remove/.test(key)) {
+      products = products.filter(function (p) { return String(p.id) !== id; });
+      this.setState({ products: products });
+      console.log('[Inventory] socket removed product', id);
+      return;
+    }
+
+    var mapped = {
+      id: id,
+      name: product.product_name || product.name || 'Product',
+      sku: product.sku || ('SKU-' + id.slice(-5)),
+      cat_id: product.cat_id ? String(product.cat_id) : (product.category_id ? String(product.category_id) : ''),
+      price: Math.round(Number(product.price || product.cost || 0)),
+      stock: product.stock !== undefined ? Number(product.stock) : 0,
+      status: (product.status === 0 || product.status === '0') ? 0 : 1,
+      type: (function () {
+        var t = String(product.type || 'product').toLowerCase();
+        if (t === 'physical') return 'product';
+        if (t === 'membership') return 'subscription';
+        return t;
+      })(),
+      sub: product.description || product.desc || ''
+    };
+
+    var idx = products.findIndex(function (p) { return String(p.id) === id; });
+    if (idx >= 0) {
+      products[idx] = Object.assign({}, products[idx], mapped);
+      console.log('[Inventory] socket updated product', id);
+    } else {
+      products.unshift(mapped);
+      console.log('[Inventory] socket inserted product', id);
+    }
+    this.setState({ products: products });
+  }
+
+  componentDidUpdate() {
+    this.setupDragScroll();
+    this.ensureFooter();
+  }
+
+  ensureFooter() {
+    setTimeout(function () {
+      if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+    }, 0);
+  }
+
+  setupDragScroll() {
+    var self = this;
+    setTimeout(function () {
+      var el = (self.chipsRef && self.chipsRef.current) || document.getElementById('inventory-category-chips');
+      if (!el || el.getAttribute('data-drag-bound') === '1') return;
+      el.setAttribute('data-drag-bound', '1');
+
+      var isDown = false;
+      var didDrag = false;
+      var startX = 0;
+      var scrollLeft = 0;
+
+      function getX(e) {
+        return e.touches && e.touches.length ? e.touches[0].pageX : e.pageX;
+      }
+
+      function onStart(e) {
+        isDown = true;
+        didDrag = false;
+        startX = getX(e) - el.offsetLeft;
+        scrollLeft = el.scrollLeft;
+        el.style.cursor = 'grabbing';
+      }
+
+      function onMove(e) {
+        if (!isDown) return;
+        var x = getX(e) - el.offsetLeft;
+        var walk = (x - startX) * 1.6;
+        if (Math.abs(walk) > 4) didDrag = true;
+        el.scrollLeft = scrollLeft - walk;
+        if (e.cancelable) e.preventDefault();
+      }
+
+      function onEnd() {
+        isDown = false;
+        el.style.cursor = 'grab';
+      }
+
+      el.addEventListener('mousedown', onStart);
+      el.addEventListener('mousemove', onMove);
+      el.addEventListener('mouseup', onEnd);
+      el.addEventListener('mouseleave', onEnd);
+      el.addEventListener('touchstart', onStart, { passive: true });
+      el.addEventListener('touchmove', onMove, { passive: false });
+      el.addEventListener('touchend', onEnd);
+      el.addEventListener('touchcancel', onEnd);
+
+      // Ignore chip click if the user was dragging
+      el.addEventListener('click', function (e) {
+        if (didDrag) {
+          e.preventDefault();
+          e.stopPropagation();
+          didDrag = false;
+        }
+      }, true);
+
+      el.style.cursor = 'grab';
+      self._chipsDragBound = true;
+    }, 50);
+  }
+
+  async initData() {
+    var productsList = [];
+    var resolvedCategories = [];
+    var suppliersList = [];
+    var teamMembersList = [];
+    var companiesList = [];
+    var storagesList = [];
+    
+    var defaultCategories = [{ id: 'all', name: 'everything' }, { id: 'low', name: 'low inventory' }];
+
+    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      try {
+        var client = MineralBarApp.getClient();
+        var res = await client.request('Products.List', { limit: 25 });
+        var data = res && (res.data || res.output || res);
+
+        if (typeof MineralBarApp.getTeamMembers === 'function') {
+          var team = MineralBarApp.getTeamMembers() || [];
+          teamMembersList = (Array.isArray(team) ? team : []).map(function (m) {
+            return {
+              id: String(m.id || m.user_id || m.member_id || ''),
+              name: m.name || m.full_name || m.email || ('#' + (m.id || ''))
+            };
+          }).filter(function (m) { return m.id; });
+        }
+        
+        // Main categories only (parent=0) for chips + Create Product Category select
+        var catRes = await client.request('Categories.List', { parent: 0, limit: 100 });
+        var catData = catRes && (catRes.data || catRes.output || catRes);
+        var catRows = Array.isArray(catData) ? catData : ((catData && catData.rows) || []);
+        var categoryNamesMap = {};
+        catRows.forEach(function (cat) {
+          var cid = cat.category_id || cat.id || cat.cat_id;
+          if (!cid) return;
+          var parentVal = cat.parent;
+          if (parentVal !== undefined && parentVal !== null && Number(parentVal) !== 0) return;
+          var catName = cat.category || cat.category_name || cat.title || cat.name || '';
+          if (!catName) return;
+          categoryNamesMap[String(cid)] = String(catName);
+        });
+
+        // Fallback: extract category ids from products and fetch missing names only
+        if (Array.isArray(data) && data.length > 0) {
+          var catIds = [];
+          data.forEach(function(item) {
+            var cid = item.category_id || item.cat_id;
+            if (cid && catIds.indexOf(String(cid)) === -1) catIds.push(String(cid));
+          });
+
+          await Promise.all(catIds.map(async function(catId) {
+            if (categoryNamesMap[catId]) return;
+            try {
+              var singleCatRes = await client.request('Categories.Get', { category_id: catId });
+              var singleCatData = singleCatRes && (singleCatRes.data || singleCatRes.output || singleCatRes);
+              if (singleCatData) {
+                var singleName = singleCatData.category || singleCatData.category_name || singleCatData.title || singleCatData.name || '';
+                if (singleName) categoryNamesMap[catId] = singleName;
+              }
+            } catch (catErr) {
+              console.warn('[MineralBar] failed to fetch category name', catId, catErr);
+            }
+          }));
+        }
+
+        resolvedCategories.push({ id: 'all', name: 'everything' });
+        for (var key in categoryNamesMap) {
+          resolvedCategories.push({ id: String(key), name: categoryNamesMap[key] });
+        }
+        resolvedCategories.push({ id: 'low', name: 'low inventory' });
+
+        // Suppliers for Create Product (for_product=1)
+        try {
+          var supRes = await client.request('Suppliers.List', { for_product: 1, limit: 100 });
+          var supData = supRes && (supRes.data || supRes.output || supRes);
+          var supRows = Array.isArray(supData) ? supData : ((supData && (supData.rows || supData.list)) || []);
+          suppliersList = (supRows || []).map(function (sup) {
+            return {
+              id: String(sup.suppliers_id || sup.supplier_id || sup.id || ''),
+              name: sup.name || sup.supplier_name || sup.title || ('Supplier #' + (sup.id || ''))
+            };
+          }).filter(function (sup) { return sup.id; });
+        } catch (supErr) {
+          console.warn('[MineralBar] failed to load suppliers', supErr);
+        }
+
+        // Company dropdown = InvoiceSettings.List
+        try {
+          var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
+          var coData = coRes && (coRes.data || coRes.output || coRes);
+          var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+          companiesList = (coRows || []).map(function (co) {
+            return {
+              id: String(co.id || co.invoice_setting_id || co.company_id || ''),
+              name: co.company_name || co.name || co.title || ('Company #' + (co.id || ''))
+            };
+          }).filter(function (co) { return co.id; });
+        } catch (coErr) {
+          console.warn('[MineralBar] failed to load companies', coErr);
+        }
+
+        // Storage options (best-effort; dashboard Select Storage)
+        try {
+          var stRes = null;
+          try { stRes = await client.request('Storage.List', { limit: 25 }); } catch (e1) {
+            try { stRes = await client.request('Storages.List', { limit: 25 }); } catch (e2) {
+              try { stRes = await client.request('Warehouse.List', { limit: 25 }); } catch (e3) { stRes = null; }
+            }
+          }
+          if (stRes) {
+            var stData = stRes && (stRes.data || stRes.output || stRes);
+            var stRows = Array.isArray(stData) ? stData : ((stData && (stData.rows || stData.list)) || []);
+            storagesList = (stRows || []).map(function (st) {
+              return {
+                id: String(st.id || st.storage_id || st.warehouse_id || ''),
+                name: st.name || st.storage_name || st.warehouse_name || st.title || ('Storage #' + (st.id || ''))
+              };
+            }).filter(function (st) { return st.id; });
+          }
+        } catch (stErr) {
+          console.warn('[MineralBar] failed to load storages', stErr);
+        }
+        if (!storagesList.length) {
+          storagesList = [];
+        }
+
+        if (Array.isArray(data) && data.length > 0) {
+          productsList = data.map(function(item) {
+            var pName = item.product_name || item.name || 'Product';
+            var sku = item.sku || ('SKU-' + String(item.id || Math.random()).slice(-5).toUpperCase());
+            var itemCatId = (item.cat_id || item.category_id) ? String(item.cat_id || item.category_id) : '';
+            var desc = item.description || item.discription || item.desc || '';
+            var priceVal = Math.round(Number(item.price || item.cost || 0));
+            var stock = item.stock !== undefined ? Number(item.stock) : (item.qty !== undefined ? Number(item.qty) : Math.floor(Math.random() * 20));
+            var rawStatus = item.status;
+            var status = (rawStatus === 0 || rawStatus === '0' || rawStatus === false || rawStatus === 'inactive') ? 0 : 1;
+            var typeVal = String(item.type || item.product_type || 'product').toLowerCase();
+            if (typeVal === 'physical') typeVal = 'product';
+            if (typeVal === 'membership') typeVal = 'subscription';
+
+            return {
+              id: String(item.id),
+              name: pName,
+              sku: sku,
+              cat_id: itemCatId,
+              price: priceVal,
+              stock: stock,
+              status: status,
+              type: typeVal,
+              sub: desc
+            };
+          });
+        }
+      } catch (err) {
+        console.warn('[MineralBar] failed to load inventory', err);
+      }
+    }
+
+    if (resolvedCategories.length === 0) {
+      resolvedCategories = defaultCategories;
+      productsList = [];
+    }
+
+    this.setState({
+      products: productsList,
+      categories: resolvedCategories,
+      suppliers: suppliersList,
+      teamMembers: teamMembersList,
+      companies: companiesList,
+      storages: storagesList
+    });
+  }
+
+  normalizeCategoryRows(res) {
+    var data = res && (res.data || res.output || res);
+    var rows = Array.isArray(data) ? data : ((data && (data.rows || data.list)) || []);
+    return (rows || []).map(function (cat) {
+      return {
+        id: String(cat.category_id || cat.id || cat.cat_id || ''),
+        name: cat.category || cat.category_name || cat.title || cat.name || '',
+        parent: cat.parent
+      };
+    }).filter(function (cat) { return cat.id && cat.name; });
+  }
+
+  async loadSubCategories(parentId, opts) {
+    opts = opts || {};
+    var forEdit = !!opts.forEdit;
+    var keepSubId = opts.keepSubId;
+    var pid = Number(parentId) || 0;
+    if (!pid) {
+      if (forEdit) this.setState({ editSubCategories: [], editSubCatId: '0' });
+      else this.setState({ subCategories: [], addSubCatId: '0' });
+      return;
+    }
+    if (!(window.MineralBarApp && typeof MineralBarApp.getClient === 'function')) return;
+    try {
+      var client = MineralBarApp.getClient();
+      var catRes = await client.request('Categories.List', { parent: pid, limit: 100 });
+      var rows = this.normalizeCategoryRows(catRes).filter(function (cat) {
+        return Number(cat.parent) === pid || cat.parent === undefined || cat.parent === null;
+      });
+      var nextSub = keepSubId != null && keepSubId !== '' ? String(keepSubId) : '0';
+      if (forEdit) this.setState({ editSubCategories: rows, editSubCatId: nextSub });
+      else this.setState({ subCategories: rows, addSubCatId: nextSub });
+    } catch (err) {
+      console.warn('[MineralBar] failed to load sub categories', err);
+      if (forEdit) this.setState({ editSubCategories: [], editSubCatId: '0' });
+      else this.setState({ subCategories: [], addSubCatId: '0' });
+    }
+  }
+
+  async openAddModal() {
+    var selectables = this.getSelectableCategories();
+    var firstCat = (selectables[0] || {}).id || '';
+    if (this.state.addImagePreview && String(this.state.addImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.addImagePreview); } catch (e) {}
+    }
+    this.setState({
+      addOpen: true,
+      addName: '',
+      addEnname: '',
+      addSku: '',
+      addInternalSku: '',
+      addGenerateSku: false,
+      addPrice: 0,
+      addStock: 0,
+      addMinStock: 0,
+      addCatId: firstCat,
+      addSubCatId: '0',
+      addSupplierId: '',
+      addTeamMemberId: '',
+      addCompanyId: '',
+      addStoragePlace: '',
+      addStorageIds: [],
+      addImageFile: null,
+      addImagePreview: '',
+      addImageName: '',
+      addType: 'product',
+      addEndless: false,
+      addMonths: '1',
+      addPriceAfter: 0,
+      addCost: 0,
+      addDiscountPrice: 0,
+      addPriceAsCost: false,
+      addVatIncluded: false,
+      addDesc: '',
+      addStatus: 1,
+      subCategories: []
+    });
+    if (firstCat) this.loadSubCategories(firstCat);
+
+    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      try {
+        if (typeof MineralBarApp.getTeamMembers === 'function') {
+          var team = MineralBarApp.getTeamMembers() || [];
+          var teamMembersList = (Array.isArray(team) ? team : []).map(function (m) {
+            return {
+              id: String(m.id || m.user_id || m.member_id || ''),
+              name: m.name || m.full_name || m.email || ('#' + (m.id || ''))
+            };
+          }).filter(function (m) { return m.id; });
+          if (teamMembersList.length) this.setState({ teamMembers: teamMembersList });
+        }
+        var client = MineralBarApp.getClient();
+        if (!(this.state.suppliers || []).length) {
+          var supRes = await client.request('Suppliers.List', { for_product: 1, limit: 100 });
+          var supData = supRes && (supRes.data || supRes.output || supRes);
+          var supRows = Array.isArray(supData) ? supData : ((supData && (supData.rows || supData.list)) || []);
+          var suppliersList = (supRows || []).map(function (sup) {
+            return {
+              id: String(sup.suppliers_id || sup.supplier_id || sup.id || ''),
+              name: sup.name || sup.supplier_name || sup.title || ('Supplier #' + (sup.id || ''))
+            };
+          }).filter(function (sup) { return sup.id; });
+          this.setState({ suppliers: suppliersList });
+        }
+        if (!(this.state.companies || []).length) {
+          var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
+          var coData = coRes && (coRes.data || coRes.output || coRes);
+          var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+          var companiesList = (coRows || []).map(function (co) {
+            return {
+              id: String(co.id || co.invoice_setting_id || co.company_id || ''),
+              name: co.company_name || co.name || co.title || ('Company #' + (co.id || ''))
+            };
+          }).filter(function (co) { return co.id; });
+          this.setState({ companies: companiesList });
+        }
+      } catch (err) {
+        console.warn('[MineralBar] failed to refresh add-product options', err);
+      }
+    }
+  }
+
+  onAddImageChange(e) {
+    var file = null;
+    if (e && e.target && e.target.files && e.target.files[0]) file = e.target.files[0];
+    else if (e && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (this.state.addImagePreview && String(this.state.addImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.addImagePreview); } catch (err) {}
+    }
+    var preview = '';
+    try { preview = URL.createObjectURL(file); } catch (err2) { preview = ''; }
+    this.setState({
+      addImageFile: file,
+      addImagePreview: preview,
+      addImageName: file.name || 'Selected image'
+    });
+  }
+
+  onAddStorageSelect(e) {
+    var id = e && e.target ? e.target.value : '';
+    if (!id) return;
+    var current = (this.state.addStorageIds || []).slice();
+    if (current.indexOf(String(id)) === -1) current.push(String(id));
+    var placeNames = current.map((sid) => {
+      var found = (this.state.storages || []).find(st => String(st.id) === String(sid));
+      return found ? found.name : sid;
+    }).filter(Boolean);
+    this.setState({
+      addStorageIds: current,
+      addStoragePlace: placeNames.join(', ')
+    });
+    if (e && e.target) e.target.value = '';
+  }
+
+  removeStorageChip(id) {
+    var current = (this.state.addStorageIds || []).filter(sid => String(sid) !== String(id));
+    var placeNames = current.map((sid) => {
+      var found = (this.state.storages || []).find(st => String(st.id) === String(sid));
+      return found ? found.name : sid;
+    }).filter(Boolean);
+    this.setState({
+      addStorageIds: current,
+      addStoragePlace: placeNames.join(', ')
+    });
+  }
+
+  onEditImageChange(e) {
+    var file = null;
+    if (e && e.target && e.target.files && e.target.files[0]) file = e.target.files[0];
+    else if (e && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (this.state.editImagePreview && String(this.state.editImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.editImagePreview); } catch (err) {}
+    }
+    var preview = '';
+    try { preview = URL.createObjectURL(file); } catch (err2) { preview = ''; }
+    this.setState({
+      editImageFile: file,
+      editImagePreview: preview,
+      editImageName: file.name || 'Selected image'
+    });
+  }
+
+  onEditStorageSelect(e) {
+    var id = e && e.target ? e.target.value : '';
+    if (!id) return;
+    var current = (this.state.editStorageIds || []).slice();
+    if (current.indexOf(String(id)) === -1) current.push(String(id));
+    var placeNames = current.map((sid) => {
+      var found = (this.state.storages || []).find(st => String(st.id) === String(sid));
+      return found ? found.name : sid;
+    }).filter(Boolean);
+    this.setState({
+      editStorageIds: current,
+      editStoragePlace: placeNames.join(', ')
+    });
+    if (e && e.target) e.target.value = '';
+  }
+
+  removeEditStorageChip(id) {
+    var current = (this.state.editStorageIds || []).filter(sid => String(sid) !== String(id));
+    var placeNames = current.map((sid) => {
+      var found = (this.state.storages || []).find(st => String(st.id) === String(sid));
+      return found ? found.name : sid;
+    }).filter(Boolean);
+    this.setState({
+      editStorageIds: current,
+      editStoragePlace: placeNames.join(', ')
+    });
+  }
+
+  onCategorySelect(catId) {
+    this.setState({ selectedCategory: catId });
+  }
+
+  applyEditProductFields(item, fallback) {
+    fallback = fallback || {};
+    var typeVal = String((item && item.type) || fallback.type || 'product').toLowerCase();
+    if (typeVal === 'physical') typeVal = 'product';
+    if (typeVal === 'membership') typeVal = 'subscription';
+
+    var catId = String((item && (item.cat_id || item.category_id)) || fallback.cat_id || '');
+    var subCatId = String((item && (item.sub_cat_id || item.subcategory_id)) || '0');
+    var storageRaw = (item && (item.storage_id || item.storage || '')) || '';
+    var storageIds = String(storageRaw).split(',').map(function (v) { return String(v).trim(); }).filter(Boolean);
+    var imagePath = (item && (item.image || item.product_image || item.file || item.main_image)) || '';
+    var imagePreview = '';
+    if (imagePath && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
+      imagePreview = MineralBarApp.resolveFileUrl(imagePath);
+    } else if (imagePath) {
+      imagePreview = String(imagePath);
+    }
+
+    this.setState({
+      detailOpen: true,
+      detailProductId: String((item && item.id) || fallback.id || ''),
+      editName: (item && (item.product_name || item.name)) || fallback.name || '',
+      editEnname: (item && (item.product_enname || item.enname || item.english_label)) || '',
+      editSku: (item && (item.sku || item.product_sku)) || fallback.sku || '',
+      editInternalSku: (item && (item.product_internal_sku || item.internal_sku)) || '',
+      editGenerateSku: false,
+      editPrice: Number((item && (item.price || item.product_price || item.main_price)) || fallback.price || 0),
+      editStockQty: Number((item && item.stock) != null ? item.stock : (fallback.stock || 0)),
+      editMinStock: Number((item && item.min_stock) || 0),
+      detailCatId: catId,
+      editSubCatId: subCatId,
+      editSupplierId: String((item && (item.suppliers_id || item.supplier_id)) || ''),
+      editTeamMemberId: String((item && item.team_member_id) || ''),
+      editCompanyId: String((item && (item.company_id || item.invoice_setting_id)) || ''),
+      editStoragePlace: (item && (item.storage_place || item.place)) || storageIds.map((sid) => {
+        var found = (this.state.storages || []).find(st => String(st.id) === String(sid));
+        return found ? found.name : sid;
+      }).filter(Boolean).join(', '),
+      editStorageIds: storageIds,
+      editImageFile: null,
+      editImagePreview: imagePreview,
+      editImageName: imagePath ? String(imagePath).split('/').pop() : '',
+      editType: typeVal,
+      editEndless: Number(item && item.endless) === 1,
+      editMonths: String((item && item.months) || '1'),
+      editPriceAfter: Number((item && item.price_after) || 0),
+      editCost: Number((item && (item.cost || item.cost_price)) || 0),
+      editDiscountPrice: Number((item && item.discount_price) || 0),
+      editPriceAsCost: Number(item && (item.price_as_cost || item.price_as_cost_percent)) === 1,
+      editVatIncluded: Number(item && (item.vat_included || item.vat)) === 1,
+      editStatus: ((item && (item.status === 0 || item.status === '0')) || fallback.status === 0) ? 0 : 1,
+      editDesc: (item && (item.description || item.desc)) || fallback.sub || ''
+    });
+
+    if (catId) this.loadSubCategories(catId, { forEdit: true, keepSubId: subCatId });
+    else this.setState({ editSubCategories: [], editSubCatId: '0' });
+  }
+
+  async onProductClick(p) {
+    this.applyEditProductFields(null, p);
+
+    if (!(window.MineralBarApp && typeof MineralBarApp.getClient === 'function')) return;
+    try {
+      var client = MineralBarApp.getClient();
+      var res = await client.request('Products.Get', { id: p.id });
+      var item = res && (res.data || res.output || res);
+      if (item && (item.id || item.product_name || item.name)) {
+        this.applyEditProductFields(item, p);
+      }
+    } catch (err) {
+      console.warn('[MineralBar] failed to load product details', err);
+    }
+  }
+
+  async saveProductChanges() {
+    var s = this.state;
+    var targetId = s.detailProductId;
+    if (!targetId) return;
+
+    var name = s.editName || '';
+    if (!name) {
+      alert('Product name is required');
+      return;
+    }
+
+    var sku = s.editSku || '';
+    if (s.editGenerateSku && !sku) {
+      sku = 'PRD-' + Date.now().toString().slice(-8);
+    }
+
+    var catId = s.detailCatId || '';
+    var type = s.editType || 'product';
+    if (type === 'physical') type = 'product';
+    var status = Number(s.editStatus);
+    var price = Number(s.editPrice || 0);
+    var stock = Number(s.editStockQty || 0);
+    var desc = s.editDesc || '';
+
+    var payload = {
+      id: targetId,
+      product_name: name,
+      product_enname: s.editEnname || '',
+      cat_id: Number(catId) || 0,
+      sub_cat_id: Number(s.editSubCatId) || 0,
+      type: type,
+      price: price,
+      product_price: price,
+      main_price: price,
+      cost: Number(s.editCost) || 0,
+      cost_price: Number(s.editCost) || 0,
+      sku: sku,
+      product_sku: sku,
+      product_internal_sku: s.editInternalSku || '',
+      discount_price: Number(s.editDiscountPrice) || 0,
+      stock: stock,
+      min_stock: Number(s.editMinStock) || 0,
+      description: desc,
+      status: status
+    };
+
+    if (s.editSupplierId) payload.suppliers_id = Number(s.editSupplierId) || s.editSupplierId;
+    if (s.editTeamMemberId) payload.team_member_id = Number(s.editTeamMemberId) || s.editTeamMemberId;
+    if (s.editCompanyId) {
+      payload.company_id = Number(s.editCompanyId) || s.editCompanyId;
+      payload.invoice_setting_id = Number(s.editCompanyId) || s.editCompanyId;
+    }
+    if (s.editStoragePlace) payload.storage_place = s.editStoragePlace;
+    if ((s.editStorageIds || []).length) {
+      payload.storage_id = s.editStorageIds.join(',');
+      payload.storage = s.editStorageIds.join(',');
+    }
+    if (s.editGenerateSku) payload.generate_sku = 1;
+    if (s.editPriceAsCost) payload.price_as_cost = 1;
+    if (s.editVatIncluded) {
+      payload.vat_included = 1;
+      payload.vat = 1;
+    }
+    if (type === 'subscription') {
+      payload.endless = s.editEndless ? 1 : 0;
+      payload.months = Number(s.editMonths) || 1;
+      payload.price_after = Number(s.editPriceAfter) || 0;
+    }
+
+    var requestBody = payload;
+    if (s.editImageFile) {
+      var fd = new FormData();
+      Object.keys(payload).forEach(function (key) {
+        if (payload[key] === undefined || payload[key] === null) return;
+        fd.append(key, payload[key]);
+      });
+      fd.append('image', s.editImageFile, s.editImageFile.name || 'product.jpg');
+      fd.append('file', s.editImageFile, s.editImageFile.name || 'product.jpg');
+      requestBody = fd;
+    }
+
+    var previewToRevoke = s.editImagePreview;
+    var updated = s.products.map(p => {
+      if (p.id === targetId) {
+        return {
+          ...p,
+          name: name,
+          sku: sku,
+          price: price,
+          stock: stock,
+          cat_id: String(catId),
+          type: type,
+          status: status,
+          sub: desc
+        };
+      }
+      return p;
+    });
+
+    this.setState({
+      products: updated,
+      detailOpen: false,
+      editImageFile: null,
+      editImagePreview: '',
+      editImageName: ''
+    });
+    if (previewToRevoke && String(previewToRevoke).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(previewToRevoke); } catch (e) {}
+    }
+
+    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      try {
+        var client = MineralBarApp.getClient();
+        await client.request('Products.Update', requestBody);
+      } catch (err) {
+        console.warn('Failed to update product', err);
+        alert((err && (err.message || err.error)) || 'Failed to update product');
+      }
+    }
+  }
+
+  async createProduct() {
+    var s = this.state;
+    var name = s.addName || '';
+    if (!name) {
+      alert('Product name is required');
+      return;
+    }
+    
+    var selectables = this.getSelectableCategories();
+    var catId = s.addCatId || (selectables[0] || {}).id || '';
+    var type = s.addType || 'product';
+    if (type === 'physical') type = 'product';
+
+    var sku = s.addSku || '';
+    if (s.addGenerateSku && !sku) {
+      sku = 'PRD-' + Date.now().toString().slice(-8);
+    }
+    
+    var payload = {
+      product_name: name,
+      product_enname: s.addEnname || '',
+      cat_id: Number(catId) || 0,
+      sub_cat_id: Number(s.addSubCatId) || 0,
+      type: type,
+      coin: s.addCoin || 'ils',
+      pay_coin: s.addCoin || 'ils',
+      price: Number(s.addPrice) || 0,
+      product_price: Number(s.addPrice) || 0,
+      main_price: Number(s.addPrice) || 0,
+      cost: Number(s.addCost) || 0,
+      cost_price: Number(s.addCost) || 0,
+      sku: sku,
+      product_sku: sku,
+      product_internal_sku: s.addInternalSku || '',
+      discount_price: Number(s.addDiscountPrice) || 0,
+      stock: Number(s.addStock) || 0,
+      min_stock: Number(s.addMinStock) || 0,
+      description: s.addDesc || '',
+      status: 1
+    };
+
+    if (s.addSupplierId) payload.suppliers_id = Number(s.addSupplierId) || s.addSupplierId;
+    if (s.addTeamMemberId) payload.team_member_id = Number(s.addTeamMemberId) || s.addTeamMemberId;
+    if (s.addCompanyId) {
+      payload.company_id = Number(s.addCompanyId) || s.addCompanyId;
+      payload.invoice_setting_id = Number(s.addCompanyId) || s.addCompanyId;
+    }
+    if (s.addStoragePlace) payload.storage_place = s.addStoragePlace;
+    if ((s.addStorageIds || []).length) {
+      payload.storage_id = s.addStorageIds.join(',');
+      payload.storage = s.addStorageIds.join(',');
+    }
+    if (s.addGenerateSku) payload.generate_sku = 1;
+    if (s.addPriceAsCost) payload.price_as_cost = 1;
+    if (s.addVatIncluded) {
+      payload.vat_included = 1;
+      payload.vat = 1;
+    }
+
+    if (type === 'subscription') {
+      payload.endless = s.addEndless ? 1 : 0;
+      payload.months = Number(s.addMonths) || 1;
+      payload.price_after = Number(s.addPriceAfter) || 0;
+    }
+
+    var requestBody = payload;
+    if (s.addImageFile) {
+      var fd = new FormData();
+      Object.keys(payload).forEach(function (key) {
+        if (payload[key] === undefined || payload[key] === null) return;
+        fd.append(key, payload[key]);
+      });
+      fd.append('image', s.addImageFile, s.addImageFile.name || 'product.jpg');
+      fd.append('file', s.addImageFile, s.addImageFile.name || 'product.jpg');
+      requestBody = fd;
+    }
+
+    var tempId = 'temp-' + Date.now();
+    var newProduct = {
+      id: tempId,
+      name: name,
+      sku: sku || ('SKU-' + tempId.slice(-5).toUpperCase()),
+      price: Number(s.addPrice) || 0,
+      stock: Number(s.addStock) || 0,
+      cat_id: String(catId),
+      type: type,
+      status: 1,
+      sub: s.addDesc || ''
+    };
+
+    var previewToRevoke = s.addImagePreview;
+    var updated = [...s.products, newProduct];
+    this.setState({
+      products: updated,
+      addOpen: false,
+      addName: '',
+      addEnname: '',
+      addSku: '',
+      addInternalSku: '',
+      addGenerateSku: false,
+      addPrice: 0,
+      addStock: 0,
+      addMinStock: 0,
+      addSubCatId: '0',
+      addSupplierId: '',
+      addTeamMemberId: '',
+      addCompanyId: '',
+      addStoragePlace: '',
+      addStorageIds: [],
+      addImageFile: null,
+      addImagePreview: '',
+      addImageName: '',
+      addType: 'product',
+      addEndless: false,
+      addMonths: '1',
+      addPriceAfter: 0,
+      addCost: 0,
+      addDiscountPrice: 0,
+      addPriceAsCost: false,
+      addVatIncluded: false,
+      addDesc: '',
+      addStatus: 1,
+      subCategories: []
+    });
+    if (previewToRevoke && String(previewToRevoke).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(previewToRevoke); } catch (e) {}
+    }
+
+    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      try {
+        var client = MineralBarApp.getClient();
+        var res = await client.request('Products.Add', requestBody);
+        
+        var serverItem = res && (res.data || res.output || res);
+        var newId = (serverItem && serverItem.id) || (res && res.id);
+        if (newId) {
+          this.setState(prevState => {
+            var finalProducts = prevState.products.map(p => {
+              if (p.id === tempId) {
+                return { ...p, id: String(newId) };
+              }
+              return p;
+            });
+            return { products: finalProducts };
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to create product on server', err);
+        alert((err && (err.message || err.error)) || 'Failed to create product');
+      }
+    }
+  }
+
+  onDeleteClick() {
+    this.setState({ confirmDeleteOpen: true });
+  }
+
+  async executeDelete() {
+    var s = this.state;
+    var targetId = s.detailProductId;
+    if (!targetId) return;
+
+    var updated = s.products.filter(p => p.id !== targetId);
+    this.setState({
+      products: updated,
+      detailOpen: false,
+      confirmDeleteOpen: false
+    });
+
+    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      try {
+        var client = MineralBarApp.getClient();
+        await client.request('Products.Delete', {
+          id: targetId
+        });
+      } catch (err) {
+        console.warn('Failed to delete product', err);
+      }
+    }
+  }
+
+  getSelectableCategories() {
+    return (this.state.categories || []).filter(c => c.id !== 'all' && c.id !== 'low');
+  }
+
+  getProductTypes() {
+    return [
+      { value: 'product', label: 'Physical Product' },
+      { value: 'subscription', label: 'Subscription' },
+      { value: 'service', label: 'Service' },
+      { value: 'donation', label: 'Donation' }
+    ];
+  }
+
+  getMonthOptions(selectedValue) {
+    var months = [];
+    var selected = String(selectedValue || '1');
+    for (var i = 1; i <= 12; i++) {
+      var val = String(i);
+      months.push({
+        value: val,
+        label: (i < 10 ? '0' : '') + i,
+        selected: selected === val
+      });
+    }
+    return months;
+  }
+
+  renderVals() {
+    var s = this.state;
+    
+    var activeProducts = s.products.filter(p => p.status !== 0);
+    var inactiveProducts = s.products.filter(p => p.status === 0);
+    var statusProducts = s.statusFilter === 'inactive' ? inactiveProducts : activeProducts;
+
+    // Compute total quantities & alert counts (from current status tab)
+    var inStockQty = 0;
+    var lowStockCount = 0;
+    var outStockCount = 0;
+
+    statusProducts.forEach(p => {
+      var q = p.stock || 0;
+      inStockQty += q;
+      if (q === 0) {
+        outStockCount++;
+      } else if (q <= 5) {
+        lowStockCount++;
+      }
+    });
+
+    var isActiveTab = s.statusFilter !== 'inactive';
+
+    // Render category chips
+    var categoriesMapped = s.categories.map(c => {
+      var active = s.selectedCategory === c.id;
+      return {
+        label: c.name,
+        bg: active ? '#1d60a2' : '#fff',
+        color: active ? '#fff' : '#5a6473',
+        border: active ? '#1d60a2' : '#e4e8ee',
+        weight: active ? '700' : '600',
+        pick: () => this.onCategorySelect(c.id)
+      };
+    });
+
+    // Filter products
+    var filtered = statusProducts.filter(p => {
+      // Category filter
+      if (s.selectedCategory === 'low') {
+        if (p.stock > 5) return false;
+      } else if (s.selectedCategory !== 'all' && p.cat_id !== s.selectedCategory) {
+        return false;
+      }
+      // Search filter
+      if (s.searchQuery) {
+        var query = s.searchQuery.toLowerCase();
+        if (p.name.toLowerCase().indexOf(query) === -1) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Group products by category dynamically
+    var groupsMap = {};
+    filtered.forEach(p => {
+      var catObj = s.categories.find(c => c.id === p.cat_id);
+      var catName = catObj ? catObj.name : 'other';
+      if (!groupsMap[catName]) {
+        groupsMap[catName] = [];
+      }
+      groupsMap[catName].push(p);
+    });
+
+    var groupsMapped = [];
+    for (var catName in groupsMap) {
+      var items = groupsMap[catName];
+      groupsMapped.push({
+        title: catName,
+        count: items.length + ' items',
+        items: items.map((it, i) => {
+          var tag = 'In stock';
+          var tagColor = '#2e8a63';
+          var tagBg = '#e6f4ec';
+          var qtyColor = '#1f2a3a';
+          
+          if (it.stock === 0) {
+            tag = 'Short';
+            tagColor = '#c0392b';
+            tagBg = '#fbeeed';
+            qtyColor = '#c0392b';
+          } else if (it.stock <= 5) {
+            tag = 'Low';
+            tagColor = '#bd8324';
+            tagBg = '#fdf1dd';
+            qtyColor = '#bd8324';
+          }
+
+          return {
+            name: it.name,
+            sku: it.sku,
+            qty: it.stock,
+            priceText: it.price + '₪',
+            tag: tag,
+            tagColor: tagColor,
+            tagBg: tagBg,
+            qtyColor: qtyColor,
+            border: i === items.length - 1 ? 'transparent' : '#f0f2f5',
+            click: () => this.onProductClick(it)
+          };
+        })
+      });
+    }
+
+    var selectables = this.getSelectableCategories();
+    var selectableCatsMapped = selectables.map(c => {
+      return {
+        id: c.id,
+        name: c.name,
+        selected: s.detailCatId === c.id,
+        addSelected: String(s.addCatId) === String(c.id)
+      };
+    });
+
+    var productTypesMapped = this.getProductTypes().map(t => {
+      return {
+        value: t.value,
+        label: t.label,
+        addSelected: s.addType === t.value,
+        editSelected: s.editType === t.value
+      };
+    });
+
+    var suppliersMapped = (s.suppliers || []).map(sup => ({
+      id: sup.id,
+      name: sup.name,
+      selected: String(s.addSupplierId) === String(sup.id),
+      editSelected: String(s.editSupplierId) === String(sup.id)
+    }));
+
+    var subCategoriesMapped = (s.subCategories || []).map(sub => ({
+      id: sub.id,
+      name: sub.name,
+      selected: String(s.addSubCatId) === String(sub.id)
+    }));
+
+    var editSubCategoriesMapped = (s.editSubCategories || []).map(sub => ({
+      id: sub.id,
+      name: sub.name,
+      selected: String(s.editSubCatId) === String(sub.id)
+    }));
+
+    var teamMembersMapped = (s.teamMembers || []).map(tm => ({
+      id: tm.id,
+      name: tm.name,
+      selected: String(s.addTeamMemberId) === String(tm.id),
+      editSelected: String(s.editTeamMemberId) === String(tm.id)
+    }));
+
+    var companiesMapped = (s.companies || []).map(co => ({
+      id: co.id,
+      name: co.name,
+      selected: String(s.addCompanyId) === String(co.id),
+      editSelected: String(s.editCompanyId) === String(co.id)
+    }));
+
+    var storagesMapped = (s.storages || []).map(st => ({
+      id: st.id,
+      name: st.name
+    }));
+
+    var selectedStorageChips = (s.addStorageIds || []).map(id => {
+      var found = (s.storages || []).find(st => String(st.id) === String(id));
+      return {
+        id: id,
+        name: found ? found.name : id,
+        remove: () => this.removeStorageChip(id)
+      };
+    });
+
+    var editSelectedStorageChips = (s.editStorageIds || []).map(id => {
+      var found = (s.storages || []).find(st => String(st.id) === String(id));
+      return {
+        id: id,
+        name: found ? found.name : id,
+        remove: () => this.removeEditStorageChip(id)
+      };
+    });
+
+    var hasAddImage = !!(s.addImageFile || s.addImagePreview);
+    var hasEditImage = !!(s.editImageFile || s.editImagePreview);
+
+    return {
+      inStockQty: inStockQty,
+      lowStockCount: lowStockCount,
+      outStockCount: outStockCount,
+      activeCount: activeProducts.length,
+      inactiveCount: inactiveProducts.length,
+      statusActiveBg: isActiveTab ? '#1d60a2' : '#fff',
+      statusActiveColor: isActiveTab ? '#fff' : '#5a6473',
+      statusActiveBorder: isActiveTab ? '#1d60a2' : '#e4e8ee',
+      statusInactiveBg: !isActiveTab ? '#1d60a2' : '#fff',
+      statusInactiveColor: !isActiveTab ? '#fff' : '#5a6473',
+      statusInactiveBorder: !isActiveTab ? '#1d60a2' : '#e4e8ee',
+      searchQuery: s.searchQuery,
+      categories: categoriesMapped,
+      groups: groupsMapped,
+      productTypes: productTypesMapped,
+      chipsRef: this.chipsRef,
+      
+      // Add Product variables
+      addOpen: s.addOpen,
+      addName: s.addName,
+      addEnname: s.addEnname,
+      addSku: s.addSku,
+      addInternalSku: s.addInternalSku,
+      addGenerateSku: !!s.addGenerateSku,
+      addPrice: s.addPrice,
+      addStock: s.addStock,
+      addMinStock: s.addMinStock,
+      addSubCatId: s.addSubCatId,
+      addCost: s.addCost,
+      addDiscountPrice: s.addDiscountPrice,
+      addDesc: String(s.addDesc == null || typeof s.addDesc === 'object' ? '' : s.addDesc),
+      addEndless: !!s.addEndless,
+      addPriceAfter: s.addPriceAfter,
+      addStoragePlace: s.addStoragePlace || '',
+      addImagePreview: s.addImagePreview || '',
+      addImageName: s.addImageName || '',
+      hasAddImage: hasAddImage,
+      noAddImage: !hasAddImage,
+      addPriceAsCost: !!s.addPriceAsCost,
+      addVatIncluded: !!s.addVatIncluded,
+      isSubscription: s.addType === 'subscription',
+      selectableCategories: selectableCatsMapped,
+      suppliers: suppliersMapped,
+      subCategories: subCategoriesMapped,
+      teamMembers: teamMembersMapped,
+      companies: companiesMapped,
+      storages: storagesMapped,
+      selectedStorageChips: selectedStorageChips,
+      monthOptions: this.getMonthOptions(s.addMonths),
+
+      // Edit Product variables
+      detailOpen: s.detailOpen,
+      editName: s.editName,
+      editEnname: s.editEnname || '',
+      editSku: s.editSku,
+      editInternalSku: s.editInternalSku || '',
+      editGenerateSku: !!s.editGenerateSku,
+      editPrice: s.editPrice,
+      editStockQty: s.editStockQty,
+      editMinStock: s.editMinStock || 0,
+      editCost: s.editCost || 0,
+      editDiscountPrice: s.editDiscountPrice || 0,
+      editDesc: String(s.editDesc == null || typeof s.editDesc === 'object' ? '' : s.editDesc),
+      editEndless: !!s.editEndless,
+      editPriceAfter: s.editPriceAfter || 0,
+      editStoragePlace: s.editStoragePlace || '',
+      editImagePreview: s.editImagePreview || '',
+      editImageName: s.editImageName || '',
+      hasEditImage: hasEditImage,
+      noEditImage: !hasEditImage,
+      editPriceAsCost: !!s.editPriceAsCost,
+      editVatIncluded: !!s.editVatIncluded,
+      isEditSubscription: s.editType === 'subscription',
+      editSubCategories: editSubCategoriesMapped,
+      editSelectedStorageChips: editSelectedStorageChips,
+      editMonthOptions: this.getMonthOptions(s.editMonths),
+      editStatusActive: Number(s.editStatus) === 1,
+      editStatusInactive: Number(s.editStatus) === 0,
+      
+      // Handlers
+      setStatusActive: () => this.setState({ statusFilter: 'active' }),
+      setStatusInactive: () => this.setState({ statusFilter: 'inactive' }),
+      onSearchChange: (e) => this.setState({ searchQuery: this.inputValue(e) }),
+      onAddNameChange: (e) => this.setState({ addName: this.inputValue(e) }),
+      onAddEnnameChange: (e) => this.setState({ addEnname: this.inputValue(e) }),
+      onAddSkuChange: (e) => this.setState({ addSku: this.inputValue(e) }),
+      onAddInternalSkuChange: (e) => this.setState({ addInternalSku: this.inputValue(e) }),
+      onAddGenerateSkuChange: (e) => this.setState({ addGenerateSku: !!(e.target && e.target.checked) }),
+      onAddPriceChange: (e) => this.setState({ addPrice: this.inputValue(e) }),
+      onAddStockChange: (e) => this.setState({ addStock: this.inputValue(e) }),
+      onAddMinStockChange: (e) => this.setState({ addMinStock: this.inputValue(e) }),
+      onAddSubCatChange: (e) => this.setState({ addSubCatId: e.target.value }),
+      onAddTypeChange: (e) => this.setState({ addType: e.target.value }),
+      onAddCoinChange: (e) => this.setState({ addCoin: e.target.value }),
+      onAddCostChange: (e) => this.setState({ addCost: this.inputValue(e) }),
+      onAddDiscountChange: (e) => this.setState({ addDiscountPrice: this.inputValue(e) }),
+      onAddCategoryChange: (e) => {
+        var catId = e.target.value;
+        this.setState({ addCatId: catId, addSubCatId: '0' });
+        this.loadSubCategories(catId);
+      },
+      onAddSupplierChange: (e) => this.setState({ addSupplierId: e.target.value }),
+      onAddTeamMemberChange: (e) => this.setState({ addTeamMemberId: e.target.value }),
+      onAddCompanyChange: (e) => this.setState({ addCompanyId: e.target.value }),
+      onAddStoragePlaceChange: (e) => this.setState({ addStoragePlace: this.inputValue(e) }),
+      onAddStorageSelect: (e) => this.onAddStorageSelect(e),
+      onAddImageChange: (e) => this.onAddImageChange(e),
+      onAddEndlessChange: (e) => this.setState({ addEndless: !!(e.target && e.target.checked) }),
+      onAddMonthsChange: (e) => this.setState({ addMonths: e.target.value }),
+      onAddPriceAfterChange: (e) => this.setState({ addPriceAfter: this.inputValue(e) }),
+      onAddPriceAsCostChange: (e) => this.setState({ addPriceAsCost: !!(e.target && e.target.checked) }),
+      onAddVatIncludedChange: (e) => this.setState({ addVatIncluded: !!(e.target && e.target.checked) }),
+      onAddDescChange: (e) => this.setState({ addDesc: this.inputValue(e) }),
+      
+      onEditNameChange: (e) => this.setState({ editName: this.inputValue(e) }),
+      onEditEnnameChange: (e) => this.setState({ editEnname: this.inputValue(e) }),
+      onEditSkuChange: (e) => this.setState({ editSku: this.inputValue(e) }),
+      onEditInternalSkuChange: (e) => this.setState({ editInternalSku: this.inputValue(e) }),
+      onEditGenerateSkuChange: (e) => this.setState({ editGenerateSku: !!(e.target && e.target.checked) }),
+      onEditPriceChange: (e) => this.setState({ editPrice: this.inputValue(e) }),
+      onEditStockChange: (e) => this.setState({ editStockQty: this.inputValue(e) }),
+      onEditMinStockChange: (e) => this.setState({ editMinStock: this.inputValue(e) }),
+      onEditCostChange: (e) => this.setState({ editCost: this.inputValue(e) }),
+      onEditDiscountChange: (e) => this.setState({ editDiscountPrice: this.inputValue(e) }),
+      onEditTypeChange: (e) => this.setState({ editType: e.target.value }),
+      onEditCategoryChange: (e) => {
+        var catId = e.target.value;
+        this.setState({ detailCatId: catId, editSubCatId: '0' });
+        this.loadSubCategories(catId, { forEdit: true });
+      },
+      onEditSubCatChange: (e) => this.setState({ editSubCatId: e.target.value }),
+      onEditSupplierChange: (e) => this.setState({ editSupplierId: e.target.value }),
+      onEditTeamMemberChange: (e) => this.setState({ editTeamMemberId: e.target.value }),
+      onEditCompanyChange: (e) => this.setState({ editCompanyId: e.target.value }),
+      onEditStoragePlaceChange: (e) => this.setState({ editStoragePlace: this.inputValue(e) }),
+      onEditStorageSelect: (e) => this.onEditStorageSelect(e),
+      onEditImageChange: (e) => this.onEditImageChange(e),
+      onEditEndlessChange: (e) => this.setState({ editEndless: !!(e.target && e.target.checked) }),
+      onEditMonthsChange: (e) => this.setState({ editMonths: e.target.value }),
+      onEditPriceAfterChange: (e) => this.setState({ editPriceAfter: this.inputValue(e) }),
+      onEditPriceAsCostChange: (e) => this.setState({ editPriceAsCost: !!(e.target && e.target.checked) }),
+      onEditVatIncludedChange: (e) => this.setState({ editVatIncluded: !!(e.target && e.target.checked) }),
+      onEditStatusChange: (e) => this.setState({ editStatus: Number(e.target.value) }),
+      onEditDescChange: (e) => this.setState({ editDesc: this.inputValue(e) }),
+
+      openAddModal: () => this.openAddModal(),
+      closeAdd: () => this.setState({ addOpen: false }),
+      createProduct: () => this.createProduct(),
+      closeDetail: () => this.setState({ detailOpen: false }),
+      updateStock: () => this.saveProductChanges(),
+      confirmDeleteOpen: s.confirmDeleteOpen,
+      onDeleteClick: () => this.onDeleteClick(),
+      closeConfirmDelete: () => this.setState({ confirmDeleteOpen: false }),
+      executeDelete: () => this.executeDelete()
+    };
+  }
+}
+</script>
+<script>
+  window.addEventListener('load', function () {
+    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  });
+  // DC remount can wipe the footer — re-inject shortly after
+  setTimeout(function () {
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }, 300);
+  setTimeout(function () {
+    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+  }, 1000);
+</script>
+</body>
+</html>
