@@ -8,9 +8,9 @@
 <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
 <script src="./biz1-app.js?v=customer-2"></script>
 <script src="./page-boot.js?v=customer-2"></script>
-<script src="./customer-live.js?v=customer-2"></script>
+<script src="./customer-live.js?v=customer-4"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -30,7 +30,7 @@
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
 <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
-<div data-screen-label="credit card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<div data-screen-label="Customer Card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
 <!-- header (white) -->
 <div style="background:#fff; padding:9px 16px 14px; flex:none; box-shadow:0 1px 0 #edeff2;">
 <div style="display:flex; justify-content:center; padding:3px 0 9px;">
@@ -40,7 +40,7 @@
 <a href="leads-list.html" style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
 <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m15 18-6-6 6-6"></path></svg>
 </a>
-<div style="font-size:18px; font-weight:800; color:#1f2a3a;">credit card</div>
+<div style="font-size:18px; font-weight:800; color:#1f2a3a;">Customer Card</div>
 <!-- <button onclick="{{ openNote }}" style="width:38px; height:38px; border-radius:50%; border:none; background:#bd8324; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(189,131,36,.35);">
 <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
 </button> -->
@@ -68,16 +68,16 @@
 <!-- lead details list -->
 <div style="background:#fff; border-radius:16px; padding:4px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
 <sc-for as="d" hint-placeholder-count="5" list="{{ details }}">
-<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid {{ d.border }};">
-<span style="font-size:13.5px; color:{{ d.valColor }}; font-weight:{{ d.valWeight }};">{{ d.value }}</span>
-<span style="display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#9aa3b0; font-weight:600;">
-                {{ d.label }}
+<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid {{ d.border }};">
+<span style="display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#9aa3b0; font-weight:600; flex:none;">
                 <sc-if hint-placeholder-val="{{ true }}" value="{{ d.isPhone }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isOwner }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isSource }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isAddr }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ d.isDate }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2" width="18" x="3" y="5"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg></sc-if>
+                {{ d.label }}
 </span>
+<span style="font-size:13.5px; color:{{ d.valColor }}; font-weight:{{ d.valWeight }}; direction:ltr; text-align:end; min-width:0; word-break:break-word;">{{ d.value }}</span>
 </div>
 </sc-for>
 </div>

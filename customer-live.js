@@ -140,12 +140,13 @@
   function detailRow(label, value, icon, last) {
     if (value == null || value === '') return '';
     return (
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;' +
       (last ? '' : 'border-bottom:1px solid #f0f2f5;') + '">' +
-      '<span style="font-size:13.5px;color:#1f2a3a;font-weight:700;direction:ltr;text-align:left;">' + esc(value) + '</span>' +
-      '<span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#9aa3b0;font-weight:600;">' +
-      esc(label) + (icon || '') +
-      '</span></div>'
+      '<span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#9aa3b0;font-weight:600;flex:none;">' +
+      (icon || '') + esc(label) +
+      '</span>' +
+      '<span style="font-size:13.5px;color:#1f2a3a;font-weight:700;direction:ltr;text-align:end;min-width:0;word-break:break-word;">' + esc(value) + '</span>' +
+      '</div>'
     );
   }
 
@@ -222,6 +223,26 @@
     );
   }
 
+  function publishCustomer(c, kind) {
+    var id = String((c && (c.customer_id || c.id)) || qsParam() || '').trim();
+    var name = String((c && c.name) || '').trim();
+    if (!name && id) name = '#' + id;
+    var payload = { id: id, name: name, kind: kind || 'customer', customer: c || null };
+    try { window.__mbCurrentCustomer = payload; } catch (e) { /* ignore */ }
+    rememberCustomerId(id);
+    try {
+      var el = document.getElementById('mb-sheet-customer-label');
+      if (el) {
+        var isEn = typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+        var kindLabel = (kind === 'lead') ? (isEn ? 'Lead' : 'ליד') : (isEn ? 'Customer' : 'לקוח');
+        el.textContent = name && id ? (name + ' · ' + kindLabel + ' #' + id) : (name || (kindLabel + ' #' + id) || '…');
+      }
+    } catch (e2) { /* ignore */ }
+    try {
+      window.dispatchEvent(new CustomEvent('mineralbar:customer', { detail: payload }));
+    } catch (e3) { /* ignore */ }
+  }
+
   function hideMock() {
     var mock = document.getElementById('mb-mock-customer');
     if (mock) mock.style.display = 'none';
@@ -261,6 +282,7 @@
       if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) c = c.data;
       rememberCustomerId(c.customer_id || c.id || customerId);
       hideMock();
+      publishCustomer(c, kind);
       el.innerHTML = renderCustomer(c, kind);
     } catch (err) {
       console.error('[MineralBar] Customer.Get failed', err);

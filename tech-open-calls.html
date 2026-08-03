@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -9,7 +9,7 @@
 <script src="./biz1-app.js"></script>
 <script src="./page-boot.js"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body data-role="tech" data-active-tab="open_calls">
@@ -215,6 +215,8 @@ class Component extends DCLogic {
             }
 
             var closed = self.isTicketClosed(item, lastMsg);
+            if (closed) return;
+
             var st = String(item.status || '').toLowerCase();
 
             var name = item.subject || '';
@@ -245,8 +247,7 @@ class Component extends DCLogic {
             var custName = item.customer_name || item.joined_customer_name || '';
             var typeVal = item.type || '';
             var ticketStatus = 'open';
-            if (closed) ticketStatus = 'closed';
-            else if (st === 'overdue' || st === 'delayed' || st === 'late') ticketStatus = 'overdue';
+            if (st === 'overdue' || st === 'delayed' || st === 'late') ticketStatus = 'overdue';
 
             openTickets.push({
               id: item.id,
@@ -257,14 +258,8 @@ class Component extends DCLogic {
               custName: custName,
               lastMsg: lastMsg,
               status: ticketStatus,
-              isClosed: closed
+              isClosed: false
             });
-          });
-
-          // Open first, closed after
-          openTickets.sort(function (a, b) {
-            if (!!a.isClosed === !!b.isClosed) return 0;
-            return a.isClosed ? 1 : -1;
           });
 
           this.setState({ calls: openTickets });
@@ -413,11 +408,10 @@ class Component extends DCLogic {
       closed: { accent: '#c0392b', badge: this.t('Closed', 'סגור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
     };
 
-    const calls = st.calls.map(c => {
+    const calls = openOnly.map(c => {
       const custName = c.custName || fallbackCust;
       const preview = this.cleanMessagePreview(c.lastMsg || c.customerDetail || '');
-      const closed = !!(c.isClosed || c.status === 'closed');
-      const stMeta = ST[c.status] || (closed ? ST.closed : ST.open);
+      const stMeta = ST[c.status] || ST.open;
       return {
         name: c.name || fallbackCall,
         address: c.address || fallbackAddr,
@@ -430,15 +424,11 @@ class Component extends DCLogic {
         badge: stMeta.badge,
         badgeBg: stMeta.badgeBg,
         badgeColor: stMeta.badgeColor,
-        btnBg: closed ? '#c0392b' : '#1d60a2',
-        btnShadow: closed ? '0 4px 12px rgba(192,57,43,.28)' : 'none',
-        btnLabel: closed
-          ? this.t('View', 'צפייה')
-          : this.t('close ticket', 'סגור טיקט'),
-        btnIcon: closed
-          ? 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'
-          : 'M20 6 9 17l-5-5',
-        action: () => closed ? this.viewCall(c.id) : this.closeCall(c.id),
+        btnBg: '#1d60a2',
+        btnShadow: 'none',
+        btnLabel: this.t('close ticket', 'סגור טיקט'),
+        btnIcon: 'M20 6 9 17l-5-5',
+        action: () => this.closeCall(c.id),
         close: () => this.closeCall(c.id),
         defer: () => this.openDefer(c.id),
       };

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -9,7 +9,7 @@
 <script src="./biz1-app.js"></script>
 <script src="./page-boot.js"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -204,12 +204,15 @@ class Component extends DCLogic {
       const res = await window.MineralBarApp.listCustomers({ length: 100 });
       if (res && res.data) {
         this.CUSTOMERS = res.data.map((c, i) => {
+          var phone = String(c.mobile || c.phone || c.cellular || '').trim();
+          var city = String(c.city || c.address || '').trim();
+          var name = String(c.company || c.name || '').trim();
           return {
-            id: String(c.customer_id),
-            name: c.company || c.name || 'Unknown',
-            phone: c.phone || c.cellular || 'N/A',
+            id: String(c.customer_id || c.id || ''),
+            name: name || '--',
+            phone: phone || '--',
             email: c.email || c.e_mail || '',
-            city: c.city || c.address || 'Unknown',
+            city: city || '--',
             address: c.address || '',
             open: 0 // Optional: Could be matched with tickets if needed
           };
@@ -345,7 +348,7 @@ class Component extends DCLogic {
       selInitials: sel ? this.initials(sel.name) : '',
       goNext: () => this.goNext(),
       nextDisabled: !hasSel,
-      nextLabel: hasSel ? 'Continue to call details' : 'Select customer to continue',
+      nextLabel: hasSel ? 'Continue to ticket details' : 'Select customer to continue',
       nextBg: hasSel ? '#1d60a2' : '#e3e7ed',
       nextColor: hasSel ? '#fff' : '#9aa3b0',
       nextCursor: hasSel ? 'pointer' : 'not-allowed',

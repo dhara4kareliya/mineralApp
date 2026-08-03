@@ -502,7 +502,17 @@
       };
     }
 
-    return await client.request('Customer.List', params);
+    var raw = await client.request('Customer.List', params);
+    var rows = Array.isArray(raw && raw.data) ? raw.data
+      : Array.isArray(raw && raw.rows) ? raw.rows
+      : Array.isArray(raw && raw.items) ? raw.items
+      : [];
+    var total = (raw && (raw.recordsFiltered != null ? raw.recordsFiltered
+      : raw.recordsTotal != null ? raw.recordsTotal
+      : raw.total != null ? raw.total
+      : raw.count != null ? raw.count
+      : rows.length));
+    return Object.assign({}, raw, { rows: rows, data: rows, total: Number(total) || rows.length });
   }
 
   /** List projects via Project.List / Projects.List API route. */

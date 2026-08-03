@@ -163,6 +163,23 @@
     return body;
   }
 
+  function sleep(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function isTransientNetworkError(err) {
+    if (!err) return false;
+    var name = String(err.name || '');
+    var msg = String(err.message || err || '');
+    if (name === 'TypeError' || name === 'NetworkError') return true;
+    return /networkerror|failed to fetch|network request failed|load failed|fetch resource|econnreset|etimedout|enotfound|socket hang up|temporarily unavailable/i.test(msg);
+  }
+
+  function isTransientHttpStatus(status) {
+    var code = Number(status);
+    return code === 408 || code === 425 || code === 429 || code === 500 || code === 502 || code === 503 || code === 504;
+  }
+
   function listRows(raw) {
     if (!raw || typeof raw !== 'object') return [];
     if (Array.isArray(raw.data)) return raw.data;
@@ -414,6 +431,35 @@
   Biz1Client.prototype.request = async function (route, data, options) {
     options = options || {};
     if (!route) throw new Error('route is required');
+
+    // Retry transient network / gateway failures so brief connection drops
+    // do not surface as hard "API error" screens to the user.
+    var maxAttempts = options.retries != null ? Math.max(1, Number(options.retries) + 1) : 4;
+    var lastError = null;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await this._requestOnce(route, data, options);
+      } catch (err) {
+        lastError = err;
+        if (err && Number(err.status) === 401) throw err;
+        var canRetry = attempt < maxAttempts && (
+          isTransientNetworkError(err) ||
+          (err && isTransientHttpStatus(err.status))
+        );
+        if (!canRetry) throw err;
+        var delay = Math.min(2500, 350 * Math.pow(2, attempt - 1)) + Math.floor(Math.random() * 200);
+        try {
+          console.warn('[Biz1SDK] ' + route + ' attempt ' + attempt + '/' + maxAttempts + ' failed — retry in ' + delay + 'ms', err && err.message);
+        } catch (e) { /* ignore */ }
+        await sleep(delay);
+      }
+    }
+    throw lastError;
+  };
+
+  Biz1Client.prototype._requestOnce = async function (route, data, options) {
+    options = options || {};
     var headers = Object.assign({}, options.headers || {});
     if (!options.public) {
       var token = options.token || this.getToken();
@@ -421,11 +467,21 @@
       headers.Authorization = 'Bearer ' + token;
     }
 
-    var res = await this.fetch(this.domain + this.appPath + '/' + route, {
-      method: 'POST',
-      headers: headers,
-      body: toBody(data)
-    });
+    var res;
+    try {
+      res = await this.fetch(this.domain + this.appPath + '/' + route, {
+        method: 'POST',
+        headers: headers,
+        body: toBody(data),
+        cache: 'no-store'
+      });
+    } catch (fetchErr) {
+      throw new Biz1ApiError(
+        (fetchErr && fetchErr.message) || 'NetworkError when attempting to fetch resource.',
+        { route: route, status: 0, raw: { cause: String(fetchErr && fetchErr.name || 'NetworkError') } }
+      );
+    }
+
     var text = await res.text();
     var json;
     try {

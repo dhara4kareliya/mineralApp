@@ -165,48 +165,87 @@
   async function loadList(mount, explicitFolderId) {
     var el = mount.el;
     var kind = mount.kind;
+    var loadId = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
+    mount._activeLoadId = loadId;
     el.innerHTML = loadingHtml();
 
     var totalEl = document.getElementById('mb-total-label');
     if (totalEl) totalEl.textContent = 'Loading…';
 
-    try {
-      var queryParams = { length: 100, start: 0, draw: 1 };
-      if (explicitFolderId != null) {
-        queryParams.folder_id = explicitFolderId;
-      }
-      var listRes = await MineralBarApp.listCustomers(queryParams);
-      
-      el = document.getElementById('mb-live-list') || el;
-      var totalEl = document.getElementById('mb-total-label');
-
-      var rows = (listRes && (listRes.rows || listRes.data)) || [];
-      var total = (listRes && listRes.total != null) ? listRes.total : rows.length;
-
-      if (totalEl) {
-        totalEl.textContent = rows.length + (kind === 'leads' ? ' leads' : ' active customers');
-      }
-
-      if (!rows.length) {
-        el.innerHTML = emptyHtml(kind);
-        return;
-      }
-
-      var html = rows.map(function (row) {
-        var c = pick(row);
-        return kind === 'leads' ? leadCard(c) : customerCard(c);
-      }).join('');
-
-      el.innerHTML = html;
-      applyClientFilters(el);
-      bindClientFilters(el);
-    } catch (err) {
-      console.error('[MineralBar] Customer.List failed', err);
-      if (totalEl) totalEl.textContent = 'API Error';
-      el.innerHTML = errorHtml(err);
-      var btn = document.getElementById('mb-list-retry');
-      if (btn) btn.addEventListener('click', function () { loadList(mount); });
+    var queryParams = { length: 100, start: 0, draw: 1 };
+    if (explicitFolderId != null) {
+      queryParams.folder_id = explicitFolderId;
     }
+
+    var lastErr = null;
+    // Extra page-level attempts on top of SDK retries for flaky connections
+    for (var attempt = 1; attempt <= 3; attempt += 1) {
+      if (mount._activeLoadId !== loadId) return;
+      try {
+        if (attempt > 1) {
+          el.innerHTML =
+            '<div style="text-align:center;padding:48px 20px;">' +
+            '<div style="font-size:14px;font-weight:700;color:#8a93a3;">Reconnecting…</div>' +
+            '<div style="font-size:12px;color:#b6bdc8;margin-top:6px;">Attempt ' + attempt + ' of 3</div>' +
+            '</div>';
+          if (totalEl) totalEl.textContent = 'Reconnecting…';
+          await new Promise(function (r) { setTimeout(r, 400 * attempt); });
+          if (mount._activeLoadId !== loadId) return;
+        }
+
+        var listRes = await MineralBarApp.listCustomers(queryParams);
+        if (mount._activeLoadId !== loadId) return;
+
+        el = document.getElementById('mb-live-list') || el;
+        totalEl = document.getElementById('mb-total-label');
+
+        var rows = (listRes && (listRes.rows || listRes.data || listRes.items || listRes.records)) || [];
+        if (!Array.isArray(rows)) rows = [];
+        var total = (listRes && listRes.total != null) ? listRes.total
+          : (listRes && listRes.recordsFiltered != null) ? listRes.recordsFiltered
+          : (listRes && listRes.recordsTotal != null) ? listRes.recordsTotal
+          : rows.length;
+
+        if (totalEl) {
+          totalEl.textContent = rows.length + (kind === 'leads' ? ' leads' : ' active customers');
+        }
+
+        if (!rows.length) {
+          el.innerHTML = emptyHtml(kind);
+          return;
+        }
+
+        var html = rows.map(function (row) {
+          var c = pick(row);
+          return kind === 'leads' ? leadCard(c) : customerCard(c);
+        }).join('');
+
+        el.innerHTML = html;
+        applyClientFilters(el);
+        bindClientFilters(el);
+        return;
+      } catch (err) {
+        lastErr = err;
+        console.warn('[MineralBar] Customer.List attempt ' + attempt + ' failed', err);
+        var msg = String((err && err.message) || err || '');
+        var transient = /networkerror|failed to fetch|load failed|fetch resource|status:\s*0|502|503|504|429/i.test(msg) ||
+          (err && (Number(err.status) === 0 || Number(err.status) >= 500 || Number(err.status) === 429));
+        if (!transient || attempt === 3) break;
+      }
+    }
+
+    if (mount._activeLoadId !== loadId) return;
+    console.error('[MineralBar] Customer.List failed', lastErr);
+    el = document.getElementById('mb-live-list') || el;
+    totalEl = document.getElementById('mb-total-label');
+    if (totalEl) totalEl.textContent = 'API Error';
+    el.innerHTML = errorHtml(lastErr);
+    var btn = document.getElementById('mb-list-retry');
+    if (btn) btn.addEventListener('click', function () {
+      mount._activeLoadId = '';
+      el.removeAttribute('data-initial-loaded');
+      loadList(mount, explicitFolderId);
+    });
   }
 
   function applyClientFilters(listEl) {
@@ -281,7 +320,6 @@
       var name = isEn ? (f.name_en || f.name || f.name_he) : (f.name_he || f.name || f.name_en);
       if (isEn && name) name = name.toUpperCase();
       var icon = f.icon || iconMap[fid] || '📁';
-      var count = f.count != null ? f.count : (f.total != null ? f.total : (fid === '1' ? 6 : (fid === '2' || fid === '3' ? 1 : 0)));
 
       var isActive = (fid === activeId);
 
@@ -289,14 +327,9 @@
         ? 'flex:none; display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:12px; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; background:#eff6ff; color:#1d4ed8; border:1.5px solid #3b82f6; box-shadow:0 1px 3px rgba(59,130,246,0.15);'
         : 'flex:none; display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:12px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; background:#f8fafc; color:#475569; border:1.5px solid #e2e8f0;';
 
-      var badgeStyle = isActive
-        ? 'display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:99px; font-size:11px; font-weight:800; background:#3b82f6; color:#ffffff; margin-left:2px;'
-        : 'display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:99px; font-size:11px; font-weight:800; background:#cbd5e1; color:#334155; margin-left:2px;';
-
       html += '<button type="button" class="mb-cust-chip mb-folder-tab" data-folder-id="' + fid + '" data-chip-id="' + fid + '" data-active="' + (isActive ? '1' : '0') + '" style="' + btnStyle + '">' +
         '<span>' + icon + '</span> ' +
-        '<span>' + esc(name) + '</span> ' +
-        '<span class="count-badge" style="' + badgeStyle + '">' + count + '</span>' +
+        '<span>' + esc(name) + '</span>' +
         '</button>';
     });
 
@@ -380,12 +413,6 @@
           c.style.color = isThis ? '#1d4ed8' : '#475569';
           c.style.border = isThis ? '1.5px solid #3b82f6' : '1.5px solid #e2e8f0';
           c.style.fontWeight = isThis ? '800' : '700';
-
-          var badge = c.querySelector('.count-badge');
-          if (badge) {
-            badge.style.background = isThis ? '#3b82f6' : '#cbd5e1';
-            badge.style.color = isThis ? '#ffffff' : '#334155';
-          }
         });
 
         // Fetch fresh list from API with selected folder_id

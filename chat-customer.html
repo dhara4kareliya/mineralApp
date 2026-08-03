@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -8,9 +8,9 @@
 <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
 <script src="./biz1-app.js?v=chat-6"></script>
 <script src="./page-boot.js?v=chat-6"></script>
-<script src="./chat-live.js?v=chat-10"></script>
+<script src="./chat-live.js?v=chat-18"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull3"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -49,6 +49,34 @@
     overflow-x: auto !important;
     overflow-y: hidden !important;
   }
+  /* Never show native file browse UI — pickers open only via attach icons */
+  #mb-chat-file-image,
+  #mb-chat-file-doc,
+  #mb-chat-file-music,
+  .mb-chat-file-input {
+    position: absolute !important;
+    left: -9999px !important;
+    top: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    border: 0 !important;
+  }
+  #mb-chat-attach-menu {
+    display: none !important;
+  }
+  #mb-chat-attach-menu.mb-open {
+    display: flex !important;
+  }
+  #mb-chat-attach-preview {
+    display: none !important;
+  }
+  #mb-chat-attach-preview.mb-open {
+    display: flex !important;
+  }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
@@ -67,9 +95,9 @@
 <div id="mb-chat-sub" style="font-size:12px; color:#9fb0c8; margin-top:1px;">loading…</div>
 </div>
 </a>
-<button style="background:none; border:none; cursor:pointer; padding:6px; display:flex; flex:none;">
+<a id="mb-chat-call-btn" href="#" aria-label="Call" style="background:none; border:none; cursor:pointer; padding:6px; display:flex; flex:none; text-decoration:none;">
 <svg fill="none" height="20" stroke="#d6deea" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>
-</button>
+</a>
 <button onclick="{{ openActions }}" style="background:none; border:none; cursor:pointer; padding:6px 4px; display:flex; flex:none;">
 <svg fill="#d6deea" height="20" viewbox="0 0 24 24" width="20"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg>
 </button>
@@ -171,19 +199,47 @@ Internal notes
 </button>
 </div>
 </div>
-<div style="background:#fff; padding:6px 14px 20px; display:flex; align-items:center; gap:10px; flex:none;">
-<button style="background:none; border:none; cursor:pointer; padding:4px; display:flex; flex:none;">
-<svg fill="none" height="22" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="22"><path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.2-9.2a3.67 3.67 0 0 1 5.18 5.18l-9.2 9.2a1.83 1.83 0 0 1-2.6-2.6l8.5-8.48"></path></svg>
+<div id="mb-chat-composer" style="background:#fff; padding:6px 14px 20px; flex:none; position:relative;">
+<div id="mb-chat-attach-menu" style="position:absolute; inset-inline-start:14px; bottom:calc(100% - 2px); z-index:25; gap:10px; padding:10px; background:#fff; border:1px solid #e7eaef; border-radius:16px; box-shadow:0 10px 28px rgba(15,24,40,.14);">
+<button type="button" class="mb-attach-opt" data-attach="image" style="width:72px; border:none; background:#f3f5f8; border-radius:14px; padding:12px 8px 10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;">
+<svg fill="none" height="26" stroke="#25b35e" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="26"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="2"></circle><path d="m4 18 5-4 4 3 3-2 4 3"></path></svg>
+<span data-i18n="Image" style="font-size:12px; font-weight:700; color:#1f2a3a;">Image</span>
+</button>
+<button type="button" class="mb-attach-opt" data-attach="file" style="width:72px; border:none; background:#f3f5f8; border-radius:14px; padding:12px 8px 10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;">
+<svg fill="none" height="26" stroke="#6b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="26"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+<span data-i18n="File" style="font-size:12px; font-weight:700; color:#1f2a3a;">File</span>
+</button>
+<button type="button" class="mb-attach-opt" data-attach="music" style="width:72px; border:none; background:#f3f5f8; border-radius:14px; padding:12px 8px 10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;">
+<svg fill="none" height="26" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="26"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+<span data-i18n="Music" style="font-size:12px; font-weight:700; color:#1f2a3a;">Music</span>
+</button>
+</div>
+<div id="mb-chat-attach-preview" style="align-items:center; gap:10px; margin:0 0 10px; padding:8px 10px; background:#f3f5f8; border:1px solid #e7eaef; border-radius:14px;">
+  <div id="mb-chat-attach-thumb" style="width:44px; height:44px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; flex:none;"></div>
+  <div style="flex:1; min-width:0;">
+    <div id="mb-chat-attach-name" style="font-size:13px; font-weight:700; color:#1f2a3a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+    <div id="mb-chat-attach-hint" data-i18n="Ready to send" style="font-size:11.5px; color:#7b8595; margin-top:2px;">Ready to send</div>
+  </div>
+  <button type="button" id="mb-chat-attach-clear" aria-label="Remove" style="width:30px; height:30px; border-radius:50%; border:none; background:#e8ebf0; color:#5a6473; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none;">
+    <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="14"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+  </button>
+</div>
+<div style="display:flex; align-items:center; gap:10px;">
+<button type="button" id="mb-chat-attach-btn" aria-label="Attach" aria-expanded="false" style="background:none; border:none; cursor:pointer; padding:4px; display:flex; flex:none;">
+<svg fill="none" height="22" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.2-9.2a3.67 3.67 0 0 1 5.18 5.18l-9.2 9.2a1.83 1.83 0 0 1-2.6-2.6l8.5-8.48"></path></svg>
 </button>
 <div style="flex:1; display:flex; align-items:center; background:#f1f3f6; border:1.5px solid #e7eaef; border-radius:22px; padding:10px 15px;">
 <input class="ds-msg" id="mb-chat-input" placeholder="Type a message" style="flex:1; border:none; outline:none; background:none; font-size:15px; color:#1f2a3a; text-align:left;"/>
 </div>
-<button style="background:none; border:none; cursor:pointer; padding:4px; display:flex; flex:none;">
-<svg fill="none" height="22" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="22"><rect height="12" rx="3" width="6" x="9" y="2"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
-</button>
 <button id="mb-chat-send" style="width:44px; height:44px; border-radius:50%; background:#16223a; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 4px 12px rgba(15,24,40,.22);" type="button">
-<svg fill="none" height="20" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg>
+<svg fill="none" height="20" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg>
 </button>
+</div>
+<div aria-hidden="true" style="position:absolute; left:-9999px; width:0; height:0; overflow:hidden;">
+<input class="mb-chat-file-input" type="file" id="mb-chat-file-image" accept="image/*" tabindex="-1"/>
+<input class="mb-chat-file-input" type="file" id="mb-chat-file-doc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.heic" tabindex="-1"/>
+<input class="mb-chat-file-input" type="file" id="mb-chat-file-music" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" tabindex="-1"/>
+</div>
 </div>
  <!-- ============ ACTIONS SHEET ============  -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ actionsOpen }}">

@@ -10,7 +10,7 @@
 <script src="./page-boot.js"></script>
 <script src="./sales-static-live.js?v=sales-live-1"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -26,6 +26,8 @@
   .dc-scroll::-webkit-scrollbar { width: 0; }
   .ds-input::placeholder { color: #aeb6c2; }
   select.ds-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 13px center; }
+  html[dir="ltr"] select.ds-input { background-position: right 13px center; }
+  html[dir="rtl"] select.ds-input { background-position: left 13px center; }
   .type-tabs-scroll {
     display: block;
     margin-top: 13px;
@@ -171,8 +173,8 @@
 <div style="flex:1;">
 <label style="display:block; font-size:11.5px; color:#9aa3b0; font-weight:600; margin-bottom:5px;" data-no-i18n="true">{{ labelUnitPrice }}</label>
 <div style="position:relative;">
-<input class="ds-input" readonly="" inputmode="numeric" style="width:100%; padding:9px 28px 9px 10px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ it.price }}"/>
-<span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:13px;">₪</span>
+<input class="ds-input" readonly="" inputmode="numeric" style="width:100%; padding:9px 12px 9px 28px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14px; color:#1f2a3a; text-align:left; background:#f6f8fa; box-sizing:border-box;" value="{{ it.price }}"/>
+<span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:13px; font-weight:700; pointer-events:none; line-height:1;">₪</span>
 </div>
 </div>
 <div style="flex:none; text-align:left;">

@@ -208,6 +208,7 @@
             await MineralBarApp.doneMission(id);
           }
           panel.style.display = 'none';
+          currentStart = 0;
           if (typeof loadTasks === 'function') loadTasks(currentFilterType);
         } catch (e) {
           alert('Failed to delete task: ' + (e.message || e));
@@ -221,6 +222,65 @@
   }
 
   var currentFilterType = 'show_all_together_tasks';
+  var PAGE_SIZE = 25;
+  var currentStart = 0;
+  var currentTotal = 0;
+
+  function pageCount(total) {
+    var t = Number(total) || 0;
+    return Math.max(1, Math.ceil(t / PAGE_SIZE));
+  }
+
+  function currentPage() {
+    return Math.floor(currentStart / PAGE_SIZE) + 1;
+  }
+
+  function renderPager(total, shownCount) {
+    var t = Number(total) || 0;
+    if (t <= PAGE_SIZE) return '';
+    var page = currentPage();
+    var pages = pageCount(t);
+    var from = t ? (currentStart + 1) : 0;
+    var to = Math.min(currentStart + (shownCount || PAGE_SIZE), t);
+    var canPrev = currentStart > 0;
+    var canNext = currentStart + PAGE_SIZE < t;
+    var btnBase =
+      'padding:9px 14px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;';
+    var btnOn = btnBase + 'border:none;background:var(--color-primary,#1d60a2);color:#fff;';
+    var btnOff = btnBase + 'border:1px solid var(--border-panel,#e2e8f0);background:var(--bg-panel,#fff);color:var(--text-sub,#64748b);opacity:0.45;cursor:default;';
+
+    return (
+      '<div id="mb-tasks-pager" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 6px;padding:12px 12px;background:var(--bg-panel,#fff);border:1px solid var(--border-panel,#e8eaee);border-radius:14px;">' +
+      '<button type="button" id="mb-tasks-prev" ' + (canPrev ? '' : 'disabled ') +
+      'style="' + (canPrev ? btnOn : btnOff) + '">‹ Prev</button>' +
+      '<div style="text-align:center;flex:1;min-width:0;">' +
+      '<div style="font-size:12.5px;font-weight:800;color:var(--text-title,#1f2a3a);">' + from + '–' + to + ' of ' + t + '</div>' +
+      '<div style="font-size:11.5px;font-weight:700;color:var(--text-sub,#8a93a3);margin-top:2px;">Page ' + page + ' of ' + pages + '</div>' +
+      '</div>' +
+      '<button type="button" id="mb-tasks-next" ' + (canNext ? '' : 'disabled ') +
+      'style="' + (canNext ? btnOn : btnOff) + '">Next ›</button>' +
+      '</div>'
+    );
+  }
+
+  function wirePager() {
+    var prev = document.getElementById('mb-tasks-prev');
+    var next = document.getElementById('mb-tasks-next');
+    if (prev && !prev.disabled) {
+      prev.addEventListener('click', function () {
+        currentStart = Math.max(0, currentStart - PAGE_SIZE);
+        loadTasks(currentFilterType);
+      });
+    }
+    if (next && !next.disabled) {
+      next.addEventListener('click', function () {
+        if (currentStart + PAGE_SIZE < currentTotal) {
+          currentStart += PAGE_SIZE;
+          loadTasks(currentFilterType);
+        }
+      });
+    }
+  }
 
   async function populateQuickMissionDropdowns() {
     var teamSel = document.getElementById('mb-quick-team');
@@ -317,7 +377,8 @@
           msgEl.textContent = 'Quick mission added successfully!';
         }
         if (detailIn) detailIn.value = '';
-        
+
+        currentStart = 0;
         loadTasks(currentFilterType);
       } catch (err) {
         console.error('Quick Mission create failed', err);
@@ -347,6 +408,7 @@
           c.style.border = on ? 'none' : '1px solid var(--border-panel)';
         });
 
+        currentStart = 0;
         loadTasks(currentFilterType);
       });
     });
@@ -358,48 +420,77 @@
     if (totalEl) totalEl.textContent = 'Loading…';
 
     try {
-      var result = await MineralBarApp.listMissions({ type: filterType, length: 100, start: 0, draw: 1 });
+      var result = await MineralBarApp.listMissions({
+        type: filterType,
+        length: PAGE_SIZE,
+        start: currentStart,
+        draw: 1
+      });
       var today = todayKey();
       var groups = result.groups || [];
       var flatRows = result.rows || [];
-      
-      if (totalEl) {
-        var total = result.total || flatRows.length || 0;
-        totalEl.textContent = total ? (total + ' tasks') : 'No tasks';
+      var total = Number(result.total) || flatRows.length || 0;
+      currentTotal = total;
+
+      // If filter/total shrank past current page, snap back
+      if (total > 0 && currentStart >= total) {
+        currentStart = Math.max(0, (pageCount(total) - 1) * PAGE_SIZE);
+        return loadTasks(filterType);
       }
-      
+
+      var shownCount = 0;
+      groups.forEach(function (g) { shownCount += (g.rows && g.rows.length) || 0; });
+      if (!shownCount) shownCount = flatRows.length;
+
+      if (totalEl) {
+        if (!total) {
+          totalEl.textContent = 'No tasks';
+        } else if (total > PAGE_SIZE) {
+          var from = currentStart + 1;
+          var to = Math.min(currentStart + shownCount, total);
+          totalEl.textContent = total + ' tasks · showing ' + from + '–' + to;
+        } else {
+          totalEl.textContent = total + ' tasks';
+        }
+      }
+
       var html = '';
       groups.forEach(function(g, idx) {
         if (!g.rows || !g.rows.length) return;
         var groupColor = '#1d60a2';
         var gId = g.id || ('group_' + idx);
         var labelStr = esc(g.label === 'משימות' ? 'Tasks' : g.label);
-        
+        var countLabel = total > PAGE_SIZE ? (g.rows.length + ' / ' + total) : String(g.total != null ? g.total : g.rows.length);
+
         html += '<div class="task-group-container" data-group-id="' + esc(gId) + '">';
         html += '<div class="task-group-header">' +
                 '<span class="task-group-dot" style="background:' + groupColor + ';"></span>' +
                 '<span class="task-group-title">' + labelStr + '</span>' +
-                '<span class="task-group-count">• ' + g.total + '</span>' +
+                '<span class="task-group-count">• ' + countLabel + '</span>' +
                 '</div>';
         html += g.rows.map(function(m) { return missionRow(m, today); }).join('');
         html += '</div>';
       });
 
       if (!html && flatRows.length) {
+        var flatCount = total > PAGE_SIZE ? (flatRows.length + ' / ' + total) : String(flatRows.length);
         html += '<div class="task-group-container">';
-        html += '<div class="task-group-header"><span class="task-group-dot"></span><span class="task-group-title">Tasks</span><span class="task-group-count">• ' + flatRows.length + '</span></div>';
+        html += '<div class="task-group-header"><span class="task-group-dot"></span><span class="task-group-title">Tasks</span><span class="task-group-count">• ' + flatCount + '</span></div>';
         html += flatRows.map(function(m) { return missionRow(m, today); }).join('');
         html += '</div>';
       }
-      
+
       if (!html) {
         html = '<div style="text-align:center; padding:40px 20px; color:var(--text-sub); font-weight:600;">No tasks found.</div>';
+      } else {
+        html += renderPager(total, shownCount);
       }
-      
+
       var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
       if (mount) {
         mount.innerHTML = html;
-        
+        wirePager();
+
         var rows = mount.querySelectorAll('.task-row-card');
         rows.forEach(function(row) {
           row.addEventListener('click', function() {

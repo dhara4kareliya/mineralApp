@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 
@@ -10,7 +10,7 @@
   <script src="./biz1-app.js"></script>
   <script src="./page-boot.js"></script>
   <link rel="stylesheet" href="./common.css" />
-  <script src="./i18n-translations.js"></script>
+  <script src="./i18n-translations.js?v=hefull1"></script>
   <script src="./common-header-footer.js"></script>
 </head>
 
@@ -126,6 +126,7 @@
                     </div>
                     <div style="font-size:12px; color:#9aa3b0; margin-top:2px;">{{ c.id }} · {{ c.age }}</div>
                   </div>
+                  <sc-if hint-placeholder-val="{{ true }}" value="{{ c.showBadge }}">
                   <div
                     style="display:inline-flex; align-items:center; gap:4px; background:{{ c.badgeBg }}; color:{{ c.badgeColor }}; font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap; flex:none;">
                     <sc-if hint-placeholder-val="{{ true }}" value="{{ c.isToSchedule }}"><svg fill="none" height="12"
@@ -150,14 +151,9 @@
                         viewbox="0 0 24 24" width="12">
                         <path d="M20 6 9 17l-5-5"></path>
                       </svg></sc-if>
-                    <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isToCollect }}"><svg fill="none" height="12"
-                        stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        viewbox="0 0 24 24" width="12">
-                        <rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect>
-                        <circle cx="12" cy="12" r="2.4"></circle>
-                      </svg></sc-if>
                     {{ c.badge }}
                   </div>
+                  </sc-if>
                 </div>
                 <!-- type + collection pills -->
                 <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:11px;">
@@ -199,17 +195,6 @@
                     <span
                       style="display:inline-flex; align-items:center; gap:4px; background:#fff9e6; color:#b08000; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px; border:1px solid #ffe89e;">
                       ⭐ {{ c.rating }}
-                    </span>
-                  </sc-if>
-                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.charge }}">
-                    <span
-                      style="display:inline-flex; align-items:center; gap:4px; background:#fdf1dd; color:#bd8324; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">
-                      <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-width="2" viewbox="0 0 24 24" width="12">
-                        <rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect>
-                        <circle cx="12" cy="12" r="2.4"></circle>
-                      </svg>
-                      charge service fees
                     </span>
                   </sc-if>
                 </div>
@@ -263,8 +248,8 @@
                     </svg>
                     Ticket details
                   </button>
-                  <button
-                    style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:none; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:700; cursor:pointer;">
+                  <button type="button" onclick="{{ c.callCustomer }}"
+                    style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:1.5px solid #bcd3ef; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:700; cursor:pointer;">
                     <svg fill="currentColor" height="14" viewbox="0 0 24 24" width="14">
                       <path
                         d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z">
@@ -529,7 +514,8 @@ class Component extends DCLogic {
             department: t.department === 341 ? 'שירות לקוחות' : 'שירות טכני',
             rating: t.rating || '0',
             dueDate: dueDateStr,
-            cust_id: t.cust_id || ''
+            cust_id: t.cust_id || t.customer_id || '',
+            phone: t.mobile || t.phone || t.cust_phone || t.customer_phone || ''
           };
         });
         this.forceUpdate();
@@ -537,6 +523,52 @@ class Component extends DCLogic {
     } catch (e) {
       console.error('Failed to load tickets:', e);
     }
+  }
+
+  telHref(raw) {
+    var s = String(raw || '').replace(/\D/g, '');
+    if (!s) return '';
+    if (s.indexOf('972') === 0) return 'tel:+' + s;
+    if (s.charAt(0) === '0') return 'tel:+972' + s.slice(1);
+    return 'tel:' + s;
+  }
+
+  showCallToast(msg) {
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    var text = msg;
+    if (!isEn && msg === 'No phone number for this customer') text = 'אין מספר טלפון ללקוח זה';
+    var existing = document.getElementById('mb-call-toast');
+    if (existing) existing.remove();
+    var el = document.createElement('div');
+    el.id = 'mb-call-toast';
+    el.textContent = text;
+    el.style.cssText = 'position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:99999;background:#16223a;color:#fff;padding:10px 14px;border-radius:12px;font:700 13px Heebo,sans-serif;box-shadow:0 8px 24px rgba(15,24,40,.28);max-width:90%;';
+    document.body.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.remove(); }, 2500);
+  }
+
+  callCustomer(phone, custId) {
+    var href = this.telHref(phone);
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    // If list row has no phone, try Customer.Get once
+    if (custId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+      var self = this;
+      MineralBarApp.getCustomer(custId).then(function (res) {
+        var c = (res && res.customer) || {};
+        if (c.data && typeof c.data === 'object') c = c.data;
+        var p = c.mobile || c.phone || c.cellular || '';
+        var h = self.telHref(p);
+        if (h) window.location.href = h;
+        else self.showCallToast('No phone number for this customer');
+      }).catch(function () {
+        self.showCallToast('No phone number for this customer');
+      });
+      return;
+    }
+    this.showCallToast('No phone number for this customer');
   }
 
   chip(on) {
@@ -569,6 +601,7 @@ class Component extends DCLogic {
       return {
         id: c.id, name: c.name, age: c.age, type: c.type, address: c.address, desc: c.desc, charge: c.charge,
         badge: b.label, badgeColor: b.color, badgeBg: b.bg,
+        showBadge: c.badge !== 'tocollect',
         isToSchedule: c.badge === 'toschedule', isScheduled: c.badge === 'scheduled', isNew: c.badge === 'new', isDone: c.badge === 'done', isToCollect: c.badge === 'tocollect',
         wait: this.waitLabel(c.wait), waitColor: wt.color, waitBg: wt.bg,
         department: c.department,
@@ -576,7 +609,8 @@ class Component extends DCLogic {
         dueDate: c.dueDate,
         cust_id: c.cust_id,
         goCard: () => { window.location.href = 'service-call-details.html?ticket_id=' + c.id.replace('#SRV-', ''); },
-        goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id; }
+        goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id; },
+        callCustomer: () => this.callCustomer(c.phone, c.cust_id)
       };
     });
 

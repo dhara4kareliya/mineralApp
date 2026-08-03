@@ -387,7 +387,10 @@
   function confirmLocalMessage(localId) {
     currentMessages = currentMessages.map(function (row) {
       if (row._localId !== localId) return row;
-      return Object.assign({}, row, { _pending: false });
+      // Drop local id so a later thread reload won't keep a second copy
+      var next = Object.assign({}, row, { _pending: false });
+      delete next._localId;
+      return next;
     });
     renderMessages('mb-live-chat', currentMessages, currentParams);
   }
@@ -399,12 +402,72 @@
     renderMessages('mb-live-chat', currentMessages, currentParams);
   }
 
+  function messageDedupeKey(row) {
+    var text = String((row && (row.message || row.msg || row.body)) || '').trim().replace(/\s+/g, ' ');
+    var type = String((row && row.type) || '').toLowerCase();
+    return type + '|' + text;
+  }
+
+  function mergeServerAndLocalMessages(serverRows, localRows) {
+    var merged = Array.isArray(serverRows) ? serverRows.slice() : [];
+    var seen = {};
+    merged.forEach(function (row) {
+      seen[messageDedupeKey(row)] = true;
+    });
+    (localRows || []).forEach(function (row) {
+      if (!row || !row._pending) return; // only keep in-flight optimistic rows
+      var key = messageDedupeKey(row);
+      if (seen[key]) return;
+      seen[key] = true;
+      merged.push(row);
+    });
+    return merged;
+  }
+
+  function formatMessageBody(text) {
+    var raw = String(text == null ? '' : text);
+    if (!raw) return '';
+    var urlRe = /(https?:\/\/[^\s<>"']+|biz1upload\/[^\s<>"']+)/gi;
+    var parts = [];
+    var last = 0;
+    var m;
+    while ((m = urlRe.exec(raw)) !== null) {
+      if (m.index > last) parts.push({ type: 'text', value: raw.slice(last, m.index) });
+      parts.push({ type: 'url', value: m[0] });
+      last = m.index + m[0].length;
+    }
+    if (last < raw.length) parts.push({ type: 'text', value: raw.slice(last) });
+    if (!parts.length) parts.push({ type: 'text', value: raw });
+
+    return parts.map(function (part) {
+      if (part.type !== 'url') return esc(part.value);
+      var href = part.value;
+      if (/^biz1upload\//i.test(href) && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
+        href = MineralBarApp.resolveFileUrl(href);
+      }
+      var safeHref = esc(href);
+      var label = esc(part.value);
+      var isImg = /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(href);
+      var isAudio = /\.(mp3|wav|m4a|aac|ogg|flac)(\?|$)/i.test(href);
+      if (isImg) {
+        return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:block; margin:4px 0;">' +
+          '<img src="' + safeHref + '" alt="" style="max-width:100%; max-height:220px; border-radius:12px; display:block;"/>' +
+          '</a>';
+      }
+      if (isAudio) {
+        return '<div style="margin:4px 0;"><audio controls preload="none" src="' + safeHref + '" style="width:100%; max-width:260px;"></audio></div>' +
+          '<a href="' + safeHref + '" target="_blank" rel="noopener" style="color:#1d60a2; text-decoration:underline; word-break:break-all;">' + label + '</a>';
+      }
+      return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="color:#1d60a2; text-decoration:underline; word-break:break-all;">' + label + '</a>';
+    }).join('');
+  }
+
   function bubbleIn(text, time, who, badgeHtml) {
     var badge = badgeHtml || '';
     return (
       '<div style="align-self:flex-start; width:100%; max-width:85%; background:#fff; border:1.5px solid #e7eaef; border-radius:18px; padding:14px 16px; box-shadow:0 1px 3px rgba(15,24,40,.04); display:flex; flex-direction:column; gap:4px;">' +
       badge +
-      '<div style="font-size:15px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:left;">' + esc(text) + '</div>' +
+      '<div style="font-size:15px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:left;">' + formatMessageBody(text) + '</div>' +
       '<div style="font-size:11px; color:#8a96a3; text-align:right; margin-top:2px; font-weight:600;">' + esc(time) + '</div>' +
       '</div>'
     );
@@ -415,7 +478,7 @@
     return (
       '<div style="align-self:flex-end; width:100%; max-width:85%; background:#fff; border:1.5px solid #e7eaef; border-radius:18px; padding:14px 16px; box-shadow:0 1px 3px rgba(15,24,40,.04); display:flex; flex-direction:column; gap:4px;">' +
       badge +
-      '<div style="font-size:15px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:left;">' + esc(text) + '</div>' +
+      '<div style="font-size:15px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:left;">' + formatMessageBody(text) + '</div>' +
       '<div style="display:flex; align-items:center; justify-content:space-between; margin-top:2px;">' +
       (pending
         ? '<span style="font-size:11px; color:#bd8324; font-weight:600;">שולח…</span>'
@@ -445,6 +508,14 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
+  function telHref(raw) {
+    var s = String(raw || '').replace(/\D/g, '');
+    if (!s) return '';
+    if (s.indexOf('972') === 0) return 'tel:+' + s;
+    if (s.charAt(0) === '0') return 'tel:+972' + s.slice(1);
+    return 'tel:' + s;
+  }
+
   function fillHeader(p) {
     var name = p.name || p.email || (p.customer_id ? ('לקוח #' + p.customer_id) : 'שיחה');
     var subText = p.phone || p.customer_id || '';
@@ -468,6 +539,44 @@
       if (p.email) q.set('email', p.email);
       detailsLink.href = 'chat-customer-details.html?' + q.toString();
     }
+    var callBtn = document.getElementById('mb-chat-call-btn');
+    if (callBtn) {
+      var href = telHref(p.phone);
+      callBtn.setAttribute('href', href || '#');
+      callBtn.setAttribute('data-has-phone', href ? '1' : '0');
+    }
+  }
+
+  function dialCurrentCustomer(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var p = currentParams || params() || {};
+    var href = telHref(p.phone);
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    var cid = p.customer_id || p.cust_id || '';
+    if (cid && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+      MineralBarApp.getCustomer(cid).then(function (res) {
+        var c = (res && res.customer) || {};
+        if (c.data && typeof c.data === 'object') c = c.data;
+        var phone = c.mobile || c.phone || c.cellular || '';
+        if (phone) {
+          if (currentParams) currentParams.phone = phone;
+          fillHeader(Object.assign({}, p, { phone: phone }));
+          window.location.href = telHref(phone);
+        } else {
+          showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
+        }
+      }).catch(function () {
+        showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
+      });
+      return;
+    }
+    showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
   }
 
   window.filterChatType = function (type) {
@@ -538,9 +647,13 @@
       );
     } else {
       var lastDateStr = '';
+      var seenKeys = {};
       filteredRows.forEach(function (row) {
         var text = row.message || '';
         if (!text) return;
+        var key = messageDedupeKey(row);
+        if (seenKeys[key]) return;
+        seenKeys[key] = true;
 
         var dt = parseRowDateTime(row);
         var dateStr = dt.dateStr;
@@ -568,7 +681,7 @@
     var silent = !!options.silent;
     var el = document.getElementById(elId);
     var localPending = (currentMessages || []).filter(function (row) {
-      return row && row._localId;
+      return row && row._localId && row._pending;
     });
     if (el && !silent) {
       el.innerHTML =
@@ -603,8 +716,7 @@
           p.customer_id = String(res.customer_id);
           p.cust_id = String(res.customer_id);
         }
-        currentMessages = res.rows || [];
-        if (localPending.length) currentMessages = currentMessages.concat(localPending);
+        currentMessages = mergeServerAndLocalMessages(res.rows || [], localPending);
         renderMessages(elId, currentMessages, p);
         fillHeader(p);
         return res.rows || [];
@@ -634,8 +746,7 @@
 
     try {
       var res = await MineralBarApp.listCustomerMessages(p.customer_id, { limit: 25 });
-      currentMessages = res.rows || [];
-      if (localPending.length) currentMessages = currentMessages.concat(localPending);
+      currentMessages = mergeServerAndLocalMessages(res.rows || [], localPending);
       renderMessages(elId, currentMessages, p);
       fillHeader(p);
       return res.rows || [];
@@ -650,54 +761,215 @@
     }
   }
 
-  async function sendMessage(p, elId) {
-    var input = document.getElementById('mb-chat-input');
-    if (!input) return;
-    var msg = (input.value || '').trim();
-    if (!msg) return;
-    if (isSending) return;
+  function chatT(en, he) {
+    try {
+      if (typeof window.t === 'function') return window.t(en);
+    } catch (e0) { /* ignore */ }
+    try {
+      var lang = (document.documentElement.getAttribute('lang') || document.body.getAttribute('data-lang') || '').toLowerCase();
+      if (lang.indexOf('he') === 0 && he) return he;
+    } catch (e1) { /* ignore */ }
+    return en;
+  }
 
-    if (!p.customer_id || p.customer_id === '0') {
-      showToast('Missing customer_id', 'error');
+  function setAttachMenuOpen(open) {
+    var menu = document.getElementById('mb-chat-attach-menu');
+    var btn = document.getElementById('mb-chat-attach-btn');
+    if (!menu) return;
+    if (open) menu.classList.add('mb-open');
+    else menu.classList.remove('mb-open');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function isAttachMenuOpen() {
+    var menu = document.getElementById('mb-chat-attach-menu');
+    return !!(menu && menu.classList.contains('mb-open'));
+  }
+
+  function setAttachPreviewOpen(open) {
+    var box = document.getElementById('mb-chat-attach-preview');
+    if (!box) return;
+    if (open) box.classList.add('mb-open');
+    else box.classList.remove('mb-open');
+  }
+
+  function resolveChatCustomerId(p) {
+    p = p || currentParams || params() || {};
+    var cid = p.customer_id || p.cust_id || '';
+    if (!cid || cid === '0') {
+      try {
+        cid = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || '';
+      } catch (e) { /* ignore */ }
+    }
+    if (!cid || cid === '0') {
+      var q = new URLSearchParams(location.search || '');
+      cid = q.get('customer_id') || q.get('cust_id') || q.get('contactus_id') || '';
+    }
+    return cid ? String(cid) : '';
+  }
+
+  function buildSendPayload(p, msg) {
+    var fromVal = selectedSendChannel.from || 'send_notes';
+    var channelType = selectedSendChannel.channel_type || 'notes';
+    var customerId = resolveChatCustomerId(p);
+    var sendPayload = {
+      message: msg,
+      msg: msg,
+      customer_id: customerId,
+      cust_id: customerId,
+      from: fromVal
+    };
+    if (fromVal === 'send_chat_channel') {
+      sendPayload.channel_type = channelType;
+      sendPayload.force_channel_type = true;
+    }
+    if (p && p.email) {
+      sendPayload.email = p.email;
+      sendPayload.chart_selected_email = p.email;
+    }
+    if (p && p.phone) {
+      sendPayload.phone = p.phone;
+      sendPayload.chart_selected_phone_no = p.phone;
+    }
+    return sendPayload;
+  }
+
+  var pendingAttachment = null; // { file, kind, name, previewUrl }
+  var lastAttachToken = '';
+
+  function clearPendingAttachment() {
+    if (pendingAttachment && pendingAttachment.previewUrl) {
+      try { URL.revokeObjectURL(pendingAttachment.previewUrl); } catch (e0) { /* ignore */ }
+    }
+    pendingAttachment = null;
+    var thumb = document.getElementById('mb-chat-attach-thumb');
+    var nameEl = document.getElementById('mb-chat-attach-name');
+    if (thumb) thumb.innerHTML = '';
+    if (nameEl) nameEl.textContent = '';
+    setAttachPreviewOpen(false);
+  }
+
+  function renderPendingAttachment() {
+    var thumb = document.getElementById('mb-chat-attach-thumb');
+    var nameEl = document.getElementById('mb-chat-attach-name');
+    var hintEl = document.getElementById('mb-chat-attach-hint');
+    if (!thumb || !nameEl) return;
+    if (!pendingAttachment || !pendingAttachment.file) {
+      clearPendingAttachment();
       return;
     }
+    // After file pick: hide Image/File/Music menu, show only selected preview
+    setAttachMenuOpen(false);
+    nameEl.textContent = pendingAttachment.name || pendingAttachment.file.name || 'file';
+    if (hintEl) hintEl.textContent = chatT('Ready to send', 'מוכן לשליחה');
+    thumb.innerHTML = '';
+    var isImage = pendingAttachment.kind === 'image' ||
+      (pendingAttachment.file.type && pendingAttachment.file.type.indexOf('image/') === 0);
+    if (isImage && pendingAttachment.previewUrl) {
+      var img = document.createElement('img');
+      img.src = pendingAttachment.previewUrl;
+      img.alt = nameEl.textContent;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      thumb.appendChild(img);
+    } else if (pendingAttachment.kind === 'music') {
+      thumb.innerHTML = '<svg fill="none" height="22" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
+    } else {
+      thumb.innerHTML = '<svg fill="none" height="22" stroke="#6b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>';
+    }
+    setAttachPreviewOpen(true);
+  }
 
-    input.value = '';
+  function setPendingAttachment(file, kind) {
+    if (!file) return;
+    var token = [kind, file.name, file.size, file.lastModified].join('|');
+    if (token === lastAttachToken && pendingAttachment) {
+      setAttachMenuOpen(false);
+      setAttachPreviewOpen(true);
+      return;
+    }
+    lastAttachToken = token;
+
+    clearPendingAttachment();
+    var previewUrl = '';
+    var wantPreview = kind === 'image' || (file.type && file.type.indexOf('image/') === 0);
+    if (wantPreview) {
+      try { previewUrl = URL.createObjectURL(file); } catch (e1) { previewUrl = ''; }
+    }
+    pendingAttachment = {
+      file: file,
+      kind: kind || 'file',
+      name: file.name || (kind + '-upload'),
+      previewUrl: previewUrl
+    };
+    setAttachMenuOpen(false);
+    renderPendingAttachment();
+  }
+
+  async function sendMessage(p, elId) {
+    if (isSending) return;
+    var input = document.getElementById('mb-chat-input');
+    var textMsg = input ? String(input.value || '').trim() : '';
+    var hasAttach = !!(pendingAttachment && pendingAttachment.file);
+    if (!textMsg && !hasAttach) return;
+
+    var customerId = resolveChatCustomerId(p);
+    if (!customerId) {
+      showToast(hasAttach
+        ? chatT('Select a customer before uploading files.', 'בחר לקוח לפני העלאת קבצים.')
+        : 'Missing customer_id', 'error');
+      return;
+    }
+    p = Object.assign({}, p || {}, { customer_id: customerId, cust_id: customerId });
+    currentParams = p;
+
     isSending = true;
-    // Block socket-driven full reload after our own send (message.created)
-    suppressThreadReload(5000);
-    var localId = appendLocalMessage(msg, true);
+    suppressThreadReload(8000);
 
+    var attachSnapshot = hasAttach ? pendingAttachment : null;
+    if (input) input.value = '';
+    clearPendingAttachment();
+    lastAttachToken = '';
+
+    var localId = null;
     try {
-      var fromVal = selectedSendChannel.from || 'send_notes';
-      var channelType = selectedSendChannel.channel_type || 'notes';
-      var sendPayload = {
-        message: msg,
-        msg: msg,
-        customer_id: p.customer_id,
-        cust_id: p.customer_id,
-        from: fromVal
-      };
-      // Per Chat.SendCustomer docs: channel_type only with from=send_chat_channel
-      if (fromVal === 'send_chat_channel') {
-        sendPayload.channel_type = channelType;
-        sendPayload.force_channel_type = true;
+      var finalMsg = textMsg;
+      if (attachSnapshot) {
+        showToast(chatT('Uploading file…', 'מעלה קובץ…'));
+        localId = appendLocalMessage((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n…', true);
+        if (!window.MineralBarApp || typeof MineralBarApp.uploadCustomerFile !== 'function') {
+          throw new Error(chatT('File upload failed', 'העלאת הקובץ נכשלה'));
+        }
+        var uploaded = await MineralBarApp.uploadCustomerFile(customerId, attachSnapshot.file, {
+          file_name: attachSnapshot.name || 'upload'
+        });
+        var url = (uploaded && (uploaded.url || uploaded.path)) || '';
+        if (!url && uploaded && uploaded.raw && uploaded.raw.file) {
+          url = uploaded.raw.file.file_url || uploaded.raw.file.file_path || '';
+        }
+        if (url && !/^https?:\/\//i.test(url) && window.MineralBarApp.resolveFileUrl) {
+          url = MineralBarApp.resolveFileUrl(url);
+        }
+        if (!url) throw new Error(chatT('File upload failed', 'העלאת הקובץ נכשלה'));
+        finalMsg = (attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n' + url;
+        currentMessages = currentMessages.map(function (row) {
+          if (row._localId !== localId) return row;
+          return Object.assign({}, row, { message: finalMsg });
+        });
+        renderMessages('mb-live-chat', currentMessages, p);
+      } else {
+        localId = appendLocalMessage(finalMsg, true);
       }
-      if (p.email) {
-        sendPayload.email = p.email;
-        sendPayload.chart_selected_email = p.email;
-      }
-      if (p.phone) {
-        sendPayload.phone = p.phone;
-        sendPayload.chart_selected_phone_no = p.phone;
-      }
-      await MineralBarApp.sendCustomerMessage(sendPayload);
-      confirmLocalMessage(localId);
+
+      await MineralBarApp.sendCustomerMessage(buildSendPayload(p, finalMsg));
+      // Remove optimistic bubble before refresh so it cannot appear twice with the server copy
+      if (localId) removeLocalMessage(localId);
+      if (attachSnapshot) showToast(chatT('File sent', 'הקובץ נשלח'));
+      suppressThreadReload(5000);
+      await loadThread('mb-live-chat', p, { silent: true });
     } catch (err) {
-      console.error('[MineralBar] Chat.SendCustomer failed', err);
-      removeLocalMessage(localId);
+      console.error('[MineralBar] Chat send failed', err);
+      if (localId) removeLocalMessage(localId);
       var failText = (err && err.message) || apiErrorText(err);
-      // Prefer clean API message for soft channel failures
       if (err && err.raw && (err.raw.message_return || err.raw.message)) {
         failText = String(err.raw.message_return || err.raw.message).trim();
       }
@@ -707,11 +979,23 @@
     }
   }
 
+  function openAttachPicker(kind) {
+    var id = kind === 'image' ? 'mb-chat-file-image'
+      : (kind === 'music' ? 'mb-chat-file-music' : 'mb-chat-file-doc');
+    var input = document.getElementById(id);
+    if (!input) {
+      showToast(chatT('File upload failed', 'העלאת הקובץ נכשלה'), 'error');
+      return;
+    }
+    // Keep options visible until a file is actually chosen; hide only after pick via setPendingAttachment
+    try { input.value = ''; } catch (e0) { /* ignore */ }
+    input.click();
+  }
+
   var currentParams = null;
   function go() {
-    if (currentParams) {
-      sendMessage(currentParams, 'mb-live-chat');
-    }
+    if (isSending) return;
+    sendMessage(currentParams || params(), 'mb-live-chat');
   }
 
   document.addEventListener('click', function(e) {
@@ -736,8 +1020,35 @@
       );
       return;
     }
+    if (e.target.closest('#mb-chat-call-btn')) {
+      dialCurrentCustomer(e);
+      return;
+    }
+    if (e.target.closest('#mb-chat-attach-clear')) {
+      e.preventDefault();
+      clearPendingAttachment();
+      lastAttachToken = '';
+      return;
+    }
+    if (e.target.closest('#mb-chat-attach-btn')) {
+      e.preventDefault();
+      setAttachMenuOpen(!isAttachMenuOpen());
+      return;
+    }
+    var attachOpt = e.target.closest('.mb-attach-opt');
+    if (attachOpt) {
+      e.preventDefault();
+      openAttachPicker(attachOpt.getAttribute('data-attach') || 'file');
+      return;
+    }
+    if (isAttachMenuOpen() && !e.target.closest('#mb-chat-attach-menu') && !e.target.closest('#mb-chat-attach-btn')) {
+      setAttachMenuOpen(false);
+    }
     if (e.target.closest('#mb-chat-send')) {
+      e.preventDefault();
+      e.stopPropagation();
       go();
+      return;
     }
     var quoteLink = e.target.closest('#mb-chat-quote-link');
     if (quoteLink) {
@@ -761,6 +1072,28 @@
     }
   });
 
+  function bindAttachFileInputs() {
+    // Document-level so it still works if the composer DOM is re-rendered
+    if (document.__mbAttachChangeBound) return;
+    document.__mbAttachChangeBound = true;
+    document.addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t || t.tagName !== 'INPUT' || t.type !== 'file') return;
+      var kind = null;
+      if (t.id === 'mb-chat-file-image') kind = 'image';
+      else if (t.id === 'mb-chat-file-doc') kind = 'file';
+      else if (t.id === 'mb-chat-file-music') kind = 'music';
+      if (!kind) return;
+      var file = t.files && t.files[0];
+      if (!file) return;
+      setPendingAttachment(file, kind);
+      try { t.value = ''; } catch (err) { /* ignore */ }
+    });
+  }
+  bindAttachFileInputs();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAttachFileInputs);
+  }
   document.addEventListener('keydown', function(e) {
     if (e.target && e.target.id === 'mb-chat-input') {
       if (e.key === 'Enter') {

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -9,7 +9,7 @@
 <script src="./biz1-app.js"></script>
 <script src="./page-boot.js"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -24,8 +24,19 @@
   button, input, select, textarea { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
   .ds-input::placeholder { color: #aeb6c2; }
-  html[dir="ltr"] .ds-input { text-align:left !important; }
+  html[dir="ltr"] .ds-input,
+  [dir="ltr"] .ds-input {
+    direction: ltr !important;
+    text-align: left !important;
+  }
+  html[dir="rtl"] .ds-input,
+  [dir="rtl"] .ds-input {
+    direction: rtl !important;
+    text-align: right !important;
+  }
   select.ds-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 13px center; }
+  html[dir="ltr"] select.ds-input { background-position: right 13px center; }
+  html[dir="rtl"] select.ds-input { background-position: left 13px center; }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">

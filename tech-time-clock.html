@@ -9,7 +9,7 @@
 <script src="./biz1-app.js"></script>
 <script src="./page-boot.js"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body data-role="tech" data-active-tab="clock">
@@ -100,7 +100,7 @@
 </div>
 <!-- history -->
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin:4px 2px 10px;" data-no-i18n="true">{{ labelHistory }}</div>
-<div style="background:#fff; border-radius:16px; padding:5px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:6px;" data-no-i18n="true">
+<div style="background:#fff; border-radius:16px; padding:5px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:18px;" data-no-i18n="true">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ historyEmpty }}">
 <div style="font-size:13px; color:#9aa3b0; font-weight:600; padding:14px 0;">{{ emptyHistoryMsg }}</div>
 </sc-if>
@@ -119,11 +119,14 @@
 <div style="font-size:14px; font-weight:800; color:{{ h.hoursColor }};">{{ h.hours }}</div>
 </div>
 </sc-for>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ showHistoryPager }}">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0 8px; border-top:1px solid #f0f2f5;">
-<button type="button" onclick="{{ prevHistory }}" disabled="{{ histPrevDisabled }}" style="padding:8px 12px; border:1px solid #e4e8ee; border-radius:10px; background:{{ histPrevBg }}; color:{{ histPrevColor }}; font-size:12.5px; font-weight:700; cursor:{{ histPrevCursor }};">‹ Prev</button>
-<span style="font-size:12px; color:#8a93a3; font-weight:600;">{{ historyPageLabel }}</span>
-<button type="button" onclick="{{ nextHistory }}" disabled="{{ histNextDisabled }}" style="padding:8px 12px; border:1px solid #e4e8ee; border-radius:10px; background:{{ histNextBg }}; color:{{ histNextColor }}; font-size:12.5px; font-weight:700; cursor:{{ histNextCursor }};">Next ›</button>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showHistoryPager }}">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; padding:12px 4px 4px; border-top:1px solid #f0f2f5;">
+<button type="button" onclick="{{ prevHistory }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ histPrevBg }}; color:{{ histPrevColor }}; font-size:13px; font-weight:800; cursor:{{ histPrevCursor }}; opacity:{{ histPrevOpacity }}; font-family:inherit;">‹ Prev</button>
+<div style="text-align:center; flex:1; min-width:0;">
+<div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ historyRangeLabel }}</div>
+<div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ historyPageLabel }}</div>
+</div>
+<button type="button" onclick="{{ nextHistory }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ histNextBg }}; color:{{ histNextColor }}; font-size:13px; font-weight:800; cursor:{{ histNextCursor }}; opacity:{{ histNextOpacity }}; font-family:inherit;">Next ›</button>
 </div>
 </sc-if>
 </div>
@@ -322,15 +325,98 @@ class Component extends DCLogic {
     return 0;
   }
 
+  timerStorageKey() {
+    var email = '';
+    try {
+      email = String((window.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
+    } catch (e) { /* ignore */ }
+    return 'mb_tech_timer_v1:' + (email || 'default');
+  }
+
+  readLocalTimer() {
+    try {
+      var raw = localStorage.getItem(this.timerStorageKey());
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  writeLocalTimer(data) {
+    try {
+      localStorage.setItem(this.timerStorageKey(), JSON.stringify(data || {}));
+    } catch (e) { /* ignore */ }
+  }
+
+  clearLocalTimer() {
+    try { localStorage.removeItem(this.timerStorageKey()); } catch (e) { /* ignore */ }
+  }
+
+  pickStartTime(statusRes, data, sessions, teamHoursId) {
+    var candidates = [
+      data && data.start_time,
+      statusRes && statusRes.start_time,
+      data && data.start,
+      statusRes && statusRes.start,
+      data && data.date_start,
+      statusRes && statusRes.date_start
+    ];
+    var i;
+    for (i = 0; i < candidates.length; i++) {
+      if (candidates[i]) return candidates[i];
+    }
+
+    var list = sessions || [];
+    var active = null;
+    if (teamHoursId) {
+      active = list.find(function (r) {
+        return String(r.id || r.team_hours_id) === String(teamHoursId);
+      });
+    }
+    if (!active) {
+      active = list.find(function (r) {
+        return Number(r.status) === 1 || (!r.end_time && (r.start_time || r.start));
+      });
+    }
+    if (active) return active.start_time || active.start || active.date_start || null;
+
+    var local = this.readLocalTimer();
+    if (local && local.startTime) return local.startTime;
+    if (local && local.startedAtMs) {
+      var d = new Date(Number(local.startedAtMs));
+      if (!isNaN(d.getTime())) {
+        // Store as UTC string matching API style
+        return d.getUTCFullYear() + '-' + this.pad(d.getUTCMonth() + 1) + '-' + this.pad(d.getUTCDate()) +
+          ' ' + this.pad(d.getUTCHours()) + ':' + this.pad(d.getUTCMinutes()) + ':' + this.pad(d.getUTCSeconds());
+      }
+    }
+    return null;
+  }
+
   liveElapsedSeconds() {
     var st = this.state;
     if (!st.running) return this.elapsedToSeconds(st.elapsedRaw);
-    var base = this.elapsedToSeconds(st.elapsedRaw);
-    var drift = Math.floor((Date.now() - (st.fetchedAt || Date.now())) / 1000);
-    if (drift > 0) return base + drift;
+
+    // Prefer wall-clock from shift start so leaving the page does not reset to 00:00:00
     var start = this.parseDateTime(st.startTime);
-    if (start) return Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
-    return base;
+    if (start) {
+      return Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
+    }
+
+    var local = this.readLocalTimer();
+    if (local && local.startedAtMs) {
+      var ms = Number(local.startedAtMs);
+      if (isFinite(ms) && ms > 0) {
+        return Math.max(0, Math.floor((Date.now() - ms) / 1000));
+      }
+    }
+
+    var base = this.elapsedToSeconds(st.elapsedRaw);
+    var drift = Math.max(0, Math.floor((Date.now() - (st.fetchedAt || Date.now())) / 1000));
+    return base + drift;
   }
 
   async initData() {
@@ -374,12 +460,14 @@ class Component extends DCLogic {
 
     try {
       var now = new Date();
-      var fromMonth = now.getFullYear() + '-' + this.pad(now.getMonth() + 1) + '-01';
+      // Load several months so attendance history can paginate beyond the current month
+      var histFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      var fromHistory = histFrom.getFullYear() + '-' + this.pad(histFrom.getMonth() + 1) + '-01';
       var todayLocal = this.ymdLocal(now);
       var todayUtc = this.ymdUtc(now);
 
       var statusRes = await client.request('TeamHours.Get', {});
-      var monthSessions = await this.fetchSessions(client, fromMonth, null);
+      var historySessions = await this.fetchSessions(client, fromHistory, null);
 
       var todaySessions = await this.fetchSessions(client, todayLocal, todayLocal);
       if (todayUtc !== todayLocal) {
@@ -388,7 +476,7 @@ class Component extends DCLogic {
       }
 
       var byId = {};
-      monthSessions.concat(todaySessions).forEach((r) => {
+      historySessions.concat(todaySessions).forEach((r) => {
         var id = String((r && (r.id || r.team_hours_id)) || Math.random());
         byId[id] = r;
       });
@@ -404,7 +492,7 @@ class Component extends DCLogic {
       var data = (statusRes && statusRes.data) || {};
       var teamHoursId = statusRes.team_hours_id || data.id || null;
       var elapsedRaw = data.elapsed || statusRes.elapsed || '00:00:00';
-      var startTime = data.start_time || statusRes.start_time || null;
+      var startTime = this.pickStartTime(statusRes, data, sessions, teamHoursId);
 
       if (running && startTime) {
         var hasActive = sessions.some((r) => String(r.id) === String(teamHoursId));
@@ -417,6 +505,33 @@ class Component extends DCLogic {
             elapsed: elapsedRaw
           });
         }
+      }
+
+      if (running) {
+        var localPrev = this.readLocalTimer();
+        var startParsed = this.parseDateTime(startTime);
+        var startedAtMs = startParsed ? startParsed.getTime() : Date.now();
+        if (localPrev && localPrev.startedAtMs) {
+          var localMs = Number(localPrev.startedAtMs);
+          // Keep earlier local start when API elapsed/start looks reset after navigation
+          if (isFinite(localMs) && localMs > 0 && localMs < startedAtMs && (Date.now() - localMs) < 36 * 3600 * 1000) {
+            startedAtMs = localMs;
+            if (!startTime && localPrev.startTime) startTime = localPrev.startTime;
+          }
+        }
+        if (!startTime) {
+          var d = new Date(startedAtMs);
+          startTime = d.getUTCFullYear() + '-' + this.pad(d.getUTCMonth() + 1) + '-' + this.pad(d.getUTCDate()) +
+            ' ' + this.pad(d.getUTCHours()) + ':' + this.pad(d.getUTCMinutes()) + ':' + this.pad(d.getUTCSeconds());
+        }
+        this.writeLocalTimer({
+          running: true,
+          teamHoursId: teamHoursId,
+          startTime: startTime,
+          startedAtMs: startedAtMs
+        });
+      } else {
+        this.clearLocalTimer();
       }
 
       var hoursTodayApi = null;
@@ -460,9 +575,40 @@ class Component extends DCLogic {
 
     try {
       if (starting) {
+        var startedAtMs = Date.now();
+        var d0 = new Date(startedAtMs);
+        var localStartStr = d0.getUTCFullYear() + '-' + this.pad(d0.getUTCMonth() + 1) + '-' + this.pad(d0.getUTCDate()) +
+          ' ' + this.pad(d0.getUTCHours()) + ':' + this.pad(d0.getUTCMinutes()) + ':' + this.pad(d0.getUTCSeconds());
+        this.writeLocalTimer({
+          running: true,
+          startedAtMs: startedAtMs,
+          startTime: localStartStr,
+          teamHoursId: null
+        });
+        // Optimistic UI so leaving/reopening immediately keeps continuity
+        this.setState({
+          running: true,
+          startTime: localStartStr,
+          elapsedRaw: '00:00:00',
+          fetchedAt: startedAtMs,
+          tickNow: startedAtMs
+        });
+
         var startRes = await client.request('TeamHours.StartStop', { timer_action: 'start' });
         var startOk = startRes && (Number(startRes.success) === 1 || startRes.success === true);
-        if (!startOk) throw new Error((startRes && startRes.message) || 'Failed to clock in');
+        if (!startOk) {
+          this.clearLocalTimer();
+          throw new Error((startRes && startRes.message) || 'Failed to clock in');
+        }
+        var startData = (startRes && startRes.data) || startRes || {};
+        var newId = startRes.team_hours_id || startData.id || startData.team_hours_id || null;
+        var apiStart = startData.start_time || startRes.start_time || localStartStr;
+        this.writeLocalTimer({
+          running: true,
+          startedAtMs: startedAtMs,
+          startTime: apiStart,
+          teamHoursId: newId
+        });
       } else {
         try { await client.request('TeamHours.WhenStop', {}); } catch (e) { /* continue */ }
         var stopPayload = { timer_action: 'stop' };
@@ -473,6 +619,7 @@ class Component extends DCLogic {
         var stopRes = await client.request('TeamHours.StartStop', stopPayload);
         var stopOk = stopRes && (Number(stopRes.success) === 1 || stopRes.success === true);
         if (!stopOk) throw new Error((stopRes && stopRes.message) || 'Failed to clock out');
+        this.clearLocalTimer();
       }
       await this.refreshAll(false);
     } catch (e) {
@@ -541,6 +688,8 @@ class Component extends DCLogic {
     var page = Math.min(Math.max(1, Number(this.state.historyPage) || 1), totalPages);
     var startIdx = (page - 1) * pageSize;
     var slice = all.slice(startIdx, startIdx + pageSize);
+    var from = all.length ? (startIdx + 1) : 0;
+    var to = Math.min(startIdx + slice.length, all.length);
 
     var history = slice.map((x, i, arr) => {
       var running = Number(x.row.status) === 1 || (!x.end && this.state.running && String(x.row.id) === String(this.state.teamHoursId));
@@ -563,14 +712,17 @@ class Component extends DCLogic {
     return {
       history: history,
       historyEmpty: all.length === 0,
-      showHistoryPager: all.length > pageSize,
+      showHistoryPager: all.length > 0,
       historyPage: page,
       historyTotalPages: totalPages,
-      historyTotal: all.length
+      historyTotal: all.length,
+      historyFrom: from,
+      historyTo: to
     };
   }
 
   prevHistory() {
+    if ((Number(this.state.historyPage) || 1) <= 1) return;
     var page = Math.max(1, (Number(this.state.historyPage) || 1) - 1);
     this.setState({ historyPage: page });
   }
@@ -579,8 +731,9 @@ class Component extends DCLogic {
     var pageSize = Math.max(1, Number(this.state.historyPageSize) || 5);
     var total = this.buildHistoryRows(this.state.sessions).length;
     var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
-    var page = Math.min(totalPages, (Number(this.state.historyPage) || 1) + 1);
-    this.setState({ historyPage: page });
+    var cur = Number(this.state.historyPage) || 1;
+    if (cur >= totalPages) return;
+    this.setState({ historyPage: Math.min(totalPages, cur + 1) });
   }
 
   sumTodaySeconds(sessions) {
@@ -694,17 +847,20 @@ class Component extends DCLogic {
       history: hist.history,
       historyEmpty: hist.historyEmpty,
       showHistoryPager: hist.showHistoryPager,
+      historyRangeLabel: hist.historyTotal
+        ? (hist.historyFrom + '–' + hist.historyTo + ' of ' + hist.historyTotal)
+        : '',
       historyPageLabel: this.t('Page ', 'עמוד ') + hist.historyPage + ' / ' + hist.historyTotalPages,
       prevHistory: () => this.prevHistory(),
       nextHistory: () => this.nextHistory(),
-      histPrevDisabled: !canPrev,
-      histNextDisabled: !canNext,
-      histPrevBg: canPrev ? '#fff' : '#f4f5f7',
-      histNextBg: canNext ? '#fff' : '#f4f5f7',
-      histPrevColor: canPrev ? '#1f2a3a' : '#b0b7c3',
-      histNextColor: canNext ? '#1f2a3a' : '#b0b7c3',
+      histPrevBg: canPrev ? '#1d60a2' : '#e9ecf0',
+      histNextBg: canNext ? '#1d60a2' : '#e9ecf0',
+      histPrevColor: canPrev ? '#fff' : '#9aa3b0',
+      histNextColor: canNext ? '#fff' : '#9aa3b0',
       histPrevCursor: canPrev ? 'pointer' : 'not-allowed',
       histNextCursor: canNext ? 'pointer' : 'not-allowed',
+      histPrevOpacity: canPrev ? '1' : '0.7',
+      histNextOpacity: canNext ? '1' : '0.7',
       labelToday: this.t('today', 'היום'),
       labelThisMonth: this.t('this month', 'החודש'),
       labelTotalTime: this.t('total time', 'סה״כ זמן'),

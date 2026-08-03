@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -9,7 +9,7 @@
 <script src="./biz1-app.js"></script>
 <script src="./page-boot.js"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body data-role="tech" data-active-tab="schedule">
@@ -127,13 +127,9 @@
 </button>
 </div>
 <div style="display:flex; gap:8px; margin-top:8px;">
-<button type="button" onclick="{{ v.createOrder }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:1.5px solid #d7dde6; border-radius:11px; background:#fff; color:#1f2a3a; font-size:13.5px; font-weight:700; cursor:pointer;">
-<svg fill="none" height="15" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="M6 2h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"></path><path d="M14 2v5h5M12 11v6M9 14h6"></path></svg>
-                  Create an order
-                </button>
-<button type="button" onclick="{{ v.closeCall }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; font-size:13.5px; font-weight:700; cursor:pointer;">
+<button type="button" onclick="{{ v.closeCall }}" style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; font-size:13.5px; font-weight:700; cursor:pointer;">
 <svg fill="none" height="15" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M20 6 9 17l-5-5"></path></svg>
-                  close reading
+                  close ticket
                 </button>
 </div>
 </sc-if>
@@ -488,13 +484,6 @@ class Component extends DCLogic {
       chatHref: chatHref,
       viewLabel: this.t('View', 'צפייה'),
       openCard: function () { self.openCard(ticket); },
-      createOrder: function () {
-        var q = new URLSearchParams();
-        if (ticketId) q.set('ticket_id', ticketId);
-        if (customerId) q.set('customer_id', customerId);
-        if (name) q.set('name', name);
-        window.location.href = 'tech-field-order.html?' + q.toString();
-      },
       closeCall: function () {
         var q = new URLSearchParams();
         if (ticketId) q.set('ticket_id', ticketId);

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
@@ -8,7 +8,7 @@
 <script src="./biz1-app.js?v=socketfix4"></script>
 <script src="./page-boot.js?v=socketfix4"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body data-role="service" data-active-tab="inventory">
@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; direction: ltr; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
   button, input, select, textarea { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
   .dc-hbar::-webkit-scrollbar { height: 0; }
@@ -383,7 +383,7 @@
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Options</div>
 
         <label class="form-label">Product details</label>
-        <textarea class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" value="{{ addDesc }}" oninput="{{ onAddDescChange }}"></textarea>
+        <textarea id="mb-add-product-desc" class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details"></textarea>
         
         <div style="display:flex; gap:12px; align-items:center; margin-top:16px; flex:none;">
           <button onclick="{{ closeAdd }}" style="flex:1; padding:14px; border:1.6px solid #cbd5e0; border-radius:12px; background:#fff; color:#2d3748; font-size:15px; font-weight:700; cursor:pointer;">Cancel</button>
@@ -1149,6 +1149,10 @@ class Component extends DCLogic {
       addStatus: 1,
       subCategories: []
     });
+    setTimeout(function () {
+      var descEl = document.getElementById('mb-add-product-desc');
+      if (descEl) descEl.value = '';
+    }, 0);
     if (firstCat) this.loadSubCategories(firstCat);
 
     if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
@@ -1339,7 +1343,7 @@ class Component extends DCLogic {
       editPriceAsCost: Number(item && (item.price_as_cost || item.price_as_cost_percent)) === 1,
       editVatIncluded: Number(item && (item.vat_included || item.vat)) === 1,
       editStatus: ((item && (item.status === 0 || item.status === '0')) || fallback.status === 0) ? 0 : 1,
-      editDesc: (item && (item.description || item.desc)) || fallback.sub || ''
+      editDesc: (item && (item.discription || item.description || item.desc)) || fallback.sub || ''
     });
 
     if (catId) this.loadSubCategories(catId, { forEdit: true, keepSubId: subCatId });
@@ -1410,21 +1414,9 @@ class Component extends DCLogic {
 
     if (s.editSupplierId) payload.suppliers_id = Number(s.editSupplierId) || s.editSupplierId;
     if (s.editTeamMemberId) payload.team_member_id = Number(s.editTeamMemberId) || s.editTeamMemberId;
-    if (s.editCompanyId) {
-      payload.company_id = Number(s.editCompanyId) || s.editCompanyId;
-      payload.invoice_setting_id = Number(s.editCompanyId) || s.editCompanyId;
-    }
+    // Products.Update rejects: company_id, invoice_setting_id, storage_id, storage,
+    // generate_sku, price_as_cost, vat_included, vat
     if (s.editStoragePlace) payload.storage_place = s.editStoragePlace;
-    if ((s.editStorageIds || []).length) {
-      payload.storage_id = s.editStorageIds.join(',');
-      payload.storage = s.editStorageIds.join(',');
-    }
-    if (s.editGenerateSku) payload.generate_sku = 1;
-    if (s.editPriceAsCost) payload.price_as_cost = 1;
-    if (s.editVatIncluded) {
-      payload.vat_included = 1;
-      payload.vat = 1;
-    }
     if (type === 'subscription') {
       payload.endless = s.editEndless ? 1 : 0;
       payload.months = Number(s.editMonths) || 1;
@@ -1490,6 +1482,14 @@ class Component extends DCLogic {
       alert('Product name is required');
       return;
     }
+
+    // Read Product details directly from textarea — value/oninput binding
+    // is unreliable for <textarea> in this template engine on create.
+    var descEl = document.getElementById('mb-add-product-desc');
+    var desc = '';
+    if (descEl && typeof descEl.value === 'string') desc = descEl.value;
+    else if (s.addDesc) desc = String(s.addDesc);
+    desc = String(desc || '').trim();
     
     var selectables = this.getSelectableCategories();
     var catId = s.addCatId || (selectables[0] || {}).id || '';
@@ -1520,27 +1520,16 @@ class Component extends DCLogic {
       discount_price: Number(s.addDiscountPrice) || 0,
       stock: Number(s.addStock) || 0,
       min_stock: Number(s.addMinStock) || 0,
-      description: s.addDesc || '',
+      description: desc,
+      discription: desc,
       status: 1
     };
 
     if (s.addSupplierId) payload.suppliers_id = Number(s.addSupplierId) || s.addSupplierId;
     if (s.addTeamMemberId) payload.team_member_id = Number(s.addTeamMemberId) || s.addTeamMemberId;
-    if (s.addCompanyId) {
-      payload.company_id = Number(s.addCompanyId) || s.addCompanyId;
-      payload.invoice_setting_id = Number(s.addCompanyId) || s.addCompanyId;
-    }
+    // Products.Add rejects: company_id, invoice_setting_id, storage_id, storage,
+    // generate_sku, price_as_cost, vat_included, vat — keep only accepted fields.
     if (s.addStoragePlace) payload.storage_place = s.addStoragePlace;
-    if ((s.addStorageIds || []).length) {
-      payload.storage_id = s.addStorageIds.join(',');
-      payload.storage = s.addStorageIds.join(',');
-    }
-    if (s.addGenerateSku) payload.generate_sku = 1;
-    if (s.addPriceAsCost) payload.price_as_cost = 1;
-    if (s.addVatIncluded) {
-      payload.vat_included = 1;
-      payload.vat = 1;
-    }
 
     if (type === 'subscription') {
       payload.endless = s.addEndless ? 1 : 0;
@@ -1570,11 +1559,12 @@ class Component extends DCLogic {
       cat_id: String(catId),
       type: type,
       status: 1,
-      sub: s.addDesc || ''
+      sub: desc
     };
 
     var previewToRevoke = s.addImagePreview;
     var updated = [...s.products, newProduct];
+    if (descEl) descEl.value = '';
     this.setState({
       products: updated,
       addOpen: false,

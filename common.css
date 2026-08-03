@@ -449,7 +449,17 @@ html[dir="rtl"], [dir="rtl"] {
 [dir="ltr"] p[style*="text-align:right"],
 [dir="ltr"] p[style*="text-align: right"],
 [dir="ltr"] label[style*="text-align:right"],
-[dir="ltr"] label[style*="text-align: right"] {
+[dir="ltr"] label[style*="text-align: right"],
+[dir="ltr"] button[style*="text-align:right"],
+[dir="ltr"] button[style*="text-align: right"],
+[dir="ltr"] a[style*="text-align:right"],
+[dir="ltr"] a[style*="text-align: right"],
+[dir="ltr"] li[style*="text-align:right"],
+[dir="ltr"] li[style*="text-align: right"],
+[dir="ltr"] td[style*="text-align:right"],
+[dir="ltr"] td[style*="text-align: right"],
+[dir="ltr"] th[style*="text-align:right"],
+[dir="ltr"] th[style*="text-align: right"] {
   text-align: left !important;
 }
 
@@ -460,7 +470,98 @@ html[dir="rtl"], [dir="rtl"] {
 [dir="rtl"] p[style*="text-align:left"],
 [dir="rtl"] p[style*="text-align: left"],
 [dir="rtl"] label[style*="text-align:left"],
-[dir="rtl"] label[style*="text-align: left"] {
+[dir="rtl"] label[style*="text-align: left"],
+[dir="rtl"] button[style*="text-align:left"],
+[dir="rtl"] button[style*="text-align: left"],
+[dir="rtl"] a[style*="text-align:left"],
+[dir="rtl"] a[style*="text-align: left"],
+[dir="rtl"] li[style*="text-align:left"],
+[dir="rtl"] li[style*="text-align: left"],
+[dir="rtl"] td[style*="text-align:left"],
+[dir="rtl"] td[style*="text-align: left"],
+[dir="rtl"] th[style*="text-align:left"],
+[dir="rtl"] th[style*="text-align: left"] {
   text-align: right !important;
+}
+
+/* Form fields: Hebrew = RTL, English = LTR (overrides inline text-align) */
+html[dir="ltr"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="submit"]):not([type="button"]),
+html[dir="ltr"] textarea,
+html[dir="ltr"] select,
+html[dir="ltr"] .ds-input,
+html[dir="ltr"] .gv-in,
+html[dir="ltr"] .gv-input,
+html[dir="ltr"] .ds-msg,
+html[dir="ltr"] .ds-search,
+html[dir="ltr"] .premium-input,
+[dir="ltr"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="submit"]):not([type="button"]),
+[dir="ltr"] textarea,
+[dir="ltr"] select,
+[dir="ltr"] .ds-input,
+[dir="ltr"] .gv-in,
+[dir="ltr"] .gv-input,
+[dir="ltr"] .ds-msg,
+[dir="ltr"] .ds-search,
+[dir="ltr"] .premium-input {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+html[dir="rtl"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="submit"]):not([type="button"]),
+html[dir="rtl"] textarea,
+html[dir="rtl"] select,
+html[dir="rtl"] .ds-input,
+html[dir="rtl"] .gv-in,
+html[dir="rtl"] .gv-input,
+html[dir="rtl"] .ds-msg,
+html[dir="rtl"] .ds-search,
+html[dir="rtl"] .premium-input,
+[dir="rtl"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="submit"]):not([type="button"]),
+[dir="rtl"] textarea,
+[dir="rtl"] select,
+[dir="rtl"] .ds-input,
+[dir="rtl"] .gv-in,
+[dir="rtl"] .gv-input,
+[dir="rtl"] .ds-msg,
+[dir="rtl"] .ds-search,
+[dir="rtl"] .premium-input {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Keep intentionally centered fields (qty, house #, etc.) */
+html[dir] input[style*="text-align:center"],
+html[dir] input[style*="text-align: center"],
+html[dir] textarea[style*="text-align:center"],
+html[dir] textarea[style*="text-align: center"],
+html[dir] select[style*="text-align:center"],
+html[dir] select[style*="text-align: center"],
+[dir] input[style*="text-align:center"],
+[dir] input[style*="text-align: center"],
+[dir] textarea[style*="text-align:center"],
+[dir] textarea[style*="text-align: center"],
+[dir] select[style*="text-align:center"],
+[dir] select[style*="text-align: center"] {
+  text-align: center !important;
+}
+
+/* Select chevron / padding follows language direction */
+html[dir="ltr"] select,
+[dir="ltr"] select {
+  background-position: right 13px center;
+}
+html[dir="rtl"] select,
+[dir="rtl"] select {
+  background-position: left 13px center;
+}
+html[dir="ltr"] .select-wrap .select-chevron,
+[dir="ltr"] .select-wrap .select-chevron {
+  right: 12px;
+  left: auto;
+}
+html[dir="rtl"] .select-wrap .select-chevron,
+[dir="rtl"] .select-wrap .select-chevron {
+  left: 12px;
+  right: auto;
 }
 

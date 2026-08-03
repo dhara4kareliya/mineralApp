@@ -432,10 +432,13 @@
     lang = lang || getCurrentLanguage();
     var isEn = lang === 'en';
 
-    document.documentElement.dir = isEn ? 'ltr' : 'rtl';
+    var dir = isEn ? 'ltr' : 'rtl';
+    document.documentElement.dir = dir;
     document.documentElement.lang = lang;
+    document.documentElement.style.direction = dir;
     if (document.body) {
-      document.body.dir = isEn ? 'ltr' : 'rtl';
+      document.body.dir = dir;
+      document.body.style.direction = dir;
     }
 
     try { ensureCommonHeader(); } catch (e) {}

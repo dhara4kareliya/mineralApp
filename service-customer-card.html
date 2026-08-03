@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -8,9 +8,9 @@
 <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
 <script src="./biz1-app.js?v=customer-2"></script>
 <script src="./page-boot.js?v=customer-2"></script>
-<script src="./customer-live.js?v=customer-2"></script>
+<script src="./customer-live.js?v=customer-4"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -65,16 +65,16 @@
 <!-- contact list -->
 <div style="background:#fff; border-radius:16px; padding:4px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
 <sc-for as="c" hint-placeholder-count="5" list="{{ contacts }}">
-<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid {{ c.border }};">
-<span style="font-size:13.5px; color:{{ c.valColor }}; font-weight:{{ c.valWeight }};">{{ c.value }}</span>
-<span style="display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#9aa3b0; font-weight:600;">
-                {{ c.label }}
+<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid {{ c.border }};">
+<span style="display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#9aa3b0; font-weight:600; flex:none;">
                 <sc-if hint-placeholder-val="{{ true }}" value="{{ c.isPhone }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isMail }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="14" rx="2" width="18" x="3" y="5"></rect><path d="m3 6.5 9 6 9-6"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isAddr }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isRegion }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2" width="18" x="3" y="5"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ c.isOwner }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg></sc-if>
+                {{ c.label }}
 </span>
+<span style="font-size:13.5px; color:{{ c.valColor }}; font-weight:{{ c.valWeight }}; direction:ltr; text-align:end; min-width:0; word-break:break-word;">{{ c.value }}</span>
 </div>
 </sc-for>
 </div>
@@ -271,7 +271,7 @@
 <button onclick="{{ closeSheet }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
 <div style="text-align:center;">
 <div style="font-size:18px; font-weight:800; color:#fff;">Additional actions</div>
-<div style="font-size:12px; color:#9fb0c8; margin-top:1px;">Moshe Cohen · Customer 10428</div>
+<div id="mb-sheet-customer-label" style="font-size:12px; color:#9fb0c8; margin-top:1px;">{{ sheetCustomerLabel }}</div>
 </div>
 <div style="width:34px;"></div>
 </div>
@@ -314,9 +314,54 @@
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { sheetOpen: false };
+  state = {
+    sheetOpen: false,
+    sheetCustomerLabel: '…'
+  };
 
-  openSheet() { this.setState({ sheetOpen: true }); }
+  componentDidMount() {
+    var self = this;
+    this.syncCustomerFromCache();
+    window.addEventListener('mineralbar:customer', function (ev) {
+      var d = (ev && ev.detail) || {};
+      self.applyCustomer(d.id, d.name, d.kind);
+    });
+  }
+
+  syncCustomerFromCache() {
+    var cached = window.__mbCurrentCustomer || null;
+    if (cached && (cached.id || cached.name)) {
+      this.applyCustomer(cached.id, cached.name, cached.kind);
+      return;
+    }
+    var id = '';
+    try {
+      var p = new URLSearchParams(location.search || '');
+      id = p.get('customer_id') || p.get('cust_id') || p.get('id') || '';
+      if (!id) id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || '';
+    } catch (e) { /* ignore */ }
+    if (id) this.applyCustomer(id, '', 'customer');
+  }
+
+  applyCustomer(id, name, kind) {
+    id = String(id || '').trim();
+    name = String(name || '').trim();
+    var isEn = typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+    var kindLabel = (kind === 'lead')
+      ? (isEn ? 'Lead' : 'ליד')
+      : (isEn ? 'Customer' : 'לקוח');
+    var label;
+    if (name && id) label = name + ' · ' + kindLabel + ' #' + id;
+    else if (name) label = name;
+    else if (id) label = kindLabel + ' #' + id;
+    else label = '…';
+    this.setState({ sheetCustomerLabel: label });
+  }
+
+  openSheet() {
+    this.syncCustomerFromCache();
+    this.setState({ sheetOpen: true });
+  }
   closeSheet() { this.setState({ sheetOpen: false }); }
 
   CONTACTS = [
@@ -385,6 +430,7 @@ class Component extends DCLogic {
     return {
       contacts, products, history,
       sheetOpen: this.state.sheetOpen,
+      sheetCustomerLabel: this.state.sheetCustomerLabel || '…',
       openSheet: () => this.openSheet(),
       closeSheet: () => this.closeSheet(),
     };

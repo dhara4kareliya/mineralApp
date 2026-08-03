@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -9,7 +9,7 @@
 <script src="./biz1-app.js"></script>
 <script src="./page-boot.js"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -27,11 +27,12 @@
   .soc-drop-zone { border: 1.5px dashed #dde2ea; border-radius: 12px; background: #fff; transition: border-color .15s, background .15s; }
   .soc-drop-zone.is-dragover { border-color: #1d60a2; background: #eaf2fb; }
   select.ds-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 13px center; }
+  html[dir="ltr"] select.ds-input { background-position: right 13px center; }
+  html[dir="rtl"] select.ds-input { background-position: left 13px center; }
   input[type="date"].ds-input, input[type="time"].ds-input {
     -webkit-appearance: none;
     appearance: none;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-inline: 8px;
   }
 </style>
 </helmet>

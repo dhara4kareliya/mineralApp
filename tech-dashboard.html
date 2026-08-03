@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html>
 <head>
@@ -9,7 +9,7 @@
 <script src="./biz1-app.js"></script>
 <script src="./page-boot.js"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js"></script>
+<script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body data-role="tech" data-active-tab="main">
@@ -103,14 +103,14 @@
 <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Detail by type of installation</span>
 <span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ productsCountLabel }}</span>
 </div>
-<div style="background:#fff; border-radius:18px; padding:7px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+<div style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ productsLoading }}">
 <div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">Loading…</div>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ productsEmpty }}">
 <div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">No products</div>
 </sc-if>
-<sc-for as="t" hint-placeholder-count="8" list="{{ types }}">
+<sc-for as="t" hint-placeholder-count="5" list="{{ types }}">
 <div style="padding:11px 0; border-bottom:1px solid {{ t.border }};">
 <div style="display:flex; align-items:center; gap:11px;">
 <div style="width:34px; height:34px; border-radius:9px; background:{{ t.iconBg }}; color:{{ t.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
@@ -131,6 +131,16 @@
 </div>
 </div>
 </sc-for>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showProductsPager }}">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; padding:12px 4px 4px; border-top:1px solid #f0f2f5;">
+<button type="button" onclick="{{ prevProducts }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ prodPrevBg }}; color:{{ prodPrevColor }}; font-size:13px; font-weight:800; cursor:{{ prodPrevCursor }}; opacity:{{ prodPrevOpacity }}; font-family:inherit;">‹ Prev</button>
+<div style="text-align:center; flex:1; min-width:0;">
+<div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ productsRangeLabel }}</div>
+<div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ productsPageLabel }}</div>
+</div>
+<button type="button" onclick="{{ nextProducts }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ prodNextBg }}; color:{{ prodNextColor }}; font-size:13px; font-weight:800; cursor:{{ prodNextCursor }}; opacity:{{ prodNextOpacity }}; font-family:inherit;">Next ›</button>
+</div>
+</sc-if>
 </div>
 <div style="text-align:center; padding:4px 0; color:#b6bdc8; font-size:12px; font-weight:600;">{{ updatedLabel }}</div>
 </div>
@@ -152,7 +162,9 @@ class Component extends DCLogic {
     docCredits: 0,
     selectedYear: new Date().getFullYear(),
     selectedMonth: new Date().getMonth(),
-    monthPickerOpen: false
+    monthPickerOpen: false,
+    productsPage: 1,
+    productsPageSize: 5
   };
 
   COLORS = ['#1d60a2', '#2e8a63', '#50439d', '#bd8324', '#c0392b'];
@@ -448,11 +460,25 @@ class Component extends DCLogic {
           min_stock: isFinite(minStock) ? minStock : 0
         };
       });
-      this.setState({ loadingProducts: false, products: rows });
+      this.setState({ loadingProducts: false, products: rows, productsPage: 1 });
     } catch (e) {
       console.error('[TechDashboard] Products.List failed', e);
-      this.setState({ loadingProducts: false, products: [] });
+      this.setState({ loadingProducts: false, products: [], productsPage: 1 });
     }
+  }
+
+  prevProducts() {
+    if ((Number(this.state.productsPage) || 1) <= 1) return;
+    this.setState({ productsPage: Math.max(1, (Number(this.state.productsPage) || 1) - 1) });
+  }
+
+  nextProducts() {
+    var pageSize = Math.max(1, Number(this.state.productsPageSize) || 5);
+    var total = (this.state.products || []).length;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+    var cur = Number(this.state.productsPage) || 1;
+    if (cur >= totalPages) return;
+    this.setState({ productsPage: Math.min(totalPages, cur + 1) });
   }
 
   stockBar(product) {
@@ -501,8 +527,19 @@ class Component extends DCLogic {
         : ('סה״כ ' + this.formatHoursShort(totalSec) + ' שעות'));
 
     var products = st.products || [];
-    var types = products.map(function (p, i) {
-      var color = this.COLORS[i % this.COLORS.length];
+    var pageSize = Math.max(1, Number(st.productsPageSize) || 5);
+    var totalProducts = products.length;
+    var totalPages = Math.max(1, Math.ceil(totalProducts / pageSize) || 1);
+    var page = Math.min(Math.max(1, Number(st.productsPage) || 1), totalPages);
+    var startIdx = (page - 1) * pageSize;
+    var pageProducts = products.slice(startIdx, startIdx + pageSize);
+    var from = totalProducts ? (startIdx + 1) : 0;
+    var to = Math.min(startIdx + pageProducts.length, totalProducts);
+    var canPrev = page > 1;
+    var canNext = page < totalPages;
+
+    var types = pageProducts.map(function (p, i) {
+      var color = this.COLORS[(startIdx + i) % this.COLORS.length];
       var tone = this.TONE[color] || { bg: '#eef0f3' };
       var bar = this.stockBar(p);
       var stockLabel = isEn
@@ -517,7 +554,7 @@ class Component extends DCLogic {
         iconColor: bar.barColor,
         barColor: bar.barColor,
         barW: bar.barW,
-        border: i === products.length - 1 ? 'transparent' : '#f0f2f5'
+        border: i === pageProducts.length - 1 ? 'transparent' : '#f0f2f5'
       };
     }.bind(this));
 
@@ -560,8 +597,21 @@ class Component extends DCLogic {
       weeksTotalLabel: weeksTotalLabel,
       types: types,
       productsLoading: !!st.loadingProducts,
-      productsEmpty: !st.loadingProducts && products.length === 0,
-      productsCountLabel: products.length + (isEn ? ' products' : ' מוצרים'),
+      productsEmpty: !st.loadingProducts && totalProducts === 0,
+      productsCountLabel: totalProducts + (isEn ? ' products' : ' מוצרים'),
+      showProductsPager: !st.loadingProducts && totalProducts > 0,
+      productsRangeLabel: totalProducts ? (from + '–' + to + ' of ' + totalProducts) : '',
+      productsPageLabel: (isEn ? 'Page ' : 'עמוד ') + page + ' / ' + totalPages,
+      prevProducts: function () { self.prevProducts(); },
+      nextProducts: function () { self.nextProducts(); },
+      prodPrevBg: canPrev ? '#1d60a2' : '#e9ecf0',
+      prodNextBg: canNext ? '#1d60a2' : '#e9ecf0',
+      prodPrevColor: canPrev ? '#fff' : '#9aa3b0',
+      prodNextColor: canNext ? '#fff' : '#9aa3b0',
+      prodPrevCursor: canPrev ? 'pointer' : 'not-allowed',
+      prodNextCursor: canNext ? 'pointer' : 'not-allowed',
+      prodPrevOpacity: canPrev ? '1' : '0.7',
+      prodNextOpacity: canNext ? '1' : '0.7',
       docTotal: st.loadingDocs ? '…' : st.docTotal,
       docTotalLabel: 'docs',
       docInvoices: st.loadingDocs ? '…' : st.docInvoices,

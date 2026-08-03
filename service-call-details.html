@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+﻿  <!DOCTYPE html>
 
   <html>
 
@@ -10,7 +10,7 @@
     <script src="./biz1-app.js"></script>
     <script src="./page-boot.js"></script>
     <link rel="stylesheet" href="./common.css" />
-    <script src="./i18n-translations.js"></script>
+    <script src="./i18n-translations.js?v=hefull1"></script>
     <script src="./common-header-footer.js?v=20260730-1"></script>
   </head>
 
@@ -347,27 +347,6 @@
                   </div>
                 </div>
               </div>
-              <!-- service fee -->
-              <div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">Service fees</div>
-              <div
-                style="background:{{ feeBg }}; border:1.4px solid {{ feeBorder }}; border-radius:16px; padding:14px; margin-bottom:6px;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                  <div
-                    style="width:42px; height:42px; border-radius:12px; background:{{ feeIconBg }}; color:{{ feeColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
-                    <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                      stroke-width="1.8" viewbox="0 0 24 24" width="22">
-                      <rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect>
-                      <circle cx="12" cy="12" r="2.4"></circle>
-                      <path d="M6 10v4M18 10v4"></path>
-                    </svg>
-                  </div>
-                  <div style="flex:1;">
-                    <div style="font-size:14.5px; font-weight:800; color:{{ feeColor }};">{{ feeLabel }}</div>
-                    <div style="font-size:11.5px; color:#7b8595; margin-top:2px;">{{ feeSub }}</div>
-                  </div>
-                  <div style="font-size:19px; font-weight:800; color:{{ feeColor }}; flex:none;">{{ feeAmount }}</div>
-                </div>
-              </div>
             </div>
             <!-- bottom actions -->
             <sc-if hint-placeholder-val="{{ false }}" value="{{ noRep }}">
@@ -451,17 +430,20 @@
       if (!ticket) return [];
       var ids = [];
       function addId(v) {
-        if (v == null) return;
+        if (v == null || v === '') return;
+        if (Array.isArray(v)) {
+          v.forEach(addId);
+          return;
+        }
         if (typeof v === 'object') {
-          var oid = v.id || v.product_id;
-          if (oid != null && String(oid).trim() && String(oid).trim() !== '0') {
-            ids.push(String(oid).trim());
-          }
+          var oid = v.id != null ? v.id : v.product_id;
+          if (oid != null) addId(oid);
           return;
         }
         String(v).split(/[,|;]+/).forEach(function (part) {
-          part = String(part || '').replace(/[\[\]"'\s]/g, '').trim();
-          if (part && part !== '0' && /^\d+$/.test(part)) ids.push(part);
+          part = String(part || '').replace(/[\[\]"']/g, '').trim();
+          if (!part || part === '0' || /^null$/i.test(part) || /^undefined$/i.test(part)) return;
+          ids.push(part);
         });
       }
 
@@ -660,7 +642,12 @@
         var already = products.some(function (p) { return String(p.id) === String(ids[i]); });
         if (already) continue;
         var fetched = await this.fetchProductById(ids[i]);
-        if (fetched) add(fetched);
+        if (fetched) {
+          add(fetched);
+        } else {
+          // Show whatever product_id came from Ticket.Get even if Products.Get has no match
+          add({ id: String(ids[i]), name: String(ids[i]), sku: '', type: '', price: '' });
+        }
       }
 
       // If ticket only has product_id ["0"] but name was saved in custom_fields
