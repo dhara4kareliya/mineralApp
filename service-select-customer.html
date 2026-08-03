@@ -45,7 +45,7 @@
 <!-- search bar -->
 <div style="position:relative; margin-top:14px;">
 <svg fill="none" height="18" stroke="#8a93a3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="position:absolute; inset-inline-start:13px; top:50%; transform:translateY(-50%); pointer-events:none; z-index:1;" viewbox="0 0 24 24" width="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-<input class="ds-input" oninput="{{ onSearch }}" placeholder="Customer search by name, phone or address" style="width:100%; box-sizing:border-box; padding-block:13px; padding-inline-start:42px; padding-inline-end:{{ searchPadEnd }}; border:none; border-radius:13px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff; outline:none;" value="{{ query }}"/>
+<input class="ds-input mb-search" oninput="{{ onSearch }}" placeholder="Customer search by name, phone or address" style="width:100%; box-sizing:border-box; padding-block:13px; padding-inline-start:42px; padding-inline-end:{{ searchPadEnd }}; border:none; border-radius:13px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff; outline:none;" value="{{ query }}"/>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasQuery }}">
 <button type="button" onclick="{{ clearSearch }}" aria-label="Clear search" style="position:absolute; inset-inline-end:9px; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:50%; border:none; background:#eef0f3; color:#8a93a3; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2;">✕</button>
 </sc-if>

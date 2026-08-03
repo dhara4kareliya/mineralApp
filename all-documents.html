@@ -29,14 +29,18 @@
         html,
         body {
           margin: 0;
-          direction: rtl;
           font-family: 'Heebo', sans-serif;
           -webkit-font-smoothing: antialiased;
         }
+        html[dir="rtl"], html[dir="rtl"] body { direction: rtl; }
+        html[dir="ltr"], html[dir="ltr"] body { direction: ltr; }
 
         button {
           font-family: 'Heebo', sans-serif;
         }
+
+        html[dir="ltr"] .page-back-icon { transform: none; }
+        html[dir="rtl"] .page-back-icon { transform: scaleX(-1); }
 
         .dc-scroll::-webkit-scrollbar {
           width: 0;
@@ -51,27 +55,26 @@
           <!-- status bar -->
           <div id="common-app-header" class="status-bar status-bar-light" data-common-header="1"
             style="display:flex; align-items:center; justify-content:space-between; padding:11px 22px 4px; font-size:13px; font-weight:700; color:#1f2a3a;">
-            <span class="status-clock"></span> <button type="button" class="lang-translator-btn" id="btn-lang-toggle">🌐 EN</button>
-            <div style="display:flex; gap:5px; align-items:center;">
-              
-              
+            <span class="status-clock"></span>
+            <div class="common-header-actions" style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="lang-translator-btn" id="btn-lang-toggle">🌐 EN</button>
             </div>
           </div>
-          <!-- header: back (right) · title · search (left) -->
+          <!-- header: back · title -->
           <div
-            style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px 10px; background:#eef0f3; direction:ltr;"> 
-            <button onclick="{{ onBack }}"
-            style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06);">
-              <svg fill="none" height="20" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round"
+            style="display:flex; align-items:center; gap:10px; padding:8px 16px 10px; background:#eef0f3;">
+            <button type="button" onclick="{{ onBack }}" aria-label="Back"
+              style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06); flex:none;">
+              <svg class="page-back-icon" fill="none" height="20" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round"
                 stroke-width="2" viewbox="0 0 24 24" width="20">
                 <path d="m15 18-6-6 6-6"></path>
               </svg>
             </button>
-            
-            <div style="text-align:center; direction:rtl;" data-no-i18n="true">
+            <div style="flex:1; min-width:0; text-align:center;" data-no-i18n="true">
               <div style="font-size:19px; font-weight:800; color:#1f2a3a;">{{ pageTitle }}</div>
               <div style="font-size:12.5px; color:#8a93a3; margin-top:1px;">{{ subtitle }}</div>
             </div>
+            <div style="width:40px; flex:none;"></div>
           </div>
           <div style="padding:0 16px 10px; background:#eef0f3;">
             <div style="position:relative;">
@@ -80,9 +83,10 @@
                 value="{{ query }}"
                 placeholder="{{ searchPlaceholder }}"
                 data-no-i18n="true"
-                style="width:100%; padding:10px 12px 10px 36px; border:1.4px solid #dbe1ea; border-radius:11px; background:#fff; font-size:13px; color:#1f2a3a; text-align:start;"
+                style="width:100%; padding-block:10px; padding-inline-start:36px; padding-inline-end:12px; border:1.4px solid #dbe1ea; border-radius:11px; background:#fff; font-size:13px; color:#1f2a3a; text-align:start;"
                 type="text"
                 id="all-docs-search-input"
+                class="mb-search"
               />
               <svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15" style="position:absolute; inset-inline-start:11px; top:50%; transform:translateY(-50%);">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -144,7 +148,7 @@
                     <div style="font-size:12px; color:#9aa3b0; margin-top:2px;">{{ d.num }} · {{ d.date }}</div>
                   </div>
                   <!-- amount + status -->
-                  <div style="text-align:left; flex:none;">
+                  <div style="text-align:start; flex:none;">
                     <div style="font-size:16px; font-weight:800; color:{{ d.amountColor }};">{{ d.amount }}</div>
                     <div
                       style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:{{ d.statusBg }}; color:{{ d.statusColor }}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px;">
@@ -154,22 +158,22 @@
                   </div>
                 </div>
                 <!-- share row -->
-                <div
-                  style="display:flex; align-items:center; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid #f0f2f5;" data-no-i18n="true">
-                  <span style="font-size:12px; color:#9aa3b0; font-weight:600; margin-left:auto;">{{ shareLabel }}</span>
-                  <button
+                <div class="doc-share-row"
+                  style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid #f0f2f5;" data-no-i18n="true">
+                  <span style="font-size:12px; color:#9aa3b0; font-weight:600; margin-inline-end:auto;">{{ shareLabel }}</span>
+                  <button type="button"
                     onclick="{{ d.sendWhatsApp }}"
-                    style="display:flex; align-items:center; justify-content:center; gap:6px; padding:7px 12px; border:none; border-radius:9px; background:#eafaf0; color:#1f9d55; font-size:12.5px; font-weight:700; cursor:pointer;">
+                    style="display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:7px 10px; border:none; border-radius:9px; background:#eafaf0; color:#1f9d55; font-size:12px; font-weight:700; cursor:pointer; flex:none; white-space:nowrap;">
                     <svg fill="currentColor" height="14" viewbox="0 0 24 24" width="14">
                       <path
                         d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.4-.1.7.2.3.8 1.4 1.8 2.2 1.2 1.1 2.2 1.4 2.5 1.6.3.1.5.1.6-.1l.7-.9c.2-.3.4-.2.6-.1l1.9.9c.3.1.4.2.5.3 0 .1 0 .6-.2 1.2z">
                       </path>
                     </svg>
-                    WhatsApp
+                    {{ whatsappLabel }}
                   </button>
-                  <button
+                  <button type="button"
                     onclick="{{ d.sendMail }}"
-                    style="display:flex; align-items:center; justify-content:center; padding:7px 11px; border:none; border-radius:9px; background:#eaf2fb; color:#1d60a2; font-size:12.5px; font-weight:700; cursor:pointer; gap:6px;">
+                    style="display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:7px 10px; border:none; border-radius:9px; background:#eaf2fb; color:#1d60a2; font-size:12px; font-weight:700; cursor:pointer; flex:none; white-space:nowrap;">
                     <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
                       stroke-width="2" viewbox="0 0 24 24" width="14">
                       <rect height="14" rx="2.5" width="18" x="3" y="5"></rect>
@@ -177,15 +181,15 @@
                     </svg>
                     {{ mailLabel }}
                   </button>
-                  <button
+                  <button type="button"
                     onclick="{{ d.downloadPdf }}"
-                    style="display:flex; align-items:center; justify-content:center; padding:7px 11px; border:none; border-radius:9px; background:#fbeeed; color:#c0392b; font-size:12.5px; font-weight:700; cursor:pointer; gap:6px;">
+                    style="display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:7px 10px; border:none; border-radius:9px; background:#fbeeed; color:#c0392b; font-size:12px; font-weight:700; cursor:pointer; flex:none; white-space:nowrap;">
                     <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
                       stroke-width="2" viewbox="0 0 24 24" width="14">
                       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
                       <path d="M14 3v5h5"></path>
                     </svg>
-                    PDF
+                    {{ pdfLabel }}
                   </button>
                 </div>
               </div>
@@ -576,7 +580,9 @@ class Component extends DCLogic {
       subtitle: subtitle,
       searchPlaceholder: this.t('Search documents', 'חיפוש מסמכים'),
       shareLabel: this.t('Fast sharing', 'שיתוף מהיר'),
+      whatsappLabel: this.t('WhatsApp', 'וואטסאפ'),
       mailLabel: this.t('mail', 'דוא״ל'),
+      pdfLabel: this.t('PDF', 'הורדה'),
       emptyMsg: this.t('There are no such documents', 'אין מסמכים כאלה'),
       query: this.state.query,
       onBack: () => this.goBack(),

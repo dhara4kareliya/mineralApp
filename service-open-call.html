@@ -24,8 +24,32 @@
   button, input, select, textarea { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
   .ds-input::placeholder { color: #aeb6c2; }
-  .soc-drop-zone { border: 1.5px dashed #dde2ea; border-radius: 12px; background: #fff; transition: border-color .15s, background .15s; }
+  .soc-drop-zone {
+    position: relative;
+    border: 1.6px dashed #cbd5e0;
+    border-radius: 14px;
+    background: #f8fafc;
+    min-height: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    overflow: hidden;
+    transition: border-color .15s, background .15s;
+  }
+  .soc-drop-zone:hover,
   .soc-drop-zone.is-dragover { border-color: #1d60a2; background: #eaf2fb; }
+  .soc-drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
   select.ds-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 13px center; }
   html[dir="ltr"] select.ds-input { background-position: right 13px center; }
   html[dir="rtl"] select.ds-input { background-position: left 13px center; }
@@ -156,23 +180,22 @@
   <textarea oninput="{{ onProblem }}" value="{{ problem }}" class="ds-input" placeholder="Text" style="width:100%; min-height:100px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; resize:vertical; background:#fff;"></textarea>
 </div>
 
-<!-- Row 8: Drag & Drop a file -->
+<!-- Row 8: Drag & Drop a file (inventory look + safe drop, no browser open) -->
 <div style="margin-bottom:18px;">
-  <div class="soc-drop-zone {{ dropZoneClass }}" style="position:relative; display:flex; align-items:center; gap:10px; padding:12px 14px; min-height:48px;" ondragenter="{{ onDragEnter }}" ondragover="{{ onDragOver }}" ondragleave="{{ onDragLeave }}" ondrop="{{ onDrop }}">
-    <label style="position:absolute; inset:0; cursor:pointer; z-index:1;">
-      <input type="file" accept="image/*,.pdf,.doc,.docx,.png,.jpg,.jpeg" onchange="{{ onFileChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;" />
-    </label>
-    <span style="background:#eef0f3; padding:6px 8px; border-radius:8px; flex:none; display:flex; align-items:center; justify-content:center; pointer-events:none; position:relative; z-index:0;">
-      <svg fill="none" height="16" stroke="#5a6473" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
-    </span>
-    <div style="flex:1; min-width:0; pointer-events:none; position:relative; z-index:0;">
-      <div style="font-size:13px; font-weight:600; color:#1f2a3a;">{{ dropLabel }}</div>
-      <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFile }}">
-        <div style="font-size:11.5px; color:#5a6473; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ fileName }}</div>
-      </sc-if>
-    </div>
+  <div class="soc-drop-zone {{ dropZoneClass }}" id="soc-drop-zone">
+    <input id="soc-file-input" type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.mp4,.webm,.mov,.txt,.csv,.zip" onchange="{{ onFileChange }}"/>
     <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFile }}">
-      <button type="button" onclick="{{ clearFile }}" style="position:relative; z-index:3; width:28px; height:28px; border-radius:50%; border:none; background:#eef0f3; color:#8a93a3; font-size:14px; cursor:pointer; flex:none;">✕</button>
+      <div style="width:44px; height:44px; border-radius:50%; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; pointer-events:none;">
+        <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+      </div>
+      <div style="font-size:13px; font-weight:700; color:#1f2a3a; text-align:center; position:relative; z-index:1; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 12px; pointer-events:none;">{{ fileName }}</div>
+      <button type="button" onclick="{{ clearFile }}" style="position:relative; z-index:3; margin-top:2px; padding:6px 12px; border-radius:99px; border:none; background:#eef0f3; color:#5a6473; font-size:12px; font-weight:700; cursor:pointer;">Remove</button>
+    </sc-if>
+    <sc-if hint-placeholder-val="{{ true }}" value="{{ noFile }}">
+      <div style="width:44px; height:44px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; pointer-events:none;">
+        <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
+      </div>
+      <div style="font-size:13px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; pointer-events:none;">Select or drag &amp; drop here your file</div>
     </sc-if>
   </div>
 </div>
@@ -215,10 +238,83 @@ class Component extends DCLogic {
     
     this.loadFormOptions();
     this.loadPaidProducts();
+    this.bindSafeDropZone();
     window.addEventListener('mineralbar:ready', () => {
       this.loadFormOptions();
       this.loadPaidProducts();
     });
+  }
+
+  /**
+   * Prevent browser from opening dropped files (navigate to blob/file URL).
+   * Capture files ourselves — click still uses the transparent file input.
+   */
+  bindSafeDropZone() {
+    window.__socOpenCallComponent = this;
+    if (document.__socSafeDropBound) return;
+    document.__socSafeDropBound = true;
+
+    function cmp() { return window.__socOpenCallComponent; }
+
+    function hasFiles(e) {
+      var dt = e && e.dataTransfer;
+      if (!dt) return false;
+      if (dt.types) {
+        for (var i = 0; i < dt.types.length; i++) {
+          if (String(dt.types[i]).toLowerCase() === 'files') return true;
+        }
+      }
+      return !!(dt.files && dt.files.length);
+    }
+
+    function inZone(e) {
+      var t = e && e.target;
+      if (!t || !t.closest) return false;
+      return !!t.closest('#soc-drop-zone, .soc-drop-zone');
+    }
+
+    // Must preventDefault on dragover or browser will open the file on drop
+    document.addEventListener('dragover', function (e) {
+      if (!hasFiles(e)) return;
+      if (!inZone(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      try { e.dataTransfer.dropEffect = 'copy'; } catch (err) { /* ignore */ }
+      var c = cmp();
+      if (c && !c.state.dragOver) c.setState({ dragOver: true });
+    }, true);
+
+    document.addEventListener('dragenter', function (e) {
+      if (!hasFiles(e) || !inZone(e)) return;
+      e.preventDefault();
+      var c = cmp();
+      if (c) c.setState({ dragOver: true });
+    }, true);
+
+    document.addEventListener('dragleave', function (e) {
+      if (!inZone(e)) return;
+      var zone = e.target && e.target.closest && e.target.closest('#soc-drop-zone, .soc-drop-zone');
+      if (!zone) return;
+      var related = e.relatedTarget;
+      if (related && zone.contains(related)) return;
+      var c = cmp();
+      if (c) c.setState({ dragOver: false });
+    }, true);
+
+    document.addEventListener('drop', function (e) {
+      if (!hasFiles(e)) return;
+      // Always block browser open if drop is inside the ticket form phone UI
+      var inForm = e.target && e.target.closest && e.target.closest('x-dc, .soc-drop-zone, #soc-drop-zone');
+      if (!inForm && !inZone(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var c = cmp();
+      if (!c) return;
+      c.setState({ dragOver: false });
+      if (!inZone(e)) return;
+      var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) c.setFile(file);
+    }, true);
   }
 
   async loadFormOptions() {
@@ -416,34 +512,12 @@ class Component extends DCLogic {
   }
 
   onFileChange(e) {
-    const file = e && e.target && e.target.files && e.target.files[0];
-    this.setFile(file || null);
-  }
-
-  onDragEnter(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    this.setState({ dragOver: true });
-  }
-
-  onDragOver(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-    if (!this.state.dragOver) this.setState({ dragOver: true });
-  }
-
-  onDragLeave(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    this.setState({ dragOver: false });
-  }
-
-  onDrop(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    this.setFile(file || null);
+    // Same as inventory: pick from input change OR native drop on <input type="file">
+    var file = null;
+    if (e && e.target && e.target.files && e.target.files[0]) file = e.target.files[0];
+    else if (e && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) file = e.dataTransfer.files[0];
+    if (!file) return;
+    this.setFile(file);
   }
 
   clearFile(e) {
@@ -694,14 +768,10 @@ class Component extends DCLogic {
       hasSuccess: !!this.state.successMsg,
       successMsg: this.state.successMsg,
       hasFile: !!this.state.fileName,
+      noFile: !this.state.fileName,
       fileName: this.state.fileName,
-      dropLabel: this.state.fileName ? 'File selected' : 'Drag & Drop a file',
       dropZoneClass: this.state.dragOver ? 'is-dragover' : '',
       onFileChange: (e) => this.onFileChange(e),
-      onDragEnter: (e) => this.onDragEnter(e),
-      onDragOver: (e) => this.onDragOver(e),
-      onDragLeave: (e) => this.onDragLeave(e),
-      onDrop: (e) => this.onDrop(e),
       clearFile: (e) => this.clearFile(e),
       chargeBg: charge ? '#fdf6e8' : '#fff',
       chargeBorder: charge ? '#f2e2bd' : '#e4e8ee',

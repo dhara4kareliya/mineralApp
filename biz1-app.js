@@ -307,6 +307,84 @@
     try { getClient().logout(); } catch (e2) { /* ignore */ }
   }
 
+  /**
+   * Wipe browser caches that keep serving stale JS/CSS after deploys.
+   * Keeps only app_lang so Hebrew/English preference survives logout.
+   */
+  function clearAppCaches() {
+    var keptLang = '';
+    try {
+      keptLang = global.localStorage.getItem('app_lang') ||
+        (global.sessionStorage && global.sessionStorage.getItem('app_lang')) || '';
+    } catch (e0) { /* ignore */ }
+
+    try {
+      if (global.sessionStorage) {
+        global.sessionStorage.clear();
+        if (keptLang) global.sessionStorage.setItem('app_lang', keptLang);
+      }
+    } catch (e1) { /* ignore */ }
+
+    try {
+      var toRemove = [];
+      for (var i = 0; i < global.localStorage.length; i++) {
+        var k = global.localStorage.key(i);
+        if (!k || k === 'app_lang') continue;
+        if (/^(mb_|mineralbar_|biz1_)/i.test(k) || /mineral|biz1|mb_/i.test(k)) {
+          toRemove.push(k);
+        }
+      }
+      toRemove.forEach(function (key) {
+        try { global.localStorage.removeItem(key); } catch (e2) { /* ignore */ }
+      });
+      if (keptLang) global.localStorage.setItem('app_lang', keptLang);
+    } catch (e3) { /* ignore */ }
+
+    var jobs = [];
+
+    try {
+      if (typeof caches !== 'undefined' && caches.keys) {
+        jobs.push(
+          caches.keys().then(function (names) {
+            return Promise.all((names || []).map(function (name) {
+              return caches.delete(name);
+            }));
+          }).catch(function () { return null; })
+        );
+      }
+    } catch (e4) { /* ignore */ }
+
+    try {
+      if (global.navigator && global.navigator.serviceWorker &&
+          typeof global.navigator.serviceWorker.getRegistrations === 'function') {
+        jobs.push(
+          global.navigator.serviceWorker.getRegistrations().then(function (regs) {
+            return Promise.all((regs || []).map(function (reg) {
+              return reg.unregister();
+            }));
+          }).catch(function () { return null; })
+        );
+      }
+    } catch (e5) { /* ignore */ }
+
+    return Promise.all(jobs).then(function () { return true; }).catch(function () { return false; });
+  }
+
+  /** Full logout: session + caches, then hard-navigate to login (cache-busted). */
+  function logoutAndClearCache(redirectUrl) {
+    var target = redirectUrl || ('login.html?nocache=' + Date.now());
+    try { clearSession(); } catch (e0) { /* ignore */ }
+    return clearAppCaches().then(function () {
+      try { global.location.replace(target); } catch (e1) {
+        global.location.href = target;
+      }
+    }).catch(function () {
+      try { global.location.replace(target); } catch (e2) {
+        global.location.href = target;
+      }
+    });
+  }
+
   function detectRole(username, userBasic) {
     var email = String(username || '').toLowerCase().trim();
     if (email.indexOf('sales@') === 0) return 'sales';
@@ -2021,6 +2099,8 @@
     detectRole: detectRole,
     saveSession: saveSession,
     clearSession: clearSession,
+    clearAppCaches: clearAppCaches,
+    logoutAndClearCache: logoutAndClearCache,
     getRole: getRole,
     getEmail: getEmail,
     getUserBasic: getUserBasic,

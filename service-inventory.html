@@ -19,7 +19,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  html[dir="rtl"], html[dir="rtl"] body { direction: rtl; }
+  html[dir="ltr"], html[dir="ltr"] body { direction: ltr; }
   button, input, select, textarea { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
   .dc-hbar::-webkit-scrollbar { height: 0; }
@@ -38,6 +40,7 @@
     outline: none;
     font-size: 14.5px;
     transition: all 0.2s ease;
+    text-align: start;
   }
   .search-input:focus {
     border-color: #1d60a2;
@@ -50,7 +53,7 @@
     font-weight: 700;
     color: #4a5568;
     margin-bottom: 6px;
-    text-align: left;
+    text-align: start;
   }
   
   .premium-input {
@@ -63,13 +66,44 @@
     background: #fff;
     outline: none;
     transition: all 0.2s ease;
-    text-align: left;
+    text-align: start;
     margin-bottom: 16px;
   }
   
   .premium-input:focus {
     border-color: #1d60a2;
     box-shadow: 0 0 0 3px rgba(29, 96, 162, 0.1);
+  }
+
+  /* Select chevron follows language direction */
+  .inv-product-sheet select.premium-input {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-inline-end: 36px;
+  }
+  .inv-select-chevron {
+    position: absolute;
+    inset-inline-end: 12px;
+    top: 15px;
+    color: #a0aec0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+
+  html[dir="ltr"] .form-label,
+  html[dir="ltr"] .premium-input {
+    text-align: left;
+  }
+  html[dir="rtl"] .form-label,
+  html[dir="rtl"] .premium-input {
+    text-align: right;
+  }
+  html[dir="ltr"] .inv-product-sheet {
+    text-align: left;
+  }
+  html[dir="rtl"] .inv-product-sheet {
+    text-align: right;
   }
 </style>
 </helmet>
@@ -116,7 +150,7 @@
   <!-- Search input bar -->
   <div style="padding:0 16px 12px; flex:none;">
     <div style="position:relative;">
-      <input type="text" class="search-input" oninput="{{ onSearchChange }}" placeholder="Search by product name..." value="{{ searchQuery }}"/>
+      <input type="text" class="search-input mb-search" oninput="{{ onSearchChange }}" placeholder="Search by product name..." value="{{ searchQuery }}"/>
     </div>
   </div>
 
@@ -141,14 +175,14 @@
         <div style="background:#fff; border-radius:16px; padding:5px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
           <sc-for as="it" list="{{ g.items }}">
             <div onclick="{{ it.click }}" style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid {{ it.border }}; cursor:pointer;">
-              <div style="flex:1; text-align:left;">
+              <div style="flex:1; text-align:start;">
                 <div style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ it.name }}</div>
                 <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }} · <span style="color:#2e8a63; font-weight:700;">{{ it.priceText }}</span></div>
               </div>
               <div style="display:inline-flex; align-items:center; gap:4px; background:{{ it.tagBg }}; color:{{ it.tagColor }}; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; flex:none;">
                 <span style="width:6px; height:6px; border-radius:50%; background:{{ it.tagColor }};"></span>{{ it.tag }}
               </div>
-              <div style="text-align:left; flex:none; min-width:42px;">
+              <div style="text-align:start; flex:none; min-width:42px;">
                 <div style="font-size:17px; font-weight:800; color:{{ it.qtyColor }}; line-height:1;">{{ it.qty }}</div>
               </div>
             </div>
@@ -162,7 +196,7 @@
   <sc-if value="{{ addOpen }}">
     <div style="position:absolute; inset:0; z-index:40;">
       <div onclick="{{ closeAdd }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
-      <div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41; text-align:left;">
+      <div class="dc-scroll inv-product-sheet" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41;">
         <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px; flex:none;"></div>
         
         <div style="font-size:19px; font-weight:800; color:#1f2a3a; margin-bottom:18px;">Add product</div>
@@ -178,13 +212,13 @@
 
         <label class="form-label">Suppliers</label>
         <div style="position:relative; margin-bottom:16px;">
-          <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddSupplierChange }}">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddSupplierChange }}">
             <option value="">Select supplier</option>
             <sc-for as="sup" list="{{ suppliers }}">
               <option value="{{ sup.id }}" selected="{{ sup.selected }}">{{ sup.name }}</option>
             </sc-for>
           </select>
-          <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+          <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
         </div>
         
         <div style="display:flex; gap:12px;">
@@ -206,25 +240,25 @@
           <div style="flex:1;">
             <label class="form-label">Category</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddCategoryChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddCategoryChange }}">
                 <option value="">Select Category</option>
                 <sc-for as="cat" list="{{ selectableCategories }}">
                   <option value="{{ cat.id }}" selected="{{ cat.addSelected }}">{{ cat.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
           <div style="flex:1;">
             <label class="form-label">Sub Category</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddSubCatChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddSubCatChange }}">
                 <option value="0">-- Select Sub Category --</option>
                 <sc-for as="sub" list="{{ subCategories }}">
                   <option value="{{ sub.id }}" selected="{{ sub.selected }}">{{ sub.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
         </div>
@@ -233,24 +267,24 @@
           <div style="flex:1;">
             <label class="form-label">Type</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddTypeChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddTypeChange }}">
                 <sc-for as="t" list="{{ productTypes }}">
                   <option value="{{ t.value }}" selected="{{ t.addSelected }}">{{ t.label }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
           <div style="flex:1;">
             <label class="form-label">Company</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddCompanyChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddCompanyChange }}">
                 <option value="">Company</option>
                 <sc-for as="co" list="{{ companies }}">
                   <option value="{{ co.id }}" selected="{{ co.selected }}">{{ co.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
         </div>
@@ -259,13 +293,13 @@
           <div style="flex:1;">
             <label class="form-label">Team member</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddTeamMemberChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddTeamMemberChange }}">
                 <option value="">Select Team Member</option>
                 <sc-for as="tm" list="{{ teamMembers }}">
                   <option value="{{ tm.id }}" selected="{{ tm.selected }}">{{ tm.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
           <div style="flex:1;"></div>
@@ -287,13 +321,13 @@
           <div style="flex:1;">
             <label class="form-label">Select Storage</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddStorageSelect }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddStorageSelect }}">
                 <option value="">All</option>
                 <sc-for as="st" list="{{ storages }}">
                   <option value="{{ st.id }}">{{ st.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
         </div>
@@ -324,12 +358,12 @@
               <div style="flex:1;">
                 <label class="form-label">Months</label>
                 <div style="position:relative;">
-                  <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onAddMonthsChange }}">
+                  <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddMonthsChange }}">
                     <sc-for as="m" list="{{ monthOptions }}">
                       <option value="{{ m.value }}" selected="{{ m.selected }}">{{ m.label }}</option>
                     </sc-for>
                   </select>
-                  <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+                  <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
                 </div>
               </div>
               <div style="flex:1;">
@@ -397,7 +431,7 @@
   <sc-if value="{{ detailOpen }}">
     <div style="position:absolute; inset:0; z-index:40;">
       <div onclick="{{ closeDetail }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
-      <div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41; text-align:left;">
+      <div class="dc-scroll inv-product-sheet" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41;">
         <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px; flex:none;"></div>
         
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex:none;">
@@ -417,13 +451,13 @@
 
         <label class="form-label">Suppliers</label>
         <div style="position:relative; margin-bottom:16px;">
-          <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditSupplierChange }}">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditSupplierChange }}">
             <option value="">Select supplier</option>
             <sc-for as="sup" list="{{ suppliers }}">
               <option value="{{ sup.id }}" selected="{{ sup.editSelected }}">{{ sup.name }}</option>
             </sc-for>
           </select>
-          <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+          <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
         </div>
         
         <div style="display:flex; gap:12px;">
@@ -445,25 +479,25 @@
           <div style="flex:1;">
             <label class="form-label">Category</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditCategoryChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditCategoryChange }}">
                 <option value="">Select Category</option>
                 <sc-for as="cat" list="{{ selectableCategories }}">
                   <option value="{{ cat.id }}" selected="{{ cat.selected }}">{{ cat.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
           <div style="flex:1;">
             <label class="form-label">Sub Category</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditSubCatChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditSubCatChange }}">
                 <option value="0">-- Select Sub Category --</option>
                 <sc-for as="sub" list="{{ editSubCategories }}">
                   <option value="{{ sub.id }}" selected="{{ sub.selected }}">{{ sub.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
         </div>
@@ -472,24 +506,24 @@
           <div style="flex:1;">
             <label class="form-label">Type</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditTypeChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditTypeChange }}">
                 <sc-for as="t" list="{{ productTypes }}">
                   <option value="{{ t.value }}" selected="{{ t.editSelected }}">{{ t.label }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
           <div style="flex:1;">
             <label class="form-label">Company</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditCompanyChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditCompanyChange }}">
                 <option value="">Company</option>
                 <sc-for as="co" list="{{ companies }}">
                   <option value="{{ co.id }}" selected="{{ co.editSelected }}">{{ co.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
         </div>
@@ -498,13 +532,13 @@
           <div style="flex:1;">
             <label class="form-label">Team member</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditTeamMemberChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditTeamMemberChange }}">
                 <option value="">Select Team Member</option>
                 <sc-for as="tm" list="{{ teamMembers }}">
                   <option value="{{ tm.id }}" selected="{{ tm.editSelected }}">{{ tm.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
           <div style="flex:1;"></div>
@@ -526,13 +560,13 @@
           <div style="flex:1;">
             <label class="form-label">Select Storage</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditStorageSelect }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditStorageSelect }}">
                 <option value="">All</option>
                 <sc-for as="st" list="{{ storages }}">
                   <option value="{{ st.id }}">{{ st.name }}</option>
                 </sc-for>
               </select>
-              <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
         </div>
@@ -563,12 +597,12 @@
               <div style="flex:1;">
                 <label class="form-label">Months</label>
                 <div style="position:relative;">
-                  <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditMonthsChange }}">
+                  <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditMonthsChange }}">
                     <sc-for as="m" list="{{ editMonthOptions }}">
                       <option value="{{ m.value }}" selected="{{ m.selected }}">{{ m.label }}</option>
                     </sc-for>
                   </select>
-                  <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+                  <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
                 </div>
               </div>
               <div style="flex:1;">
@@ -621,11 +655,11 @@
         
         <label class="form-label">Status</label>
         <div style="position:relative; margin-bottom:16px;">
-          <select class="premium-input" style="appearance:none; -webkit-appearance:none; padding-right:32px;" onchange="{{ onEditStatusChange }}">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditStatusChange }}">
             <option value="1" selected="{{ editStatusActive }}">Active</option>
             <option value="0" selected="{{ editStatusInactive }}">Inactive</option>
           </select>
-          <span style="position:absolute; right:12px; top:15px; color:#a0aec0; pointer-events:none;"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+          <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
         </div>
 
         <label class="form-label">Product details</label>

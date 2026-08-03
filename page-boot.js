@@ -81,10 +81,13 @@
     }
 
     if (confirmLogoutBtn) {
-      if (window.MineralBarApp) {
-        window.MineralBarApp.clearSession();
+      if (window.MineralBarApp && typeof window.MineralBarApp.logoutAndClearCache === 'function') {
+        window.MineralBarApp.logoutAndClearCache();
+      } else {
+        if (window.MineralBarApp) window.MineralBarApp.clearSession();
+        location.replace('login.html?nocache=' + Date.now());
       }
-      location.href = 'login.html';
+      return;
     }
   }, true);
 
@@ -197,8 +200,12 @@
 
     document.body.appendChild(chip);
     document.getElementById('mb-logout-btn').addEventListener('click', function () {
-      MineralBarApp.clearSession();
-      location.href = 'login.html';
+      if (window.MineralBarApp && typeof MineralBarApp.logoutAndClearCache === 'function') {
+        MineralBarApp.logoutAndClearCache();
+      } else {
+        MineralBarApp.clearSession();
+        location.replace('login.html?nocache=' + Date.now());
+      }
     });
 
     window.addEventListener('mineralbar:socket-status', function (ev) {

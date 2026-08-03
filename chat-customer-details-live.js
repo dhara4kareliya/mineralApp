@@ -248,7 +248,7 @@
     });
   }
 
-  function getFolderStatusValue(c, folderId) {
+  function getFolderStatusValue(c, folderId, folderStatuses) {
     if (c.folder_status_map && c.folder_status_map[folderId]) {
       return c.folder_status_map[folderId];
     }
@@ -257,10 +257,40 @@
         return String(f.id || f.folder_id) === String(folderId);
       });
       if (match) {
-        return { status_id: match.status_id || match.status, sub_status_id: match.internal_sub_status_list || match.sub_status_id };
+        return {
+          status_id: match.sub_list_data || match.status_id || match.status || '',
+          sub_status_id: match.internal_sub_status_list || match.sub_status_id || ''
+        };
       }
     }
-    return { status_id: c.status_id || c.status || '', sub_status_id: c.internal_sub_status_list || '' };
+
+    // Customer.Get stores the selected internal status id in `status`
+    // (after Customer.Edit with sub_list_data / status). Also accept sub_list_data.
+    var candidates = [
+      c.sub_list_data,
+      c.status_id,
+      c.status
+    ];
+    var statusId = '';
+    var known = {};
+    (folderStatuses || []).forEach(function (row) {
+      var id = row && (row.status_id || row.id || row.data_id);
+      if (id != null && id !== '') known[String(id)] = true;
+    });
+    for (var i = 0; i < candidates.length; i++) {
+      var cand = candidates[i];
+      if (cand == null || cand === '') continue;
+      // Prefer values that exist in this folder's Statuses.List options
+      if (!folderStatuses || !folderStatuses.length || known[String(cand)]) {
+        statusId = String(cand);
+        break;
+      }
+    }
+
+    return {
+      status_id: statusId,
+      sub_status_id: c.internal_sub_status_list || ''
+    };
   }
 
   function getSubStatusesForParent(parentStatusId) {
@@ -270,30 +300,53 @@
     });
   }
 
- function populateStatusSelect(selectEl, folderStatuses, selectedStatusId) {
-  var isEn = getLang() === 'en';
+  function styleStatusSelect(selectEl, folderStatuses) {
+    var selectedId = selectEl ? String(selectEl.value || '') : '';
+    var row = (folderStatuses || []).find(function (r) {
+      var id = r.status_id || r.id || r.data_id;
+      return String(id) === selectedId;
+    });
+    if (row && row.color) {
+      selectEl.style.backgroundColor = String(row.color);
+      selectEl.style.color = '#fff';
+      selectEl.style.border = 'none';
+    } else if (selectedId) {
+      selectEl.style.backgroundColor = '#1d3fd6';
+      selectEl.style.color = '#fff';
+      selectEl.style.border = 'none';
+    } else {
+      selectEl.style.backgroundColor = '#fff';
+      selectEl.style.color = '#1f2a3a';
+      selectEl.style.border = '1.5px solid #d7e2ee';
+    }
+    applySelectStyle(selectEl);
+  }
 
-  selectEl.innerHTML = '';
-  var placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = t('selectInternalStatus');
-  selectEl.appendChild(placeholder);
+  function populateStatusSelect(selectEl, folderStatuses, selectedStatusId) {
+    var isEn = getLang() === 'en';
 
-  (folderStatuses || []).forEach(function (row) {
-    var id = row.status_id || row.id || row.data_id;
-    var label = isEn ? (row.name_en || row.name_for || row.name_he) : (row.name_he || row.name_for || row.name_en);
-    if (id == null || !label) return;
-    var option = document.createElement('option');
-    option.value = String(id);
-    option.textContent = String(label);
-    selectEl.appendChild(option);
-  });
+    selectEl.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = t('selectInternalStatus');
+    selectEl.appendChild(placeholder);
 
-  selectEl.value = selectedStatusId ? String(selectedStatusId) : '';
-  selectEl.style.backgroundColor = '#fff';
-  selectEl.style.color = '#1f2a3a';
-  selectEl.style.border = '1.5px solid #d7e2ee';
-}
+    var knownIds = {};
+    (folderStatuses || []).forEach(function (row) {
+      var id = row.status_id || row.id || row.data_id;
+      var label = isEn ? (row.name_en || row.name_for || row.name_he) : (row.name_he || row.name_for || row.name_en);
+      if (id == null || !label) return;
+      knownIds[String(id)] = true;
+      var option = document.createElement('option');
+      option.value = String(id);
+      option.textContent = String(label);
+      selectEl.appendChild(option);
+    });
+
+    var sel = selectedStatusId ? String(selectedStatusId) : '';
+    selectEl.value = (sel && knownIds[sel]) ? sel : '';
+    styleStatusSelect(selectEl, folderStatuses);
+  }
 
   function populateSubStatusSelect(selectEl, parentStatusId, selectedSubId) {
     selectEl.innerHTML = '';
@@ -315,34 +368,77 @@
     selectEl.value = selectedSubId ? String(selectedSubId) : '';
   }
 
-  /** Save the status/sub-status  */
+  /** Save folder status via Customer.Edit (sub_list_data + optional sub-status) */
   async function saveOneFolder(folderId, block) {
-  var btn = block.querySelector('.folder-save-btn');
-  var statusSel = block.querySelector('.folder-status-select');
-  var subSel = block.querySelector('.folder-sub-status-select');
+    var btn = block.querySelector('.folder-save-btn');
+    var statusSel = block.querySelector('.folder-status-select');
+    var subSel = block.querySelector('.folder-sub-status-select');
 
-  if (!btn || btn.disabled) return;
+    if (!btn || btn.disabled) return;
+    if (!currentCustomerId) {
+      showToast(t('missingId'), 'error');
+      return;
+    }
 
-  var originalText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = t('savingBtn');
+    var statusId = statusSel ? String(statusSel.value || '').trim() : '';
+    if (!statusId) {
+      showToast(t('selectInternalStatus'), 'error');
+      return;
+    }
 
-  try {
-    var client = MineralBarApp.getClient();
-    await client.customers.update(currentCustomerId, {
-      folder_id: folderId,
-      status_id: statusSel ? statusSel.value : '',
-      internal_sub_status_list: subSel ? subSel.value : ''
-    });
-    showToast(t('successToast'));
-  } catch (err) {
-    console.error('[DetailsLive] Save folder failed', folderId, err);
-    showToast(t('errorSave') + err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = originalText;
+    var statusName = '';
+    if (statusSel && statusSel.selectedIndex >= 0) {
+      statusName = String(statusSel.options[statusSel.selectedIndex].textContent || '').trim();
+    }
+
+    var subStatusId = subSel ? String(subSel.value || '').trim() : '';
+
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('savingBtn');
+
+    try {
+      var client = MineralBarApp.getClient();
+      // Official Customer.Edit folder payload:
+      // customer_id, folder_id, sub_list_data, sub_list_data_name, internal_sub_status_list?
+      var payload = {
+        folder_id: String(folderId),
+        sub_list_data: statusId,
+        sub_list_data_name: statusName,
+        // Customer.Get returns the selected internal status in `status`
+        status: statusId
+      };
+      if (subStatusId) {
+        payload.internal_sub_status_list = subStatusId;
+      }
+
+      var raw = await client.request('Customer.Edit', Object.assign({
+        customer_id: currentCustomerId,
+        id: currentCustomerId,
+        cust_id: currentCustomerId
+      }, payload));
+
+      if (!(raw && (Number(raw.success) === 1 || raw.success === true || raw.output || raw.data))) {
+        var failMsg = (raw && (raw.message || raw.error)) || 'Customer.Edit failed';
+        throw new Error(String(failMsg));
+      }
+
+      if (customerData) {
+        customerData.status = statusId;
+        customerData.sub_list_data = statusId;
+        customerData.sub_list_data_name = statusName;
+        if (subStatusId) customerData.internal_sub_status_list = subStatusId;
+      }
+
+      showToast(t('successToast'));
+    } catch (err) {
+      console.error('[DetailsLive] Save folder failed', folderId, err);
+      showToast(t('errorSave') + (err && err.message ? err.message : String(err)), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
-}
   function buildFolderBlock(folderId, folderName, statusVal, subStatusVal, folderStatuses) {
     var block = document.createElement('div');
     block.className = 'folder-block';
@@ -395,6 +491,11 @@
     populateStatusSelect(statusSelect, folderStatuses, statusVal);
     populateSubStatusSelect(subSelect, statusVal, subStatusVal);
 
+    statusSelect.addEventListener('change', function () {
+      styleStatusSelect(statusSelect, folderStatuses);
+      populateSubStatusSelect(subSelect, statusSelect.value, '');
+      applySelectStyle(subSelect);
+    });
 
     saveBtn.addEventListener('click', function () {
       saveOneFolder(folderId, block);
@@ -428,7 +529,7 @@
         : ('Folder #' + fId);
 
       var folderStatuses = await fetchStatusesForFolder(fId);
-      var vals = getFolderStatusValue(c, fId);
+      var vals = getFolderStatusValue(c, fId, folderStatuses);
       var block = buildFolderBlock(fId, folderName, vals.status_id, vals.sub_status_id, folderStatuses);
       container.appendChild(block);
     }

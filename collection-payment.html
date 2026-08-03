@@ -236,14 +236,14 @@
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount received <span style="color:#c0392b;">*</span></label>
 <div style="position:relative;">
-<input class="gv-input" inputmode="numeric" oninput="{{ onCash }}" placeholder="0" style="width:100%; padding:12px 36px 12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:16px; font-weight:700; color:#1f2a3a; text-align:left;" value="{{ cashReceived }}"/>
-<span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700;">₪</span>
+<input class="gv-input" inputmode="numeric" oninput="{{ onCash }}" placeholder="0" style="width:100%; padding:12px 13px; padding-inline-end:36px; border:1.5px solid #dde2ea; border-radius:11px; font-size:16px; font-weight:700; color:#1f2a3a; text-align:start;" value="{{ cashReceived }}"/>
+<span style="position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
 </div>
 </div>
 <sc-if hint-placeholder-val="{{ true }}" value="{{ changeShow }}">
-<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:10px; background:{{ changeBg }}; margin-bottom:15px;">
-<span style="font-size:13.5px; font-weight:700; color:{{ changeColor }};">{{ changeLabel }}</span>
-<span style="font-size:15px; font-weight:800; color:{{ changeColor }};">{{ changeAmount }}</span>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-radius:10px; background:{{ changeBg }}; margin-bottom:15px;">
+<span style="font-size:13.5px; font-weight:700; color:{{ changeColor }}; flex-shrink:0;">{{ changeLabel }}</span>
+<span style="font-size:15px; font-weight:800; color:{{ changeColor }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; text-align:end;">{{ changeAmount }}</span>
 </div>
 </sc-if>
 <div style="margin-bottom:14px;">
@@ -323,8 +323,8 @@
 <div>
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount</label>
 <div style="position:relative;">
-<input class="gv-input" inputmode="numeric" placeholder="0" style="width:100%; padding:11px 34px 11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:left;"/>
-<span style="position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700;">₪</span>
+<input class="gv-input" inputmode="numeric" placeholder="0" style="width:100%; padding:11px 13px; padding-inline-end:34px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:start;"/>
+<span style="position:absolute; inset-inline-end:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
 </div>
 </div>
 </div>
@@ -519,7 +519,15 @@ class Component extends DCLogic {
   fmtAmount(v) {
     var n = Number(v);
     if (Number.isNaN(n)) n = 0;
-    return Math.abs(n).toFixed(0) + '₪';
+    var rounded = Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100;
+    if (Math.abs(rounded - Math.round(rounded)) < 0.001) return Math.round(rounded) + ' ₪';
+    return rounded.toFixed(2) + ' ₪';
+  }
+
+  moneyDiff(a, b) {
+    var x = Number(a) || 0;
+    var y = Number(b) || 0;
+    return Math.round((Math.abs(x - y) + Number.EPSILON) * 100) / 100;
   }
 
   getInitials(name) {
@@ -642,8 +650,17 @@ class Component extends DCLogic {
     const changeShow = recRaw !== '' && !isNaN(rec);
     let changeLabel = '', changeAmount = '', changeColor = '#2e8a63', changeBg = '#eaf7ef';
     if (changeShow) {
-      if (rec >= total) { changeLabel = 'Excess payment'; changeAmount = (rec - total) + '₪'; changeColor = '#2e8a63'; changeBg = '#eaf7ef'; }
-      else { changeLabel = 'Missing payment'; changeAmount = (total - rec) + '₪'; changeColor = '#c0392b'; changeBg = '#fbeceb'; }
+      if (rec >= total) {
+        changeLabel = 'Excess payment';
+        changeAmount = this.fmtAmount(this.moneyDiff(rec, total));
+        changeColor = '#2e8a63';
+        changeBg = '#eaf7ef';
+      } else {
+        changeLabel = 'Missing payment';
+        changeAmount = this.fmtAmount(this.moneyDiff(total, rec));
+        changeColor = '#c0392b';
+        changeBg = '#fbeceb';
+      }
     }
 
     const checks = this.state.checks.map((c, i) => ({

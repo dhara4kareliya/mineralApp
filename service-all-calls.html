@@ -54,7 +54,7 @@
           <div
             style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 12px; flex:none;">
             <sc-if hint-placeholder-val="{{ false }}" value="{{ searchOpen }}">
-              <input oninput="{{ onSearch }}" value="{{ search }}" type="text" placeholder="חיפוש קריאות (שם, מס׳)..." style="flex:1; border:none; background:#fff; border-radius:99px; padding:10px 16px; font-family:Heebo; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06);" />
+              <input class="mb-search" oninput="{{ onSearch }}" value="{{ search }}" type="text" placeholder="חיפוש קריאות (שם, מס׳)..." style="flex:1; border:none; background:#fff; border-radius:99px; padding:10px 16px; font-family:Heebo; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06); text-align:start;" />
               <button onclick="{{ toggleSearch }}" style="margin-right:10px; border:none; background:none; font-weight:700; color:#1d60a2; cursor:pointer; font-family:Heebo;">ביטול</button>
             </sc-if>
             <sc-if hint-placeholder-val="{{ true }}" value="{{ notSearchOpen }}">

@@ -11,7 +11,7 @@
   <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
   <script src="./biz1-app.js?v=home-4"></script>
   <script src="./page-boot.js?v=home-4"></script>
-  <script src="./tasks-live.js?v=pager1"></script>
+  <script src="./tasks-live.js?v=delete-modal-1"></script>
   <link rel="stylesheet" href="./common.css" />
   <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -78,25 +78,22 @@
 
           <!-- QUICK MISSION BOX -->
           <div id="mb-quick-mission-box" style="background:var(--bg-panel); border:1.5px solid var(--border-panel); border-radius:16px; padding:14px; margin-bottom:18px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
               <span style="font-size:12px; font-weight:800; color:var(--text-sub); letter-spacing:0.5px; flex:none;">QUICK</span>
-              <input id="mb-quick-detail" type="text" placeholder="Type Here Mission Detail" style="flex:1; min-width:160px; padding:8px 12px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); color:var(--text-title); font-size:13px; font-family:inherit; outline:none;" />
-              <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); flex:1; min-width:160px;">
-                <span style="font-size:12px; font-weight:700; color:var(--text-sub); flex:none;">Customer Name</span>
-                <select id="mb-quick-customer" style="flex:1; border:none; background:transparent; font-size:12px; font-weight:700; color:var(--text-title); outline:none; cursor:pointer; width:100%;">
-                  <option value="">Choose Customer</option>
-                </select>
-              </div>
+              <input id="mb-quick-detail" type="text" placeholder="Type Here Mission Detail" style="flex:1; min-width:0; padding:8px 12px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); color:var(--text-title); font-size:13px; font-family:inherit; outline:none;" />
             </div>
-            <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
-              <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); flex:1;">
-                <span style="font-size:12px; font-weight:700; color:var(--text-sub);">Team Member</span>
-                <select id="mb-quick-team" style="border:none; background:transparent; font-size:12px; font-weight:700; color:var(--text-title); outline:none; cursor:pointer; max-width:120px;"></select>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-sub); flex:none;">Customer Name</span>
+              <select id="mb-quick-customer" style="flex:1; min-width:0; border:none; background:transparent; font-size:12px; font-weight:700; color:var(--text-title); outline:none; cursor:pointer; width:100%;">
+                <option value="">Choose Customer</option>
+              </select>
+            </div>
+            <div style="display:flex; flex-wrap:nowrap; align-items:center; gap:10px;">
+              <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); flex:1; min-width:0;">
+                <span style="font-size:12px; font-weight:700; color:var(--text-sub); flex:none; white-space:nowrap;">Team Member</span>
+                <select id="mb-quick-team" style="flex:1; min-width:0; border:none; background:transparent; font-size:12px; font-weight:700; color:var(--text-title); outline:none; cursor:pointer;"></select>
               </div>
-              
-              <div style="display:flex; align-items:center; gap:8px; flex:none;">
-                <button id="mb-quick-submit" type="button" style="padding:9px 18px; border-radius:10px; border:none; background:#2563eb; color:#fff; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.3);">Quick mission</button>
-              </div>
+              <button id="mb-quick-submit" type="button" style="flex:none; white-space:nowrap; padding:9px 14px; border-radius:10px; border:none; background:#2563eb; color:#fff; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.3);">Quick mission</button>
             </div>
             <div id="mb-quick-msg" style="display:none; font-size:12px; font-weight:700; margin-top:8px;"></div>
           </div>

@@ -494,6 +494,7 @@ html[dir="ltr"] .gv-input,
 html[dir="ltr"] .ds-msg,
 html[dir="ltr"] .ds-search,
 html[dir="ltr"] .premium-input,
+html[dir="ltr"] .search-input,
 [dir="ltr"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="submit"]):not([type="button"]),
 [dir="ltr"] textarea,
 [dir="ltr"] select,
@@ -502,7 +503,8 @@ html[dir="ltr"] .premium-input,
 [dir="ltr"] .gv-input,
 [dir="ltr"] .ds-msg,
 [dir="ltr"] .ds-search,
-[dir="ltr"] .premium-input {
+[dir="ltr"] .premium-input,
+[dir="ltr"] .search-input {
   direction: ltr !important;
   text-align: left !important;
 }
@@ -516,6 +518,7 @@ html[dir="rtl"] .gv-input,
 html[dir="rtl"] .ds-msg,
 html[dir="rtl"] .ds-search,
 html[dir="rtl"] .premium-input,
+html[dir="rtl"] .search-input,
 [dir="rtl"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="image"]):not([type="submit"]):not([type="button"]),
 [dir="rtl"] textarea,
 [dir="rtl"] select,
@@ -524,7 +527,32 @@ html[dir="rtl"] .premium-input,
 [dir="rtl"] .gv-input,
 [dir="rtl"] .ds-msg,
 [dir="rtl"] .ds-search,
-[dir="rtl"] .premium-input {
+[dir="rtl"] .premium-input,
+[dir="rtl"] .search-input {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Search bars across pages — Hebrew = RTL, English = LTR */
+html[dir="ltr"] #mb-customer-search,
+html[dir="ltr"] #mb-messages-search,
+html[dir="ltr"] #all-docs-search-input,
+html[dir="ltr"] input.mb-search,
+[dir="ltr"] #mb-customer-search,
+[dir="ltr"] #mb-messages-search,
+[dir="ltr"] #all-docs-search-input,
+[dir="ltr"] input.mb-search {
+  direction: ltr !important;
+  text-align: left !important;
+}
+html[dir="rtl"] #mb-customer-search,
+html[dir="rtl"] #mb-messages-search,
+html[dir="rtl"] #all-docs-search-input,
+html[dir="rtl"] input.mb-search,
+[dir="rtl"] #mb-customer-search,
+[dir="rtl"] #mb-messages-search,
+[dir="rtl"] #all-docs-search-input,
+[dir="rtl"] input.mb-search {
   direction: rtl !important;
   text-align: right !important;
 }

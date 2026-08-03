@@ -166,10 +166,10 @@
     if (existing) existing.remove();
     clearTimeout(toastTimer);
 
-    var host =
-      document.querySelector('.screen-card') ||
-      document.getElementById('mb-live-chat') ||
-      document.body;
+    // Mount on the phone shell (composer parent), NOT #mb-live-chat —
+    // that scroll area clips absolute toasts so "no phone" looked like a dead call button.
+    var composer = document.getElementById('mb-chat-composer');
+    var host = (composer && composer.parentElement) || document.body;
     if (host && host !== document.body && getComputedStyle(host).position === 'static') {
       host.style.position = 'relative';
     }
@@ -179,13 +179,16 @@
     el.id = 'mb-chat-toast';
     el.setAttribute('role', 'alert');
     el.style.cssText =
-      'position:absolute;left:50%;bottom:92px;transform:translateX(-50%);' +
+      'position:absolute;left:50%;bottom:100px;transform:translateX(-50%);' +
       'width:calc(100% - 28px);max-width:320px;padding:12px 14px;border-radius:12px;' +
       'background:' + bg + ';color:#fff;font-size:13px;font-weight:700;text-align:center;' +
       'z-index:99999;box-shadow:0 8px 24px rgba(15,24,40,.28);font-family:Heebo,sans-serif;' +
       'pointer-events:none;';
     el.textContent = text.length > 220 ? text.slice(0, 217) + '…' : text;
     host.appendChild(el);
+    toastTimer = setTimeout(function () {
+      if (el.parentNode) el.remove();
+    }, 2800);
   }
 
   function suppressThreadReload(ms) {
@@ -446,18 +449,22 @@
         href = MineralBarApp.resolveFileUrl(href);
       }
       var safeHref = esc(href);
-      var label = esc(part.value);
       var isImg = /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(href);
       var isAudio = /\.(mp3|wav|m4a|aac|ogg|flac)(\?|$)/i.test(href);
+      var isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(href);
       if (isImg) {
         return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:block; margin:4px 0;">' +
           '<img src="' + safeHref + '" alt="" style="max-width:100%; max-height:220px; border-radius:12px; display:block;"/>' +
           '</a>';
       }
+      // mp3/mp4: player only — do not show the raw CDN URL under the media
       if (isAudio) {
-        return '<div style="margin:4px 0;"><audio controls preload="none" src="' + safeHref + '" style="width:100%; max-width:260px;"></audio></div>' +
-          '<a href="' + safeHref + '" target="_blank" rel="noopener" style="color:#1d60a2; text-decoration:underline; word-break:break-all;">' + label + '</a>';
+        return '<div style="margin:4px 0;"><audio controls preload="metadata" src="' + safeHref + '" style="width:100%; max-width:260px;"></audio></div>';
       }
+      if (isVideo) {
+        return '<div style="margin:4px 0;"><video controls preload="metadata" src="' + safeHref + '" style="width:100%; max-width:260px; border-radius:12px; background:#0f1828;"></video></div>';
+      }
+      var label = esc(part.value);
       return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="color:#1d60a2; text-decoration:underline; word-break:break-all;">' + label + '</a>';
     }).join('');
   }
@@ -516,6 +523,42 @@
     return 'tel:' + s;
   }
 
+  function pickCustomerPhone(c) {
+    if (!c || typeof c !== 'object') return '';
+    return String(
+      c.mobile || c.phone || c.cellular || c.second_phone ||
+      c.cust_phone || c.phone_no || c.cellphone || ''
+    ).trim();
+  }
+
+  function unwrapCustomer(res) {
+    var c = (res && res.customer) || {};
+    if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id || c.data.mobile || c.data.phone)) {
+      c = c.data;
+    }
+    return c;
+  }
+
+  function openTel(href) {
+    if (!href) return false;
+    try {
+      var a = document.createElement('a');
+      a.href = href;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return true;
+    } catch (err) {
+      try {
+        window.location.href = href;
+        return true;
+      } catch (err2) {
+        return false;
+      }
+    }
+  }
+
   function fillHeader(p) {
     var name = p.name || p.email || (p.customer_id ? ('לקוח #' + p.customer_id) : 'שיחה');
     var subText = p.phone || p.customer_id || '';
@@ -544,7 +587,31 @@
       var href = telHref(p.phone);
       callBtn.setAttribute('href', href || '#');
       callBtn.setAttribute('data-has-phone', href ? '1' : '0');
+      callBtn.style.opacity = href ? '1' : '0.45';
     }
+  }
+
+  function applyResolvedPhone(p, phone) {
+    if (!phone) return;
+    if (currentParams) currentParams.phone = phone;
+    if (p) p.phone = phone;
+    fillHeader(Object.assign({}, p || currentParams || params(), { phone: phone }));
+  }
+
+  function resolveCustomerPhone(p) {
+    p = p || currentParams || params() || {};
+    if (telHref(p.phone)) return Promise.resolve(String(p.phone || '').trim());
+    var cid = p.customer_id || p.cust_id || '';
+    if (!cid || !window.MineralBarApp || typeof MineralBarApp.getCustomer !== 'function') {
+      return Promise.resolve('');
+    }
+    return MineralBarApp.getCustomer(cid).then(function (res) {
+      var phone = pickCustomerPhone(unwrapCustomer(res));
+      if (phone) applyResolvedPhone(p, phone);
+      return phone;
+    }).catch(function () {
+      return '';
+    });
   }
 
   function dialCurrentCustomer(e) {
@@ -555,28 +622,23 @@
     var p = currentParams || params() || {};
     var href = telHref(p.phone);
     if (href) {
-      window.location.href = href;
+      openTel(href);
       return;
     }
     var cid = p.customer_id || p.cust_id || '';
-    if (cid && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
-      MineralBarApp.getCustomer(cid).then(function (res) {
-        var c = (res && res.customer) || {};
-        if (c.data && typeof c.data === 'object') c = c.data;
-        var phone = c.mobile || c.phone || c.cellular || '';
-        if (phone) {
-          if (currentParams) currentParams.phone = phone;
-          fillHeader(Object.assign({}, p, { phone: phone }));
-          window.location.href = telHref(phone);
-        } else {
-          showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
-        }
-      }).catch(function () {
-        showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
-      });
+    if (!cid) {
+      showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
       return;
     }
-    showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
+    showToast(chatT('Looking up phone…', 'מחפש מספר טלפון…'));
+    resolveCustomerPhone(p).then(function (phone) {
+      var h = telHref(phone);
+      if (h) {
+        openTel(h);
+      } else {
+        showToast(chatT('No phone number for this customer', 'אין מספר טלפון ללקוח זה'), 'error');
+      }
+    });
   }
 
   window.filterChatType = function (type) {
@@ -873,6 +935,8 @@
       thumb.appendChild(img);
     } else if (pendingAttachment.kind === 'music') {
       thumb.innerHTML = '<svg fill="none" height="22" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
+    } else if (pendingAttachment.kind === 'video') {
+      thumb.innerHTML = '<svg fill="none" height="22" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><rect height="14" rx="2" width="16" x="3" y="5"></rect><path d="m16 12 5-3v6l-5-3z"></path></svg>';
     } else {
       thumb.innerHTML = '<svg fill="none" height="22" stroke="#6b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>';
     }
@@ -1072,6 +1136,64 @@
     }
   });
 
+  function detectAttachKind(file) {
+    if (!file) return '';
+    var name = String(file.name || '').toLowerCase();
+    var type = String(file.type || '').toLowerCase();
+    if (type.indexOf('image/') === 0 || /\.(png|jpe?g|gif|webp|bmp|heic|heif)$/i.test(name)) return 'image';
+    if (type.indexOf('audio/') === 0 || /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(name)) return 'music';
+    if (type.indexOf('video/') === 0 || /\.(mp4|webm|mov|m4v)$/i.test(name)) return 'video';
+    return 'file';
+  }
+
+  function isAllowedChatDropFile(file) {
+    var kind = detectAttachKind(file);
+    return kind === 'image' || kind === 'music' || kind === 'video' || kind === 'file';
+  }
+
+  function dragEventHasFiles(e) {
+    var dt = e && e.dataTransfer;
+    if (!dt) return false;
+    if (dt.types) {
+      for (var i = 0; i < dt.types.length; i++) {
+        if (String(dt.types[i]).toLowerCase() === 'files') return true;
+      }
+    }
+    return !!(dt.files && dt.files.length);
+  }
+
+  function setChatDropActive(on) {
+    var screen = document.getElementById('mb-chat-screen');
+    var overlay = document.getElementById('mb-chat-drop-overlay');
+    if (screen) {
+      if (on) screen.classList.add('mb-chat-drag-over');
+      else screen.classList.remove('mb-chat-drag-over');
+    }
+    if (overlay) {
+      if (on) overlay.classList.add('mb-open');
+      else overlay.classList.remove('mb-open');
+      overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
+  }
+
+  function handleChatDroppedFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList || []).filter(Boolean);
+    if (!files.length) return;
+    var picked = null;
+    for (var i = 0; i < files.length; i++) {
+      if (isAllowedChatDropFile(files[i])) {
+        picked = files[i];
+        break;
+      }
+    }
+    if (!picked) {
+      showToast(chatT('Unsupported file type', 'סוג קובץ לא נתמך'), 'error');
+      return;
+    }
+    setPendingAttachment(picked, detectAttachKind(picked) || 'file');
+    showToast(chatT('Ready to send', 'מוכן לשליחה'));
+  }
+
   function bindAttachFileInputs() {
     // Document-level so it still works if the composer DOM is re-rendered
     if (document.__mbAttachChangeBound) return;
@@ -1086,6 +1208,7 @@
       if (!kind) return;
       var file = t.files && t.files[0];
       if (!file) return;
+      kind = detectAttachKind(file) || kind;
       setPendingAttachment(file, kind);
       try { t.value = ''; } catch (err) { /* ignore */ }
     });
@@ -1094,6 +1217,58 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bindAttachFileInputs);
   }
+
+  function bindChatDragDrop() {
+    if (document.__mbChatDragDropBound) return;
+    document.__mbChatDragDropBound = true;
+    var depth = 0;
+
+    function hostContains(target) {
+      var screen = document.getElementById('mb-chat-screen');
+      if (!screen || !target) return false;
+      if (typeof target.closest === 'function' && target.closest('#mb-chat-screen')) return true;
+      return screen === target || screen.contains(target);
+    }
+
+    document.addEventListener('dragenter', function (e) {
+      if (!dragEventHasFiles(e) || !hostContains(e.target)) return;
+      e.preventDefault();
+      depth += 1;
+      setChatDropActive(true);
+    });
+
+    document.addEventListener('dragover', function (e) {
+      if (!dragEventHasFiles(e) || !hostContains(e.target)) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = 'copy'; } catch (e0) { /* ignore */ }
+      setChatDropActive(true);
+    });
+
+    document.addEventListener('dragleave', function (e) {
+      if (!hostContains(e.target) && depth === 0) return;
+      var screen = document.getElementById('mb-chat-screen');
+      if (!screen) return;
+      var related = e.relatedTarget;
+      if (related && (screen === related || screen.contains(related))) return;
+      depth = Math.max(0, depth - 1);
+      if (!depth) setChatDropActive(false);
+    });
+
+    document.addEventListener('drop', function (e) {
+      if (!hostContains(e.target)) return;
+      if (!dragEventHasFiles(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      depth = 0;
+      setChatDropActive(false);
+      handleChatDroppedFiles(e.dataTransfer && e.dataTransfer.files);
+    });
+  }
+  bindChatDragDrop();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindChatDragDrop);
+  }
+
   document.addEventListener('keydown', function(e) {
     if (e.target && e.target.id === 'mb-chat-input') {
       if (e.key === 'Enter') {
@@ -1208,6 +1383,9 @@
     currentParams = p;
     fillHeader(p);
     // Quotation navigation is handled via document click event delegation
+
+    // Prefetch phone so call button works even when URL/list omitted cust_phone
+    resolveCustomerPhone(p);
 
     await loadThread(elId, p);
   }

@@ -21,11 +21,17 @@
 
   function performLogout() {
     try {
+      if (global.MineralBarApp && typeof global.MineralBarApp.logoutAndClearCache === 'function') {
+        global.MineralBarApp.logoutAndClearCache();
+        return;
+      }
+    } catch (e) { /* ignore */ }
+    try {
       if (global.MineralBarApp && typeof global.MineralBarApp.clearSession === 'function') {
         global.MineralBarApp.clearSession();
       }
-    } catch (e) { /* ignore */ }
-    if (global.location) global.location.href = 'login.html';
+    } catch (e2) { /* ignore */ }
+    if (global.location) global.location.replace('login.html?nocache=' + Date.now());
   }
 
   // Unified Language Dictionary Engine
@@ -529,8 +535,23 @@
         logoutBtn.id = 'btn-logout-common';
         logoutBtn.textContent = '⎋';
         logoutBtn.setAttribute('title', 'Logout');
-        logoutBtn.style.cssText = 'margin-left:8px; border:none; background:rgba(15,24,40,.08); color:#1f2a3a; border-radius:8px; padding:4px 8px; font:700 12px/1 Heebo,sans-serif; cursor:pointer;';
-        existingBar.appendChild(logoutBtn);
+        logoutBtn.style.cssText = 'border:none; background:rgba(15,24,40,.08); color:#1f2a3a; border-radius:8px; padding:4px 8px; font:700 12px/1 Heebo,sans-serif; cursor:pointer;';
+        var actionsWrap = existingBar.querySelector('.common-header-actions');
+        if (!actionsWrap && langBtn && langBtn.parentElement && langBtn.parentElement !== existingBar) {
+          actionsWrap = langBtn.parentElement;
+        }
+        if (!actionsWrap) {
+          actionsWrap = document.createElement('div');
+          actionsWrap.className = 'common-header-actions';
+          actionsWrap.style.cssText = 'display:flex; align-items:center; gap:8px;';
+          if (langBtn && langBtn.parentElement === existingBar) {
+            existingBar.insertBefore(actionsWrap, langBtn);
+            actionsWrap.appendChild(langBtn);
+          } else {
+            existingBar.appendChild(actionsWrap);
+          }
+        }
+        actionsWrap.appendChild(logoutBtn);
       }
       updateHeaderClock();
       return;

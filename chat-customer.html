@@ -8,9 +8,9 @@
 <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
 <script src="./biz1-app.js?v=chat-6"></script>
 <script src="./page-boot.js?v=chat-6"></script>
-<script src="./chat-live.js?v=chat-18"></script>
+<script src="./chat-live.js?v=chat-21"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull3"></script>
+<script src="./i18n-translations.js?v=hefull4"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -77,11 +77,48 @@
   #mb-chat-attach-preview.mb-open {
     display: flex !important;
   }
+  #mb-chat-drop-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    pointer-events: none;
+    background: rgba(22, 34, 58, 0.55);
+  }
+  #mb-chat-drop-overlay.mb-open {
+    display: flex;
+  }
+  #mb-chat-drop-overlay .mb-drop-card {
+    pointer-events: none;
+    background: #fff;
+    border: 2px dashed #1d60a2;
+    border-radius: 16px;
+    padding: 22px 18px;
+    max-width: 280px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 12px 28px rgba(15, 24, 40, 0.22);
+  }
+  #mb-chat-screen.mb-chat-drag-over #mb-chat-drop-overlay {
+    display: flex;
+  }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
 <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
-<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<div id="mb-chat-screen" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<div id="mb-chat-drop-overlay" aria-hidden="true">
+  <div class="mb-drop-card">
+    <div style="width:46px; height:46px; border-radius:50%; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+      <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="22"><path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.2-9.2a3.67 3.67 0 0 1 5.18 5.18l-9.2 9.2a1.83 1.83 0 0 1-2.6-2.6l8.5-8.48"></path></svg>
+    </div>
+    <div style="font-size:15px; font-weight:800; color:#1f2a3a; margin-bottom:6px;">Drop files here</div>
+    <div style="font-size:12.5px; color:#7b8595; line-height:1.45;">Image, MP3 or MP4</div>
+  </div>
+</div>
 <!-- navy header -->
 <div style="background:#16223a; padding:13px 15px; flex:none; display:flex; align-items:center; gap:11px;">
 <button type="button" id="mb-chat-back" aria-label="Back" onclick="if(window.goChatBack){window.goChatBack(event);return false;}"
@@ -236,9 +273,9 @@ Internal notes
 </button>
 </div>
 <div aria-hidden="true" style="position:absolute; left:-9999px; width:0; height:0; overflow:hidden;">
-<input class="mb-chat-file-input" type="file" id="mb-chat-file-image" accept="image/*" tabindex="-1"/>
-<input class="mb-chat-file-input" type="file" id="mb-chat-file-doc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.heic" tabindex="-1"/>
-<input class="mb-chat-file-input" type="file" id="mb-chat-file-music" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" tabindex="-1"/>
+<input class="mb-chat-file-input" type="file" id="mb-chat-file-image" accept="image/*,.png,.jpg,.jpeg,.gif,.webp,.bmp,.heic" tabindex="-1"/>
+<input class="mb-chat-file-input" type="file" id="mb-chat-file-doc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.heic,.mp4,.webm,.mov,.m4v,video/*" tabindex="-1"/>
+<input class="mb-chat-file-input" type="file" id="mb-chat-file-music" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,video/*,.mp4,.webm,.mov" tabindex="-1"/>
 </div>
 </div>
  <!-- ============ ACTIONS SHEET ============  -->

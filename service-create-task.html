@@ -11,7 +11,7 @@
   <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
   <script src="./biz1-app.js?v=home-11"></script>
   <script src="./page-boot.js?v=home-11"></script>
-  <script src="./mission-create-live.js?v=home-12"></script>
+  <script src="./mission-create-live.js?v=drop-safe-1"></script>
   <style>
     .mb-adv-section { margin-bottom: 16px; }
     .mb-adv-label {
@@ -247,12 +247,13 @@
               </div>
 
               <div>
-                <div id="mb-drop-zone" style="border:2px dashed var(--border-panel); border-radius:14px; padding:18px 14px; background:var(--bg-form); text-align:center; transition:all 0.2s ease; cursor:pointer;">
-                  <label style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;">
-                    <span style="font-size:14px; font-weight:800; color:var(--text-title);">📷 Select or drag pictures</span>
-                    <span style="font-size:11.5px; color:var(--text-sub);">Click here or drop files to upload</span>
-                    <input id="mb-file-input" type="file" accept="image/*" style="display:none;" multiple />
-                  </label>
+                <div id="mb-drop-zone" style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:120px; margin-bottom:4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; overflow:hidden;">
+                  <input id="mb-file-input" type="file" accept="image/*,.png,.jpg,.jpeg,.gif,.webp,.bmp,.heic" multiple style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+                  <div style="width:44px; height:44px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; pointer-events:none;">
+                    <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="22"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                  </div>
+                  <div style="font-size:13px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; pointer-events:none;">Select or drag &amp; drop here your pictures</div>
+                  <div style="font-size:11.5px; color:#9aa3b0; text-align:center; position:relative; z-index:1; pointer-events:none;">Click here or drop files to upload</div>
                 </div>
                 <div id="mb-image-previews" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
               </div>

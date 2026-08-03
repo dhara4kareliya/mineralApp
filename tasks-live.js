@@ -199,26 +199,94 @@
 
     var delBtn = document.getElementById('mb-btn-delete-task');
     if (delBtn) {
-      delBtn.addEventListener('click', async function() {
-        if (!confirm('Are you sure you want to delete this task?')) return;
-        delBtn.disabled = true;
-        delBtn.textContent = 'Deleting…';
-        try {
-          if (window.MineralBarApp && MineralBarApp.doneMission) {
-            await MineralBarApp.doneMission(id);
+      delBtn.addEventListener('click', function () {
+        showTaskDeleteConfirm(panel, async function () {
+          delBtn.disabled = true;
+          delBtn.textContent = 'Deleting…';
+          try {
+            if (window.MineralBarApp && MineralBarApp.doneMission) {
+              await MineralBarApp.doneMission(id);
+            }
+            closeTaskDeleteConfirm();
+            panel.style.display = 'none';
+            currentStart = 0;
+            if (typeof loadTasks === 'function') loadTasks(currentFilterType);
+          } catch (e) {
+            closeTaskDeleteConfirm();
+            showTaskDeleteError(panel, 'Failed to delete task: ' + (e.message || e));
+            delBtn.disabled = false;
+            delBtn.innerHTML =
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>' +
+              '<span>Delete</span>';
           }
-          panel.style.display = 'none';
-          currentStart = 0;
-          if (typeof loadTasks === 'function') loadTasks(currentFilterType);
-        } catch (e) {
-          alert('Failed to delete task: ' + (e.message || e));
-          delBtn.disabled = false;
-          delBtn.textContent = 'Delete';
-        }
+        });
       });
     }
 
     panel.style.display = 'flex';
+  }
+
+  function isTaskUiEn() {
+    return typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+  }
+
+  function closeTaskDeleteConfirm() {
+    var modal = document.getElementById('mb-task-delete-modal');
+    if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
+  }
+
+  function showTaskDeleteError(host, message) {
+    closeTaskDeleteConfirm();
+    var isEn = isTaskUiEn();
+    var wrap = document.createElement('div');
+    wrap.id = 'mb-task-delete-modal';
+    wrap.setAttribute('style', 'position:absolute; inset:0; z-index:80; display:flex; align-items:center; justify-content:center; padding:20px;');
+    wrap.innerHTML =
+      '<div data-mb-backdrop="1" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>' +
+      '<div style="background:#fff; border-radius:18px; padding:22px 20px; box-shadow:0 10px 30px rgba(15,24,40,.2); width:100%; max-width:320px; text-align:center; z-index:81; position:relative;">' +
+        '<div style="font-size:16px; font-weight:800; color:#c0392b; margin-bottom:10px;">' + (isEn ? 'Error' : 'שגיאה') + '</div>' +
+        '<div style="font-size:13.5px; color:#5a6473; line-height:1.5; margin-bottom:18px;">' + esc(String(message || '')) + '</div>' +
+        '<button type="button" data-mb-ok="1" style="width:100%; padding:11px; border:none; border-radius:10px; background:#1d60a2; color:#fff; font-size:14.5px; font-weight:800; cursor:pointer;">OK</button>' +
+      '</div>';
+    (host || document.body).appendChild(wrap);
+    wrap.querySelector('[data-mb-backdrop]').addEventListener('click', closeTaskDeleteConfirm);
+    wrap.querySelector('[data-mb-ok]').addEventListener('click', closeTaskDeleteConfirm);
+  }
+
+  function showTaskDeleteConfirm(host, onConfirm) {
+    closeTaskDeleteConfirm();
+    var isEn = isTaskUiEn();
+    var title = isEn ? 'Delete task?' : 'למחוק משימה?';
+    var msg = isEn ? 'Are you sure you want to delete this task?' : 'האם אתה בטוח שברצונך למחוק משימה זו?';
+    var cancelLbl = isEn ? 'Cancel' : 'ביטול';
+    var deleteLbl = isEn ? 'Delete' : 'מחק';
+    var wrap = document.createElement('div');
+    wrap.id = 'mb-task-delete-modal';
+    wrap.setAttribute('style', 'position:absolute; inset:0; z-index:80; display:flex; align-items:center; justify-content:center; padding:20px;');
+    wrap.innerHTML =
+      '<div data-mb-backdrop="1" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>' +
+      '<div style="background:#fff; border-radius:18px; padding:22px 20px; box-shadow:0 10px 30px rgba(15,24,40,.2); width:100%; max-width:320px; text-align:center; z-index:81; position:relative;">' +
+        '<div style="width:46px; height:46px; border-radius:50%; background:#fbeeed; color:#c0392b; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">' +
+          '<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="22"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>' +
+        '</div>' +
+        '<div style="font-size:17.5px; font-weight:800; color:#1f2a3a; margin-bottom:8px;">' + title + '</div>' +
+        '<div style="font-size:13.5px; color:#5a6473; line-height:1.5; margin-bottom:22px;">' + msg + '</div>' +
+        '<div style="display:flex; gap:10px; align-items:center;">' +
+          '<button type="button" data-mb-cancel="1" style="flex:1; padding:11px; border:1.6px solid #cbd5e0; border-radius:10px; background:#fff; color:#2d3748; font-size:14.5px; font-weight:700; cursor:pointer;">' + cancelLbl + '</button>' +
+          '<button type="button" data-mb-confirm="1" style="flex:1.2; padding:11px; border:none; border-radius:10px; background:#c0392b; color:#fff; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 10px rgba(192,57,43,0.24);">' + deleteLbl + '</button>' +
+        '</div>' +
+      '</div>';
+    (host || document.body).appendChild(wrap);
+    wrap.querySelector('[data-mb-backdrop]').addEventListener('click', closeTaskDeleteConfirm);
+    wrap.querySelector('[data-mb-cancel]').addEventListener('click', closeTaskDeleteConfirm);
+    wrap.querySelector('[data-mb-confirm]').addEventListener('click', function () {
+      var btn = wrap.querySelector('[data-mb-confirm]');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = isEn ? 'Deleting…' : 'מוחק…';
+      }
+      Promise.resolve(onConfirm && onConfirm()).catch(function () { /* handled by caller */ });
+    });
   }
 
   var currentFilterType = 'show_all_together_tasks';
