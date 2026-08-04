@@ -4,9 +4,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix4"></script>
-<script src="./biz1-app.js?v=socketfix4"></script>
-<script src="./page-boot.js?v=socketfix4"></script>
+<script src="./biz1-sdk.js?v=socketfix10"></script>
+<script src="./biz1-app.js?v=socketfix10"></script>
+<script src="./page-boot.js?v=socketfix10"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -387,17 +387,6 @@
 
         <!-- Section 2: Prices -->
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Prices</div>
-
-        <div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px;">
-          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
-            <input type="checkbox" checked="{{ addPriceAsCost }}" onchange="{{ onAddPriceAsCostChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
-            <span>Price as cost + %</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
-            <input type="checkbox" checked="{{ addVatIncluded }}" onchange="{{ onAddVatIncludedChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
-            <span>VAT included</span>
-          </label>
-        </div>
         
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
@@ -625,17 +614,6 @@
         </div>
 
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Prices</div>
-
-        <div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px;">
-          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
-            <input type="checkbox" checked="{{ editPriceAsCost }}" onchange="{{ onEditPriceAsCostChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
-            <span>Price as cost + %</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; cursor:pointer;">
-            <input type="checkbox" checked="{{ editVatIncluded }}" onchange="{{ onEditVatIncludedChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
-            <span>VAT included</span>
-          </label>
-        </div>
         
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
@@ -738,8 +716,6 @@ class Component extends DCLogic {
     addPriceAfter: 0,
     addCost: 0,
     addDiscountPrice: 0,
-    addPriceAsCost: false,
-    addVatIncluded: false,
     addDesc: '',
     addStatus: 1,
 
@@ -771,8 +747,6 @@ class Component extends DCLogic {
     editPriceAfter: 0,
     editCost: 0,
     editDiscountPrice: 0,
-    editPriceAsCost: false,
-    editVatIncluded: false,
     editStatus: 1,
     editDesc: ''
   };
@@ -799,14 +773,45 @@ class Component extends DCLogic {
       this.setupDragScroll();
       this.ensureFooter();
     });
-    window.addEventListener('mineralbar:inventory', (ev) => {
-      this.applySocketProductEvent((ev && ev.detail) || {});
-    });
-    window.addEventListener('mineralbar:realtime', (ev) => {
-      var detail = (ev && ev.detail) || {};
-      var key = String(detail.key || '').toLowerCase();
-      if (/product|invent/.test(key)) this.applySocketProductEvent(detail);
-    });
+    window.addEventListener('mineralbar:inventory', (ev) => this.onInventoryRealtime(ev));
+    window.addEventListener('mineralbar:realtime', (ev) => this.onInventoryRealtime(ev));
+    window.addEventListener('mineralbar:page-refresh', (ev) => this.onInventoryRealtime(ev));
+    window.addEventListener('pageshow', () => this.initData());
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload((detail) => this.onInventoryRealtime({ detail: detail }), {
+        keys: /product|invent|categorie|socket\.nudge/i,
+        delay: 300
+      });
+    }
+  }
+
+  onInventoryRealtime(ev) {
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    var group = String(detail.group || '').toLowerCase();
+    var relevant =
+      !key ||
+      /product|invent|categorie|socket\.nudge/.test(key) ||
+      group === 'inventory' ||
+      group === 'other' ||
+      group === 'unknown';
+    if (!relevant) return;
+
+    // Prefer full list refresh (same pattern as tickets) — socket payloads are often
+    // partial and miss fields the UI needs (sku, stock, category).
+    clearTimeout(this._rtInventoryTimer);
+    var self = this;
+    var delays = /products\.(created|updated|deleted)|categories\.|socket\.nudge/.test(key)
+      ? [250, 900, 2200]
+      : [350];
+    this._rtInventoryTimer = setTimeout(function () {
+      self.initData();
+      // Best-effort optimistic patch in parallel (ignored if payload incomplete)
+      try { self.applySocketProductEvent(detail); } catch (e) { /* ignore */ }
+      delays.slice(1).forEach(function (ms) {
+        setTimeout(function () { self.initData(); }, ms);
+      });
+    }, delays[0]);
   }
 
   applySocketProductEvent(detail) {
@@ -814,14 +819,21 @@ class Component extends DCLogic {
     var ev = (detail && detail.event) || {};
     var payload = ev.payload || ev.data || ev || {};
     var product = payload.product || payload.data || payload;
+    if (!product || typeof product !== 'object') product = {};
     var id = String(
-      (product && (product.id || product.product_id)) ||
+      product.id ||
+      product.product_id ||
       payload.product_id ||
       payload.id ||
+      (detail && detail.payload && (detail.payload.id || detail.payload.product_id)) ||
       ''
     );
-    if (!id && !/delete|deleted/.test(key)) {
-      console.warn('[Inventory] socket product event missing id', detail);
+    // Event-level id is the realtime cursor id — only use payload/product ids.
+    if (id && String(ev.id) === id && !payload.id && !product.id && !product.product_id) {
+      id = '';
+    }
+    if (!id) {
+      console.warn('[Inventory] socket product event missing id — full refresh only', key);
       return;
     }
 
@@ -837,10 +849,11 @@ class Component extends DCLogic {
     var mapped = {
       id: id,
       name: product.product_name || product.name || 'Product',
-      sku: product.sku || ('SKU-' + id.slice(-5)),
+      sku: product.product_sku || product.sku || ('SKU-' + id.slice(-5)),
       cat_id: product.cat_id ? String(product.cat_id) : (product.category_id ? String(product.category_id) : ''),
       price: Math.round(Number(product.price || product.cost || 0)),
-      stock: product.stock !== undefined ? Number(product.stock) : 0,
+      stock: product.stock !== undefined ? Number(product.stock)
+        : (product.left_stock !== undefined ? Number(product.left_stock) : 0),
       status: (product.status === 0 || product.status === '0') ? 0 : 1,
       type: (function () {
         var t = String(product.type || 'product').toLowerCase();
@@ -848,7 +861,7 @@ class Component extends DCLogic {
         if (t === 'membership') return 'subscription';
         return t;
       })(),
-      sub: product.description || product.desc || ''
+      sub: product.description || product.discription || product.desc || ''
     };
 
     var idx = products.findIndex(function (p) { return String(p.id) === id; });
@@ -947,7 +960,7 @@ class Component extends DCLogic {
     if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
       try {
         var client = MineralBarApp.getClient();
-        var res = await client.request('Products.List', { limit: 25 });
+        var res = await client.request('Products.List', { limit: 200, start: 0, length: 200 });
         var data = res && (res.data || res.output || res);
 
         if (typeof MineralBarApp.getTeamMembers === 'function') {
@@ -1062,7 +1075,7 @@ class Component extends DCLogic {
         if (Array.isArray(data) && data.length > 0) {
           productsList = data.map(function(item) {
             var pName = item.product_name || item.name || 'Product';
-            var sku = item.sku || ('SKU-' + String(item.id || Math.random()).slice(-5).toUpperCase());
+            var sku = item.product_sku || item.sku || ('SKU-' + String(item.id || Math.random()).slice(-5).toUpperCase());
             var itemCatId = (item.cat_id || item.category_id) ? String(item.cat_id || item.category_id) : '';
             var desc = item.description || item.discription || item.desc || '';
             var priceVal = Math.round(Number(item.price || item.cost || 0));
@@ -1177,8 +1190,6 @@ class Component extends DCLogic {
       addPriceAfter: 0,
       addCost: 0,
       addDiscountPrice: 0,
-      addPriceAsCost: false,
-      addVatIncluded: false,
       addDesc: '',
       addStatus: 1,
       subCategories: []
@@ -1374,8 +1385,6 @@ class Component extends DCLogic {
       editPriceAfter: Number((item && item.price_after) || 0),
       editCost: Number((item && (item.cost || item.cost_price)) || 0),
       editDiscountPrice: Number((item && item.discount_price) || 0),
-      editPriceAsCost: Number(item && (item.price_as_cost || item.price_as_cost_percent)) === 1,
-      editVatIncluded: Number(item && (item.vat_included || item.vat)) === 1,
       editStatus: ((item && (item.status === 0 || item.status === '0')) || fallback.status === 0) ? 0 : 1,
       editDesc: (item && (item.discription || item.description || item.desc)) || fallback.sub || ''
     });
@@ -1502,6 +1511,8 @@ class Component extends DCLogic {
       try {
         var client = MineralBarApp.getClient();
         await client.request('Products.Update', requestBody);
+        var self = this;
+        setTimeout(function () { self.initData(); }, 400);
       } catch (err) {
         console.warn('Failed to update product', err);
         alert((err && (err.message || err.error)) || 'Failed to update product');
@@ -1625,8 +1636,6 @@ class Component extends DCLogic {
       addPriceAfter: 0,
       addCost: 0,
       addDiscountPrice: 0,
-      addPriceAsCost: false,
-      addVatIncluded: false,
       addDesc: '',
       addStatus: 1,
       subCategories: []
@@ -1641,7 +1650,7 @@ class Component extends DCLogic {
         var res = await client.request('Products.Add', requestBody);
         
         var serverItem = res && (res.data || res.output || res);
-        var newId = (serverItem && serverItem.id) || (res && res.id);
+        var newId = (serverItem && (serverItem.id || serverItem.product_id)) || (res && (res.id || res.insert_id || res.product_id));
         if (newId) {
           this.setState(prevState => {
             var finalProducts = prevState.products.map(p => {
@@ -1653,6 +1662,10 @@ class Component extends DCLogic {
             return { products: finalProducts };
           });
         }
+        // Sync from server so stock/sku/category match (and other open clients get socket too)
+        var self = this;
+        setTimeout(function () { self.initData(); }, 400);
+        setTimeout(function () { self.initData(); }, 1200);
       } catch (err) {
         console.warn('Failed to create product on server', err);
         alert((err && (err.message || err.error)) || 'Failed to create product');
@@ -1682,6 +1695,8 @@ class Component extends DCLogic {
         await client.request('Products.Delete', {
           id: targetId
         });
+        var self = this;
+        setTimeout(function () { self.initData(); }, 400);
       } catch (err) {
         console.warn('Failed to delete product', err);
       }
@@ -1938,8 +1953,6 @@ class Component extends DCLogic {
       addImageName: s.addImageName || '',
       hasAddImage: hasAddImage,
       noAddImage: !hasAddImage,
-      addPriceAsCost: !!s.addPriceAsCost,
-      addVatIncluded: !!s.addVatIncluded,
       isSubscription: s.addType === 'subscription',
       selectableCategories: selectableCatsMapped,
       suppliers: suppliersMapped,
@@ -1970,8 +1983,6 @@ class Component extends DCLogic {
       editImageName: s.editImageName || '',
       hasEditImage: hasEditImage,
       noEditImage: !hasEditImage,
-      editPriceAsCost: !!s.editPriceAsCost,
-      editVatIncluded: !!s.editVatIncluded,
       isEditSubscription: s.editType === 'subscription',
       editSubCategories: editSubCategoriesMapped,
       editSelectedStorageChips: editSelectedStorageChips,
@@ -2010,8 +2021,6 @@ class Component extends DCLogic {
       onAddEndlessChange: (e) => this.setState({ addEndless: !!(e.target && e.target.checked) }),
       onAddMonthsChange: (e) => this.setState({ addMonths: e.target.value }),
       onAddPriceAfterChange: (e) => this.setState({ addPriceAfter: this.inputValue(e) }),
-      onAddPriceAsCostChange: (e) => this.setState({ addPriceAsCost: !!(e.target && e.target.checked) }),
-      onAddVatIncludedChange: (e) => this.setState({ addVatIncluded: !!(e.target && e.target.checked) }),
       onAddDescChange: (e) => this.setState({ addDesc: this.inputValue(e) }),
       
       onEditNameChange: (e) => this.setState({ editName: this.inputValue(e) }),
@@ -2040,8 +2049,6 @@ class Component extends DCLogic {
       onEditEndlessChange: (e) => this.setState({ editEndless: !!(e.target && e.target.checked) }),
       onEditMonthsChange: (e) => this.setState({ editMonths: e.target.value }),
       onEditPriceAfterChange: (e) => this.setState({ editPriceAfter: this.inputValue(e) }),
-      onEditPriceAsCostChange: (e) => this.setState({ editPriceAsCost: !!(e.target && e.target.checked) }),
-      onEditVatIncludedChange: (e) => this.setState({ editVatIncluded: !!(e.target && e.target.checked) }),
       onEditStatusChange: (e) => this.setState({ editStatus: Number(e.target.value) }),
       onEditDescChange: (e) => this.setState({ editDesc: this.inputValue(e) }),
 

@@ -5,9 +5,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
-<script src="./biz1-app.js"></script>
-<script src="./page-boot.js"></script>
+<script src="./biz1-sdk.js?v=socketfix9"></script>
+<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./page-boot.js?v=socketfix9"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -130,7 +130,7 @@
 <svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
             A preliminary note <span style="color:#9aa3b0; font-weight:500;">(optional)</span>
 </label>
-<textarea class="ds-input" oninput="{{ onComments }}" placeholder='For example: "Interested in a primary filter, also talking about a water softener"' style="width:100%; min-height:92px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; resize:none; background:#fff; line-height:1.6;">{{ comments }}</textarea>
+<textarea class="ds-input" oninput="{{ onComments }}" value="{{ comments }}" placeholder='For example: "Interested in a primary filter, also talking about a water softener"' style="width:100%; min-height:92px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; resize:none; background:#fff; line-height:1.6;"></textarea>
 </div>
 </div>
 <!-- submit -->
@@ -173,6 +173,9 @@ class Component extends DCLogic {
   componentDidMount() {
     this.loadStatuses();
     window.addEventListener('mineralbar:ready', () => this.loadStatuses());
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.loadStatuses(), { keys: /status|lead|customer|socket\.nudge/i, delay: 400 });
+    }
     window.addEventListener('mineralbar:language-changed', () => this.loadStatuses());
   }
 

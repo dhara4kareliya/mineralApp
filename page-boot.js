@@ -244,39 +244,49 @@
       function inferGroupFromKey(key) {
         var k = String(key || '').toLowerCase();
         if (!k) return 'unknown';
+        if (/chat|whatsapp|inbox|(^|\.)message(\.|$)/.test(k)) return 'messages';
         if (/product|inventory|categorie|entries|statuses/.test(k)) return 'inventory';
+        if (/lead|crm|customer/.test(k)) return 'leads';
         if (/mission|task|ticket|meeting|appointment|reminder/.test(k)) return 'missions';
-        if (/message|chat|email|inbox|whatsapp|conversation/.test(k)) return 'messages';
-        if (/lead|customer|crm/.test(k)) return 'leads';
         return 'unknown';
       }
 
       function pageGroups(pageName) {
         var p = String(pageName || '');
         if (p.indexOf('service-inventory') !== -1) return ['inventory', 'leads', 'messages', 'missions', 'other', 'unknown'];
-        if (p.indexOf('service-all-calls') !== -1) return ['missions', 'leads'];
-        if (p.indexOf('service-call-details') !== -1) return ['missions', 'leads', 'messages'];
+        if (p.indexOf('service-all-calls') !== -1) return ['missions', 'leads', 'other', 'unknown'];
+        if (p.indexOf('service-call-details') !== -1) return ['missions', 'leads', 'messages', 'other', 'unknown'];
+        if (p.indexOf('service-open-call') !== -1) return ['missions', 'leads', 'other', 'unknown'];
+        if (p.indexOf('service-assign') !== -1) return ['missions', 'leads', 'other', 'unknown'];
+        if (p.indexOf('tech-open-calls') !== -1 || p.indexOf('tech-dashboard') !== -1 || p.indexOf('tech-daily') !== -1 || p.indexOf('tech-call-close') !== -1) {
+          return ['missions', 'leads', 'other', 'unknown'];
+        }
+        if (p.indexOf('chat-customer-details') !== -1) return ['messages', 'leads', 'missions', 'other', 'unknown'];
         if (p.indexOf('calls-list') !== -1 || p.indexOf('chat-customer') !== -1) return ['messages', 'leads'];
-        if (p.indexOf('customers') !== -1 || p.indexOf('leads-list') !== -1) return ['leads', 'messages', 'missions', 'other', 'unknown'];
-        if (p.indexOf('sales-tasks') !== -1 || p.indexOf('mission') !== -1 || p.indexOf('task') !== -1) return ['missions'];
+        if (p.indexOf('customers') !== -1 || p.indexOf('leads-list') !== -1 || p.indexOf('lead-card') !== -1 || p.indexOf('customer-card') !== -1) {
+          return ['leads', 'messages', 'missions', 'other', 'unknown'];
+        }
+        if (p.indexOf('sales-home') !== -1) return ['missions', 'messages', 'leads', 'other', 'unknown'];
+        if (p.indexOf('sales-tasks') !== -1 || p.indexOf('mission') !== -1 || p.indexOf('task') !== -1) return ['missions', 'other', 'unknown'];
+        if (p.indexOf('select-customer') !== -1) return ['leads', 'other', 'unknown'];
+        if (p.indexOf('select-product') !== -1 || p.indexOf('product-config') !== -1) return ['inventory', 'other', 'unknown'];
         // default: update all unknown pages for known data groups
         return ['inventory', 'missions', 'messages', 'leads', 'other', 'unknown'];
       }
 
       function isRelevantForPage(detail) {
-        var pageName = getCurrentPageName();
-        var groups = pageGroups(pageName);
-        var rawGroup = String((detail && detail.group) || '').toLowerCase();
-        var eventGroup = rawGroup && rawGroup !== 'unknown' && rawGroup !== 'other'
-          ? String(detail.group).toLowerCase()
-          : inferGroupFromKey(detail.key);
-        var ok = groups.indexOf(eventGroup) !== -1;
-        return ok;
+        // All authenticated screens should soft-refresh on any data socket event
+        // (add / edit / delete). Pages that only care about a subset still filter
+        // inside their own bindLiveReload / onRealtimeRefresh handlers.
+        return true;
       }
 
       function runSoftRefresh(detail) {
         // Notify pages to patch only changed data — do NOT re-fire mineralbar:ready
         window.dispatchEvent(new CustomEvent('mineralbar:page-refresh', { detail: detail }));
+        if (window.MineralBarApp && typeof MineralBarApp.notifyLiveReload === 'function') {
+          MineralBarApp.notifyLiveReload(detail);
+        }
       }
 
       window.addEventListener('mineralbar:realtime', function (ev) {
@@ -288,7 +298,8 @@
         }
 
         // Skip noisy presence/system events; refresh for data-changing events.
-        if (key.indexOf('socket') !== -1 || key.indexOf('connected') !== -1) {
+        // Allow socket.nudge.* (explicit post-reconnect / visibility re-fetch).
+        if ((key.indexOf('socket') !== -1 || key.indexOf('connected') !== -1) && key.indexOf('nudge') === -1) {
           return;
         }
         if (!isRelevantForPage(detail)) {
@@ -344,6 +355,12 @@
       })
       .catch(function (err) {
         console.error('[SocketUI] socket connect FAILED', err);
+        // Retry once shortly after — covers race with auth refresh / slow socket.io.js
+        setTimeout(function () {
+          if (typeof MineralBarApp.ensureRealtimeConnected === 'function') {
+            MineralBarApp.ensureRealtimeConnected('page-boot-retry');
+          }
+        }, 1500);
       });
   }
 
@@ -362,9 +379,18 @@
     MineralBarApp.ensureAuth('login.html').then(function (client) {
       if (!client) return;
       bootUi();
+      // Re-apply after DC mount / chrome inject so HE placeholders don't stick as EN
+      [200, 600, 1400].forEach(function (ms) {
+        setTimeout(function () { applyLanguage(); }, ms);
+      });
     }).catch(function (err) {
       console.warn('[MineralBar] ensureAuth failed', err);
       location.href = 'login.html';
     });
+  });
+
+  window.addEventListener('mineralbar:ready', function () {
+    applyLanguage();
+    setTimeout(function () { applyLanguage(); }, 250);
   });
 })();

@@ -5,9 +5,9 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Add New Customer - Biz1</title>
 <script src="./support.js"></script>
-<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
-<script src="./biz1-app.js?v=add-cust-2"></script>
-<script src="./page-boot.js?v=add-cust-2"></script>
+<script src="./biz1-sdk.js?v=socketfix9"></script>
+<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./page-boot.js?v=socketfix9"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -222,6 +222,9 @@
 
   loadStatuses();
   window.addEventListener('mineralbar:ready', loadStatuses);
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(loadStatuses, { keys: /status|lead|customer|socket\\.nudge/i, delay: 400 });
+  }
   window.addEventListener('mineralbar:language-changed', loadStatuses);
 
   function showMsg(kind, text) {

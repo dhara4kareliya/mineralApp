@@ -5,10 +5,10 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
-<script src="./biz1-app.js"></script>
-<script src="./page-boot.js"></script>
-<script src="./sales-static-live.js?v=sales-live-1"></script>
+<script src="./biz1-sdk.js?v=socketfix9"></script>
+<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./page-boot.js?v=socketfix9"></script>
+<script src="./sales-static-live.js?v=socketfix9"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -366,6 +366,9 @@ class Component extends DCLogic {
     } catch (e) { /* ignore */ }
     this.boot();
     window.addEventListener('mineralbar:ready', () => this.boot());
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.boot(), { keys: /document|customer|product|socket\.nudge/i, delay: 400 });
+    }
     window.addEventListener('mineralbar:page-refresh', () => this.boot());
     var self = this;
     document.addEventListener('click', function (e) {

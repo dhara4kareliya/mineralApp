@@ -303,14 +303,30 @@
   }
 
   window.addEventListener('mineralbar:ready', function () { setTimeout(start, 150); });
-  window.addEventListener('mineralbar:missions', function () {
+  function onHomeLiveRefresh() {
     if (!document.getElementById('mb-live-home')) return;
     clearTimeout(window.__mbHomeRtTimer);
     window.__mbHomeRtTimer = setTimeout(loadHome, 400);
+  }
+  window.addEventListener('mineralbar:missions', onHomeLiveRefresh);
+  window.addEventListener('mineralbar:messages', onHomeLiveRefresh);
+  window.addEventListener('mineralbar:leads', onHomeLiveRefresh);
+  window.addEventListener('mineralbar:page-refresh', onHomeLiveRefresh);
+  window.addEventListener('mineralbar:realtime', function (ev) {
+    var key = String(((ev && ev.detail) || {}).key || '').toLowerCase();
+    if (!key || /mission|task|ticket|message|chat|lead|customer|crm/.test(key)) onHomeLiveRefresh();
   });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 200); });
   } else {
     setTimeout(start, 200);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () {
+      if (!document.getElementById('mb-live-home')) return;
+      loadHome();
+    }, { keys: /mission|task|ticket|message|chat|lead|customer|socket\.nudge/i, delay: 400 });
+  }
+
 })();

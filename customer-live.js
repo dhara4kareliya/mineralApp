@@ -309,10 +309,34 @@
     loadCustomer(mount);
   }
 
+  function onLiveRefresh(ev) {
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    var group = String(detail.group || '').toLowerCase();
+    var relevant =
+      !key ||
+      /customer|lead|crm|reminder/.test(key) ||
+      group === 'leads' ||
+      group === 'other' ||
+      group === 'unknown';
+    if (!relevant) return;
+    clearTimeout(window.__mbCustomerRtTimer);
+    window.__mbCustomerRtTimer = setTimeout(start, 350);
+  }
+
   window.addEventListener('mineralbar:ready', start);
+  window.addEventListener('mineralbar:page-refresh', onLiveRefresh);
+  window.addEventListener('mineralbar:realtime', onLiveRefresh);
+  window.addEventListener('mineralbar:leads', onLiveRefresh);
+  window.addEventListener('pageshow', start);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 50); });
   } else {
     setTimeout(start, 50);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () { start(); }, { keys: /customer|lead|crm|reminder|socket\.nudge/i, delay: 400 });
+  }
+
 })();

@@ -978,4 +978,12 @@
   } else {
     setTimeout(start, 200);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () {
+      if (typeof populateDropdowns === 'function') populateDropdowns();
+      if (typeof loadExistingMission === 'function') loadExistingMission();
+    }, { keys: /customer|mission|project|socket\.nudge/i, delay: 500 });
+  }
+
 })();

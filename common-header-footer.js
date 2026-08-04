@@ -263,12 +263,14 @@
   global.appI18nDict = global.i18nDict;
 
   function getCurrentLanguage() {
-    var lang = 'he';
+    var lang = null;
     try { lang = localStorage.getItem('app_lang'); } catch (e) {}
     if (!lang) {
       try { lang = sessionStorage.getItem('app_lang'); } catch (e) {}
     }
-    return lang || 'he';
+    lang = String(lang || 'he').toLowerCase().trim();
+    if (lang !== 'en' && lang !== 'he') lang = 'he';
+    return lang;
   }
 
   function escapeRegExp(str) {
@@ -402,27 +404,57 @@
       mutObserver = null;
     }
 
+    function currentDict() {
+      var isEn = getCurrentLanguage() === 'en';
+      return (global.i18nTranslations && global.i18nTranslations[isEn ? 'en' : 'he']) ||
+        (global.i18nDict && global.i18nDict[isEn ? 'en' : 'he']) || dict;
+    }
+
     mutObserver = new MutationObserver(function (mutations) {
       if (translatingDom) return;
       mutObserver.disconnect();
       var chromeMayNeedRepair = false;
+      var activeLang = getCurrentLanguage();
+      var activeDict = currentDict();
       mutations.forEach(function (mutation) {
         if (mutation.type === 'childList') {
           chromeMayNeedRepair = true;
           mutation.addedNodes.forEach(function (node) {
-            applyDomTranslation(node, lang);
+            applyDomTranslation(node, activeLang);
           });
+        } else if (mutation.type === 'attributes') {
+          applyDomTranslation(mutation.target, activeLang);
         } else if (mutation.type === 'characterData') {
           var node = mutation.target;
-          // Framework updated the text — refresh source from the new value
+          // Do NOT adopt our own Hebrew/English translation as the new source —
+          // that breaks later toggles and leaves English stuck after remounts.
+          if (node._origText !== undefined) {
+            var expected = translateText(node._origText, activeDict);
+            if (node.nodeValue === expected || node.nodeValue === node._origText) {
+              applyDomTranslation(node.parentNode || node, activeLang);
+              return;
+            }
+          }
           node._origText = node.nodeValue;
-          applyDomTranslation(node.parentNode || node, lang);
+          applyDomTranslation(node.parentNode || node, activeLang);
         }
       });
-      mutObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+      mutObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['placeholder', 'title', 'aria-label', 'data-screen-label']
+      });
       if (chromeMayNeedRepair) scheduleCommonChromeRepair();
     });
-    mutObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+    mutObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['placeholder', 'title', 'aria-label', 'data-screen-label']
+    });
   }
 
   global.switchAppLanguage = global.switchLanguage = function (lang) {
@@ -692,6 +724,8 @@
     try {
       ensureCommonHeader();
       ensureCommonFooter();
+      // DC remounts often restore English source — re-apply active language (incl. placeholders)
+      applyDomTranslation(document.body, getCurrentLanguage());
     } catch (e) {
       /* A page shell may still be mounting; the next retry will handle it. */
     } finally {
@@ -750,20 +784,43 @@
     }
   }
 
+  function reapplyLanguageSoon() {
+    var delays = [50, 150, 400, 900, 1800, 3200];
+    delays.forEach(function (delay) {
+      setTimeout(function () {
+        try {
+          applyDomTranslation(document.body, getCurrentLanguage());
+          setupMutationObserver(getCurrentLanguage());
+        } catch (e) { /* ignore */ }
+      }, delay);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initHeader();
     setInterval(updateHeaderClock, 1000);
     [50, 150, 400, 1000, 2000].forEach(function (delay) {
       setTimeout(repairCommonChrome, delay);
     });
+    reapplyLanguageSoon();
   });
-  window.addEventListener('load', repairCommonChrome);
-  window.addEventListener('mineralbar:ready', repairCommonChrome);
+  window.addEventListener('load', function () {
+    repairCommonChrome();
+    reapplyLanguageSoon();
+  });
+  window.addEventListener('mineralbar:ready', function () {
+    repairCommonChrome();
+    reapplyLanguageSoon();
+  });
+  window.addEventListener('mineralbar:language-changed', function () {
+    reapplyLanguageSoon();
+  });
   if (document.readyState !== 'loading') {
     initHeader();
     [50, 150, 400, 1000].forEach(function (delay) {
       setTimeout(repairCommonChrome, delay);
     });
+    reapplyLanguageSoon();
   }
 
 })(typeof window !== 'undefined' ? window : this);

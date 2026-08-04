@@ -5,9 +5,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
-<script src="./biz1-app.js"></script>
-<script src="./page-boot.js"></script>
+<script src="./biz1-sdk.js?v=socketfix9"></script>
+<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./page-boot.js?v=socketfix9"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -181,6 +181,13 @@ class Component extends DCLogic {
     window.addEventListener('mineralbar:ready', () => {
       this.initData();
     });
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.initData(), { keys: /ticket|mission|task|call|service|socket\.nudge/i, delay: 350 });
+    }
+    window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('mineralbar:realtime', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('pageshow', () => this.initData());
     var self = this;
     document.addEventListener('click', function (e) {
       if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
@@ -192,6 +199,28 @@ class Component extends DCLogic {
         }, 80);
       }
     });
+  }
+
+  onRealtimeRefresh(ev) {
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    var group = String(detail.group || '').toLowerCase();
+    var relevant =
+      !key ||
+      /ticket|mission|task|call|service|appointment|reminder|socket\.nudge/.test(key) ||
+      group === 'missions' ||
+      group === 'other' ||
+      group === 'unknown';
+    if (!relevant) return;
+    clearTimeout(this._rtTicketsTimer);
+    var self = this;
+    var delays = /ticket\.created|socket\.nudge/.test(key) ? [250, 900, 2200] : [350];
+    this._rtTicketsTimer = setTimeout(function () {
+      self.initData();
+      delays.slice(1).forEach(function (ms) {
+        setTimeout(function () { self.initData(); }, ms);
+      });
+    }, delays[0]);
   }
 
   async initData() {

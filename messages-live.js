@@ -309,4 +309,11 @@
   } else {
     setTimeout(start, 50);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () {
+      if (typeof start === 'function') start();
+    }, { keys: /message|chat|whatsapp|inbox|socket\.nudge/i, delay: 400 });
+  }
+
 })();

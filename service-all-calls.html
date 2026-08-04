@@ -6,9 +6,9 @@
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <script src="./support.js"></script>
-  <script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
-  <script src="./biz1-app.js"></script>
-  <script src="./page-boot.js"></script>
+  <script src="./biz1-sdk.js?v=socketfix9"></script>
+  <script src="./biz1-app.js?v=socketfix9"></script>
+  <script src="./page-boot.js?v=socketfix9"></script>
   <link rel="stylesheet" href="./common.css" />
   <script src="./i18n-translations.js?v=hefull1"></script>
   <script src="./common-header-footer.js"></script>
@@ -413,10 +413,43 @@ class Component extends DCLogic {
     this.applyServiceDefaultFilter();
     this.loadTickets();
     window.addEventListener('mineralbar:ready', () => this.loadTickets());
-    window.addEventListener('pageshow', () => this.applyServiceDefaultFilter());
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.loadTickets(), { keys: /ticket|mission|task|call|service|socket\.nudge/i, delay: 350 });
+    }
+    window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('mineralbar:realtime', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('pageshow', () => {
+      this.applyServiceDefaultFilter();
+      this.loadTickets();
+    });
     window.addEventListener('service-nav:open-tickets', () => {
       this.setState({ ticketStatus: 'open' });
     });
+  }
+
+  onRealtimeRefresh(ev) {
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    var group = String(detail.group || '').toLowerCase();
+    // Always refresh on ticket/mission socket events; also accept soft page-refresh / nudges.
+    var relevant =
+      !key ||
+      /ticket|mission|task|call|service|appointment|reminder|socket\.nudge/.test(key) ||
+      group === 'missions' ||
+      group === 'other' ||
+      group === 'unknown';
+    if (!relevant) return;
+    clearTimeout(this._rtTicketsTimer);
+    var self = this;
+    // Ticket.List can lag a moment behind ticket.created — retry briefly.
+    var delays = /ticket\.created|socket\.nudge/.test(key) ? [250, 900, 2200] : [350];
+    this._rtTicketsTimer = setTimeout(function () {
+      self.loadTickets();
+      delays.slice(1).forEach(function (ms) {
+        setTimeout(function () { self.loadTickets(); }, ms);
+      });
+    }, delays[0]);
   }
 
   async loadTickets() {

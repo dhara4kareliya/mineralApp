@@ -153,9 +153,17 @@
   function detectMount() {
     var el = document.getElementById('mb-live-list');
     if (el) {
+      var rawFolder = el.getAttribute('data-folder');
+      var folderId;
+      if (rawFolder === null || rawFolder === '' || rawFolder === 'all') {
+        folderId = 0; // all customers (no folder filter)
+      } else {
+        folderId = Number(rawFolder);
+        if (Number.isNaN(folderId)) folderId = 0;
+      }
       return {
         el: el,
-        folderId: Number(el.getAttribute('data-folder') || MineralBarApp.FOLDERS.CUSTOMERS),
+        folderId: folderId,
         kind: el.getAttribute('data-kind') || 'customers'
       };
     }
@@ -173,8 +181,11 @@
     if (totalEl) totalEl.textContent = 'Loading…';
 
     var queryParams = { length: 100, start: 0, draw: 1 };
-    if (explicitFolderId != null) {
-      queryParams.folder_id = explicitFolderId;
+    // folder_id 0 / null / 'all' = every customer (no folder filter)
+    var folderVal = explicitFolderId;
+    if (folderVal === undefined) folderVal = mount.folderId;
+    if (folderVal != null && folderVal !== '' && String(folderVal) !== 'all' && Number(folderVal) !== 0) {
+      queryParams.folder_id = folderVal;
     }
 
     var lastErr = null;
@@ -207,7 +218,7 @@
           : rows.length;
 
         if (totalEl) {
-          totalEl.textContent = rows.length + (kind === 'leads' ? ' leads' : ' active customers');
+          totalEl.textContent = total + (kind === 'leads' ? ' leads' : ' customers');
         }
 
         if (!rows.length) {
@@ -315,13 +326,20 @@
     };
 
     var html = '';
+    // Customers page defaults to all records (no folder_id) — no "ALL" chip in the UI.
+    // Folder chips still filter when selected; deselect returns to unfiltered list.
+    if (kindIsCustomersPage() && (!activeId || activeId === '0' || activeId === 'all' || activeId === 'null')) {
+      activeId = '0';
+    }
+
     folders.forEach(function(f) {
       var fid = String(f.id || f.folder_id || f.value || '1');
       var name = isEn ? (f.name_en || f.name || f.name_he) : (f.name_he || f.name || f.name_en);
       if (isEn && name) name = name.toUpperCase();
       var icon = f.icon || iconMap[fid] || '📁';
 
-      var isActive = (fid === activeId);
+      // Never highlight a folder when showing the unfiltered "all" list
+      var isActive = (fid === activeId) && activeId !== '0';
 
       var btnStyle = isActive
         ? 'flex:none; display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:12px; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; background:#eff6ff; color:#1d4ed8; border:1.5px solid #3b82f6; box-shadow:0 1px 3px rgba(59,130,246,0.15);'
@@ -334,6 +352,12 @@
     });
 
     container.innerHTML = html;
+    container.setAttribute('data-active-folder', activeId || '0');
+  }
+
+  function kindIsCustomersPage() {
+    var list = document.getElementById('mb-live-list');
+    return !list || (list.getAttribute('data-kind') || 'customers') === 'customers';
   }
 
   function bindClientFilters(listEl) {
@@ -361,7 +385,9 @@
     var chipContainer = document.getElementById('mb-customer-filter-chips') || document.querySelector('.dc-scroll');
     if (chipContainer && !chipContainer.dataset.rendered) {
       chipContainer.dataset.rendered = '1';
-      renderFolderFilterBar(chipContainer, null);
+      var initialFolder = chipContainer.getAttribute('data-active-folder');
+      if (initialFolder == null || initialFolder === '') initialFolder = '0';
+      renderFolderFilterBar(chipContainer, initialFolder);
 
       // Make it mouse-draggable on desktop
       var isDown = false, startX, scrollLeft;
@@ -404,10 +430,18 @@
         var selectedFid = chip.getAttribute('data-folder-id') || chip.getAttribute('data-chip-id');
         var wasActive = (chip.getAttribute('data-active') === '1');
         
-        var nextActiveId = wasActive ? null : selectedFid;
+        // Customers: deselect → All (0). Leads: stay on New Leads (1).
+        var nextActiveId;
+        if (wasActive) {
+          nextActiveId = kindIsCustomersPage() ? '0' : '1';
+        } else {
+          nextActiveId = selectedFid;
+        }
+        if (chipContainer) chipContainer.setAttribute('data-active-folder', String(nextActiveId || '0'));
 
         chips.forEach(function(c) {
-          var isThis = (c.getAttribute('data-folder-id') === nextActiveId) || (c.getAttribute('data-chip-id') === nextActiveId);
+          var fid = c.getAttribute('data-folder-id') || c.getAttribute('data-chip-id');
+          var isThis = String(fid) === String(nextActiveId);
           c.setAttribute('data-active', isThis ? '1' : '0');
           c.style.background = isThis ? '#eff6ff' : '#f8fafc';
           c.style.color = isThis ? '#1d4ed8' : '#475569';
@@ -415,7 +449,7 @@
           c.style.fontWeight = isThis ? '800' : '700';
         });
 
-        // Fetch fresh list from API with selected folder_id
+        // Fetch fresh list from API with selected folder_id (0 = all)
         var mount = detectMount();
         if (mount) {
           loadList(mount, nextActiveId);
@@ -571,4 +605,14 @@
     }
     start();
   });
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () {
+      var mount = detectMount();
+      if (!mount) return;
+      mount.el.removeAttribute('data-initial-loaded');
+      loadList(mount, mount.folderId);
+    }, { keys: /customer|lead|crm|socket\.nudge/i, delay: 400 });
+  }
+
 })();

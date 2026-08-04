@@ -4,14 +4,14 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=reminder-1"></script>
-<script src="./biz1-app.js?v=reminder-1"></script>
-<script src="./page-boot.js?v=reminder-1"></script>
+<script src="./biz1-sdk.js?v=socketfix9"></script>
+<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./page-boot.js?v=i18n-he2"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
-<script src="./common-header-footer.js"></script>
+<script src="./common-header-footer.js?v=i18n-he2"></script>
 </head>
-<body data-role="service" data-active-tab="messages" data-header-title="reminders" data-header-subtitle-id="mb-reminder-sub">
+<body data-role="service" data-active-tab="messages" data-header-title="reminders">
 <x-dc>
 <helmet>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -81,7 +81,7 @@
     </div>
 
     <label class="form-label">Description</label>
-    <textarea class="premium-input" style="height:110px; resize:none; margin-bottom:18px;" placeholder="Enter message body or note..." oninput="{{ onDescriptionChange }}">{{ description }}</textarea>
+    <textarea id="mb-reminder-desc" class="premium-input" style="height:110px; resize:none; margin-bottom:18px;" placeholder="Enter message body or note..." data-no-i18n-value="true" oninput="{{ onDescriptionChange }}"></textarea>
 
     <label class="form-label">Type</label>
     <div style="position:relative; margin-bottom:10px;">
@@ -164,9 +164,6 @@ class Component extends DCLogic {
       customerId: String(customerId || ''),
       dateTime: defaultDateTime
     });
-
-    var sub = document.getElementById('mb-reminder-sub');
-    if (sub) sub.textContent = name + (phone ? ' · ' + phone : '');
   }
 
   mapReminderBy(type) {
@@ -267,7 +264,7 @@ class Component extends DCLogic {
       phone: s.phone,
       initials: this.initialsFromName(s.name),
       dateTime: s.dateTime,
-      description: s.description,
+      description: String(s.description || ''),
       isPopup: s.type === 'Popup',
       isSMS: s.type === 'SMS',
       isWhatsApp: s.type === 'WhatsApp',
@@ -279,7 +276,7 @@ class Component extends DCLogic {
       saveLabel: s.saving ? 'Saving…' : 'Save reminder',
       saveOpacity: s.saving ? '0.7' : '1',
       onDateTimeChange: (e) => this.setState({ dateTime: e.target.value, saveError: '', saveOk: false }),
-      onDescriptionChange: (e) => this.setState({ description: e.target.value }),
+      onDescriptionChange: (e) => this.setState({ description: String((e && e.target && e.target.value) || '') }),
       onTypeChange: (e) => this.setState({ type: e.target.value }),
       save: () => this.saveReminder()
     };

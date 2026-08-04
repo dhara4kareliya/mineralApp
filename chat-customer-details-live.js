@@ -600,7 +600,36 @@
     await loadCustomerDetails();
   }
 
+  function onLiveRefresh(ev) {
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    var group = String(detail.group || '').toLowerCase();
+    var relevant =
+      !key ||
+      /customer|lead|crm|mission|ticket|message|chat|reminder|document/.test(key) ||
+      group === 'leads' ||
+      group === 'missions' ||
+      group === 'messages' ||
+      group === 'other' ||
+      group === 'unknown';
+    if (!relevant) return;
+    clearTimeout(window.__mbCustDetailsRtTimer);
+    window.__mbCustDetailsRtTimer = setTimeout(function () {
+      if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
+      loadCustomerDetails();
+    }, 400);
+  }
+
   window.addEventListener('mineralbar:ready', start);
+  window.addEventListener('mineralbar:page-refresh', onLiveRefresh);
+  window.addEventListener('mineralbar:realtime', onLiveRefresh);
+  window.addEventListener('mineralbar:leads', onLiveRefresh);
+  window.addEventListener('mineralbar:missions', onLiveRefresh);
+  window.addEventListener('mineralbar:messages', onLiveRefresh);
+  window.addEventListener('pageshow', function () {
+    if (!hasStarted) start();
+    else onLiveRefresh({ detail: { key: 'pageshow' } });
+  });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       setTimeout(start, 50);
@@ -608,4 +637,12 @@
   } else {
     setTimeout(start, 50);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () {
+      if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
+      loadCustomerDetails();
+    }, { keys: /customer|lead|crm|mission|ticket|message|chat|reminder|document|socket\.nudge/i, delay: 400 });
+  }
+
 })();

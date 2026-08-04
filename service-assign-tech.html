@@ -5,9 +5,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
-<script src="./biz1-app.js"></script>
-<script src="./page-boot.js"></script>
+<script src="./biz1-sdk.js?v=socketfix9"></script>
+<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./page-boot.js?v=socketfix9"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -94,6 +94,29 @@ class Component extends DCLogic {
   componentDidMount() {
     this.loadData();
     window.addEventListener('mineralbar:ready', () => this.loadData());
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.loadData(), { keys: /ticket|mission|customer|member|socket\.nudge/i, delay: 350 });
+    }
+    window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('mineralbar:realtime', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
+    window.addEventListener('pageshow', () => this.loadData());
+  }
+
+  onRealtimeRefresh(ev) {
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    var group = String(detail.group || '').toLowerCase();
+    var relevant =
+      !key ||
+      /ticket|mission|task|customer|assign|member/.test(key) ||
+      group === 'missions' ||
+      group === 'leads' ||
+      group === 'other' ||
+      group === 'unknown';
+    if (!relevant) return;
+    clearTimeout(this._rtAssignTimer);
+    this._rtAssignTimer = setTimeout(() => this.loadData(), 350);
   }
 
   async loadData() {

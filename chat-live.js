@@ -1421,4 +1421,13 @@
     setTimeout(wireChatBackButton, 500);
     setTimeout(start, 50);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () {
+      if (!document.getElementById('mb-live-chat')) return;
+      if (typeof shouldReloadThread === 'function' && !shouldReloadThread()) return;
+      loadThread('mb-live-chat', params(), { silent: true });
+    }, { keys: /message|chat|whatsapp|inbox|customer|socket\.nudge/i, delay: 400 });
+  }
+
 })();

@@ -300,4 +300,9 @@
   } else {
     setTimeout(load, 300);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () { if (typeof load === 'function') load(); }, { keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
+  }
+
 })();

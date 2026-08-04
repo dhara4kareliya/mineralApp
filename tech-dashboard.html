@@ -5,9 +5,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="https://mineral.bull36.com/app/sdk/biz1-sdk.js"></script>
-<script src="./biz1-app.js"></script>
-<script src="./page-boot.js"></script>
+<script src="./biz1-sdk.js?v=socketfix9"></script>
+<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./page-boot.js?v=socketfix9"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -319,8 +319,11 @@ class Component extends DCLogic {
     });
     window.addEventListener('mineralbar:realtime', (ev) => {
       var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
-      if (/product|document|team_hours|teamhours/.test(key)) this.initData();
+      if (/product|document|team_hours|teamhours|ticket|mission/.test(key)) this.initData();
     });
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.initData(), { keys: /product|document|team_hours|ticket|mission|socket\\.nudge/i, delay: 400 });
+    }
     setTimeout(() => this.ensureChrome(), 200);
     setTimeout(() => this.ensureChrome(), 800);
   }

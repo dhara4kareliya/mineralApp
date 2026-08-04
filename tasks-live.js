@@ -615,4 +615,11 @@
   } else {
     setTimeout(start, 200);
   }
+
+  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () {
+      if (typeof loadTasks === 'function') loadTasks(typeof currentFilterType !== 'undefined' ? currentFilterType : undefined);
+    }, { keys: /mission|task|ticket|socket\.nudge/i, delay: 400 });
+  }
+
 })();

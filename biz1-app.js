@@ -51,7 +51,13 @@
     'Realtime socket': {
       routes: ['client.realtime.connect', 'biz1:ready', 'biz1:event'],
       status: 'live',
-      events: ['chat.message.received', 'whatsapp.message.received', 'whatsapp.inbox.refresh', 'mission.reminder', 'teamops.task.updated']
+      events: [
+        'chat.message.received', 'whatsapp.message.received', 'whatsapp.inbox.refresh',
+        'message.created', 'ticket.created', 'ticket.updated', 'ticket.deleted',
+        'mission.created', 'mission.updated', 'mission.done', 'mission.reminder',
+        'teamops.task.updated', 'products.created', 'products.updated',
+        'customer.updated', 'crm.lead.created', 'customer.reminder.created'
+      ]
     },
     'הודעות / צ׳אט Inbox': { routes: ['Chat.Inbox', 'Chat.Conversations', 'Chat.CustomerMessages'], status: 'live' },
     'שעון נוכחות': { routes: ['TeamHours.Get', 'TeamHours.StartStop', 'TeamHours.List', 'TeamHours.WhenStop'], status: 'ready' },
@@ -1747,11 +1753,49 @@
     'chat.message.received': 1,
     'whatsapp.message.received': 1,
     'whatsapp.inbox.refresh': 1,
-    'rooms.chat.message': 1
+    'rooms.chat.message': 1,
+    'message.created': 1,
+    'message.deleted': 1,
+    'message.replied': 1,
+    'message.forwarded': 1,
+    'message.mark_read': 1
   };
   var MISSION_EVENT_KEYS = {
     'mission.reminder': 1,
-    'teamops.task.updated': 1
+    'mission.created': 1,
+    'mission.updated': 1,
+    'mission.done': 1,
+    'mission.deleted': 1,
+    'mission.reopened': 1,
+    'teamops.task.updated': 1,
+    'ticket.created': 1,
+    'ticket.updated': 1,
+    'ticket.deleted': 1,
+    'ticket.status': 1,
+    'appointment.created': 1,
+    'appointment.updated': 1,
+    'appointment.deleted': 1,
+    'meeting.created': 1,
+    'meeting.updated': 1,
+    'meeting.deleted': 1
+  };
+  var LEAD_EVENT_KEYS = {
+    'customer.updated': 1,
+    'customer.deleted': 1,
+    'customer.restored': 1,
+    'customer.followup': 1,
+    'crm.lead.created': 1,
+    'customer.reminder.created': 1,
+    'customer.reminder.updated': 1,
+    'customer.reminder.deleted': 1
+  };
+  var INVENTORY_EVENT_KEYS = {
+    'products.created': 1,
+    'products.updated': 1,
+    'products.deleted': 1,
+    'categories.created': 1,
+    'categories.updated': 1,
+    'categories.deleted': 1
   };
 
   var realtimeState = {
@@ -1774,10 +1818,11 @@
 
   function classifyRealtimeEvent(event) {
     var key = String((event && event.key) || '');
-    if (MESSAGE_EVENT_KEYS[key] || /chat|whatsapp|message|inbox/i.test(key)) return 'messages';
-    if (MISSION_EVENT_KEYS[key] || /mission|task/i.test(key)) return 'missions';
-    if (/product|inventory|categorie|entries|status/i.test(key)) return 'inventory';
-    if (/lead|crm|customer/i.test(key)) return 'leads';
+    // Order matters for overlapping keys (e.g. mission.message.created → messages).
+    if (MESSAGE_EVENT_KEYS[key] || /chat|whatsapp|inbox|(^|\.)message(\.|$)/i.test(key)) return 'messages';
+    if (INVENTORY_EVENT_KEYS[key] || /product|inventory|categorie|entries|statuses\./i.test(key)) return 'inventory';
+    if (LEAD_EVENT_KEYS[key] || /lead|crm|customer/i.test(key)) return 'leads';
+    if (MISSION_EVENT_KEYS[key] || /mission|task|ticket|appointment|meeting|reminder/i.test(key)) return 'missions';
     return 'other';
   }
 
@@ -1991,6 +2036,13 @@
       if (realtimeState.status !== 'error') setRealtimeStatus('offline');
       dispatchAppEvent('mineralbar:socket', { type: 'disconnect', reason: reason });
       dispatchAppEvent('mineralbar:socket-debug', { type: 'disconnect', reason: reason });
+      // Explicit client disconnect (logout / pagehide) — do not fight it here.
+      // Network drops: Socket.IO reconnection handles most cases; if the socket
+      // instance was cleared, visibility/online handlers will restore it.
+      var intentional = reason === 'io client disconnect';
+      if (!intentional && global.document && global.document.visibilityState === 'visible') {
+        scheduleRealtimeReconnect('disconnect:' + reason, 800);
+      }
     });
 
     return {
@@ -2030,31 +2082,116 @@
     setRealtimeStatus('off');
   }
 
+  var realtimeReconnectTimer = null;
+  var realtimeConnectInFlight = null;
+
+  function isRealtimeConnected() {
+    return !!(realtimeState.socket && realtimeState.socket.connected);
+  }
+
+  /**
+   * Reconnect when socket was dropped (BFCache, tab freeze, network blip).
+   * Safe to call often — no-ops if already connected / connecting / no token.
+   */
+  function ensureRealtimeConnected(reason) {
+    try {
+      var client = getClient();
+      if (!client || !client.getToken || !client.getToken()) return null;
+      if (isRealtimeConnected()) return realtimeConnectInFlight;
+      if (realtimeState.status === 'connecting' || realtimeState.status === 'loading_io') {
+        return realtimeConnectInFlight;
+      }
+      if (realtimeConnectInFlight) return realtimeConnectInFlight;
+
+      dispatchAppEvent('mineralbar:socket-debug', {
+        type: 'reconnect_attempt',
+        reason: reason || 'ensure'
+      });
+
+      realtimeConnectInFlight = connectRealtime()
+        .then(function (handle) {
+          return handle && handle.promise ? handle.promise : handle;
+        })
+        .catch(function (err) {
+          var msg = (err && err.message) || String(err || 'reconnect failed');
+          console.warn('[Socket] ensureRealtimeConnected failed (' + (reason || 'ensure') + ')', msg);
+          throw err;
+        })
+        .finally(function () {
+          realtimeConnectInFlight = null;
+        });
+      return realtimeConnectInFlight;
+    } catch (e) {
+      console.warn('[Socket] ensureRealtimeConnected error', e);
+      return null;
+    }
+  }
+
+  function scheduleRealtimeReconnect(reason, delayMs) {
+    clearTimeout(realtimeReconnectTimer);
+    realtimeReconnectTimer = setTimeout(function () {
+      ensureRealtimeConnected(reason);
+    }, delayMs == null ? 0 : delayMs);
+  }
+
+  function nudgePagesAfterSocket(reason) {
+    // Missed events while backgrounded / reconnecting: force lists to re-fetch.
+    dispatchAppEvent('mineralbar:realtime', {
+      group: 'other',
+      key: 'socket.nudge.' + String(reason || 'refresh'),
+      event: { key: 'socket.nudge', reason: reason || 'refresh' }
+    });
+    dispatchAppEvent('mineralbar:page-refresh', {
+      group: 'other',
+      key: 'socket.nudge.' + String(reason || 'refresh'),
+      reason: reason || 'refresh'
+    });
+  }
+
   // An open/connecting WebSocket cannot survive a Back-Forward Cache freeze.
-  // Close it before the page is cached, then create a fresh connection when
-  // the browser restores the page from BFCache.
+  // ONLY disconnect when the page is actually frozen into BFCache (persisted).
+  // Disconnecting on every pagehide killed the socket on tab switches, so
+  // ticket.created (and other) events were missed while the list stayed open.
   if (global.addEventListener && !global.__mbRealtimeLifecycleWired) {
     global.__mbRealtimeLifecycleWired = true;
 
-    global.addEventListener('pagehide', function () {
-      disconnectRealtime();
+    global.addEventListener('pagehide', function (event) {
+      if (event && event.persisted) disconnectRealtime();
     });
 
     global.addEventListener('pageshow', function (event) {
-      if (!event || !event.persisted) return;
-      setTimeout(function () {
-        try {
-          var client = getClient();
-          if (!client || !client.getToken || !client.getToken()) return;
-          disconnectRealtime();
-          connectRealtime().catch(function (err) {
-            var msg = (err && err.message) || String(err || 'BFCache reconnect failed');
-            console.warn('[Socket] BFCache reconnect failed', msg);
-          });
-        } catch (e) {
-          console.warn('[Socket] BFCache restore failed', e);
+      if (!event || !event.persisted) return; // first load: page-boot owns connect
+      var p = ensureRealtimeConnected('pageshow-bfcache');
+      if (p && typeof p.then === 'function') {
+        p.then(function () { nudgePagesAfterSocket('bfcache'); }).catch(function () {});
+      } else {
+        nudgePagesAfterSocket('bfcache');
+      }
+    });
+
+    if (global.document && global.document.addEventListener) {
+      global.document.addEventListener('visibilitychange', function () {
+        if (global.document.visibilityState !== 'visible') return;
+        if (!isRealtimeConnected()) {
+          var p = ensureRealtimeConnected('visibilitychange');
+          if (p && typeof p.then === 'function') {
+            p.then(function () { nudgePagesAfterSocket('visible-reconnect'); }).catch(function () {
+              nudgePagesAfterSocket('visible-offline');
+            });
+            return;
+          }
         }
-      }, 0);
+        // Even if socket stayed up, re-fetch in case events were dropped while hidden.
+        nudgePagesAfterSocket('visible');
+      });
+    }
+
+    global.addEventListener('online', function () {
+      if (isRealtimeConnected()) {
+        nudgePagesAfterSocket('online');
+        return;
+      }
+      scheduleRealtimeReconnect('online', 200);
     });
   }
 
@@ -2079,6 +2216,73 @@
     } catch (e) {
       return false;
     }
+  }
+
+  /** Registered page reloaders for socket add/edit/delete (no full page reload). */
+  var liveReloaders = [];
+  var liveReloadBusWired = false;
+
+  function notifyLiveReload(detail) {
+    detail = detail || {};
+    var key = String(detail.key || '').toLowerCase();
+    var group = String(detail.group || '').toLowerCase();
+    if ((key.indexOf('socket') !== -1 || key.indexOf('connected') !== -1) && key.indexOf('nudge') === -1) {
+      return;
+    }
+    liveReloaders.forEach(function (entry) {
+      if (!entry || typeof entry.fn !== 'function') return;
+      if (entry.keys) {
+        try {
+          if (key && !entry.keys.test(key)) return;
+        } catch (e0) { /* ignore bad regex */ }
+      }
+      if (entry.groups && entry.groups.length) {
+        if (group && entry.groups.indexOf(group) === -1 && entry.groups.indexOf('other') === -1) return;
+      }
+      clearTimeout(entry._timer);
+      entry._timer = setTimeout(function () {
+        try { entry.fn(detail); } catch (err) {
+          console.warn('[LiveReload] handler failed', err);
+        }
+      }, entry.delay || 400);
+    });
+  }
+
+  function ensureLiveReloadBus() {
+    if (liveReloadBusWired || !global.addEventListener) return;
+    liveReloadBusWired = true;
+    ['mineralbar:realtime', 'mineralbar:page-refresh', 'mineralbar:missions', 'mineralbar:messages', 'mineralbar:leads', 'mineralbar:inventory'].forEach(function (name) {
+      global.addEventListener(name, function (ev) {
+        notifyLiveReload((ev && ev.detail) || {});
+      });
+    });
+  }
+
+  /**
+   * Register a soft reload callback for socket-driven add/edit/delete.
+   * Returns an unbind function.
+   *   MineralBarApp.bindLiveReload(() => this.loadTickets());
+   *   MineralBarApp.bindLiveReload(fn, { keys: /ticket|mission/, delay: 300 });
+   */
+  function bindLiveReload(fn, options) {
+    options = options || {};
+    if (typeof fn !== 'function') return function () {};
+    ensureLiveReloadBus();
+    var entry = {
+      fn: fn,
+      keys: options.keys || null,
+      groups: options.groups || null,
+      delay: options.delay != null ? options.delay : 400,
+      _timer: null
+    };
+    if (typeof entry.keys === 'string') {
+      try { entry.keys = new RegExp(entry.keys, 'i'); } catch (e1) { entry.keys = null; }
+    }
+    liveReloaders.push(entry);
+    return function unbind() {
+      liveReloaders = liveReloaders.filter(function (e) { return e !== entry; });
+      clearTimeout(entry._timer);
+    };
   }
 
   global.MineralBarApp = {
@@ -2140,10 +2344,15 @@
     sendCustomerMessage: sendCustomerMessage,
     connectRealtime: connectRealtime,
     disconnectRealtime: disconnectRealtime,
+    ensureRealtimeConnected: ensureRealtimeConnected,
     getRealtimeState: getRealtimeState,
     getRegisteredRealtimeEvents: getRegisteredRealtimeEvents,
     resetRealtimeCursor: resetRealtimeCursor,
+    bindLiveReload: bindLiveReload,
+    notifyLiveReload: notifyLiveReload,
     MESSAGE_EVENT_KEYS: MESSAGE_EVENT_KEYS,
-    MISSION_EVENT_KEYS: MISSION_EVENT_KEYS
+    MISSION_EVENT_KEYS: MISSION_EVENT_KEYS,
+    LEAD_EVENT_KEYS: LEAD_EVENT_KEYS,
+    INVENTORY_EVENT_KEYS: INVENTORY_EVENT_KEYS
   };
 })(typeof window !== 'undefined' ? window : globalThis);
