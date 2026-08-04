@@ -4,14 +4,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
-<script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
-<link rel="stylesheet" href="./common.css"/>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body data-role="tech" data-active-tab="main">
 <x-dc>
@@ -312,64 +317,76 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: false, keys: /product|document|team_hours|teamhours|ticket|mission/i, delay: 400 });
     }
 
+    this._booted = false;
     this.ensureChrome();
     this.initData();
     window.addEventListener('mineralbar:ready', (ev) => {
       if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      if (this._booted) {
+        this.initData({ silent: true });
+        this.ensureChrome();
+        return;
+      }
       this.initData();
       this.ensureChrome();
     });
     window.addEventListener('mineralbar:realtime', (ev) => {
       var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
-      if (/product|document|team_hours|teamhours|ticket|mission/.test(key)) this.initData();
+      if (/product|document|team_hours|teamhours|ticket|mission/.test(key) && !/socket\.nudge/i.test(key)) {
+        this.initData({ silent: true });
+      }
     });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.initData(), { keys: /product|document|team_hours|ticket|mission|socket\\.nudge/i, delay: 400 });
+      MineralBarApp.bindLiveReload(() => this.initData({ silent: true }), { keys: /product|document|team_hours|teamhours|ticket|mission/i, delay: 400 });
     }
     setTimeout(() => this.ensureChrome(), 200);
     setTimeout(() => this.ensureChrome(), 800);
   }
 
-  async initData() {
+  async initData(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    if (this._dashInFlight) {
+      this._dashQueued = { silent: silent && !(this._dashQueued && this._dashQueued.silent === false) };
+      return this._dashInFlight;
+    }
     var client = this.getClient();
     if (!client) {
       this.setState({ loadingDocs: false, loadingProducts: false, loadingHours: false });
       return;
     }
-    await Promise.all([
-      this.loadDocuments(client),
-      this.loadProducts(client),
-      this.loadWorkHours(client)
-    ]);
-    this.ensureChrome();
+    var self = this;
+    this._dashInFlight = (async function () {
+      try {
+        await Promise.all([
+          self.loadDocuments(client, null, null, silent),
+          self.loadProducts(client, silent),
+          self.loadWorkHours(client, null, null, silent)
+        ]);
+        self._booted = true;
+        self.ensureChrome();
+      } finally {
+        self._dashInFlight = null;
+        var queued = self._dashQueued;
+        self._dashQueued = null;
+        if (queued) return self.initData(queued);
+      }
+    })();
+    return this._dashInFlight;
   }
 
   async fetchTeamHourSessions(client, fromDate, toDate) {
-    var all = [];
-    var seen = {};
-    for (var page = 1; page <= 20; page++) {
-      var body = { page: page, limit: 25, from_date: fromDate };
-      if (toDate) body.to_date = toDate;
-      var res = await client.request('TeamHours.List', body);
-      var rows = this.extractRows(res);
-      rows.forEach((r) => {
-        var id = String((r && (r.id || r.team_hours_id)) || '') + '|' + String((r && r.start_time) || '');
-        if (seen[id]) return;
-        seen[id] = true;
-        all.push(r);
-      });
-      if (rows.length < 25) break;
-      var total = Number(res && (res.total || res.count)) || 0;
-      if (total && all.length >= total) break;
-    }
-    return all;
+    var body = { page: 1, limit: 200, from_date: fromDate };
+    if (toDate) body.to_date = toDate;
+    var res = await client.request('TeamHours.List', body);
+    return this.extractRows(res);
   }
 
-  async loadWorkHours(client, year, month) {
-    this.setState({ loadingHours: true });
+  async loadWorkHours(client, year, month, silent) {
+    if (!silent) this.setState({ loadingHours: true });
     try {
       var range = this.monthRange(year, month);
       var sessions = await this.fetchTeamHourSessions(client, range.from, range.to);
@@ -389,25 +406,23 @@ class Component extends DCLogic {
     }
   }
 
-  async loadDocuments(client, year, month) {
-    this.setState({ loadingDocs: true });
+  async loadDocuments(client, year, month, silent) {
+    if (!silent) this.setState({ loadingDocs: true });
     var range = this.monthRange(year, month);
     var dateRange = { from_date: range.from, to_date: range.to };
     var countBase = Object.assign({ default_value_folder: 'all' }, dateRange);
     try {
+      // One Count (all) + one Sum (typed breakdown) — avoid 4× Documents.Count
       var results = await Promise.all([
-        client.request('Documents.Count', Object.assign({}, countBase)),
-        client.request('Documents.Count', Object.assign({}, countBase, { type: 'invoice' })),
-        client.request('Documents.Count', Object.assign({}, countBase, { type: 'receipt' })),
-        client.request('Documents.Count', Object.assign({}, countBase, { type: 'credit_invoice' })),
+        client.request('Documents.Count', Object.assign({}, countBase)).catch(function () { return null; }),
         client.request('Documents.Sum', Object.assign({}, dateRange, { types: ['invoice', 'receipt_tax_invoice', 'credit_invoice'] })).catch(function () { return null; })
       ]);
 
       var total = this.extractCount(results[0]);
-      var invoices = this.extractCount(results[1]);
-      var receipts = this.extractCount(results[2]);
-      var credits = this.extractCount(results[3]);
-      var sumRes = results[4];
+      var invoices = 0;
+      var receipts = 0;
+      var credits = 0;
+      var sumRes = results[1];
 
       if (sumRes && sumRes.counts) {
         if (sumRes.counts.invoice != null) invoices = Number(sumRes.counts.invoice) || invoices;
@@ -448,8 +463,8 @@ class Component extends DCLogic {
     }
   }
 
-  async loadProducts(client) {
-    this.setState({ loadingProducts: true });
+  async loadProducts(client, silent) {
+    if (!silent) this.setState({ loadingProducts: true });
     try {
       var res = await client.request('Products.List', { limit: 25, active: 1 });
       var rows = this.extractRows(res).map(function (item) {

@@ -7,12 +7,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
-  <script src="./support.js"></script>
-  <script src="./biz1-sdk.js?v=socketfix15"></script>
-  <script src="./biz1-app.js?v=socketfix15"></script>
-  <script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-  <script src="./mission-create-live.js?v=socketfix15"></script>
+  <script src="./asset-version.js"></script>
+  <script>
+  mbScripts([
+    './support.js',
+    './biz1-sdk.js',
+    './biz1-app.js',
+    './page-boot.js',
+    './live-sync.js',
+    './mission-create-live.js',
+    './i18n-translations.js',
+    './common-header-footer.js'
+  ]);
+  mbCss('./common.css');
+  </script>
   <style>
     .mb-adv-section { margin-bottom: 16px; }
     .mb-adv-label {
@@ -85,10 +93,7 @@
       margin-top: 10px;
     }
   </style>
-  <link rel="stylesheet" href="./common.css" />
-  <script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
-</head>
+    </head>
 <body data-active-tab="tasks">
   <div class="app-viewport">
     <div class="phone-container">
@@ -293,8 +298,6 @@
           </div>
 
         </div>
-
-
 
       </div>
     </div>

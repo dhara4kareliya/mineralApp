@@ -4,15 +4,20 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
-<script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-<script src="./sales-static-live.js?v=socketfix15"></script>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
-<link rel="stylesheet" href="./common.css"/>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './sales-static-live.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body>
 <x-dc>
@@ -175,15 +180,15 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => this.loadCustomer({ silent: true }), { retries: true, keys: /customer|document|socket\.nudge/i, delay: 350 });
     }
 
     this.loadCustomer();
     window.addEventListener('mineralbar:ready', () => this.loadCustomer());
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.loadCustomer(), { keys: /customer|document|socket\.nudge/i, delay: 400 });
+      MineralBarApp.bindLiveReload(() => this.loadCustomer({ silent: true }), { keys: /customer|document|socket\.nudge/i, delay: 400 });
     }
-    window.addEventListener('mineralbar:page-refresh', () => this.loadCustomer());
+    window.addEventListener('mineralbar:page-refresh', () => this.loadCustomer({ silent: true }));
     var self = this;
     document.addEventListener('click', function (e) {
       if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
@@ -216,7 +221,9 @@ class Component extends DCLogic {
     } catch (e) { /* ignore */ }
   }
 
-  async loadCustomer() {
+  async loadCustomer(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var cid = this.getCustomerId();
     if (!cid) {
       this.setState({
@@ -231,11 +238,11 @@ class Component extends DCLogic {
     }
 
     if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) {
-      this.setState({ loading: true, notFound: false, customerId: cid });
+      if (!silent) this.setState({ loading: true, notFound: false, customerId: cid });
       return;
     }
 
-    this.setState({ loading: true, notFound: false, customerId: cid });
+    if (!silent) this.setState({ loading: true, notFound: false, customerId: cid });
     try {
       var res = await MineralBarApp.getCustomer(cid);
       var c = res && res.customer;

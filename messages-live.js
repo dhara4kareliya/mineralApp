@@ -243,18 +243,23 @@
     el.innerHTML = rows.map(rowHtml).join('');
   }
 
-  async function loadMessages(elId) {
+  async function loadMessages(elId, opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var el = document.getElementById(elId);
-    if (el) el.innerHTML = loadingHtml();
-    var totalEl = document.getElementById('mb-messages-total');
-    if (totalEl) totalEl.textContent = 'Loading…';
+    var hasRows = !!(el && el.querySelector('[data-customer-id], a, .mb-msg-row, [href*="chat"]'));
+    if (!silent || !hasRows) {
+      if (el) el.innerHTML = loadingHtml();
+      var totalElBusy = document.getElementById('mb-messages-total');
+      if (totalElBusy) totalElBusy.textContent = 'Loading…';
+    }
 
     try {
       var result = await MineralBarApp.listChatConversations({ page: 1, limit: 25 });
       allRows = result.rows || [];
       var total = result.total != null ? result.total : allRows.length;
       
-      totalEl = document.getElementById('mb-messages-total');
+      var totalEl = document.getElementById('mb-messages-total');
       if (totalEl) totalEl.textContent = total + ' conversations · Chat.Conversations';
 
       el = document.getElementById(elId);
@@ -267,9 +272,13 @@
       var search = document.getElementById('mb-messages-search');
       renderFiltered(elId, search && search.value);
     } catch (err) {
+      if (silent && hasRows) {
+        console.warn('[MessagesLive] silent refresh failed — keeping list', err);
+        return;
+      }
       console.error('[MineralBar] Chat.Conversations failed', err);
-      totalEl = document.getElementById('mb-messages-total');
-      if (totalEl) totalEl.textContent = 'API error';
+      var totalElErr = document.getElementById('mb-messages-total');
+      if (totalElErr) totalElErr.textContent = 'API error';
       el = document.getElementById(elId);
       if (el) el.innerHTML = errorHtml(err);
       var btn = document.getElementById('mb-messages-retry');
@@ -302,7 +311,7 @@
     var elId = 'mb-live-messages';
     if (!document.getElementById(elId) || !window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     clearTimeout(window.__mbMessagesRtTimer);
-    window.__mbMessagesRtTimer = setTimeout(function () { loadMessages(elId); }, 400);
+    window.__mbMessagesRtTimer = setTimeout(function () { loadMessages(elId, { silent: true }); }, 400);
   });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 50); });
@@ -313,7 +322,7 @@
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
     LiveSync.bind(function () {
       if (!document.getElementById('mb-live-messages')) return;
-      loadMessages('mb-live-messages');
+      loadMessages('mb-live-messages', { silent: true });
     }, {
       keys: /message|chat|whatsapp|inbox|socket\.nudge/i,
       mount: '#mb-live-messages',
@@ -322,7 +331,8 @@
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
-      if (typeof start === 'function') start();
+      if (!document.getElementById('mb-live-messages')) return;
+      loadMessages('mb-live-messages', { silent: true });
     }, { keys: /message|chat|whatsapp|inbox|socket\.nudge/i, delay: 400 });
   }
 

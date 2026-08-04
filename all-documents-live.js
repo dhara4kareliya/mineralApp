@@ -133,7 +133,7 @@
   }
 
   window.addEventListener('mineralbar:ready', function () { setTimeout(load, 120); });
-  window.addEventListener('mineralbar:page-refresh', function () { setTimeout(load, 200); });
+  window.addEventListener('mineralbar:page-refresh', function () { setTimeout(function () { load({ silent: true }); }, 200); });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(load, 250); });
   } else {
@@ -141,13 +141,13 @@
   }
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
-    LiveSync.bind(function () { if (typeof load === 'function') load(); }, {
+    LiveSync.bind(function () { if (typeof load === 'function') load({ silent: true }); }, {
       keys: /document|file|customer|socket\.nudge/i,
       delay: 300,
       retries: true
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () { if (typeof load === 'function') load(); }, { keys: /document|file|customer|socket\.nudge/i, delay: 400 });
+    MineralBarApp.bindLiveReload(function () { if (typeof load === 'function') load({ silent: true }); }, { keys: /document|file|customer|socket\.nudge/i, delay: 400 });
   }
 
 })();

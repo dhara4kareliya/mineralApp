@@ -2295,9 +2295,11 @@
     if (key === 'pageshow' || key === 'visible') return;
 
     // Like biz1_ticket: list APIs can lag behind the socket event — retry briefly.
-    var retryDelays = /ticket\.|mission\.(done|created|updated|deleted|reopened)|products?\.(created|updated|deleted)|categories\.|customer\.|lead\.|crm\.|message\.|chat\.|document\.|socket\.nudge\.(reconnect|poll|bfcache)/.test(key)
+    // Never multi-retry timer/poll nudges — only real data CRUD events.
+    var retryDelays = /ticket\.|mission\.(done|created|updated|deleted|reopened)|products?\.(created|updated|deleted)|categories\.|customer\.|lead\.|crm\.|message\.|chat\.|document\.|team_hours|teamhours/.test(key)
       ? [0, 1000, 2500]
       : [0];
+    if (/socket\.nudge/i.test(key)) retryDelays = [0];
 
     liveReloaders.forEach(function (entry) {
       if (!entry || typeof entry.fn !== 'function') return;

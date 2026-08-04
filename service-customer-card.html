@@ -3,15 +3,20 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix16"></script>
-<script src="./biz1-app.js?v=socketfix16"></script>
-<script src="./page-boot.js?v=socketfix16"></script>
-<script src="./live-sync.js?v=socketfix16"></script>
-<script src="./customer-live.js?v=socketfix16"></script>
-<link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './customer-live.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body>
 <x-dc>

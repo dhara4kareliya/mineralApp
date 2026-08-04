@@ -4,14 +4,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
-<script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
-<link rel="stylesheet" href="./common.css"/>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body data-role="tech" data-active-tab="clock">
 <x-dc>
@@ -139,7 +144,16 @@
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = {
-    loading: true,
+    loading: (function () {
+      try {
+        var raw = sessionStorage.getItem('mb_time_clock_boot');
+        if (!raw) return true;
+        var boot = JSON.parse(raw);
+        return !(boot && boot.statusRes && boot.at && (Date.now() - Number(boot.at)) < 45000);
+      } catch (e) {
+        return true;
+      }
+    })(),
     busy: false,
     errorMsg: '',
     userName: '',
@@ -167,22 +181,42 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    // Only refresh on real team-hours socket events — never on ticket noise or poll timers
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => this.refreshQuiet(), {
+        retries: false,
+        keys: /team_hours|teamhours/i,
+        delay: 400
+      });
+    } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.refreshQuiet(), {
+        keys: /team_hours|teamhours/i,
+        delay: 400
+      });
     }
 
-    this.initData();
+    this._booted = false;
+    // Footer prefetch: open with data already ready — never flash Loading…
+    if (this.hydrateFromBootCache()) {
+      this._booted = true;
+      this._skipReadyRefresh = true;
+    } else {
+      this.initData();
+    }
     window.addEventListener('mineralbar:ready', (ev) => {
       if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      // Avoid second full Loading… + API burst after first mount load
+      if (this._booted) {
+        if (this._skipReadyRefresh) {
+          this._skipReadyRefresh = false;
+          return;
+        }
+        this.refreshQuiet();
+        return;
+      }
       this.initData();
     });
-    window.addEventListener('mineralbar:realtime', (ev) => {
-      var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
-      if (/team_hours|teamhours|socket\\.nudge/.test(key)) this.refreshQuiet();
-    });
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.refreshQuiet(), { keys: /team_hours|teamhours|socket\\.nudge/i, delay: 400 });
-    }
+    // Local UI clock only — does NOT call APIs
     this._tickTimer = setInterval(() => {
       if (this.state.running) this.setState({ tickNow: Date.now() });
     }, 1000);
@@ -427,37 +461,141 @@ class Component extends DCLogic {
     return base + drift;
   }
 
-  async initData() {
+  async initData(opts) {
+    opts = opts || {};
+    if (opts.silent) {
+      await this.refreshAll(false);
+      this._booted = true;
+      return;
+    }
     this.setState({ loading: true, errorMsg: '', userName: this.resolveUserName() });
     await this.refreshAll(true);
+    this._booted = true;
   }
 
   async refreshQuiet() {
     await this.refreshAll(false);
   }
 
-  async fetchSessions(client, fromDate, toDate) {
-    var all = [];
-    var seen = {};
-    for (var page = 1; page <= 20; page++) {
-      var body = { page: page, limit: 25, from_date: fromDate };
-      if (toDate) body.to_date = toDate;
-      var res = await client.request('TeamHours.List', body);
-      var rows = this.extractRows(res);
-      rows.forEach((r) => {
-        var id = String((r && (r.id || r.team_hours_id)) || '') + '|' + String((r && r.start_time) || '');
-        if (seen[id]) return;
-        seen[id] = true;
-        all.push(r);
-      });
-      if (rows.length < 25) break;
-      var total = Number(res && (res.total || res.count)) || 0;
-      if (total && all.length >= total) break;
+  takeBootCache() {
+    try {
+      var raw = sessionStorage.getItem('mb_time_clock_boot');
+      if (!raw) return null;
+      sessionStorage.removeItem('mb_time_clock_boot');
+      var boot = JSON.parse(raw);
+      if (!boot || !boot.statusRes) return null;
+      // Ignore stale prefetches (>45s)
+      if (boot.at && (Date.now() - Number(boot.at)) > 45000) return null;
+      return boot;
+    } catch (e) {
+      return null;
     }
-    return all;
+  }
+
+  hydrateFromBootCache() {
+    var boot = this.takeBootCache();
+    if (!boot) return false;
+    try {
+      this.applyApiBundle(boot.statusRes, boot.listRes, boot.whenStop, false);
+      return true;
+    } catch (e) {
+      console.warn('[TimeClock] boot hydrate failed', e);
+      return false;
+    }
+  }
+
+  applyApiBundle(statusRes, listRes, whenStop, showLoading) {
+    var historySessions = this.extractRows(listRes);
+    var byId = {};
+    historySessions.forEach((r) => {
+      var id = String((r && (r.id || r.team_hours_id)) || Math.random());
+      byId[id] = r;
+    });
+    var sessions = Object.keys(byId).map((k) => byId[k]);
+
+    var running = !!(statusRes && (statusRes.running === true || statusRes.running === 1 ||
+      (statusRes.data && (Number(statusRes.data.status) === 1 || statusRes.data.running))));
+    var data = (statusRes && statusRes.data) || {};
+    var teamHoursId = statusRes.team_hours_id || data.id || null;
+    var elapsedRaw = data.elapsed || statusRes.elapsed || '00:00:00';
+    var startTime = this.pickStartTime(statusRes, data, sessions, teamHoursId);
+
+    if (running && startTime) {
+      var hasActive = sessions.some((r) => String(r.id) === String(teamHoursId));
+      if (!hasActive) {
+        sessions.push({
+          id: teamHoursId,
+          status: 1,
+          start_time: startTime,
+          end_time: null,
+          elapsed: elapsedRaw
+        });
+      }
+    }
+
+    if (running) {
+      var localPrev = this.readLocalTimer();
+      var startParsed = this.parseDateTime(startTime);
+      var startedAtMs = startParsed ? startParsed.getTime() : Date.now();
+      if (localPrev && localPrev.startedAtMs) {
+        var localMs = Number(localPrev.startedAtMs);
+        if (isFinite(localMs) && localMs > 0 && localMs < startedAtMs && (Date.now() - localMs) < 36 * 3600 * 1000) {
+          startedAtMs = localMs;
+          if (!startTime && localPrev.startTime) startTime = localPrev.startTime;
+        }
+      }
+      if (!startTime) {
+        var d = new Date(startedAtMs);
+        startTime = d.getUTCFullYear() + '-' + this.pad(d.getUTCMonth() + 1) + '-' + this.pad(d.getUTCDate()) +
+          ' ' + this.pad(d.getUTCHours()) + ':' + this.pad(d.getUTCMinutes()) + ':' + this.pad(d.getUTCSeconds());
+      }
+      this.writeLocalTimer({
+        running: true,
+        teamHoursId: teamHoursId,
+        startTime: startTime,
+        startedAtMs: startedAtMs
+      });
+    } else {
+      this.clearLocalTimer();
+    }
+
+    var hoursTodayApi = null;
+    if (whenStop && Number(whenStop.success) !== 0 && whenStop.hours_today != null) {
+      hoursTodayApi = whenStop.hours_today;
+    }
+
+    this.setState({
+      loading: false,
+      errorMsg: '',
+      userName: this.resolveUserName(),
+      running: running,
+      teamHoursId: teamHoursId,
+      startTime: startTime,
+      elapsedRaw: elapsedRaw,
+      fetchedAt: Date.now(),
+      sessions: sessions,
+      hoursTodayApi: hoursTodayApi,
+      historyPage: showLoading ? 1 : (this.state.historyPage || 1),
+      tickNow: Date.now()
+    });
+    this._booted = true;
+  }
+
+  async fetchSessions(client, fromDate, toDate) {
+    // Single List call (high limit) — avoid pagination burst on page open
+    var body = { page: 1, limit: 200, from_date: fromDate };
+    if (toDate) body.to_date = toDate;
+    var res = await client.request('TeamHours.List', body);
+    return this.extractRows(res);
   }
 
   async refreshAll(showLoading) {
+    // Coalesce overlapping loads (mount + ready) into one in-flight request
+    if (this._refreshInFlight) {
+      this._refreshQueued = { showLoading: !!(showLoading || (this._refreshQueued && this._refreshQueued.showLoading)) };
+      return this._refreshInFlight;
+    }
+
     var client = this.getClient();
     if (!client) {
       this.setState({ loading: false, errorMsg: 'SDK not ready' });
@@ -466,108 +604,40 @@ class Component extends DCLogic {
 
     if (showLoading) this.setState({ loading: true });
 
-    try {
-      var now = new Date();
-      // Load several months so attendance history can paginate beyond the current month
-      var histFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-      var fromHistory = histFrom.getFullYear() + '-' + this.pad(histFrom.getMonth() + 1) + '-01';
-      var todayLocal = this.ymdLocal(now);
-      var todayUtc = this.ymdUtc(now);
-
-      var statusRes = await client.request('TeamHours.Get', {});
-      var historySessions = await this.fetchSessions(client, fromHistory, null);
-
-      var todaySessions = await this.fetchSessions(client, todayLocal, todayLocal);
-      if (todayUtc !== todayLocal) {
-        var todayUtcSessions = await this.fetchSessions(client, todayUtc, todayUtc);
-        todaySessions = todaySessions.concat(todayUtcSessions);
-      }
-
-      var byId = {};
-      historySessions.concat(todaySessions).forEach((r) => {
-        var id = String((r && (r.id || r.team_hours_id)) || Math.random());
-        byId[id] = r;
-      });
-      var sessions = Object.keys(byId).map((k) => byId[k]);
-
-      var whenStop = null;
+    var self = this;
+    this._refreshInFlight = (async function () {
       try {
-        whenStop = await client.request('TeamHours.WhenStop', {});
-      } catch (e) { /* optional */ }
+        var now = new Date();
+        // Load several months so attendance history can paginate beyond the current month
+        var histFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+        var fromHistory = histFrom.getFullYear() + '-' + self.pad(histFrom.getMonth() + 1) + '-01';
 
-      var running = !!(statusRes && (statusRes.running === true || statusRes.running === 1 ||
-        (statusRes.data && (Number(statusRes.data.status) === 1 || statusRes.data.running))));
-      var data = (statusRes && statusRes.data) || {};
-      var teamHoursId = statusRes.team_hours_id || data.id || null;
-      var elapsedRaw = data.elapsed || statusRes.elapsed || '00:00:00';
-      var startTime = this.pickStartTime(statusRes, data, sessions, teamHoursId);
+        var statusRes = await client.request('TeamHours.Get', {});
+        // One List covers history + today — avoid 2–3 extra TeamHours.List calls
+        var listRes = await client.request('TeamHours.List', { page: 1, limit: 200, from_date: fromHistory });
+        var whenStop = null;
+        try {
+          whenStop = await client.request('TeamHours.WhenStop', {});
+        } catch (e) { /* optional */ }
 
-      if (running && startTime) {
-        var hasActive = sessions.some((r) => String(r.id) === String(teamHoursId));
-        if (!hasActive) {
-          sessions.push({
-            id: teamHoursId,
-            status: 1,
-            start_time: startTime,
-            end_time: null,
-            elapsed: elapsedRaw
-          });
-        }
-      }
-
-      if (running) {
-        var localPrev = this.readLocalTimer();
-        var startParsed = this.parseDateTime(startTime);
-        var startedAtMs = startParsed ? startParsed.getTime() : Date.now();
-        if (localPrev && localPrev.startedAtMs) {
-          var localMs = Number(localPrev.startedAtMs);
-          // Keep earlier local start when API elapsed/start looks reset after navigation
-          if (isFinite(localMs) && localMs > 0 && localMs < startedAtMs && (Date.now() - localMs) < 36 * 3600 * 1000) {
-            startedAtMs = localMs;
-            if (!startTime && localPrev.startTime) startTime = localPrev.startTime;
-          }
-        }
-        if (!startTime) {
-          var d = new Date(startedAtMs);
-          startTime = d.getUTCFullYear() + '-' + this.pad(d.getUTCMonth() + 1) + '-' + this.pad(d.getUTCDate()) +
-            ' ' + this.pad(d.getUTCHours()) + ':' + this.pad(d.getUTCMinutes()) + ':' + this.pad(d.getUTCSeconds());
-        }
-        this.writeLocalTimer({
-          running: true,
-          teamHoursId: teamHoursId,
-          startTime: startTime,
-          startedAtMs: startedAtMs
+        self.applyApiBundle(statusRes, listRes, whenStop, !!showLoading);
+      } catch (e) {
+        console.error('[TimeClock] refresh failed', e);
+        self.setState({
+          loading: false,
+          errorMsg: (e && e.message) || 'Failed to load time clock'
         });
-      } else {
-        this.clearLocalTimer();
+      } finally {
+        self._refreshInFlight = null;
+        var queued = self._refreshQueued;
+        self._refreshQueued = null;
+        if (queued) {
+          return self.refreshAll(!!queued.showLoading);
+        }
       }
+    })();
 
-      var hoursTodayApi = null;
-      if (whenStop && Number(whenStop.success) !== 0 && whenStop.hours_today != null) {
-        hoursTodayApi = whenStop.hours_today;
-      }
-
-      this.setState({
-        loading: false,
-        errorMsg: '',
-        userName: this.resolveUserName(),
-        running: running,
-        teamHoursId: teamHoursId,
-        startTime: startTime,
-        elapsedRaw: elapsedRaw,
-        fetchedAt: Date.now(),
-        sessions: sessions,
-        hoursTodayApi: hoursTodayApi,
-        historyPage: showLoading ? 1 : (this.state.historyPage || 1),
-        tickNow: Date.now()
-      });
-    } catch (e) {
-      console.error('[TimeClock] refresh failed', e);
-      this.setState({
-        loading: false,
-        errorMsg: (e && e.message) || 'Failed to load time clock'
-      });
-    }
+    return this._refreshInFlight;
   }
 
   async primary() {

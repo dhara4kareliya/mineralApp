@@ -301,7 +301,7 @@
   var _rtTasksTimer = null;
   var _rtTasksRetryTimers = [];
 
-  /** Mission.List can lag behind mission.done / created — debounce + short retries. */
+  /** Mission.List can lag behind mission.done / created — debounce + short retries (silent, no Loading flash). */
   function scheduleLiveTasksRefresh(detail) {
     detail = detail || {};
     var key = String(detail.key || '').toLowerCase();
@@ -312,15 +312,16 @@
     _rtTasksRetryTimers.forEach(clearTimeout);
     _rtTasksRetryTimers = [];
 
-    var delays = /mission\.(done|created|updated|deleted|reopened)|socket\.nudge/.test(key)
+    // Real mission CRUD → a couple of silent retries (API lag). Poll nudges → one silent refresh only.
+    var delays = /mission\.(done|created|updated|deleted|reopened)/.test(key)
       ? [350, 1100, 2600]
       : [400];
 
     _rtTasksTimer = setTimeout(function () {
-      loadTasks(currentFilterType);
+      loadTasks(currentFilterType, { silent: true });
       delays.slice(1).forEach(function (ms) {
         _rtTasksRetryTimers.push(setTimeout(function () {
-          loadTasks(currentFilterType);
+          loadTasks(currentFilterType, { silent: true });
         }, ms));
       });
     }, delays[0]);
@@ -514,11 +515,24 @@
     });
   }
 
-  async function loadTasks(typeParam) {
+  var _tasksLoadInFlight = null;
+
+  async function loadTasks(typeParam, opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var filterType = typeParam || currentFilterType || 'show_all_together_tasks';
     var totalEl = document.getElementById('mb-missions-total');
-    if (totalEl) totalEl.textContent = 'Loading…';
+    var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
+    var hasRows = !!(mount && mount.querySelector('.task-row-card'));
 
+    // Socket / soft refresh: keep current list + count visible — never flash "Loading…"
+    if (!silent || !hasRows) {
+      if (totalEl) totalEl.textContent = 'Loading…';
+    }
+
+    if (_tasksLoadInFlight && silent) return _tasksLoadInFlight;
+
+    var run = (async function () {
     try {
       var result = await MineralBarApp.listMissions({
         type: filterType,
@@ -535,7 +549,7 @@
       // If filter/total shrank past current page, snap back
       if (total > 0 && currentStart >= total) {
         currentStart = Math.max(0, (pageCount(total) - 1) * PAGE_SIZE);
-        return loadTasks(filterType);
+        return loadTasks(filterType, opts);
       }
 
       var shownCount = 0;
@@ -586,7 +600,6 @@
         html += renderPager(total, shownCount);
       }
 
-      var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
       if (mount) {
         mount.innerHTML = html;
         wirePager();
@@ -601,14 +614,39 @@
         });
       }
     } catch (err) {
+      // Soft refresh failed — keep existing rows; only show error on first/manual load
+      if (silent && hasRows) {
+        console.warn('[TasksLive] silent refresh failed — keeping list', err);
+        return;
+      }
       console.error(err);
-      var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
       if (mount) mount.innerHTML = '<div style="color:#c0392b; text-align:center; padding:20px;">Failed to load tasks.</div>';
     }
+    })();
+
+    if (silent) {
+      _tasksLoadInFlight = run.then(function (v) {
+        _tasksLoadInFlight = null;
+        return v;
+      }, function (e) {
+        _tasksLoadInFlight = null;
+        throw e;
+      });
+      return _tasksLoadInFlight;
+    }
+    return run;
   }
 
-  function start() {
+  var _tasksBooted = false;
+
+  function start(opts) {
+    opts = opts || {};
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
+    if (_tasksBooted && !opts.force) {
+      // Still wire listeners once if first start raced before mount
+      return;
+    }
+    _tasksBooted = true;
     wireFilterChips();
     populateQuickMissionDropdowns();
     wireQuickMission();
@@ -616,15 +654,16 @@
 
     if (!liveListenersWired) {
       liveListenersWired = true;
-      // Same pattern as Biz1_task: socket event → Mission.List re-fetch → innerHTML
+      // Same pattern as Biz1_task: socket event → silent Mission.List re-fetch (no Loading flash)
       if (window.LiveSync && typeof LiveSync.bind === 'function') {
-        LiveSync.bind(function () {
-          loadTasks(currentFilterType);
+        LiveSync.bind(function (detail) {
+          scheduleLiveTasksRefresh(detail || {});
         }, {
           keys: /mission|task|ticket|socket\.nudge/i,
           mount: '#mb-live-tasks',
           delay: 300,
-          retries: true
+          // Retries handled inside scheduleLiveTasksRefresh (only for real mission CRUD)
+          retries: false
         });
       } else {
         window.addEventListener('mineralbar:realtime', function (ev) {
@@ -670,8 +709,8 @@
 
   window.addEventListener('mineralbar:ready', function () { setTimeout(start, 150); });
   window.addEventListener('mineralbar:language-changed', function () {
-    if (typeof loadTasks === 'function') loadTasks(typeof currentFilterType !== 'undefined' ? currentFilterType : undefined);
-    else start();
+    if (typeof loadTasks === 'function') loadTasks(typeof currentFilterType !== 'undefined' ? currentFilterType : undefined, { silent: true });
+    else start({ force: true });
   });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 200); });

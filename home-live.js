@@ -211,23 +211,45 @@
     });
   }
 
-  async function loadHome() {
+  var _homeBooted = false;
+  var _homeInFlight = null;
+
+  async function loadHome(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    if (_homeInFlight) return _homeInFlight;
+
+    _homeInFlight = (async function () {
+      try {
+        await loadHomeBody(opts);
+      } finally {
+        _homeInFlight = null;
+      }
+    })();
+    return _homeInFlight;
+  }
+
+  async function loadHomeBody(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var today = todayKey();
     setGreeting();
     setAvatar();
     enableDragScroll(document.getElementById('mb-sales-pipeline-scroll'));
 
-    setText('mb-stat-closed', '…');
-    setText('mb-stat-leads', '…');
-    setText('mb-stat-followup', '…');
-    setText('mb-stat-chats', '…');
-    setText('mb-pipe-leads', '…');
-    setText('mb-pipe-followup', '…');
+    if (!silent) {
+      setText('mb-stat-closed', '…');
+      setText('mb-stat-leads', '…');
+      setText('mb-stat-followup', '…');
+      setText('mb-stat-chats', '…');
+      setText('mb-pipe-leads', '…');
+      setText('mb-pipe-followup', '…');
 
-    var loadingEl = missionsMount();
-    if (loadingEl) {
-      loadingEl.innerHTML =
-        '<div style="padding:18px 2px;font-size:13px;font-weight:700;color:#8a93a3;">' + esc(t('Loading tasks…', 'טוען משימות…')) + '</div>';
+      var loadingEl = missionsMount();
+      if (loadingEl) {
+        loadingEl.innerHTML =
+          '<div style="padding:18px 2px;font-size:13px;font-weight:700;color:#8a93a3;">' + esc(t('Loading tasks…', 'טוען משימות…')) + '</div>';
+      }
     }
 
     try {
@@ -284,6 +306,10 @@
 
       renderMissions(prioritized, missionTotal, today);
     } catch (err) {
+      if (silent) {
+        console.warn('[HomeLive] silent refresh failed — keeping dashboard', err);
+        return;
+      }
       console.error('[MineralBar] home dashboard failed', err);
       var missionsEl = missionsMount();
       if (missionsEl) {
@@ -294,24 +320,27 @@
     }
   }
 
-  function start() {
+  function start(opts) {
+    opts = opts || {};
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     if (!document.getElementById('mb-live-home')) {
       // DC may not have mounted yet
       if (!window.__mbHomeMountTries) window.__mbHomeMountTries = 0;
       if (window.__mbHomeMountTries++ < 12) {
-        setTimeout(start, 50);
+        setTimeout(function () { start(opts); }, 50);
       }
       return;
     }
     window.__mbHomeMountTries = 0;
-    loadHome();
+    if (_homeBooted && !opts.force) return;
+    _homeBooted = true;
+    loadHome(opts.silent ? { silent: true } : {});
   }
 
   window.addEventListener('mineralbar:ready', function () { setTimeout(start, 40); });
   window.addEventListener('mineralbar:language-changed', function () {
     // Re-render live strings in the selected language (DOM translator skips #mb-live-*)
-    if (document.getElementById('mb-live-home')) start();
+    if (document.getElementById('mb-live-home')) start({ force: true, silent: true });
   });
   function onHomeLiveRefresh(detail) {
     if (!document.getElementById('mb-live-home')) return;
@@ -326,15 +355,17 @@
     }
     window.__mbHomeRtRetries = [];
 
-    // Mission.List / counts can lag briefly behind mission.done
-    var delays = /mission\.(done|created|updated|deleted|reopened)|socket\.nudge/.test(key)
+    // Real mission CRUD → silent retries (API lag). Poll / other → one silent refresh.
+    var delays = /mission\.(done|created|updated|deleted|reopened)/.test(key)
       ? [300, 1000, 2400]
       : [180];
 
     window.__mbHomeRtTimer = setTimeout(function () {
-      loadHome();
+      loadHome({ silent: true });
       delays.slice(1).forEach(function (ms) {
-        window.__mbHomeRtRetries.push(setTimeout(loadHome, ms));
+        window.__mbHomeRtRetries.push(setTimeout(function () {
+          loadHome({ silent: true });
+        }, ms));
       });
     }, delays[0]);
   }

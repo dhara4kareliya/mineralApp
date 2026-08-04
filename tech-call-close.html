@@ -4,14 +4,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
-<script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
-<link rel="stylesheet" href="./common.css"/>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body data-role="tech" data-active-tab="open_calls">
 <x-dc>
@@ -324,7 +329,11 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => this.boot({ silent: true }), {
+        retries: true,
+        keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i,
+        delay: 350
+      });
     }
 
     var self = this;
@@ -339,22 +348,33 @@ class Component extends DCLogic {
       }
     });
     this.boot();
-    window.addEventListener('mineralbar:ready', function () { self.boot(); });
+    window.addEventListener('mineralbar:ready', function (ev) {
+      if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      self.boot();
+    });
     window.addEventListener('mineralbar:page-refresh', function (ev) { self.onRealtimeRefresh(ev); });
     window.addEventListener('mineralbar:realtime', function (ev) { self.onRealtimeRefresh(ev); });
     window.addEventListener('mineralbar:missions', function (ev) { self.onRealtimeRefresh(ev); });
-    window.addEventListener('pageshow', function () { self.boot(); });
+    window.addEventListener('pageshow', function () { self.boot({ silent: true }); });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(function () { self.boot(); }, { keys: /ticket|mission|product|customer|socket\\.nudge/i, delay: 400 });
+      MineralBarApp.bindLiveReload(function () { self.boot({ silent: true }); }, {
+        keys: /ticket|mission|product|customer|socket\.nudge/i,
+        delay: 400
+      });
     }
     this.scheduleBind(150);
     this.scheduleBind(600);
   }
 
   onRealtimeRefresh(ev) {
+    // Never interrupt submit / wipe the form with a full-page Loading… flash
+    if (this.state.busy) return;
+    if (this._ignoreRtUntil && Date.now() < this._ignoreRtUntil) return;
     var detail = (ev && ev.detail) || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
+    if (/^socket\.(connect|connected|disconnect)(\.|$)/i.test(key)) return;
+    if (/^socket\.nudge\.visible$/i.test(key) || key === 'pageshow' || key === 'visible') return;
     var relevant =
       !key ||
       /ticket|mission|task|product|customer|call|service/.test(key) ||
@@ -365,7 +385,7 @@ class Component extends DCLogic {
     if (!relevant) return;
     var self = this;
     clearTimeout(this._rtCloseTimer);
-    this._rtCloseTimer = setTimeout(function () { self.boot(); }, 350);
+    this._rtCloseTimer = setTimeout(function () { self.boot({ silent: true }); }, 350);
   }
 
   scheduleBind(ms) {
@@ -413,31 +433,77 @@ class Component extends DCLogic {
     return raw;
   }
 
-  async boot() {
+  async boot(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    // Socket / LiveSync soft refresh must not interrupt submit or flash Loading…
+    if (silent && this.state.busy) return;
+    if (silent && this._ignoreRtUntil && Date.now() < this._ignoreRtUntil) return;
+
     var q = this.getQuery();
     var tid = String(q.get('ticket_id') || q.get('id') || '').trim();
     var name = String(q.get('name') || q.get('subject') || '').trim();
     var customer = String(q.get('customer') || '').trim();
     var forceView = q.get('view') === '1';
-    this._summaryDirty = false;
-    this._hasStroke = false;
-    this._sigDataUrl = '';
-    this._sigCanvas = null;
-    this.setState({
-      loading: true,
-      errorMsg: '',
-      ticketId: tid,
-      ticketName: name,
-      ticketSubject: name || '',
-      customerName: customer,
-      summary: ''
-    });
+    var hasUi = !this.state.loading && !!this.state.ticketId;
+
+    // Soft refresh while user is filling the form: only switch to view if ticket closed elsewhere
+    if (silent && hasUi && this.state.mode === 'form' && !forceView) {
+      try {
+        if (!tid) tid = this.state.ticketId;
+        var liveTicket = await this.fetchTicket(tid);
+        if (liveTicket && this.isClosed(liveTicket)) {
+          var media0 = this.extractMedia(liveTicket);
+          var subject0 = this.pickSubject(liveTicket, name || this.state.ticketSubject);
+          var workNote0 = this.parseWorkNoteFromMessages(liveTicket);
+          var spares0 = this.parseSparesFromMessages(liveTicket);
+          this.setState({
+            loading: false,
+            mode: 'view',
+            ticketSubject: subject0 || this.state.ticketSubject,
+            viewSummary: workNote0 || this.state.viewSummary || this.state.summary || this.t('No summary', 'אין סיכום'),
+            beforeUrl: media0.before || this.state.beforeUrl || this.state.beforeDataUrl || '',
+            afterUrl: media0.after || this.state.afterUrl || this.state.afterDataUrl || '',
+            signatureUrl: media0.signature || this.state.signatureUrl || '',
+            beforeDataUrl: media0.before || this.state.beforeDataUrl || '',
+            afterDataUrl: media0.after || this.state.afterDataUrl || '',
+            customerName: liveTicket.customer_name || liveTicket.joined_customer_name || liveTicket.name || this.state.customerName,
+            ticketName: name || subject0 || this.state.ticketName,
+            spares: (spares0 && spares0.length) ? spares0 : (this.state.spares || [])
+          });
+        }
+      } catch (eSoft) {
+        console.warn('[tech-call-close] silent form refresh failed', eSoft);
+      }
+      return;
+    }
+
+    if (!silent || !hasUi) {
+      this._summaryDirty = false;
+      this._hasStroke = false;
+      this._sigDataUrl = '';
+      this._sigCanvas = null;
+      this.setState({
+        loading: true,
+        errorMsg: '',
+        ticketId: tid,
+        ticketName: name,
+        ticketSubject: name || '',
+        customerName: customer,
+        summary: ''
+      });
+    } else if (tid && tid !== this.state.ticketId) {
+      this.setState({ ticketId: tid, errorMsg: '' });
+    }
+
     if (!tid) {
       this.setState({ loading: false, errorMsg: this.t('Ticket not found', 'טיקט לא נמצא') });
       return;
     }
     try {
-      await this.loadProducts();
+      if (!silent || !(this.state.products && this.state.products.length)) {
+        await this.loadProducts();
+      }
       var ticket = await this.fetchTicket(tid);
       if (ticket) {
         var closed = this.isClosed(ticket);
@@ -449,14 +515,14 @@ class Component extends DCLogic {
           this.setState({
             loading: false,
             mode: 'view',
-            summary: '',
+            summary: silent ? (this.state.summary || '') : '',
             ticketSubject: subject || name || ('#' + tid),
-            viewSummary: workNote || this.t('No summary', 'אין סיכום'),
-            beforeUrl: media.before || '',
-            afterUrl: media.after || '',
-            signatureUrl: media.signature || '',
-            beforeDataUrl: media.before || '',
-            afterDataUrl: media.after || '',
+            viewSummary: workNote || this.state.viewSummary || this.t('No summary', 'אין סיכום'),
+            beforeUrl: media.before || this.state.beforeUrl || '',
+            afterUrl: media.after || this.state.afterUrl || '',
+            signatureUrl: media.signature || this.state.signatureUrl || '',
+            beforeDataUrl: media.before || this.state.beforeDataUrl || '',
+            afterDataUrl: media.after || this.state.afterDataUrl || '',
             customerName: cust || customer,
             ticketName: name || subject || ('#' + tid),
             spares: this.parseSparesFromMessages(ticket)
@@ -465,26 +531,34 @@ class Component extends DCLogic {
           this.setState({
             loading: false,
             mode: 'form',
-            summary: '',
+            summary: silent ? (this.state.summary || '') : '',
             ticketSubject: subject || name || ('#' + tid),
             customerName: cust || customer,
             ticketName: name || subject || ('#' + tid)
           });
-          this.scheduleBind(80);
-          this.scheduleBind(300);
+          if (!silent) {
+            this.scheduleBind(80);
+            this.scheduleBind(300);
+          }
         }
       } else {
         this.setState({
           loading: false,
           mode: 'form',
-          summary: '',
+          summary: silent ? (this.state.summary || '') : '',
           ticketSubject: name || ('#' + tid),
           ticketName: name || ('#' + tid)
         });
-        this.scheduleBind(80);
-        this.scheduleBind(300);
+        if (!silent) {
+          this.scheduleBind(80);
+          this.scheduleBind(300);
+        }
       }
     } catch (e) {
+      if (silent && hasUi) {
+        console.warn('[tech-call-close] silent boot failed — keeping UI', e);
+        return;
+      }
       console.warn('[tech-call-close] boot failed', e);
       this.setState({
         loading: false,
@@ -979,6 +1053,8 @@ class Component extends DCLogic {
         beforeDataUrl: media.before,
         afterDataUrl: media.after
       });
+      // Ignore socket re-boots briefly after successful close (avoids Loading flicker)
+      this._ignoreRtUntil = Date.now() + 4000;
     } catch (e) {
       console.warn('[tech-call-close] submit failed', e);
       this.setState({

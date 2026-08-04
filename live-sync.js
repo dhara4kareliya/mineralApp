@@ -94,16 +94,35 @@
    * Register a page refresher the same way Biz1_task pages listen for
    * mineralbar:missions / mineralbar:realtime.
    *
-   *   LiveSync.bind(function (detail) { loadTickets(); }, {
+   * Callbacks always receive detail.soft / detail.silent = true so pages
+   * must NOT flash a Loading… spinner — keep current UI and swap data in place.
+   *
+   *   LiveSync.bind(function (detail) { loadTickets({ silent: true }); }, {
    *     keys: /ticket|mission|socket\.nudge/i,
    *     mount: '#schedTicketList',  // optional pulse target
    *     delay: 300,
-   *     retries: true
+   *     retries: true   // API-lag retries for real CRUD only (never for poll)
    *   });
    */
+  function softDetail(detail, extra) {
+    var d = {};
+    if (detail && typeof detail === 'object') {
+      Object.keys(detail).forEach(function (k) { d[k] = detail[k]; });
+    }
+    d.soft = true;
+    d.silent = true;
+    if (extra) Object.keys(extra).forEach(function (k) { d[k] = extra[k]; });
+    return d;
+  }
+
   function bind(fn, options) {
     options = options || {};
     if (typeof fn !== 'function') return function () {};
+
+    function invoke(detail, extra) {
+      try { fn(softDetail(detail, extra)); } catch (err) { console.warn('[LiveSync]', err); }
+    }
+
     if (!global.MineralBarApp || typeof MineralBarApp.bindLiveReload !== 'function') {
       // Fallback: direct listeners if app not ready yet
       var keyRe = options.keys || /ticket|mission|task|call|service|socket\.nudge/i;
@@ -117,11 +136,11 @@
         retries = [];
         var delays = shouldRetry(key, options) ? [300, 1000, 2500] : [options.delay != null ? options.delay : 350];
         timer = setTimeout(function () {
-          try { fn(detail || {}); } catch (err) { console.warn('[LiveSync]', err); }
+          invoke(detail || {});
           pulseMount(options.mount);
           delays.slice(1).forEach(function (ms) {
             retries.push(setTimeout(function () {
-              try { fn(detail || {}); } catch (e2) { /* ignore */ }
+              invoke(detail || {}, { retry: true });
             }, ms));
           });
         }, delays[0]);
@@ -133,13 +152,13 @@
     }
 
     return MineralBarApp.bindLiveReload(function (detail) {
-      try { fn(detail || {}); } catch (err) { console.warn('[LiveSync]', err); }
+      invoke(detail || {});
       pulseMount(options.mount);
-      // Extra API-lag retries for ticket/mission (biz1_ticket style)
+      // Extra API-lag retries for real CRUD only (never poll / reconnect nudges)
       var key = String((detail && detail.key) || '').toLowerCase();
       if (shouldRetry(key, options)) {
-        setTimeout(function () { try { fn(detail || {}); } catch (e1) { /* ignore */ } }, 1000);
-        setTimeout(function () { try { fn(detail || {}); } catch (e2) { /* ignore */ } }, 2500);
+        setTimeout(function () { invoke(detail || {}, { retry: true }); }, 1000);
+        setTimeout(function () { invoke(detail || {}, { retry: true }); }, 2500);
       }
     }, {
       keys: options.keys || /ticket|mission|task|call|service|socket\.nudge/i,
@@ -150,7 +169,10 @@
 
   function shouldRetry(key, options) {
     if (options && options.retries === false) return false;
-    return /ticket\.|mission\.(done|created|updated|deleted|reopened)|products?\.(created|updated|deleted)|categories\.|customer\.|lead\.|crm\.|message\.|chat\.|document\.|socket\.nudge/.test(String(key || ''));
+    key = String(key || '');
+    // Quiet poll / generic nudge must never multi-fire loaders (was causing 3–4 Loading flashes)
+    if (/socket\.nudge/i.test(key)) return false;
+    return /ticket\.|mission\.(done|created|updated|deleted|reopened)|products?\.(created|updated|deleted)|categories\.|customer\.|lead\.|crm\.|message\.|chat\.|document\./.test(key);
   }
 
   function pulseMount(mount) {
@@ -170,31 +192,20 @@
     }
   }
 
-  /** Quiet poll while connected — catches missed/incomplete payloads (biz1_ticket). */
+  /** Disabled: timer-based list refresh. Pages update only on real socket events. */
   function startPollFallback() {
-    if (pollTimer) return;
-    pollTimer = setInterval(function () {
-      if (!isAuth()) return;
-      if (global.document && global.document.hidden) return;
-      var st = global.MineralBarApp && MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
-      if (!(st && st.connected)) return;
-      // Skip if a real event landed recently
-      if (Date.now() - lastRealtimeAt < 10000) return;
-      if (typeof MineralBarApp.notifyLiveReload === 'function') {
-        MineralBarApp.notifyLiveReload({
-          group: 'other',
-          key: 'socket.nudge.poll',
-          event: { key: 'socket.nudge.poll', reason: 'poll' }
-        });
-      } else if (typeof MineralBarApp.nudgePagesAfterSocket === 'function') {
-        // not exported — use custom event
-        try {
-          global.dispatchEvent(new CustomEvent('mineralbar:realtime', {
-            detail: { group: 'other', key: 'socket.nudge.poll', event: { key: 'socket.nudge.poll' } }
-          }));
-        } catch (e) { /* ignore */ }
-      }
-    }, 12000);
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    // no-op — do not poll TeamHours / lists on an interval
+  }
+
+  function stopPollFallback() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
   }
 
   function ensureCss() {
@@ -217,14 +228,8 @@
       global.__mbLiveSyncBus = true;
       global.addEventListener('mineralbar:realtime', onRealtime);
       global.addEventListener('mineralbar:missions', onRealtime);
-      global.addEventListener('mineralbar:socket', function (ev) {
-        if (ev && ev.detail && ev.detail.type === 'ready') startPollFallback();
-      });
-      // If socket already ready
-      try {
-        var st = global.MineralBarApp && MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
-        if (st && (st.status === 'ready' || st.connected)) startPollFallback();
-      } catch (e0) { /* ignore */ }
+      // Do NOT start interval poll — refresh only on real socket events
+      stopPollFallback();
     }
   }
 

@@ -712,16 +712,39 @@
     var activeTab = document.body.getAttribute('data-active-tab');
     if (!role) return; // Do not render if no role is specified
 
+    // Keep phone shell as a column flex so footer can stick to the bottom
+    try {
+      var cs = window.getComputedStyle ? window.getComputedStyle(container) : null;
+      if (!cs || cs.display !== 'flex' || cs.flexDirection.indexOf('column') === -1) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+      }
+      if (!container.style.minHeight && !container.style.height) {
+        container.style.minHeight = '0';
+      }
+    } catch (eFlex) { /* ignore */ }
+
     var existingFooter = document.getElementById('common-app-footer');
     if (existingFooter && !container.contains(existingFooter)) {
       existingFooter.remove();
       existingFooter = null;
     }
-    if (existingFooter) return;
+    if (existingFooter) {
+      // Always keep footer as the last child (bottom of the phone screen)
+      if (existingFooter.parentNode === container && existingFooter !== container.lastElementChild) {
+        container.appendChild(existingFooter);
+      }
+      existingFooter.style.marginTop = 'auto';
+      existingFooter.style.flex = 'none';
+      existingFooter.style.position = 'relative';
+      existingFooter.style.zIndex = '40';
+      return;
+    }
 
     var footer = document.createElement('div');
     footer.id = 'common-app-footer';
-    footer.style.cssText = 'background:var(--bg-panel, #fff); border-top:1px solid var(--border-panel, #eceef1); padding:9px 6px 20px; display:flex; justify-content:space-around; align-items:flex-start; flex:none; direction:ltr; z-index:20;';
+    footer.className = 'common-bottom-nav';
+    footer.style.cssText = 'background:var(--bg-panel, #fff); border-top:1px solid var(--border-panel, #eceef1); padding:9px 6px 20px; display:flex; justify-content:space-around; align-items:flex-start; flex:none; margin-top:auto; position:relative; z-index:40; direction:ltr; width:100%; box-sizing:border-box;';
 
     function createTab(id, label, href, svgPath, colorClass, defaultColor, activeColor) {
       var isActive = (id === activeTab);
@@ -833,7 +856,82 @@
         } catch (err2) { /* ignore */ }
       }
     }
+
+    // Time clock tab: prefetch APIs first, then open page (no Loading… flash)
+    var clockNav = e.target.closest('a[href*="tech-time-clock"]');
+    if (clockNav) {
+      var clockPath = String(window.location.pathname || '').toLowerCase();
+      if (clockPath.indexOf('tech-time-clock') !== -1) {
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+      prefetchTimeClockThenGo(clockNav.getAttribute('href') || 'tech-time-clock.html');
+    }
   });
+
+  function pad2(n) {
+    return n < 10 ? '0' + n : '' + n;
+  }
+
+  function prefetchTimeClockThenGo(href) {
+    if (global.__mbClockNavBusy) return;
+    global.__mbClockNavBusy = true;
+    var tab = document.querySelector('#common-app-footer a[href*="tech-time-clock"]');
+    var prevOpacity = tab ? tab.style.opacity : '';
+    if (tab) {
+      tab.style.opacity = '0.45';
+      tab.style.pointerEvents = 'none';
+    }
+
+    function go() {
+      global.__mbClockNavBusy = false;
+      if (tab) {
+        tab.style.opacity = prevOpacity || '';
+        tab.style.pointerEvents = '';
+      }
+      window.location.href = href;
+    }
+
+    function failGo() {
+      try { sessionStorage.removeItem('mb_time_clock_boot'); } catch (e0) { /* ignore */ }
+      go();
+    }
+
+    var client = null;
+    try {
+      if (global.MineralBarApp && typeof global.MineralBarApp.getClient === 'function') {
+        client = global.MineralBarApp.getClient();
+      }
+    } catch (e1) { client = null; }
+
+    if (!client || typeof client.request !== 'function') {
+      failGo();
+      return;
+    }
+
+    var now = new Date();
+    var histFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    var fromHistory = histFrom.getFullYear() + '-' + pad2(histFrom.getMonth() + 1) + '-01';
+
+    Promise.all([
+      client.request('TeamHours.Get', {}),
+      client.request('TeamHours.List', { page: 1, limit: 200, from_date: fromHistory }),
+      client.request('TeamHours.WhenStop', {}).catch(function () { return null; })
+    ]).then(function (results) {
+      try {
+        sessionStorage.setItem('mb_time_clock_boot', JSON.stringify({
+          at: Date.now(),
+          statusRes: results[0],
+          listRes: results[1],
+          whenStop: results[2]
+        }));
+      } catch (e2) { /* quota / private mode */ }
+      go();
+    }).catch(function () {
+      failGo();
+    });
+  }
 
   // Initialization
   function initHeader() {

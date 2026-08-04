@@ -3,14 +3,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix16"></script>
-<script src="./biz1-app.js?v=socketfix16"></script>
-<script src="./page-boot.js?v=socketfix16"></script>
-<script src="./live-sync.js?v=socketfix16"></script>
-<link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body data-role="service" data-active-tab="inventory">
 <x-dc>
@@ -704,18 +709,18 @@ function scheduleInventoryRefresh(detail) {
     }));
   } catch (e0) { /* ignore */ }
 
-  // Products.List can lag behind products.updated — retry like tickets.
-  var delays = /products?\.(created|updated|deleted)|categories\.|socket\.nudge/.test(key)
+  // Products.List can lag behind products.updated — silent retries (no Loading flash).
+  var delays = /products?\.(created|updated|deleted)|categories\./.test(key)
     ? [300, 1000, 2500]
     : [400];
 
   window.__mbInventoryRtTimer = setTimeout(function () {
     var c = window.__mbInventoryComp;
-    if (c && typeof c.initData === 'function') c.initData();
+    if (c && typeof c.initData === 'function') c.initData({ silent: true });
     delays.slice(1).forEach(function (ms) {
       window.__mbInventoryRtRetries.push(setTimeout(function () {
         var c2 = window.__mbInventoryComp;
-        if (c2 && typeof c2.initData === 'function') c2.initData();
+        if (c2 && typeof c2.initData === 'function') c2.initData({ silent: true });
       }, ms));
     });
   }, delays[0]);

@@ -4,14 +4,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
-<script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-<link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body>
 <x-dc>
@@ -504,11 +509,11 @@ class Component extends DCLogic {
     this.loadData();
     window.addEventListener('mineralbar:ready', () => this.loadData());
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => this.loadData(), { retries: true, keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
+      LiveSync.bind(() => this.loadData({ silent: true }), { retries: true, keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
     } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.loadData(), { keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
+      MineralBarApp.bindLiveReload(() => this.loadData({ silent: true }), { keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
     }
-    window.addEventListener('mineralbar:page-refresh', () => this.loadData());
+    window.addEventListener('mineralbar:page-refresh', () => this.loadData({ silent: true }));
   }
 
   getCustomerId() {

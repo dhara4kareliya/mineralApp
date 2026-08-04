@@ -5,14 +5,19 @@
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
-  <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
-<script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
-<link rel="stylesheet" href="./common.css" />
+    <script src="./asset-version.js"></script>
+  <script>
+  mbScripts([
+    './support.js',
+    './biz1-sdk.js',
+    './biz1-app.js',
+    './page-boot.js',
+    './live-sync.js',
+    './i18n-translations.js',
+    './common-header-footer.js'
+  ]);
+  mbCss('./common.css');
+  </script>
   </head>
 
 <body data-role="service" data-active-tab="service">
@@ -412,7 +417,7 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
     }
 
     this.applyServiceDefaultFilter();
@@ -663,7 +668,6 @@ class Component extends DCLogic {
       return { label: getLabel ? getLabel(v) : v, pick: () => this.setFilter(key, v), ...this.chip(on) };
     });
     const isEn = typeof window !== 'undefined' && typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
-
 
     const isFiltOpen = st.ticketStatus === 'open';
     const isFiltClosed = st.ticketStatus === 'closed';

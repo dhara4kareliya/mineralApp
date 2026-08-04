@@ -10,7 +10,7 @@
   var _rtTasksTimer = null;
   var _rtTasksRetryTimers = [];
 
-  /** Mission.List can lag behind mission.done / created — debounce + short retries. */
+  /** Mission.List can lag behind mission.done / created — debounce + short retries (silent, no Loading flash). */
   function scheduleLiveTasksRefresh(detail) {
     detail = detail || {};
     var key = String(detail.key || '').toLowerCase();
@@ -21,15 +21,16 @@
     _rtTasksRetryTimers.forEach(clearTimeout);
     _rtTasksRetryTimers = [];
 
-    var delays = /mission\.(done|created|updated|deleted|reopened)|socket\.nudge/.test(key)
+    // Real mission CRUD → a couple of silent retries (API lag). Poll nudges → one silent refresh only.
+    var delays = /mission\.(done|created|updated|deleted|reopened)/.test(key)
       ? [350, 1100, 2600]
       : [400];
 
     _rtTasksTimer = setTimeout(function () {
-      loadTasks(currentFilterType);
+      loadTasks(currentFilterType, { silent: true });
       delays.slice(1).forEach(function (ms) {
         _rtTasksRetryTimers.push(setTimeout(function () {
-          loadTasks(currentFilterType);
+          loadTasks(currentFilterType, { silent: true });
         }, ms));
       });
     }, delays[0]);
@@ -452,10 +453,18 @@
     });
   }
 
-  async function loadTasks(typeParam) {
+  async function loadTasks(typeParam, opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var filterType = typeParam || currentFilterType || 'show_all_together_tasks';
     var totalEl = document.getElementById('mb-missions-total');
-    if (totalEl) totalEl.textContent = 'Loading…';
+    var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
+    var hasRows = !!(mount && mount.querySelector('.task-row-card'));
+
+    // Socket / soft refresh: keep current list + count visible — never flash "Loading…"
+    if (!silent || !hasRows) {
+      if (totalEl) totalEl.textContent = 'Loading…';
+    }
 
     try {
       var result = await MineralBarApp.listMissions({ type: filterType, length: 100, start: 0, draw: 1 });
@@ -496,7 +505,6 @@
         html = '<div style="text-align:center; padding:40px 20px; color:var(--text-sub); font-weight:600;">No tasks found.</div>';
       }
       
-      var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
       if (mount) {
         mount.innerHTML = html;
         
@@ -510,8 +518,11 @@
         });
       }
     } catch (err) {
+      if (silent && hasRows) {
+        console.warn('[MissionsLive] silent refresh failed — keeping list', err);
+        return;
+      }
       console.error(err);
-      var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
       if (mount) mount.innerHTML = '<div style="color:#c0392b; text-align:center; padding:20px;">Failed to load tasks.</div>';
     }
   }
@@ -581,7 +592,7 @@
       keys: /mission|task|ticket|socket\.nudge/i,
       mount: '#mb-live-missions',
       delay: 300,
-      retries: true
+      retries: false
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function (detail) {

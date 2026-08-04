@@ -303,14 +303,21 @@
     mock.setAttribute('aria-hidden', 'true');
   }
 
-  async function loadCustomer(mount) {
+  async function loadCustomer(mount, opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var kind = mount.kind;
     var loadId = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
     mount._activeLoadId = loadId;
 
     hideMock();
-    ensureLoaderKeyframes();
-    setMountHtml('', { loading: true });
+    var elNow = liveMountEl();
+    var hasCard = !!(elNow && elNow.innerHTML && elNow.innerHTML.trim() && !elNow.querySelector('.mb-customer-loader'));
+    // Soft refresh: keep current card visible — never flash loader
+    if (!silent || !hasCard) {
+      ensureLoaderKeyframes();
+      setMountHtml('', { loading: true });
+    }
 
     var customerId = qsParam();
     if (!customerId) {
@@ -321,6 +328,7 @@
     }
 
     if (!customerId) {
+      if (silent && hasCard) return;
       var back = kind === 'customer' ? 'customers.html' : 'leads-list.html';
       setMountHtml(
         '<div style="background:#fdf1dd;border:1px solid #f0e2c2;border-radius:14px;padding:14px;margin-bottom:14px;color:#7a5a18;font:700 13px/1.5 Heebo,sans-serif;">' +
@@ -345,6 +353,10 @@
       setMountHtml(renderCustomer(c, kind));
     } catch (err) {
       if (mount._activeLoadId !== loadId) return;
+      if (silent && hasCard) {
+        console.warn('[CustomerLive] silent refresh failed — keeping card', err);
+        return;
+      }
       console.error('[MineralBar] Customer.Get failed', err);
       setMountHtml(errorHtml(err));
       var btn = document.getElementById('mb-customer-retry');
@@ -364,16 +376,19 @@
     return { el: el, kind: kind };
   }
 
-  function start() {
+  function start(opts) {
+    opts = opts || {};
     hideMock();
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) {
-      ensureLoaderKeyframes();
-      setMountHtml('', { loading: true });
+      if (!opts.silent) {
+        ensureLoaderKeyframes();
+        setMountHtml('', { loading: true });
+      }
       return;
     }
     var mount = detectMount();
     if (!mount) return;
-    loadCustomer(mount);
+    loadCustomer(mount, opts);
   }
 
   function onLiveRefresh(ev) {
@@ -388,7 +403,9 @@
       group === 'unknown';
     if (!relevant) return;
     clearTimeout(window.__mbCustomerRtTimer);
-    window.__mbCustomerRtTimer = setTimeout(start, 150);
+    window.__mbCustomerRtTimer = setTimeout(function () {
+      start({ silent: true });
+    }, 150);
   }
 
   window.addEventListener('mineralbar:ready', start);
@@ -405,14 +422,14 @@
   }
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
-    LiveSync.bind(function () { start(); }, {
+    LiveSync.bind(function () { start({ silent: true }); }, {
       keys: /customer|lead|crm|reminder|socket\.nudge/i,
       mount: '#mb-live-customer',
       delay: 200,
       retries: true
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () { start(); }, { keys: /customer|lead|crm|reminder|socket\.nudge/i, delay: 180 });
+    MineralBarApp.bindLiveReload(function () { start({ silent: true }); }, { keys: /customer|lead|crm|reminder|socket\.nudge/i, delay: 180 });
   }
 
 })();

@@ -1,0 +1,255 @@
+[
+  {
+    "role": "sales",
+    "path": "sales-home.html",
+    "totalPosts": 4,
+    "counts": {
+      "Customer.Count": 1,
+      "Mission.Count": 1,
+      "Chat.Conversations": 1,
+      "Mission.List": 1
+    },
+    "mid": {
+      "Customer.Count": 1,
+      "Mission.Count": 1,
+      "Chat.Conversations": 1,
+      "Mission.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12626,
+    "status": "OK"
+  },
+  {
+    "role": "sales",
+    "path": "sales-tasks.html",
+    "totalPosts": 2,
+    "counts": {
+      "Customer.List": 1,
+      "Mission.List": 1
+    },
+    "mid": {
+      "Customer.List": 1,
+      "Mission.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12639,
+    "status": "OK"
+  },
+  {
+    "role": "sales",
+    "path": "customers.html",
+    "totalPosts": 1,
+    "counts": {
+      "Customer.List": 1
+    },
+    "mid": {
+      "Customer.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12706,
+    "status": "OK"
+  },
+  {
+    "role": "sales",
+    "path": "leads-list.html",
+    "totalPosts": 1,
+    "counts": {
+      "Customer.List": 1
+    },
+    "mid": {
+      "Customer.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12669,
+    "status": "OK"
+  },
+  {
+    "role": "sales",
+    "path": "calls-list.html",
+    "totalPosts": 1,
+    "counts": {
+      "Chat.Conversations": 1
+    },
+    "mid": {
+      "Chat.Conversations": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12610,
+    "status": "OK"
+  },
+  {
+    "role": "service",
+    "path": "service-all-calls.html?status=open",
+    "totalPosts": 1,
+    "counts": {
+      "Ticket.List": 1
+    },
+    "mid": {
+      "Ticket.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12602,
+    "status": "OK"
+  },
+  {
+    "role": "service",
+    "path": "service-inventory.html",
+    "totalPosts": 5,
+    "counts": {
+      "Products.List": 1,
+      "Categories.List": 1,
+      "Suppliers.List": 1,
+      "InvoiceSettings.List": 1,
+      "Storage.List": 1
+    },
+    "mid": {
+      "Products.List": 1,
+      "Categories.List": 1,
+      "Suppliers.List": 1,
+      "InvoiceSettings.List": 1,
+      "Storage.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12634,
+    "status": "OK"
+  },
+  {
+    "role": "service",
+    "path": "customers.html",
+    "totalPosts": 1,
+    "counts": {
+      "Customer.List": 1
+    },
+    "mid": {
+      "Customer.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12630,
+    "status": "OK"
+  },
+  {
+    "role": "service",
+    "path": "sales-tasks.html",
+    "totalPosts": 2,
+    "counts": {
+      "Customer.List": 1,
+      "Mission.List": 1
+    },
+    "mid": {
+      "Customer.List": 1,
+      "Mission.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12725,
+    "status": "OK"
+  },
+  {
+    "role": "service",
+    "path": "calls-list.html",
+    "totalPosts": 1,
+    "counts": {
+      "Chat.Conversations": 1
+    },
+    "mid": {
+      "Chat.Conversations": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12587,
+    "status": "OK"
+  },
+  {
+    "role": "tech",
+    "path": "tech-time-clock.html",
+    "totalPosts": 3,
+    "counts": {
+      "TeamHours.Get": 1,
+      "TeamHours.List": 1,
+      "TeamHours.WhenStop": 1
+    },
+    "mid": {
+      "TeamHours.Get": 1,
+      "TeamHours.List": 1,
+      "TeamHours.WhenStop": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12605,
+    "status": "OK"
+  },
+  {
+    "role": "tech",
+    "path": "tech-open-calls.html",
+    "totalPosts": 1,
+    "counts": {
+      "Ticket.List": 1
+    },
+    "mid": {
+      "Ticket.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12590,
+    "status": "OK"
+  },
+  {
+    "role": "tech",
+    "path": "tech-daily-schedule.html",
+    "totalPosts": 1,
+    "counts": {
+      "Ticket.List": 1
+    },
+    "mid": {
+      "Ticket.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12611,
+    "status": "OK"
+  },
+  {
+    "role": "tech",
+    "path": "tech-dashboard.html",
+    "totalPosts": 4,
+    "counts": {
+      "Documents.Count": 1,
+      "Documents.Sum": 1,
+      "Products.List": 1,
+      "TeamHours.List": 1
+    },
+    "mid": {
+      "Documents.Count": 1,
+      "Documents.Sum": 1,
+      "Products.List": 1,
+      "TeamHours.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12671,
+    "status": "OK"
+  },
+  {
+    "role": "tech",
+    "path": "service-all-calls.html?status=open",
+    "totalPosts": 1,
+    "counts": {
+      "Ticket.List": 1
+    },
+    "mid": {
+      "Ticket.List": 1
+    },
+    "burst": [],
+    "idleExtra": {},
+    "elapsedMs": 12600,
+    "status": "OK"
+  }
+]

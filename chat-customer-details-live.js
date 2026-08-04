@@ -535,12 +535,20 @@
     }
   }
 
-  async function loadCustomerDetails() {
+  async function loadCustomerDetails(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var loading = document.getElementById('details-loading');
     var content = document.getElementById('details-content');
     if (!currentCustomerId) {
-      if (loading) loading.textContent = t('missingId');
+      if (loading && !silent) loading.textContent = t('missingId');
       return;
+    }
+
+    // Soft refresh: keep card visible — never re-show the loading panel
+    if (!silent) {
+      if (loading) loading.style.display = 'flex';
+      if (content) content.style.display = 'none';
     }
 
     try {
@@ -579,8 +587,15 @@
       if (content) content.style.display = 'flex';
 
     } catch (err) {
+      if (silent && content && content.style.display !== 'none') {
+        console.warn('[DetailsLive] silent refresh failed — keeping card', err);
+        return;
+      }
       console.error('[DetailsLive] getCustomer failed', err);
-      if (loading) loading.textContent = t('errorLoading') + err.message;
+      if (loading) {
+        loading.style.display = 'flex';
+        loading.textContent = t('errorLoading') + err.message;
+      }
     }
   }
 
@@ -616,7 +631,7 @@
     clearTimeout(window.__mbCustDetailsRtTimer);
     window.__mbCustDetailsRtTimer = setTimeout(function () {
       if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-      loadCustomerDetails();
+      loadCustomerDetails({ silent: true });
     }, 400);
   }
 
@@ -638,7 +653,7 @@
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
     LiveSync.bind(function () {
       if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-      loadCustomerDetails();
+      loadCustomerDetails({ silent: true });
     }, {
       keys: /customer|lead|crm|mission|ticket|message|chat|reminder|document|socket\.nudge/i,
       delay: 300,
@@ -647,7 +662,7 @@
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
       if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-      loadCustomerDetails();
+      loadCustomerDetails({ silent: true });
     }, { keys: /customer|lead|crm|mission|ticket|message|chat|reminder|document|socket\.nudge/i, delay: 400 });
   }
 

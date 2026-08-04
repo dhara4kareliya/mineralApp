@@ -181,6 +181,100 @@
     return null;
   }
 
+  /** Currently selected folder chip — survives socket soft-refresh / DC remount. */
+  function getActiveFolderId(mount) {
+    if (window.__mbActiveFolderId != null && window.__mbActiveFolderId !== '') {
+      return String(window.__mbActiveFolderId);
+    }
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer) {
+      var fromBar = chipContainer.getAttribute('data-active-folder');
+      if (fromBar != null && fromBar !== '') return String(fromBar);
+      var activeChip = chipContainer.querySelector('.mb-cust-chip[data-active="1"], .mb-folder-tab[data-active="1"]');
+      if (activeChip) {
+        var fid = activeChip.getAttribute('data-folder-id') || activeChip.getAttribute('data-chip-id');
+        if (fid != null && fid !== '') return String(fid);
+      }
+    }
+    var list = (mount && mount.el) || document.getElementById('mb-live-list');
+    if (list) {
+      var df = list.getAttribute('data-folder');
+      if (df != null && df !== '') return String(df);
+    }
+    return mount && mount.folderId != null ? String(mount.folderId) : '0';
+  }
+
+  function setActiveFolderId(folderId) {
+    var id = folderId == null || folderId === '' ? '0' : String(folderId);
+    window.__mbActiveFolderId = id;
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer) chipContainer.setAttribute('data-active-folder', id);
+    var list = document.getElementById('mb-live-list');
+    if (list) list.setAttribute('data-folder', id);
+  }
+
+  function syncChipActiveStyles(activeId) {
+    activeId = String(activeId == null ? '0' : activeId);
+    var chips = document.querySelectorAll('.mb-cust-chip, .mb-folder-tab');
+    chips.forEach(function (c) {
+      var fid = c.getAttribute('data-folder-id') || c.getAttribute('data-chip-id');
+      // Customers "all" (0): no chip highlighted. Leads folder 1+: highlight match.
+      var isThis = String(fid) === activeId && !(kindIsCustomersPage() && activeId === '0');
+      c.setAttribute('data-active', isThis ? '1' : '0');
+      c.style.background = isThis ? '#eff6ff' : '#f8fafc';
+      c.style.color = isThis ? '#1d4ed8' : '#475569';
+      c.style.border = isThis ? '1.5px solid #3b82f6' : '1.5px solid #e2e8f0';
+      c.style.fontWeight = isThis ? '800' : '700';
+    });
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer) chipContainer.setAttribute('data-active-folder', activeId);
+  }
+
+  /** Currently selected folder chip — survives socket refresh + DC remount. */
+  function getActiveFolderId(mount) {
+    mount = mount || detectMount();
+    if (window.__mbListActiveFolder != null && window.__mbListActiveFolder !== '') {
+      return String(window.__mbListActiveFolder);
+    }
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer) {
+      var fromAttr = chipContainer.getAttribute('data-active-folder');
+      if (fromAttr != null && fromAttr !== '') return String(fromAttr);
+      var activeChip = chipContainer.querySelector('.mb-cust-chip[data-active="1"], .mb-folder-tab[data-active="1"]');
+      if (activeChip) {
+        var fid = activeChip.getAttribute('data-folder-id') || activeChip.getAttribute('data-chip-id');
+        if (fid != null && fid !== '') return String(fid);
+      }
+    }
+    if (mount && mount.el) {
+      var listFolder = mount.el.getAttribute('data-folder');
+      if (listFolder != null && listFolder !== '') return String(listFolder);
+    }
+    if (mount && mount.folderId != null) return String(mount.folderId);
+    return kindIsCustomersPage() ? '0' : '1';
+  }
+
+  function setActiveFolderId(folderId) {
+    var id = String(folderId == null ? '' : folderId);
+    if (id === '' || id === 'all' || id === 'null') id = kindIsCustomersPage() ? '0' : '1';
+    window.__mbListActiveFolder = id;
+    try {
+      sessionStorage.setItem('mb_list_active_folder', id);
+    } catch (e) { /* ignore */ }
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer) chipContainer.setAttribute('data-active-folder', id);
+    var list = document.getElementById('mb-live-list');
+    if (list) list.setAttribute('data-folder', id);
+  }
+
+  function restoreActiveFolderFromSession() {
+    if (window.__mbListActiveFolder != null && window.__mbListActiveFolder !== '') return;
+    try {
+      var saved = sessionStorage.getItem('mb_list_active_folder');
+      if (saved != null && saved !== '') window.__mbListActiveFolder = String(saved);
+    } catch (e) { /* ignore */ }
+  }
+
   async function loadList(mount, explicitFolderId, opts) {
     opts = opts || {};
     var silent = !!opts.silent;
@@ -246,6 +340,7 @@
       el.innerHTML = html;
       applyClientFilters(el);
       bindClientFilters(el);
+      syncChipActiveStyles(getActiveFolderId(mount));
       return;
     } catch (err) {
       lastErr = err;
@@ -298,7 +393,12 @@
 
     var totalEl = document.getElementById('mb-total-label');
     if (totalEl) {
-      totalEl.textContent = visibleCount + ' customers';
+      var isEnVis = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+      var kindEl = document.getElementById('mb-live-list');
+      var kindVis = (kindEl && kindEl.getAttribute('data-kind')) || 'customers';
+      totalEl.textContent = visibleCount + (kindVis === 'leads'
+        ? (isEnVis ? ' leads' : ' לידים')
+        : (isEnVis ? ' customers' : ' לקוחות'));
     }
   }
 
@@ -397,8 +497,12 @@
     var chipContainer = document.getElementById('mb-customer-filter-chips') || document.querySelector('.dc-scroll');
     if (chipContainer && !chipContainer.dataset.rendered) {
       chipContainer.dataset.rendered = '1';
-      var initialFolder = chipContainer.getAttribute('data-active-folder');
-      if (initialFolder == null || initialFolder === '') initialFolder = '0';
+      var initialFolder = window.__mbActiveFolderId;
+      if (initialFolder == null || initialFolder === '') {
+        initialFolder = chipContainer.getAttribute('data-active-folder');
+      }
+      if (initialFolder == null || initialFolder === '') initialFolder = kindIsCustomersPage() ? '0' : '1';
+      setActiveFolderId(initialFolder);
       renderFolderFilterBar(chipContainer, initialFolder);
 
       // Make it mouse-draggable on desktop
@@ -450,6 +554,7 @@
           nextActiveId = selectedFid;
         }
         if (chipContainer) chipContainer.setAttribute('data-active-folder', String(nextActiveId || '0'));
+        setActiveFolderId(nextActiveId);
 
         chips.forEach(function(c) {
           var fid = c.getAttribute('data-folder-id') || c.getAttribute('data-chip-id');
@@ -477,7 +582,9 @@
     // Initial load only — later updates come from socket partial patches
     if (mount.el.getAttribute('data-initial-loaded') === '1') return;
     mount.el.setAttribute('data-initial-loaded', '1');
-    loadList(mount, mount.folderId);
+    var folder = getActiveFolderId(mount);
+    setActiveFolderId(folder);
+    loadList(mount, folder);
   }
 
   function watchForListRemount() {
@@ -574,9 +681,11 @@
       if (!mount) return;
       var why = _fullRefreshPendingReason;
       _fullRefreshPendingReason = '';
-      loadList(mount, mount.folderId, { silent: true });
+      var folder = getActiveFolderId(mount);
+      loadList(mount, folder, { silent: true });
+      syncChipActiveStyles(folder);
       if (window.Biz1Pulse) window.Biz1Pulse(mount.el);
-      console.log('[ListLive] silent refresh', why);
+      console.log('[ListLive] silent refresh', why, 'folder=' + folder);
     }, 180);
   }
 
@@ -586,8 +695,9 @@
     var mount = detectMount();
     if (!mount) return;
     var kind = mount.kind || 'customers';
+    var activeFolder = getActiveFolderId(mount);
 
-    // Poll / reconnect catch-up → always full REST re-fetch (biz1_ticket pattern)
+    // Poll / reconnect / any filtered view → full REST re-fetch WITH current folder
     if (/socket\.nudge/.test(key)) {
       fullListRefresh(key);
       return;
@@ -603,14 +713,21 @@
       return;
     }
 
+    // Folder filter active → never patch raw list (would break filter); silent re-fetch
+    var folderFiltered = kind === 'leads'
+      ? (activeFolder !== '' && activeFolder != null)
+      : (activeFolder && activeFolder !== '0' && activeFolder !== 'all');
+    if (folderFiltered) {
+      fullListRefresh(key || 'folder-filter');
+      return;
+    }
+
     if (!c || !c.id) {
-      // Payload incomplete — same as ticket live: re-fetch list from API
       console.warn('[ListLive] socket payload incomplete — full list refresh', key);
       fullListRefresh(key);
       return;
     }
 
-    // created / updated / restored / followup → upsert only that card
     upsertCustomerCard(c, kind);
     if (window.Biz1Pulse) window.Biz1Pulse(mount.el);
   }

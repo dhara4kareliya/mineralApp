@@ -26,8 +26,16 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; background: #e6e8ec; }
@@ -37,15 +45,11 @@
   .hidden { display: none !important; }
   .btn:disabled { opacity: .65; cursor: wait; }
 </style>
-<link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
 </head>
 <body>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
 <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
 <div data-screen-label="connection" class="screen-card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
-
 
 <div style="background:linear-gradient(165deg,#1d60a2 0%,#16223a 100%); padding:36px 22px 42px; flex:none; text-align:center; color:#fff; position:relative; overflow:hidden;">
 <div style="position:absolute; top:-40px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.06);"></div>

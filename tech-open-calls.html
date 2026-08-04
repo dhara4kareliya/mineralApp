@@ -4,14 +4,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix15"></script>
-<script src="./biz1-app.js?v=socketfix15"></script>
-<script src="./page-boot.js?v=socketfix15"></script>
-<script src="./live-sync.js?v=socketfix15"></script>
-<script src="./i18n-translations.js?v=hefull2"></script>
-<script src="./common-header-footer.js"></script>
-<link rel="stylesheet" href="./common.css"/>
+<script src="./asset-version.js"></script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
 </head>
 <body data-role="tech" data-active-tab="open_calls">
 <x-dc>
@@ -179,20 +184,31 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => this.initData({ silent: true }), {
+        retries: false,
+        keys: /ticket|mission|task|call|service/i,
+        delay: 350
+      });
+    } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.initData({ silent: true }), {
+        keys: /ticket|mission|task|call|service/i,
+        delay: 350
+      });
     }
 
+    this._booted = false;
     this.initData();
-    window.addEventListener('mineralbar:ready', () => {
+    window.addEventListener('mineralbar:ready', (ev) => {
+      if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+      if (this._booted) {
+        this.initData({ silent: true });
+        return;
+      }
       this.initData();
     });
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.initData(), { keys: /ticket|mission|task|call|service|socket\.nudge/i, delay: 350 });
-    }
     window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:realtime', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
-    window.addEventListener('pageshow', () => this.initData());
     var self = this;
     document.addEventListener('click', function (e) {
       if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
@@ -210,53 +226,54 @@ class Component extends DCLogic {
     var detail = (ev && ev.detail) || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
-    if (/^socket\.nudge\.visible$/i.test(key) || key === 'pageshow' || key === 'visible') return;
+    if (/^socket\.(connect|connected|disconnect|nudge)/i.test(key)) return;
+    if (key === 'pageshow' || key === 'visible') return;
     var relevant =
-      !key ||
-      /ticket|mission|task|call|service|appointment|reminder|nudge/.test(key) ||
+      /ticket|mission|task|call|service|appointment|reminder/.test(key) ||
       group === 'missions' ||
-      group === 'other' ||
-      group === 'unknown';
+      group === 'other';
     if (!relevant) return;
     clearTimeout(this._rtTicketsTimer);
     var self = this;
-    var delays = /ticket\.created|nudge/.test(key) ? [250, 900, 2200] : [350];
     this._rtTicketsTimer = setTimeout(function () {
-      self.initData();
-      delays.slice(1).forEach(function (ms) {
-        setTimeout(function () { self.initData(); }, ms);
-      });
-    }, delays[0]);
+      self.initData({ silent: true });
+    }, 350);
   }
 
-  async initData() {
+  async initData(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    if (this._ticketsInFlight) {
+      this._ticketsQueued = { silent: silent && !(this._ticketsQueued && this._ticketsQueued.silent === false) };
+      return this._ticketsInFlight;
+    }
     if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
-      try {
-        var client = MineralBarApp.getClient();
-        var res = await client.request('Ticket.List', { limit: 25 });
-        var data = res && (res.data || res.output || res);
-        var self = this;
+      var self = this;
+      this._ticketsInFlight = (async function () {
+        try {
+          var client = MineralBarApp.getClient();
+          var res = await client.request('Ticket.List', { limit: 25 });
+          var data = res && (res.data || res.output || res);
+          if (Array.isArray(data) && data.length > 0) {
+            var openTickets = [];
+            data.forEach(function(item) {
+              var lastMsg = '';
+              if (Array.isArray(item.messages) && item.messages.length > 0) {
+                lastMsg = item.messages[item.messages.length - 1].message || '';
+              } else if (typeof item.messages === 'string') {
+                lastMsg = item.messages;
+              } else if (item.message) {
+                lastMsg = item.message;
+              }
 
-        if (Array.isArray(data) && data.length > 0) {
-          var openTickets = [];
-          data.forEach(function(item) {
-            var lastMsg = '';
-            if (Array.isArray(item.messages) && item.messages.length > 0) {
-              lastMsg = item.messages[item.messages.length - 1].message || '';
-            } else if (typeof item.messages === 'string') {
-              lastMsg = item.messages;
-            } else if (item.message) {
-              lastMsg = item.message;
-            }
+              var closed = self.isTicketClosed(item, lastMsg);
+              if (closed) return;
 
-            var closed = self.isTicketClosed(item, lastMsg);
-            if (closed) return;
+              var st = String(item.status || '').toLowerCase();
 
-            var st = String(item.status || '').toLowerCase();
+              var name = item.subject || '';
 
-            var name = item.subject || '';
-
-            var address = item.address;
+              var address = item.address;
             if (!address || address === 'null') {
               address = (item.city_id && item.city_id !== 'undefined') ? item.city_id : '';
             }
@@ -297,11 +314,21 @@ class Component extends DCLogic {
             });
           });
 
-          this.setState({ calls: openTickets });
+            self.setState({ calls: openTickets });
+          }
+          self._booted = true;
+        } catch (err) {
+          console.warn('[MineralBar] failed to load tickets', err);
+        } finally {
+          self._ticketsInFlight = null;
+          var queued = self._ticketsQueued;
+          self._ticketsQueued = null;
+          if (queued) {
+            return self.initData(queued);
+          }
         }
-      } catch (err) {
-        console.warn('[MineralBar] failed to load tickets', err);
-      }
+      })();
+      return this._ticketsInFlight;
     }
   }
 
