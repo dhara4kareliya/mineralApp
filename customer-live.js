@@ -13,8 +13,14 @@
       .replace(/"/g, '&quot;');
   }
 
+  function t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
+    return lang === 'en' ? en : he;
+  }
+
   function apiErrorText(err) {
-    if (!err) return 'שגיאת API לא ידועה';
+    if (!err) return t('Unknown API error', 'שגיאת API לא ידועה');
     var parts = [];
     if (err.message) parts.push(String(err.message).replace(/<[^>]+>/g, ' ').trim());
     if (err.route) parts.push('route: ' + err.route);
@@ -95,13 +101,17 @@
   function statusMeta(c, kind) {
     var st = String(c.status != null ? c.status : (c.c_status != null ? c.c_status : ''));
     if (kind === 'customer') {
-      return { label: Number(st) === 1 || st === '1' ? 'פעיל' : ('סטטוס ' + (st || '—')), bg: '#e6f4ec', color: '#2e8a63' };
+      return {
+        label: Number(st) === 1 || st === '1' ? t('Active', 'פעיל') : (t('Status', 'סטטוס') + ' ' + (st || '—')),
+        bg: '#e6f4ec',
+        color: '#2e8a63'
+      };
     }
     var map = {
-      '1': { label: 'ליד חדש', bg: '#eaf2fb', color: '#1d60a2' },
-      '0': { label: 'לא פעיל', bg: '#f1f3f6', color: '#5a6473' }
+      '1': { label: t('New lead', 'ליד חדש'), bg: '#eaf2fb', color: '#1d60a2' },
+      '0': { label: t('Inactive', 'לא פעיל'), bg: '#f1f3f6', color: '#5a6473' }
     };
-    return map[st] || { label: st ? ('סטטוס ' + st) : 'ליד', bg: '#eaf2fb', color: '#1d60a2' };
+    return map[st] || { label: st ? (t('Status', 'סטטוס') + ' ' + st) : t('Lead', 'ליד'), bg: '#eaf2fb', color: '#1d60a2' };
   }
 
   function fmtDate(v) {
@@ -118,21 +128,63 @@
 
   function loadingHtml() {
     return (
-      '<div style="text-align:center;padding:28px 12px;">' +
-      '<div style="font-size:14px;font-weight:700;color:#8a93a3;">טוען כרטיס…</div>' +
-      '<div style="font-size:12px;color:#b6bdc8;margin-top:6px;">Customer.Get</div>' +
+      '<div class="mb-customer-loader" data-no-i18n="true" style="text-align:center;padding:48px 16px;">' +
+      '<div class="mb-customer-loader__spin" style="width:36px;height:36px;margin:0 auto 14px;border-radius:50%;border:3px solid #d7dde6;border-top-color:#1d60a2;animation:mb-spin .7s linear infinite;"></div>' +
+      '<div class="mb-customer-loader__title" style="font-size:14px;font-weight:700;color:#8a93a3;">טוען כרטיס…</div>' +
+      '<div class="mb-customer-loader__sub" style="font-size:12px;color:#b6bdc8;margin-top:6px;">Customer.Get</div>' +
       '</div>'
     );
+  }
+
+  function ensureLoaderKeyframes() {
+    if (document.getElementById('mb-customer-loader-style')) return;
+    var style = document.createElement('style');
+    style.id = 'mb-customer-loader-style';
+    style.textContent = '@keyframes mb-spin{to{transform:rotate(360deg)}}';
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function liveMountEl() {
+    return document.getElementById('mb-live-customer');
+  }
+
+  function setPageLoading(isLoading) {
+    var banner = document.getElementById('mb-customer-loading');
+    if (!banner) return;
+    // CSS also hides this when #mb-live-customer is non-empty.
+    if (isLoading) {
+      banner.style.display = '';
+      banner.removeAttribute('hidden');
+    } else {
+      banner.style.display = 'none';
+      banner.setAttribute('hidden', '');
+    }
+  }
+
+  function setMountHtml(html, opts) {
+    var el = liveMountEl();
+    if (!el || !el.isConnected) return null;
+    var loading = !!(opts && opts.loading);
+    if (loading) {
+      // Keep React-owned mount empty during load; page banner shows spinner.
+      el.innerHTML = '';
+      setPageLoading(true);
+    } else {
+      el.innerHTML = html || '';
+      setPageLoading(false);
+    }
+    return el;
   }
 
   function errorHtml(err) {
     return (
       '<div style="background:#fbeeed;border:1px solid #f0c9c4;border-radius:14px;padding:14px;margin-bottom:14px;">' +
-      '<div style="font-size:14px;font-weight:800;color:#c0392b;margin-bottom:8px;">שגיאת API</div>' +
+      '<div style="font-size:14px;font-weight:800;color:#c0392b;margin-bottom:8px;">' + esc(t('API error', 'שגיאת API')) + '</div>' +
       '<pre style="margin:0;white-space:pre-wrap;word-break:break-word;font:600 11.5px/1.5 Heebo,monospace;color:#7a2e28;">' +
       esc(apiErrorText(err)) +
       '</pre>' +
-      '<button type="button" id="mb-customer-retry" style="margin-top:12px;padding:9px 14px;border:none;border-radius:10px;background:#c0392b;color:#fff;font:800 13px Heebo,sans-serif;cursor:pointer;">נסה שוב</button>' +
+      '<button type="button" id="mb-customer-retry" style="margin-top:12px;padding:9px 14px;border:none;border-radius:10px;background:#c0392b;color:#fff;font:800 13px Heebo,sans-serif;cursor:pointer;">' +
+      esc(t('Try again', 'נסה שוב')) + '</button>' +
       '</div>'
     );
   }
@@ -174,13 +226,13 @@
       (city ? '&city=' + encodeURIComponent(city) : '');
 
     var rows = [];
-    if (phone) rows.push({ label: 'טלפון', value: phone, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"/></svg>' });
-    if (email) rows.push({ label: 'אימייל', value: email, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6.5 9 6 9-6"/></svg>' });
-    if (company) rows.push({ label: 'חברה', value: company, icon: '' });
-    if (source) rows.push({ label: 'מקור', value: source, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18"/></svg>' });
-    if (city || address) rows.push({ label: 'כתובת', value: [address, city].filter(Boolean).join(' · '), icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>' });
-    if (created) rows.push({ label: 'נוצר', value: created, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>' });
-    rows.push({ label: 'מזהה', value: String(id), icon: '' });
+    if (phone) rows.push({ label: t('Phone', 'טלפון'), value: phone, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"/></svg>' });
+    if (email) rows.push({ label: t('Email', 'אימייל'), value: email, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6.5 9 6 9-6"/></svg>' });
+    if (company) rows.push({ label: t('Company', 'חברה'), value: company, icon: '' });
+    if (source) rows.push({ label: t('Source', 'מקור'), value: source, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18"/></svg>' });
+    if (city || address) rows.push({ label: t('Address', 'כתובת'), value: [address, city].filter(Boolean).join(' · '), icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>' });
+    if (created) rows.push({ label: t('Created', 'נוצר'), value: created, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>' });
+    rows.push({ label: t('ID', 'מזהה'), value: String(id), icon: '' });
 
     var detailsHtml = rows.map(function (r, i) {
       return detailRow(r.label, r.value, r.icon, i === rows.length - 1);
@@ -195,7 +247,7 @@
       '<span style="width:6px;height:6px;border-radius:50%;background:' + st.color + ';"></span>' + esc(st.label) +
       '</span></div>' +
       '<div style="font-size:12px;color:#9aa3b0;font-weight:600;margin-top:5px;">' +
-      esc(kind === 'lead' ? 'ליד' : 'לקוח') + ' · #' + esc(id) +
+      esc(kind === 'lead' ? t('Lead', 'ליד') : t('Customer', 'לקוח')) + ' · #' + esc(id) +
       '</div></div>' +
       '<div style="width:54px;height:54px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none;">' +
       esc(av) + '</div></div>' +
@@ -206,17 +258,17 @@
 
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">' +
       (phoneRaw
-        ? '<a href="' + esc(telHref(phoneRaw)) + '" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="#2e8a63"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">חיוג</span></a>'
+        ? '<a href="' + esc(telHref(phoneRaw)) + '" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="#2e8a63"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">' + esc(t('Call', 'חיוג')) + '</span></a>'
         : '') +
       (phoneRaw
-        ? '<a href="' + esc(waHref(phoneRaw)) + '" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="#25b35e"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">וואטסאפ</span></a>'
+        ? '<a href="' + esc(waHref(phoneRaw)) + '" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="#25b35e"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">' + esc(t('WhatsApp', 'וואטסאפ')) + '</span></a>'
         : '') +
-      '<a href="' + esc(chatUrl) + '" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">צ׳אט</span></a>' +
-      '<a href="' + esc(missionUrl) + '" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M12 8v8M8 12h8"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">צור משימה</span></a>' +
+      '<a href="' + esc(chatUrl) + '" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">' + esc(t('Chat', 'צ׳אט')) + '</span></a>' +
+      '<a href="' + esc(missionUrl) + '" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.04);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M12 8v8M8 12h8"/></svg><span style="font-size:12px;font-weight:700;color:#1f2a3a;">' + esc(t('Create task', 'צור משימה')) + '</span></a>' +
       '</div>' +
 
       (notes
-        ? '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">הערות</div>' +
+        ? '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">' + esc(t('Notes', 'הערות')) + '</div>' +
           '<div style="background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:18px;">' +
           '<div style="font-size:13.5px;color:#3a4452;line-height:1.6;white-space:pre-wrap;">' + esc(notes) + '</div></div>'
         : '')
@@ -245,27 +297,36 @@
 
   function hideMock() {
     var mock = document.getElementById('mb-mock-customer');
-    if (mock) mock.style.display = 'none';
+    if (!mock) return;
+    mock.style.display = 'none';
+    mock.setAttribute('hidden', '');
+    mock.setAttribute('aria-hidden', 'true');
   }
 
   async function loadCustomer(mount) {
-    var el = mount.el;
     var kind = mount.kind;
-    var customerId = qsParam();
-    el.innerHTML = loadingHtml();
+    var loadId = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
+    mount._activeLoadId = loadId;
 
+    hideMock();
+    ensureLoaderKeyframes();
+    setMountHtml('', { loading: true });
+
+    var customerId = qsParam();
     if (!customerId) {
-      // DC / soft nav can leave search empty for a moment — retry once
-      await new Promise(function (r) { setTimeout(r, 200); });
+      // DC / soft nav can leave search empty briefly — short retry only
+      await new Promise(function (r) { setTimeout(r, 80); });
+      if (mount._activeLoadId !== loadId) return;
       customerId = qsParam();
     }
 
     if (!customerId) {
       var back = kind === 'customer' ? 'customers.html' : 'leads-list.html';
-      el.innerHTML =
+      setMountHtml(
         '<div style="background:#fdf1dd;border:1px solid #f0e2c2;border-radius:14px;padding:14px;margin-bottom:14px;color:#7a5a18;font:700 13px/1.5 Heebo,sans-serif;">' +
         'חסר customer_id בכתובת<br><span style="font-weight:600;color:#9a7a38;">פתחו לקוח מהרשימה (הקישור חייב לכלול ?customer_id=…)</span></div>' +
-        '<a href="' + back + '" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#1d60a2;color:#fff;font:800 13px Heebo,sans-serif;text-decoration:none;">חזרה לרשימה</a>';
+        '<a href="' + back + '" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#1d60a2;color:#fff;font:800 13px Heebo,sans-serif;text-decoration:none;">חזרה לרשימה</a>'
+      );
       return;
     }
 
@@ -273,37 +334,43 @@
 
     try {
       var res = await MineralBarApp.getCustomer(customerId);
-      
-      // Get fresh reference in case DCLogic re-rendered the template while waiting
-      el = document.getElementById('mb-live-customer') || el;
-      
+      if (mount._activeLoadId !== loadId) return;
+
       var c = res.customer || {};
       // if API nested further
       if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) c = c.data;
       rememberCustomerId(c.customer_id || c.id || customerId);
       hideMock();
       publishCustomer(c, kind);
-      el.innerHTML = renderCustomer(c, kind);
+      setMountHtml(renderCustomer(c, kind));
     } catch (err) {
+      if (mount._activeLoadId !== loadId) return;
       console.error('[MineralBar] Customer.Get failed', err);
-      el.innerHTML = errorHtml(err);
+      setMountHtml(errorHtml(err));
       var btn = document.getElementById('mb-customer-retry');
       if (btn) btn.addEventListener('click', function () { loadCustomer(mount); });
     }
   }
 
   function detectMount() {
-    var el = document.getElementById('mb-live-customer');
+    var el = liveMountEl();
     if (!el) return null;
     var kind = el.getAttribute('data-kind') || 'lead';
     var path = decodeURIComponent((location.pathname || '') + (location.href || ''));
     if (path.indexOf('כרטיס לקוח') !== -1) kind = 'customer';
     if (path.indexOf('כרטיס ליד') !== -1) kind = 'lead';
+    if (/customer-card|service-customer-card/i.test(path)) kind = 'customer';
+    if (/lead-card/i.test(path)) kind = 'lead';
     return { el: el, kind: kind };
   }
 
   function start() {
-    if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
+    hideMock();
+    if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) {
+      ensureLoaderKeyframes();
+      setMountHtml('', { loading: true });
+      return;
+    }
     var mount = detectMount();
     if (!mount) return;
     loadCustomer(mount);
@@ -321,22 +388,24 @@
       group === 'unknown';
     if (!relevant) return;
     clearTimeout(window.__mbCustomerRtTimer);
-    window.__mbCustomerRtTimer = setTimeout(start, 350);
+    window.__mbCustomerRtTimer = setTimeout(start, 150);
   }
 
   window.addEventListener('mineralbar:ready', start);
+  window.addEventListener('mineralbar:language-changed', start);
   window.addEventListener('mineralbar:page-refresh', onLiveRefresh);
   window.addEventListener('mineralbar:realtime', onLiveRefresh);
   window.addEventListener('mineralbar:leads', onLiveRefresh);
-  window.addEventListener('pageshow', start);
+  // No pageshow re-fetch — app resume updates come from socket only.
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 50); });
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 20); });
   } else {
-    setTimeout(start, 50);
+    setTimeout(start, 20);
   }
 
   if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () { start(); }, { keys: /customer|lead|crm|reminder|socket\.nudge/i, delay: 400 });
+    MineralBarApp.bindLiveReload(function () { start(); }, { keys: /customer|lead|crm|reminder/i, delay: 180 });
   }
 
 })();

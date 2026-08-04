@@ -259,8 +259,11 @@
     if (!eventId) return true; // allow events without id
     var next = Number(eventId);
     if (!next || Number.isNaN(next)) return true;
-    if (next <= this.lastEventId()) return false; // duplicate
-    this.storage.setItem(LAST_EVENT_ID_KEY, String(next));
+    var last = this.lastEventId();
+    // Only skip exact redelivery of the same id. A "watermark" (<= last) check
+    // was dropping live add/edit/delete when ids arrived out of order.
+    if (next === last) return false;
+    if (next > last) this.storage.setItem(LAST_EVENT_ID_KEY, String(next));
     return true;
   };
 
@@ -297,7 +300,8 @@
         deviceId: options.deviceId || this.deviceId(),
         platform: options.platform || this.platform,
         fcmToken: options.fcmToken || '',
-        lastEventId: this.lastEventId()
+        // Prefer explicit option (app clears cursor for live UI). Never reuse a stale watermark.
+        lastEventId: options.lastEventId != null ? Number(options.lastEventId) || 0 : this.lastEventId()
       }
     });
 
@@ -432,9 +436,8 @@
     options = options || {};
     if (!route) throw new Error('route is required');
 
-    // Retry transient network / gateway failures so brief connection drops
-    // do not surface as hard "API error" screens to the user.
-    var maxAttempts = options.retries != null ? Math.max(1, Number(options.retries) + 1) : 4;
+    // Retry transient network / gateway failures (2 retries max — keep pages snappy).
+    var maxAttempts = options.retries != null ? Math.max(1, Number(options.retries) + 1) : 3;
     var lastError = null;
 
     for (var attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -448,7 +451,7 @@
           (err && isTransientHttpStatus(err.status))
         );
         if (!canRetry) throw err;
-        var delay = Math.min(2500, 350 * Math.pow(2, attempt - 1)) + Math.floor(Math.random() * 200);
+        var delay = Math.min(1200, 220 * Math.pow(2, attempt - 1)) + Math.floor(Math.random() * 120);
         try {
           console.warn('[Biz1SDK] ' + route + ' attempt ' + attempt + '/' + maxAttempts + ' failed — retry in ' + delay + 'ms', err && err.message);
         } catch (e) { /* ignore */ }

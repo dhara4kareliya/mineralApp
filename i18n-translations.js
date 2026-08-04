@@ -85,6 +85,8 @@
     "רחוב, מספר, עיר": "Street, number, city",
     "אימייל": "Email",
     "אימייל / שם משתמש": "Email / Username",
+    "שם משתמש / אימייל / טלפון / מזהה": "Username / Email / Phone / ID",
+    "שם משתמש, אימייל, טלפון או מזהה": "username, email, phone or ID",
     "סיסמה": "Password",
     "זכור אותי": "Remember me",
     "התחבר": "Connect",
@@ -865,6 +867,8 @@
     "remember me": "זכור אותי",
     "Remember me": "זכור אותי",
     "Email / Username": "אימייל / שם משתמש",
+    "Username / Email / Phone / ID": "שם משתמש / אימייל / טלפון / מזהה",
+    "username, email, phone or ID": "שם משתמש, אימייל, טלפון או מזהה",
     "user name": "שם משתמש",
     "Username": "שם משתמש",
     "Enter a username": "הזן שם משתמש",
@@ -1941,9 +1945,9 @@
     "he": enToHe
   };
 
-  // Export to global scope
+  // Export to global scope — always overwrite so page-boot's empty stub cannot stick
   global.i18nTranslations = translations;
-  global.i18nDict = global.i18nDict || translations;
-  global.appI18nDict = global.i18nDict;
+  global.i18nDict = translations;
+  global.appI18nDict = translations;
 
 })(typeof window !== 'undefined' ? window : this);

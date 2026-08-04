@@ -273,8 +273,52 @@
     return lang;
   }
 
+  function isUiEn() {
+    return getCurrentLanguage() === 'en';
+  }
+
+  /** Pick EN/HE UI string from the user's selected language (for live JS mounts). */
+  function mbT(en, he) {
+    return isUiEn() ? en : he;
+  }
+
+  global.getCurrentLanguage = getCurrentLanguage;
+  global.isUiEn = isUiEn;
+  global.mbT = mbT;
+  // Alias used by some pages
+  global.t = global.t || function (en, he) {
+    if (he == null) return en;
+    return mbT(en, he);
+  };
+
   function escapeRegExp(str) {
     return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /** Precompile phrase rules once per dict — sorting ~1800 keys per text node was a major nav lag. */
+  function getDictPhraseRules(dict) {
+    if (!dict || typeof dict !== 'object') return [];
+    if (dict.__mbPhraseRules) return dict.__mbPhraseRules;
+    var keys = Object.keys(dict).filter(function (key) {
+      return key && key.length >= 2 && /[A-Za-z\u0590-\u05FF]/.test(key) && key.indexOf('__mb') !== 0;
+    }).sort(function (a, b) { return b.length - a.length; });
+    var rules = [];
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      try {
+        rules.push({
+          key: key,
+          value: dict[key],
+          re: new RegExp('(^|[^A-Za-z\\u0590-\\u05FF])(' + escapeRegExp(key) + ')(?=[^A-Za-z\\u0590-\\u05FF]|$)', 'g')
+        });
+      } catch (e) { /* ignore bad key regex */ }
+    }
+    try {
+      Object.defineProperty(dict, '__mbPhraseRules', { value: rules, enumerable: false, configurable: true });
+    } catch (e2) {
+      dict.__mbPhraseRules = rules;
+    }
+    return rules;
   }
 
   function translateText(text, dict) {
@@ -292,24 +336,20 @@
       return text.replace(trimmed, dict[lower]);
     }
 
-    // Phrase / word replacement only on whole-word boundaries.
-    // This prevents short keys like "me"/"Me" from corrupting
-    // longer words (documents → docuאניnts, Comments → Comאניnts).
+    // Skip expensive phrase scan for API/data-like or long strings
+    if (trimmed.length > 72) return text;
+    if (/^[\d\s\-#+.:/]+$/.test(trimmed)) return text;
+    if (/@/.test(trimmed) || /https?:\/\//i.test(trimmed)) return text;
+
+    // Phrase / word replacement only on whole-word boundaries (cached rules).
     var newText = text;
-    var keys = Object.keys(dict).sort(function (a, b) { return b.length - a.length; });
-    for (var i = 0; i < keys.length; i++) {
-      var key = keys[i];
-      if (!key || key.length < 2) continue;
-      // Skip pure punctuation / numeric-only keys for safety
-      if (!/[A-Za-z\u0590-\u05FF]/.test(key)) continue;
-      try {
-        var re = new RegExp('(^|[^A-Za-z\\u0590-\\u05FF])(' + escapeRegExp(key) + ')(?=[^A-Za-z\\u0590-\\u05FF]|$)', 'g');
-        newText = newText.replace(re, function (_m, pre, matched) {
-          return pre + dict[key];
-        });
-      } catch (e) {
-        /* ignore bad key regex */
-      }
+    var rules = getDictPhraseRules(dict);
+    for (var i = 0; i < rules.length; i++) {
+      var rule = rules[i];
+      rule.re.lastIndex = 0;
+      newText = newText.replace(rule.re, function (_m, pre) {
+        return pre + rule.value;
+      });
     }
     return newText;
   }
@@ -418,25 +458,35 @@
       var activeDict = currentDict();
       mutations.forEach(function (mutation) {
         if (mutation.type === 'childList') {
-          chromeMayNeedRepair = true;
+          // Only repair chrome if header/footer was actually removed — not on every list paint.
+          if (!document.getElementById('common-app-header') ||
+              (document.body.getAttribute('data-role') && !document.getElementById('common-app-footer'))) {
+            chromeMayNeedRepair = true;
+          }
           mutation.addedNodes.forEach(function (node) {
+            if (!node || node.nodeType !== 1) return;
+            // Skip live API mounts — they are already localized / data-heavy.
+            if (node.id && /^mb-live-/.test(node.id)) return;
+            if (node.closest && node.closest('[id^="mb-live-"], [data-no-i18n="true"]')) return;
             applyDomTranslation(node, activeLang);
           });
         } else if (mutation.type === 'attributes') {
           applyDomTranslation(mutation.target, activeLang);
         } else if (mutation.type === 'characterData') {
           var node = mutation.target;
+          var parent = node.parentNode;
+          if (parent && parent.closest && parent.closest('[id^="mb-live-"], [data-no-i18n="true"]')) return;
           // Do NOT adopt our own Hebrew/English translation as the new source —
           // that breaks later toggles and leaves English stuck after remounts.
           if (node._origText !== undefined) {
             var expected = translateText(node._origText, activeDict);
             if (node.nodeValue === expected || node.nodeValue === node._origText) {
-              applyDomTranslation(node.parentNode || node, activeLang);
+              applyDomTranslation(parent || node, activeLang);
               return;
             }
           }
           node._origText = node.nodeValue;
-          applyDomTranslation(node.parentNode || node, activeLang);
+          applyDomTranslation(parent || node, activeLang);
         }
       });
       mutObserver.observe(document.body, {
@@ -446,7 +496,7 @@
         attributes: true,
         attributeFilter: ['placeholder', 'title', 'aria-label', 'data-screen-label']
       });
-      if (chromeMayNeedRepair) scheduleCommonChromeRepair();
+      if (chromeMayNeedRepair) scheduleCommonChromeRepair(200);
     });
     mutObserver.observe(document.body, {
       childList: true,
@@ -718,14 +768,25 @@
 
   var chromeRepairTimer = null;
   var chromeRepairing = false;
-  function repairCommonChrome() {
+  function repairCommonChrome(opts) {
     if (chromeRepairing || !document.body) return;
     chromeRepairing = true;
+    opts = opts || {};
     try {
       ensureCommonHeader();
       ensureCommonFooter();
-      // DC remounts often restore English source — re-apply active language (incl. placeholders)
-      applyDomTranslation(document.body, getCurrentLanguage());
+      var lang = getCurrentLanguage();
+      if (opts.fullTranslate) {
+        applyDomTranslation(document.body, lang);
+      } else {
+        // Translate only injected chrome — full-body walks on every repair caused nav lag.
+        var header = document.getElementById('common-app-header');
+        var pageHeader = document.getElementById('common-app-page-header');
+        var footer = document.getElementById('common-app-footer');
+        if (header) applyDomTranslation(header, lang);
+        if (pageHeader) applyDomTranslation(pageHeader, lang);
+        if (footer) applyDomTranslation(footer, lang);
+      }
     } catch (e) {
       /* A page shell may still be mounting; the next retry will handle it. */
     } finally {
@@ -738,7 +799,7 @@
     chromeRepairTimer = setTimeout(function () {
       chromeRepairTimer = null;
       repairCommonChrome();
-    }, delay == null ? 40 : delay);
+    }, delay == null ? 180 : delay);
   }
 
   // Click Handler for Language Toggle Button
@@ -776,7 +837,7 @@
 
   // Initialization
   function initHeader() {
-    repairCommonChrome();
+    repairCommonChrome({ fullTranslate: true });
     updateHeaderClock();
     applyTranslations(getCurrentLanguage());
     if (global.MineralBarApp && typeof global.MineralBarApp.populateFolderDropdowns === 'function') {
@@ -784,42 +845,39 @@
     }
   }
 
+  var langReapplyTimer = null;
   function reapplyLanguageSoon() {
-    var delays = [50, 150, 400, 900, 1800, 3200];
-    delays.forEach(function (delay) {
-      setTimeout(function () {
-        try {
-          applyDomTranslation(document.body, getCurrentLanguage());
-          setupMutationObserver(getCurrentLanguage());
-        } catch (e) { /* ignore */ }
-      }, delay);
-    });
+    if (langReapplyTimer) clearTimeout(langReapplyTimer);
+    // One deferred full pass after DC mount — not 6 timed full-body walks.
+    langReapplyTimer = setTimeout(function () {
+      langReapplyTimer = null;
+      try {
+        applyDomTranslation(document.body, getCurrentLanguage());
+        setupMutationObserver(getCurrentLanguage());
+      } catch (e) { /* ignore */ }
+    }, 280);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     initHeader();
     setInterval(updateHeaderClock, 1000);
-    [50, 150, 400, 1000, 2000].forEach(function (delay) {
-      setTimeout(repairCommonChrome, delay);
-    });
+    scheduleCommonChromeRepair(320);
     reapplyLanguageSoon();
   });
   window.addEventListener('load', function () {
-    repairCommonChrome();
-    reapplyLanguageSoon();
+    scheduleCommonChromeRepair(120);
   });
   window.addEventListener('mineralbar:ready', function () {
-    repairCommonChrome();
+    scheduleCommonChromeRepair(80);
     reapplyLanguageSoon();
   });
   window.addEventListener('mineralbar:language-changed', function () {
+    repairCommonChrome({ fullTranslate: true });
     reapplyLanguageSoon();
   });
   if (document.readyState !== 'loading') {
     initHeader();
-    [50, 150, 400, 1000].forEach(function (delay) {
-      setTimeout(repairCommonChrome, delay);
-    });
+    scheduleCommonChromeRepair(320);
     reapplyLanguageSoon();
   }
 

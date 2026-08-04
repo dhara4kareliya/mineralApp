@@ -6,9 +6,9 @@
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <script src="./support.js"></script>
-  <script src="./biz1-sdk.js?v=socketfix9"></script>
-  <script src="./biz1-app.js?v=socketfix9"></script>
-  <script src="./page-boot.js?v=socketfix9"></script>
+  <script src="./biz1-sdk.js?v=socketfix11"></script>
+  <script src="./biz1-app.js?v=socketfix11"></script>
+  <script src="./page-boot.js?v=socketfix11"></script>
   <link rel="stylesheet" href="./common.css" />
   <script src="./i18n-translations.js?v=hefull1"></script>
   <script src="./common-header-footer.js"></script>
@@ -419,10 +419,7 @@ class Component extends DCLogic {
     window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:realtime', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
-    window.addEventListener('pageshow', () => {
-      this.applyServiceDefaultFilter();
-      this.loadTickets();
-    });
+    // No pageshow re-fetch — returning from another app stays socket-only.
     window.addEventListener('service-nav:open-tickets', () => {
       this.setState({ ticketStatus: 'open' });
     });
@@ -432,10 +429,11 @@ class Component extends DCLogic {
     var detail = (ev && ev.detail) || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
-    // Always refresh on ticket/mission socket events; also accept soft page-refresh / nudges.
+    // Ignore only other-app resume nudge — keep ticket socket events + reconnect catch-up.
+    if (/^socket\.nudge\.visible$/i.test(key) || key === 'pageshow' || key === 'visible') return;
     var relevant =
       !key ||
-      /ticket|mission|task|call|service|appointment|reminder|socket\.nudge/.test(key) ||
+      /ticket|mission|task|call|service|appointment|reminder|nudge/.test(key) ||
       group === 'missions' ||
       group === 'other' ||
       group === 'unknown';
@@ -443,7 +441,7 @@ class Component extends DCLogic {
     clearTimeout(this._rtTicketsTimer);
     var self = this;
     // Ticket.List can lag a moment behind ticket.created — retry briefly.
-    var delays = /ticket\.created|socket\.nudge/.test(key) ? [250, 900, 2200] : [350];
+    var delays = /ticket\.created|nudge/.test(key) ? [250, 900, 2200] : [350];
     this._rtTicketsTimer = setTimeout(function () {
       self.loadTickets();
       delays.slice(1).forEach(function (ms) {
@@ -465,8 +463,9 @@ class Component extends DCLogic {
         length: 100,
         draw: 1
       });
-      if (res && res.data) {
-        this.CALLS = res.data.map(t => {
+      var rows = (res && (res.data || res.rows || res.output)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      this.CALLS = rows.map(t => {
           let badge = 'new';
           let bucket = 'toschedule';
           const closed = this.isTicketClosed(t);
@@ -551,8 +550,7 @@ class Component extends DCLogic {
             phone: t.mobile || t.phone || t.cust_phone || t.customer_phone || ''
           };
         });
-        this.forceUpdate();
-      }
+      this.forceUpdate();
     } catch (e) {
       console.error('Failed to load tickets:', e);
     }

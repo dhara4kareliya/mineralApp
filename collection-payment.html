@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix9"></script>
-<script src="./biz1-app.js?v=socketfix9"></script>
-<script src="./page-boot.js?v=socketfix9"></script>
+<script src="./biz1-sdk.js?v=socketfix11"></script>
+<script src="./biz1-app.js?v=socketfix11"></script>
+<script src="./page-boot.js?v=socketfix11"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -132,7 +132,7 @@
 </div>
 <div style="flex:1;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">CVV</label>
-<input class="gv-input" placeholder="•••" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
+<input class="gv-input" placeholder="���" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
 </div>
 </div>
 <div style="margin-bottom:15px;">
@@ -155,7 +155,7 @@
 </div>
 <div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
 <svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
-                Secure through Patch · PCI Compliant
+                Secure through Patch � PCI Compliant
               </div>
 </div>
 </sc-if>
@@ -210,7 +210,7 @@
 </div>
 </div>
 <div style="background:#fdf6e8; border:1px solid #f2e2bd; border-radius:12px; padding:13px 14px; display:flex; gap:11px; align-items:flex-start;">
-<div style="width:22px; height:22px; border-radius:6px; border:1.6px solid #c99a3a; background:#fff; flex:none; display:flex; align-items:center; justify-content:center; color:#c99a3a; font-weight:800; font-size:14px;">✓</div>
+<div style="width:22px; height:22px; border-radius:6px; border:1.6px solid #c99a3a; background:#fff; flex:none; display:flex; align-items:center; justify-content:center; color:#c99a3a; font-weight:800; font-size:14px;">?</div>
 <div>
 <div style="font-size:14px; font-weight:700; color:#1f2a3a;">Account debit authorization</div>
 <div style="font-size:12.5px; color:#9a7d3a; margin-top:2px; line-height:1.5;">The customer approves a fixed monthly charge of {{ amountText }} until further notice</div>
@@ -218,7 +218,7 @@
 </div>
 <div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
 <svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
-                Secure digital authorization · Can be revoked at any time
+                Secure digital authorization � Can be revoked at any time
               </div>
 </div>
 </sc-if>
@@ -237,7 +237,7 @@
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount received <span style="color:#c0392b;">*</span></label>
 <div style="position:relative;">
 <input class="gv-input" inputmode="numeric" oninput="{{ onCash }}" placeholder="0" style="width:100%; padding:12px 13px; padding-inline-end:36px; border:1.5px solid #dde2ea; border-radius:11px; font-size:16px; font-weight:700; color:#1f2a3a; text-align:start;" value="{{ cashReceived }}"/>
-<span style="position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
+<span style="position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">?</span>
 </div>
 </div>
 <sc-if hint-placeholder-val="{{ true }}" value="{{ changeShow }}">
@@ -288,7 +288,7 @@
 <div style="border:1.5px solid #e4e8ee; border-radius:14px; padding:14px; margin-bottom:13px;">
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:13px;">
 <div style="font-size:14px; font-weight:800; color:#1f2a3a;">check {{ chk.num }}</div>
-<button onclick="{{ chk.remove }}" style="width:26px; height:26px; border-radius:50%; border:none; background:#f4f0f0; color:#c0392b; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;">✕</button>
+<button onclick="{{ chk.remove }}" style="width:26px; height:26px; border-radius:50%; border:none; background:#f4f0f0; color:#c0392b; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;">?</button>
 </div>
 <div style="margin-bottom:12px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">bank</label>
@@ -324,7 +324,7 @@
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount</label>
 <div style="position:relative;">
 <input class="gv-input" inputmode="numeric" placeholder="0" style="width:100%; padding:11px 13px; padding-inline-end:34px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:start;"/>
-<span style="position:absolute; inset-inline-end:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
+<span style="position:absolute; inset-inline-end:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">?</span>
 </div>
 </div>
 </div>
@@ -387,7 +387,7 @@
 <input readonly="" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ currentDate }}"/>
 </div>
 <div style="background:#fdf6e8; border:1px solid #f2e2bd; border-radius:12px; padding:13px 14px; display:flex; gap:11px; align-items:flex-start;">
-<div style="width:22px; height:22px; border-radius:6px; border:1.6px solid #c99a3a; background:#fff; flex:none; display:flex; align-items:center; justify-content:center; color:#c99a3a; font-weight:800; font-size:14px;">✓</div>
+<div style="width:22px; height:22px; border-radius:6px; border:1.6px solid #c99a3a; background:#fff; flex:none; display:flex; align-items:center; justify-content:center; color:#c99a3a; font-weight:800; font-size:14px;">?</div>
 <div>
 <div style="font-size:14px; font-weight:700; color:#1f2a3a;">Mark as "awaiting verification"</div>
 <div style="font-size:12.5px; color:#9a7d3a; margin-top:2px; line-height:1.5;">The collection will be finally approved after the transfer is recognized in the account</div>
@@ -440,13 +440,13 @@
               </div>
 <div style="background:#f6f8fa; border:1px solid #e8ebef; border-radius:14px; padding:14px;">
 <div style="background:#fff; border-radius:11px; padding:13px 14px; box-shadow:0 1px 3px rgba(0,0,0,.05); line-height:1.6; font-size:14px; color:#1f2a3a;">
-                  Hello {{ firstName }} 👋<br/>
+                  Hello {{ firstName }} ??<br/>
                   Thank you for signing the quote!<br/>
                   Click to enter secure payment details:<br/>
 <span style="color:#1d60a2; font-weight:700;">aquacrm.co.il/pay/QT-0041</span>
 <div style="display:flex; align-items:center; gap:5px; color:#8a93a3; font-size:12px; margin-top:8px;">
 <svg fill="none" height="12" stroke="#c99a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
-                    Secure · Validity: 48 hours
+                    Secure � Validity: 48 hours
                   </div>
 </div>
 <div style="display:flex; align-items:center; justify-content:space-between; margin-top:13px;">
@@ -523,8 +523,8 @@ class Component extends DCLogic {
     var n = Number(v);
     if (Number.isNaN(n)) n = 0;
     var rounded = Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100;
-    if (Math.abs(rounded - Math.round(rounded)) < 0.001) return Math.round(rounded) + ' ₪';
-    return rounded.toFixed(2) + ' ₪';
+    if (Math.abs(rounded - Math.round(rounded)) < 0.001) return Math.round(rounded) + ' ?';
+    return rounded.toFixed(2) + ' ?';
   }
 
   moneyDiff(a, b) {
@@ -587,7 +587,7 @@ class Component extends DCLogic {
         return {
           id: String(r.id || r.number || r.doc_no || Math.random()),
           amount: amount,
-          label: '#' + (r.number || r.doc_no || r.id || '-') + ' · ' + (r.type || r.doc_type || 'Document') + ' · ' + this.fmtAmount(amount)
+          label: '#' + (r.number || r.doc_no || r.id || '-') + ' � ' + (r.type || r.doc_type || 'Document') + ' � ' + this.fmtAmount(amount)
         };
       });
       var selectedDocId = docs[0] ? docs[0].id : '';

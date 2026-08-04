@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix9"></script>
-<script src="./biz1-app.js?v=socketfix9"></script>
-<script src="./page-boot.js?v=socketfix9"></script>
+<script src="./biz1-sdk.js?v=socketfix11"></script>
+<script src="./biz1-app.js?v=socketfix11"></script>
+<script src="./page-boot.js?v=socketfix11"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -260,7 +260,7 @@ class Component extends DCLogic {
                 id: String(item.id),
                 name: pName,
                 sub: desc,
-                price: priceVal + (priceVal < 200 ? ' NIS/month' : '₪'),
+                price: priceVal + (priceVal < 200 ? ' NIS/month' : '?'),
                 stock: stock,
                 category: category
               };

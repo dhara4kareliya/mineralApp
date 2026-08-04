@@ -27,8 +27,10 @@
 
   function formatWhen(m, today) {
     var when = m.date_to_do_format ? m.date_to_do_format.split('T')[0] : (m.date_to_do || '');
-    if (!when) return 'No date';
-    if (when === today) return 'Today';
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    if (!when) return isEn ? 'No date' : 'ללא תאריך';
+    if (when === today) return isEn ? 'Today' : 'היום';
+    if (when < today) return (isEn ? 'Overdue' : 'באיחור') + ' · ' + when.split('-').reverse().join('/');
     return when.split('-').reverse().join('/');
   }
 
@@ -50,7 +52,8 @@
 
   function missionRow(m, today) {
     var id = m.mission_id || m.id || '';
-    var title = m.mission || m.title || ('Task #' + id);
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    var title = m.mission || m.title || ((isEn ? 'Task #' : 'משימה #') + id);
     var customer = m.customer_name || m.client_name || '';
     var when = formatWhen(m, today);
     var desc = m.note || m.description || '';
@@ -67,19 +70,19 @@
       dotColor = m.color || '#f59e0b';
       priBg = '#fef3c7';
       priColor = '#b45309';
-      priLabel = 'Medium';
+      priLabel = isEn ? 'Medium' : 'בינוני';
     } else if (pri === 'urgent') {
-      priLabel = 'Urgent';
+      priLabel = isEn ? 'Urgent' : 'דחוף';
       priBg = '#fee2e2';
       priColor = '#b91c1c';
       dotColor = m.color || '#ef4444';
     } else if (pri === 'low') {
-      priLabel = 'Low';
+      priLabel = isEn ? 'Low' : 'נמוך';
       priBg = '#e9f5ee';
       priColor = '#2e8a63';
       dotColor = m.color || '#22c55e';
     } else if (pri === 'normal') {
-      priLabel = 'Normal';
+      priLabel = isEn ? 'Normal' : 'רגיל';
       priBg = '#eaf2fb';
       priColor = '#1d60a2';
       dotColor = m.color || '#1d60a2';
@@ -122,16 +125,17 @@
 
     var today = todayKey();
     var pri = priorityFromMission(mission, today);
-    var priLabel = 'Normal';
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    var priLabel = isEn ? 'Normal' : 'רגיל';
     var priBg = '#eaf2fb';
     var priColor = '#1d60a2';
 
     if (pri === 'urgent') {
-      priLabel = 'Urgent';
+      priLabel = isEn ? 'Urgent' : 'דחוף';
       priBg = '#fee2e2';
       priColor = '#b91c1c';
     } else if (pri === 'low') {
-      priLabel = 'Low';
+      priLabel = isEn ? 'Low' : 'נמוך';
       priBg = '#e9f5ee';
       priColor = '#2e8a63';
     }
@@ -610,6 +614,10 @@
   }
 
   window.addEventListener('mineralbar:ready', function () { setTimeout(start, 150); });
+  window.addEventListener('mineralbar:language-changed', function () {
+    if (typeof loadTasks === 'function') loadTasks(typeof currentFilterType !== 'undefined' ? currentFilterType : undefined);
+    else start();
+  });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 200); });
   } else {

@@ -626,10 +626,7 @@
   window.addEventListener('mineralbar:leads', onLiveRefresh);
   window.addEventListener('mineralbar:missions', onLiveRefresh);
   window.addEventListener('mineralbar:messages', onLiveRefresh);
-  window.addEventListener('pageshow', function () {
-    if (!hasStarted) start();
-    else onLiveRefresh({ detail: { key: 'pageshow' } });
-  });
+  // No pageshow re-fetch — resume uses socket only.
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       setTimeout(start, 50);

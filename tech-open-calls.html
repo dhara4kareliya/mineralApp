@@ -5,9 +5,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix9"></script>
-<script src="./biz1-app.js?v=socketfix9"></script>
-<script src="./page-boot.js?v=socketfix9"></script>
+<script src="./biz1-sdk.js?v=socketfix11"></script>
+<script src="./biz1-app.js?v=socketfix11"></script>
+<script src="./page-boot.js?v=socketfix11"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -205,16 +205,17 @@ class Component extends DCLogic {
     var detail = (ev && ev.detail) || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
+    if (/^socket\.nudge\.visible$/i.test(key) || key === 'pageshow' || key === 'visible') return;
     var relevant =
       !key ||
-      /ticket|mission|task|call|service|appointment|reminder|socket\.nudge/.test(key) ||
+      /ticket|mission|task|call|service|appointment|reminder|nudge/.test(key) ||
       group === 'missions' ||
       group === 'other' ||
       group === 'unknown';
     if (!relevant) return;
     clearTimeout(this._rtTicketsTimer);
     var self = this;
-    var delays = /ticket\.created|socket\.nudge/.test(key) ? [250, 900, 2200] : [350];
+    var delays = /ticket\.created|nudge/.test(key) ? [250, 900, 2200] : [350];
     this._rtTicketsTimer = setTimeout(function () {
       self.initData();
       delays.slice(1).forEach(function (ms) {

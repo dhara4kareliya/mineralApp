@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix9"></script>
-<script src="./biz1-app.js?v=socketfix9"></script>
-<script src="./page-boot.js?v=socketfix9"></script>
+<script src="./biz1-sdk.js?v=socketfix11"></script>
+<script src="./biz1-app.js?v=socketfix11"></script>
+<script src="./page-boot.js?v=socketfix11"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -72,7 +72,7 @@
 <!-- quantity -->
 <div style="display:flex; flex-direction:row-reverse; align-items:center; justify-content:space-between; margin-top:22px;">
 <div style="display:flex; align-items:center; gap:18px;">
-<button onclick="{{ onDecrement }}" style="width:38px; height:38px; border-radius:50%; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; font-size:24px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">−</button>
+<button onclick="{{ onDecrement }}" style="width:38px; height:38px; border-radius:50%; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; font-size:24px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
 <span style="font-size:18px; font-weight:800; color:#1f2a3a; min-width:18px; text-align:center;">{{ amount }}</span>
 <button onclick="{{ onIncrement }}" style="width:38px; height:38px; border-radius:50%; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
 </div>
@@ -141,7 +141,7 @@ class Component extends DCLogic {
               return {
                 id: String(item.id),
                 name: pName,
-                price: priceVal + (priceVal < 200 ? ' NIS/month' : '₪'),
+                price: priceVal + (priceVal < 200 ? ' NIS/month' : '?'),
                 priceNum: priceVal,
                 sub: desc,
                 stock: stock
@@ -158,7 +158,7 @@ class Component extends DCLogic {
           { id: '200094', name: 'Filter main horizon', price: '89 NIS/month', priceNum: 89, sub: 'Two-year course', stock: 12 },
           { id: '200095', name: 'Office water bar', price: '149 NIS/month', priceNum: 149, sub: 'Annual track', stock: 5 },
           { id: '200096', name: 'Water center', price: '199 NIS/month', priceNum: 199, sub: 'Installation + service', stock: 2 },
-          { id: '200097', name: 'Electric bidet', price: '890₪', priceNum: 890, sub: 'One time purchase', stock: 8 },
+          { id: '200097', name: 'Electric bidet', price: '890?', priceNum: 890, sub: 'One time purchase', stock: 8 },
           { id: '200092', name: 'Annual product insurance', price: '29 NIS/month', priceNum: 29, sub: 'Full coverage', stock: 99 }
         ];
       }
@@ -201,7 +201,7 @@ class Component extends DCLogic {
     }
     
     var lineTotalNum = product.priceNum * s.amount;
-    var lineTotal = lineTotalNum + (product.price.indexOf('NIS') !== -1 ? ' NIS/month' : '₪');
+    var lineTotal = lineTotalNum + (product.price.indexOf('NIS') !== -1 ? ' NIS/month' : '?');
 
     var q = new URLSearchParams(window.location.search);
     

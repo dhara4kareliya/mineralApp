@@ -26,8 +26,8 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<script src="./biz1-sdk.js?v=socketfix9"></script>
-<script src="./biz1-app.js?v=socketfix9"></script>
+<script src="./biz1-sdk.js?v=socketfix11"></script>
+<script src="./biz1-app.js?v=socketfix11"></script>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; background: #e6e8ec; }
@@ -67,9 +67,9 @@
 <div style="margin-bottom:14px;">
 <label for="username" style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
 <svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"></path></svg>
-              Email / Username <span style="color:#c0392b;">*</span>
+              Username / Email / Phone / ID <span style="color:#c0392b;">*</span>
 </label>
-<input autocomplete="username" class="ds-input" id="username" placeholder="sales@mineral.co.il" required="" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="email"/>
+<input autocomplete="username" class="ds-input" id="username" inputmode="text" placeholder="username, email, phone or ID" required="" spellcheck="false" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="text"/>
 </div>
 <div style="margin-bottom:8px;">
 <label for="password" style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
@@ -373,7 +373,7 @@
     var remember = !!(rememberEl && rememberEl.checked);
 
     if (!username || !password) {
-      showError(t('Please fill email and password'), 'Please fill email and password');
+      showError(t('Please fill username and password'), 'Please fill username and password');
       return;
     }
     if (waitingOtp && !otp) {

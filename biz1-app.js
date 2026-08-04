@@ -1954,11 +1954,12 @@
 
     // CRITICAL: stale lastEventId is sent in socket auth and can block ALL new events.
     // Example stuck value: 1785146897350 → server thinks client is already up-to-date.
+    var keepCursor = false;
     try {
       var lastIdBefore = Number(global.localStorage.getItem('biz1_realtime_last_event_id') || 0);
       // Always clear for live UI updates (missed-event replay is less important here).
       // Force keep only if URL has ?socket_keep_cursor=1
-      var keepCursor = /[?&]socket_keep_cursor=1/.test(String(global.location && global.location.search || ''));
+      keepCursor = /[?&]socket_keep_cursor=1/.test(String(global.location && global.location.search || ''));
       if (!keepCursor && lastIdBefore > 0) {
         global.localStorage.removeItem('biz1_realtime_last_event_id');
         dispatchAppEvent('mineralbar:socket-debug', {
@@ -1975,27 +1976,61 @@
       path: options.path || '/realtime/socket.io',
       deviceId: options.deviceId,
       fcmToken: options.fcmToken || '',
-      token: options.token
+      token: options.token,
+      // Live lists need every add/edit/delete — do not resume from a stale cursor.
+      lastEventId: keepCursor ? undefined : 0
     });
     realtimeState.socket = socket;
 
-    // Bypass SDK filtering: always capture raw engine events
+    var relayedEventIds = Object.create(null);
+    var relayedEventIdOrder = [];
+
+    // Bypass SDK filtering: always capture raw engine events for list soft-refresh
     function forceRelayFromSocket(event, source) {
       try {
-        var key = String((event && (event.key || event.event_key || event.socket_event)) || source || '');
+        var ev = event || {};
+        // Payloads sometimes nest the real event under .event / .payload / .data
+        var nested = ev.event || ev.payload || ev.data || null;
+        if (nested && typeof nested === 'object' && !ev.key && (nested.key || nested.event_key)) {
+          ev = Object.assign({}, nested, { id: ev.id || nested.id });
+        }
+        var key = String(
+          ev.key ||
+          ev.event_key ||
+          ev.socket_event ||
+          (ev.payload && (ev.payload.key || ev.payload.event_key)) ||
+          ''
+        );
+        // Named socket packets (ticket.created) arrive without a wrapper key
+        if (!key && source && String(source).indexOf('onAny:') === 0) {
+          key = String(source).slice(6);
+        }
+        if (!key || key === 'biz1:event' || key === 'biz1:ready') return;
+
+        var eid = ev.id != null ? String(ev.id) : '';
+        if (eid) {
+          if (relayedEventIds[eid]) return;
+          relayedEventIds[eid] = 1;
+          relayedEventIdOrder.push(eid);
+          if (relayedEventIdOrder.length > 200) {
+            var old = relayedEventIdOrder.shift();
+            delete relayedEventIds[old];
+          }
+        }
+
         var group = classifyRealtimeEvent({ key: key });
-        var detail = { group: group, key: key || source, event: event || {} };
+        var detail = { group: group, key: key, event: ev };
         dispatchAppEvent('mineralbar:realtime', detail);
         if (group === 'messages') dispatchAppEvent('mineralbar:messages', detail);
-        if (group === 'missions') dispatchAppEvent('mineralbar:missions', detail);
         if (group === 'leads') dispatchAppEvent('mineralbar:leads', detail);
+        if (group === 'missions') dispatchAppEvent('mineralbar:missions', detail);
         if (group === 'inventory') dispatchAppEvent('mineralbar:inventory', detail);
         dispatchAppEvent('mineralbar:socket-debug', {
           type: 'event',
           source: source,
           key: key,
           group: group,
-          event: event
+          event: ev
         });
       } catch (err) {
         console.error('[Socket] forceRelay error', err);
@@ -2011,11 +2046,27 @@
       });
     }
 
-    // Catch ALL raw socket.io packets (Engine.IO / Socket.IO v4+)
+    // Catch ALL raw socket.io packets and relay data events (add/edit/delete)
     if (socket && typeof socket.onAny === 'function') {
       socket.onAny(function (eventName) {
         var args = Array.prototype.slice.call(arguments, 1);
         dispatchAppEvent('mineralbar:socket-debug', { type: 'onAny', eventName: eventName, args: args });
+        var name = String(eventName || '');
+        if (!name || /^(connect|disconnect|connect_error|error|reconnect|reconnect_attempt|reconnecting|ping|pong|biz1:ready)$/i.test(name)) {
+          return;
+        }
+        var payload = args[0];
+        if (name === 'biz1:event' || name === 'rooms:refresh') {
+          forceRelayFromSocket(payload, 'onAny:' + name);
+          return;
+        }
+        // Direct named events: ticket.created, products.updated, ...
+        if (name.indexOf('.') !== -1) {
+          var wrapped = (payload && typeof payload === 'object')
+            ? Object.assign({}, payload, { key: payload.key || name })
+            : { key: name, data: payload };
+          forceRelayFromSocket(wrapped, 'onAny:' + name);
+        }
       });
     } else {
       console.warn('[Socket] socket.onAny not available — raw packet capture limited');
@@ -2161,36 +2212,35 @@
 
     global.addEventListener('pageshow', function (event) {
       if (!event || !event.persisted) return; // first load: page-boot owns connect
+      // BFCache restore (in-app back): reconnect + one soft catch-up for missed socket events.
+      // (Other-app resume uses visibilitychange below — reconnect only, no list refresh.)
       var p = ensureRealtimeConnected('pageshow-bfcache');
-      if (p && typeof p.then === 'function') {
-        p.then(function () { nudgePagesAfterSocket('bfcache'); }).catch(function () {});
-      } else {
-        nudgePagesAfterSocket('bfcache');
-      }
+      var after = function () {
+        if (typeof nudgePagesAfterSocket === 'function') nudgePagesAfterSocket('bfcache');
+      };
+      if (p && typeof p.then === 'function') p.then(after).catch(after);
+      else after();
     });
 
     if (global.document && global.document.addEventListener) {
       global.document.addEventListener('visibilitychange', function () {
         if (global.document.visibilityState !== 'visible') return;
+        // Coming back from another app/tab: only ensure socket is up.
+        // Do NOT re-fetch lists here — live add/edit/delete stay on real socket events.
         if (!isRealtimeConnected()) {
           var p = ensureRealtimeConnected('visibilitychange');
+          // After a real reconnect, catch up once (events may have been missed while offline).
           if (p && typeof p.then === 'function') {
-            p.then(function () { nudgePagesAfterSocket('visible-reconnect'); }).catch(function () {
-              nudgePagesAfterSocket('visible-offline');
-            });
-            return;
+            p.then(function () {
+              if (typeof nudgePagesAfterSocket === 'function') nudgePagesAfterSocket('visible-reconnect');
+            }).catch(function () { /* ignore */ });
           }
         }
-        // Even if socket stayed up, re-fetch in case events were dropped while hidden.
-        nudgePagesAfterSocket('visible');
       });
     }
 
     global.addEventListener('online', function () {
-      if (isRealtimeConnected()) {
-        nudgePagesAfterSocket('online');
-        return;
-      }
+      if (isRealtimeConnected()) return;
       scheduleRealtimeReconnect('online', 200);
     });
   }
@@ -2226,9 +2276,10 @@
     detail = detail || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
-    if ((key.indexOf('socket') !== -1 || key.indexOf('connected') !== -1) && key.indexOf('nudge') === -1) {
-      return;
-    }
+    // Skip connect noise + plain other-app resume. Allow bfcache / visible-reconnect catch-up.
+    if (/^socket\.(connect|connected|disconnect)(\.|$)/i.test(key)) return;
+    if (/^socket\.nudge\.visible$/i.test(key)) return;
+    if (key === 'pageshow' || key === 'visible') return;
     liveReloaders.forEach(function (entry) {
       if (!entry || typeof entry.fn !== 'function') return;
       if (entry.keys) {

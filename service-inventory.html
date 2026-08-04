@@ -1,12 +1,12 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix10"></script>
-<script src="./biz1-app.js?v=socketfix10"></script>
-<script src="./page-boot.js?v=socketfix10"></script>
+<script src="./biz1-sdk.js?v=socketfix11"></script>
+<script src="./biz1-app.js?v=socketfix11"></script>
+<script src="./page-boot.js?v=socketfix11"></script>
 <link rel="stylesheet" href="./common.css"/>
 <script src="./i18n-translations.js?v=hefull1"></script>
 <script src="./common-header-footer.js"></script>
@@ -177,7 +177,7 @@
             <div onclick="{{ it.click }}" style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid {{ it.border }}; cursor:pointer;">
               <div style="flex:1; text-align:start;">
                 <div style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ it.name }}</div>
-                <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }} Â· <span style="color:#2e8a63; font-weight:700;">{{ it.priceText }}</span></div>
+                <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }} · <span style="color:#2e8a63; font-weight:700;">{{ it.priceText }}</span></div>
               </div>
               <div style="display:inline-flex; align-items:center; gap:4px; background:{{ it.tagBg }}; color:{{ it.tagColor }}; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; flex:none;">
                 <span style="width:6px; height:6px; border-radius:50%; background:{{ it.tagColor }};"></span>{{ it.tag }}
@@ -313,7 +313,7 @@
               <sc-for as="chip" list="{{ selectedStorageChips }}">
                 <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
                   {{ chip.name }}
-                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">Ã—</button>
+                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">×</button>
                 </span>
               </sc-for>
             </div>
@@ -541,7 +541,7 @@
               <sc-for as="chip" list="{{ editSelectedStorageChips }}">
                 <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
                   {{ chip.name }}
-                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">Ã—</button>
+                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">×</button>
                 </span>
               </sc-for>
             </div>
@@ -776,10 +776,9 @@ class Component extends DCLogic {
     window.addEventListener('mineralbar:inventory', (ev) => this.onInventoryRealtime(ev));
     window.addEventListener('mineralbar:realtime', (ev) => this.onInventoryRealtime(ev));
     window.addEventListener('mineralbar:page-refresh', (ev) => this.onInventoryRealtime(ev));
-    window.addEventListener('pageshow', () => this.initData());
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload((detail) => this.onInventoryRealtime({ detail: detail }), {
-        keys: /product|invent|categorie|socket\.nudge/i,
+        keys: /product|invent|categorie/i,
         delay: 300
       });
     }
@@ -789,19 +788,20 @@ class Component extends DCLogic {
     var detail = (ev && ev.detail) || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
+    if (/^socket\.nudge\.visible$/i.test(key) || key === 'pageshow' || key === 'visible') return;
     var relevant =
       !key ||
-      /product|invent|categorie|socket\.nudge/.test(key) ||
+      /product|invent|categorie|nudge/.test(key) ||
       group === 'inventory' ||
       group === 'other' ||
       group === 'unknown';
     if (!relevant) return;
 
-    // Prefer full list refresh (same pattern as tickets) â€” socket payloads are often
+    // Prefer full list refresh (same pattern as tickets) — socket payloads are often
     // partial and miss fields the UI needs (sku, stock, category).
     clearTimeout(this._rtInventoryTimer);
     var self = this;
-    var delays = /products\.(created|updated|deleted)|categories\.|socket\.nudge/.test(key)
+    var delays = /products\.(created|updated|deleted)|categories\.|nudge/.test(key)
       ? [250, 900, 2200]
       : [350];
     this._rtInventoryTimer = setTimeout(function () {
@@ -828,12 +828,12 @@ class Component extends DCLogic {
       (detail && detail.payload && (detail.payload.id || detail.payload.product_id)) ||
       ''
     );
-    // Event-level id is the realtime cursor id â€” only use payload/product ids.
+    // Event-level id is the realtime cursor id — only use payload/product ids.
     if (id && String(ev.id) === id && !payload.id && !product.id && !product.product_id) {
       id = '';
     }
     if (!id) {
-      console.warn('[Inventory] socket product event missing id â€” full refresh only', key);
+      console.warn('[Inventory] socket product event missing id — full refresh only', key);
       return;
     }
 
@@ -1528,7 +1528,7 @@ class Component extends DCLogic {
       return;
     }
 
-    // Read Product details directly from textarea â€” value/oninput binding
+    // Read Product details directly from textarea — value/oninput binding
     // is unreliable for <textarea> in this template engine on create.
     var descEl = document.getElementById('mb-add-product-desc');
     var desc = '';
@@ -1573,7 +1573,7 @@ class Component extends DCLogic {
     if (s.addSupplierId) payload.suppliers_id = Number(s.addSupplierId) || s.addSupplierId;
     if (s.addTeamMemberId) payload.team_member_id = Number(s.addTeamMemberId) || s.addTeamMemberId;
     // Products.Add rejects: company_id, invoice_setting_id, storage_id, storage,
-    // generate_sku, price_as_cost, vat_included, vat â€” keep only accepted fields.
+    // generate_sku, price_as_cost, vat_included, vat — keep only accepted fields.
     if (s.addStoragePlace) payload.storage_place = s.addStoragePlace;
 
     if (type === 'subscription') {
@@ -1824,7 +1824,7 @@ class Component extends DCLogic {
             name: it.name,
             sku: it.sku,
             qty: it.stock,
-            priceText: it.price + 'â‚ª',
+            priceText: it.price + '?',
             tag: tag,
             tagColor: tagColor,
             tagBg: tagBg,
@@ -2070,7 +2070,7 @@ class Component extends DCLogic {
     if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
     if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
   });
-  // DC remount can wipe the footer â€” re-inject shortly after
+  // DC remount can wipe the footer — re-inject shortly after
   setTimeout(function () {
     if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
   }, 300);

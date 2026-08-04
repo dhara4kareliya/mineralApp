@@ -44,18 +44,28 @@
     return (p[0][0] || '') + (p[1][0] || '');
   }
 
+  function t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
+    return lang === 'en' ? en : he;
+  }
+
   function loadingHtml() {
     return (
       '<div style="text-align:center;padding:48px 20px;">' +
-      '<div style="font-size:14px;font-weight:700;color:#8a93a3;">Loading from server…</div>' +
+      '<div style="font-size:14px;font-weight:700;color:#8a93a3;">' + esc(t('Loading from server…', 'טוען מהשרת…')) + '</div>' +
       '<div style="font-size:12px;color:#b6bdc8;margin-top:6px;">Customer.List</div>' +
       '</div>'
     );
   }
 
   function emptyHtml(kind) {
-    var title = kind === 'leads' ? 'No leads currently' : 'No customers currently';
-    var sub = kind === 'leads' ? 'Folder 1 · New inquiries is empty' : 'Folder 2 · Customers is empty';
+    var title = kind === 'leads'
+      ? t('No leads currently', 'אין לידים כרגע')
+      : t('No customers currently', 'אין לקוחות כרגע');
+    var sub = kind === 'leads'
+      ? t('Folder 1 · New inquiries is empty', 'תיקייה 1 · פניות חדשות ריקה')
+      : t('Folder 2 · Customers is empty', 'תיקייה 2 · לקוחות ריקה');
     return (
       '<div style="text-align:center;padding:48px 20px;">' +
       '<div style="width:56px;height:56px;border-radius:50%;background:#e3e7ec;display:flex;align-items:center;justify-content:center;margin:0 auto 13px;">' +
@@ -72,12 +82,13 @@
       '<div style="background:#fbeeed;border:1px solid #f0c9c4;border-radius:14px;padding:14px 14px 16px;margin:8px 0;">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>' +
-      '<div style="font-size:14px;font-weight:800;color:#c0392b;">API error</div>' +
+      '<div style="font-size:14px;font-weight:800;color:#c0392b;">' + esc(t('API error', 'שגיאת API')) + '</div>' +
       '</div>' +
       '<pre style="margin:0;white-space:pre-wrap;word-break:break-word;font:600 11.5px/1.5 Heebo,monospace;color:#7a2e28;max-height:280px;overflow:auto;">' +
       esc(apiErrorText(err)) +
       '</pre>' +
-      '<button type="button" id="mb-list-retry" style="margin-top:12px;padding:9px 14px;border:none;border-radius:10px;background:#c0392b;color:#fff;font:800 13px Heebo,sans-serif;cursor:pointer;">Try again</button>' +
+      '<button type="button" id="mb-list-retry" style="margin-top:12px;padding:9px 14px;border:none;border-radius:10px;background:#c0392b;color:#fff;font:800 13px Heebo,sans-serif;cursor:pointer;">' +
+      esc(t('Try again', 'נסה שוב')) + '</button>' +
       '</div>'
     );
   }
@@ -178,7 +189,7 @@
     el.innerHTML = loadingHtml();
 
     var totalEl = document.getElementById('mb-total-label');
-    if (totalEl) totalEl.textContent = 'Loading…';
+    if (totalEl) totalEl.textContent = (typeof window.mbT === 'function' ? window.mbT('Loading…', 'טוען…') : 'טוען…');
 
     var queryParams = { length: 100, start: 0, draw: 1 };
     // folder_id 0 / null / 'all' = every customer (no folder filter)
@@ -189,60 +200,45 @@
     }
 
     var lastErr = null;
-    // Extra page-level attempts on top of SDK retries for flaky connections
-    for (var attempt = 1; attempt <= 3; attempt += 1) {
+    // SDK already retries transient failures — avoid stacking another 3× page loop.
+    try {
+      var listRes = await MineralBarApp.listCustomers(queryParams);
       if (mount._activeLoadId !== loadId) return;
-      try {
-        if (attempt > 1) {
-          el.innerHTML =
-            '<div style="text-align:center;padding:48px 20px;">' +
-            '<div style="font-size:14px;font-weight:700;color:#8a93a3;">Reconnecting…</div>' +
-            '<div style="font-size:12px;color:#b6bdc8;margin-top:6px;">Attempt ' + attempt + ' of 3</div>' +
-            '</div>';
-          if (totalEl) totalEl.textContent = 'Reconnecting…';
-          await new Promise(function (r) { setTimeout(r, 400 * attempt); });
-          if (mount._activeLoadId !== loadId) return;
-        }
 
-        var listRes = await MineralBarApp.listCustomers(queryParams);
-        if (mount._activeLoadId !== loadId) return;
+      el = document.getElementById('mb-live-list') || el;
+      totalEl = document.getElementById('mb-total-label');
 
-        el = document.getElementById('mb-live-list') || el;
-        totalEl = document.getElementById('mb-total-label');
+      var rows = (listRes && (listRes.rows || listRes.data || listRes.items || listRes.records)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      var total = (listRes && listRes.total != null) ? listRes.total
+        : (listRes && listRes.recordsFiltered != null) ? listRes.recordsFiltered
+        : (listRes && listRes.recordsTotal != null) ? listRes.recordsTotal
+        : rows.length;
 
-        var rows = (listRes && (listRes.rows || listRes.data || listRes.items || listRes.records)) || [];
-        if (!Array.isArray(rows)) rows = [];
-        var total = (listRes && listRes.total != null) ? listRes.total
-          : (listRes && listRes.recordsFiltered != null) ? listRes.recordsFiltered
-          : (listRes && listRes.recordsTotal != null) ? listRes.recordsTotal
-          : rows.length;
-
-        if (totalEl) {
-          totalEl.textContent = total + (kind === 'leads' ? ' leads' : ' customers');
-        }
-
-        if (!rows.length) {
-          el.innerHTML = emptyHtml(kind);
-          return;
-        }
-
-        var html = rows.map(function (row) {
-          var c = pick(row);
-          return kind === 'leads' ? leadCard(c) : customerCard(c);
-        }).join('');
-
-        el.innerHTML = html;
-        applyClientFilters(el);
-        bindClientFilters(el);
-        return;
-      } catch (err) {
-        lastErr = err;
-        console.warn('[MineralBar] Customer.List attempt ' + attempt + ' failed', err);
-        var msg = String((err && err.message) || err || '');
-        var transient = /networkerror|failed to fetch|load failed|fetch resource|status:\s*0|502|503|504|429/i.test(msg) ||
-          (err && (Number(err.status) === 0 || Number(err.status) >= 500 || Number(err.status) === 429));
-        if (!transient || attempt === 3) break;
+      if (totalEl) {
+        var isEnList = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+        totalEl.textContent = total + (kind === 'leads'
+          ? (isEnList ? ' leads' : ' לידים')
+          : (isEnList ? ' customers' : ' לקוחות'));
       }
+
+      if (!rows.length) {
+        el.innerHTML = emptyHtml(kind);
+        return;
+      }
+
+      var html = rows.map(function (row) {
+        var c = pick(row);
+        return kind === 'leads' ? leadCard(c) : customerCard(c);
+      }).join('');
+
+      el.innerHTML = html;
+      applyClientFilters(el);
+      bindClientFilters(el);
+      return;
+    } catch (err) {
+      lastErr = err;
+      console.warn('[MineralBar] Customer.List failed', err);
     }
 
     if (mount._activeLoadId !== loadId) return;
@@ -579,6 +575,12 @@
     if (ev && ev.detail && ev.detail.reason === 'realtime') return;
     start();
   });
+  window.addEventListener('mineralbar:language-changed', function () {
+    var mount = detectMount();
+    if (!mount) return;
+    mount.el.removeAttribute('data-initial-loaded');
+    start();
+  });
   window.addEventListener('mineralbar:auth-refreshed', start);
   window.addEventListener('mineralbar:leads', function (ev) {
     applySocketCustomerEvent((ev && ev.detail) || {});
@@ -591,20 +593,14 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       watchForListRemount();
-      setTimeout(start, 50);
+      setTimeout(start, 20);
     });
   } else {
     watchForListRemount();
-    setTimeout(start, 50);
+    setTimeout(start, 20);
   }
-  window.addEventListener('pageshow', function (ev) {
-    // BFCache restores can keep data-initial-loaded="1" and leave the stale Loading state.
-    if (ev && ev.persisted) {
-      var mount = detectMount();
-      if (mount && mount.el) mount.el.removeAttribute('data-initial-loaded');
-    }
-    start();
-  });
+  // Do NOT re-fetch on pageshow/visibility — returning from another app must stay on socket updates only.
+  // (BFCache socket reconnect is handled in biz1-app.js)
 
   if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
@@ -612,7 +608,7 @@
       if (!mount) return;
       mount.el.removeAttribute('data-initial-loaded');
       loadList(mount, mount.folderId);
-    }, { keys: /customer|lead|crm|socket\.nudge/i, delay: 400 });
+    }, { keys: /customer|lead|crm/i, delay: 180 });
   }
 
 })();

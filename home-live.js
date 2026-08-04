@@ -12,6 +12,12 @@
       .replace(/"/g, '&quot;');
   }
 
+  function t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
+    return lang === 'en' ? en : he;
+  }
+
   function pad(n) {
     return n < 10 ? '0' + n : String(n);
   }
@@ -58,17 +64,17 @@
     var time = '';
     var tm = raw.match(/(\d{1,2}):(\d{2})/);
     if (tm) time = pad(+tm[1]) + ':' + tm[2];
-    if (k && k < today) return 'באיחור' + (time ? ' · ' + time : '');
-    if (k === today) return time ? ('היום ' + time) : 'היום';
+    if (k && k < today) return t('Overdue', 'באיחור') + (time ? ' · ' + time : '');
+    if (k === today) return time ? (t('Today', 'היום') + ' ' + time) : t('Today', 'היום');
     return raw || k || '';
   }
 
   function priorityLabel(m, today) {
-    if (isOverdue(m, today)) return { text: 'דחוף', color: '#d0432f' };
-    if (isToday(m, today)) return { text: 'היום', color: '#1d60a2' };
+    if (isOverdue(m, today)) return { text: t('Urgent', 'דחוף'), color: '#d0432f' };
+    if (isToday(m, today)) return { text: t('Today', 'היום'), color: '#1d60a2' };
     var color = String(m.color || '').toLowerCase();
-    if (color === '#ef4444' || color === '#c0392b') return { text: 'דחוף', color: '#d0432f' };
-    return { text: 'פתוח', color: '#7b8595' };
+    if (color === '#ef4444' || color === '#c0392b') return { text: t('Urgent', 'דחוף'), color: '#d0432f' };
+    return { text: t('Open', 'פתוח'), color: '#7b8595' };
   }
 
   function setText(id, text) {
@@ -79,19 +85,19 @@
   function greetingName() {
     var user = MineralBarApp.getUser() || {};
     var email = MineralBarApp.getEmail() || '';
-    return user.name || user.user_name || (email ? email.split('@')[0] : 'שלום');
+    return user.name || user.user_name || (email ? email.split('@')[0] : t('Hello', 'שלום'));
   }
 
   function greetingPrefix() {
     var h = new Date().getHours();
-    if (h < 12) return 'בוקר טוב';
-    if (h < 17) return 'צהריים טובים';
-    return 'ערב טוב';
+    if (h < 12) return t('Good morning', 'בוקר טוב');
+    if (h < 17) return t('Good afternoon', 'צהריים טובים');
+    return t('Good evening', 'ערב טוב');
   }
 
   function missionRow(m, today) {
     var id = m.mission_id || m.id || '';
-    var title = m.mission || m.title || ('משימה #' + id);
+    var title = m.mission || m.title || (t('Task #', 'משימה #') + id);
     var customer = m.customer_name || '';
     if (customer && title.indexOf(customer) === -1) title = customer + ' — ' + title;
     var when = formatWhen(m, today);
@@ -154,14 +160,14 @@
     if (!missionsEl) return;
     if (!prioritized.length) {
       missionsEl.innerHTML =
-        '<div style="padding:18px 2px;font-size:13.5px;font-weight:600;color:#9aa3b0;">אין משימות פתוחות כרגע</div>' +
-        '<a href="sales-tasks.html" style="display:inline-block;margin-top:6px;font-size:13px;font-weight:800;color:#1d60a2;text-decoration:none;">לכל המשימות ←</a>';
+        '<div style="padding:18px 2px;font-size:13.5px;font-weight:600;color:#9aa3b0;">' + esc(t('No open tasks right now', 'אין משימות פתוחות כרגע')) + '</div>' +
+        '<a href="sales-tasks.html" style="display:inline-block;margin-top:6px;font-size:13px;font-weight:800;color:#1d60a2;text-decoration:none;">' + esc(t('All tasks', 'לכל המשימות')) + ' ←</a>';
       return;
     }
     missionsEl.innerHTML =
       prioritized.map(function (m) { return missionRow(m, today); }).join('') +
-      '<a href="sales-tasks.html" style="display:block;text-align:center;padding:14px 2px 4px;font-size:13px;font-weight:800;color:#1d60a2;text-decoration:none;">כל המשימות (' +
-      missionTotal + ') ←</a>';
+      '<a href="sales-tasks.html" style="display:block;text-align:center;padding:14px 2px 4px;font-size:13px;font-weight:800;color:#1d60a2;text-decoration:none;">' +
+      esc(t('All tasks', 'כל המשימות')) + ' (' + missionTotal + ') ←</a>';
   }
 
   function enableDragScroll(slider) {
@@ -221,7 +227,7 @@
     var loadingEl = missionsMount();
     if (loadingEl) {
       loadingEl.innerHTML =
-        '<div style="padding:18px 2px;font-size:13px;font-weight:700;color:#8a93a3;">טוען משימות…</div>';
+        '<div style="padding:18px 2px;font-size:13px;font-weight:700;color:#8a93a3;">' + esc(t('Loading tasks…', 'טוען משימות…')) + '</div>';
     }
 
     try {
@@ -254,36 +260,36 @@
       var openEstimate = openMissions.length;
 
       var prioritized = openMissions.slice().sort(function (a, b) {
-        var ao = isOverdue(a, today) ? 0 : (isToday(a, today) ? 1 : 2);
-        var bo = isOverdue(b, today) ? 0 : (isToday(b, today) ? 1 : 2);
+        // Today first, then overdue, then the rest
+        var ao = isToday(a, today) ? 0 : (isOverdue(a, today) ? 1 : 2);
+        var bo = isToday(b, today) ? 0 : (isOverdue(b, today) ? 1 : 2);
         if (ao !== bo) return ao - bo;
         return String(missionDayKey(a)).localeCompare(String(missionDayKey(b)));
       }).slice(0, 5);
 
       setText('mb-stat-closed', String(missionTotal));
-      setText('mb-stat-closed-sub', doneCount ? (doneCount + ' בוצעו בדגימה') : 'סה״כ משימות');
+      setText('mb-stat-closed-sub', doneCount
+        ? (doneCount + ' ' + t('done in sample', 'בוצעו בדגימה'))
+        : t('Total tasks', 'סה״כ משימות'));
       setText('mb-stat-leads', String(leadsCount));
-      setText('mb-stat-leads-sub', 'תיקייה 1 · לידים');
+      setText('mb-stat-leads-sub', t('Folder 1 · Leads', 'תיקייה 1 · לידים'));
       setText('mb-stat-followup', String((todayCount + overdueCount) || openEstimate || missionTotal));
-      setText('mb-stat-followup-sub', overdueCount ? (overdueCount + ' באיחור · ' + todayCount + ' היום') : (todayCount + ' להיום'));
+      setText('mb-stat-followup-sub', overdueCount
+        ? (todayCount + ' ' + t('today', 'היום') + ' · ' + overdueCount + ' ' + t('overdue', 'באיחור'))
+        : (todayCount + ' ' + t('for today', 'להיום')));
       setText('mb-stat-chats', String(chatTotal));
-      setText('mb-stat-chats-sub', 'שיחות פתוחות');
+      setText('mb-stat-chats-sub', t('Open conversations', 'שיחות פתוחות'));
       setText('mb-pipe-leads', String(leadsCount));
       setText('mb-pipe-followup', String(openEstimate || missionTotal));
 
       renderMissions(prioritized, missionTotal, today);
-      // One more paint after DC settle
-      setTimeout(function () {
-        setGreeting();
-        setAvatar();
-        renderMissions(prioritized, missionTotal, today);
-      }, 300);
     } catch (err) {
       console.error('[MineralBar] home dashboard failed', err);
       var missionsEl = missionsMount();
       if (missionsEl) {
         missionsEl.innerHTML =
-          '<div style="padding:14px 2px;color:#c0392b;font:700 13px Heebo,sans-serif;">שגיאה בטעינת לוח הבקרה</div>';
+          '<div style="padding:14px 2px;color:#c0392b;font:700 13px Heebo,sans-serif;">' +
+          esc(t('Error loading dashboard', 'שגיאה בטעינת לוח הבקרה')) + '</div>';
       }
     }
   }
@@ -293,8 +299,8 @@
     if (!document.getElementById('mb-live-home')) {
       // DC may not have mounted yet
       if (!window.__mbHomeMountTries) window.__mbHomeMountTries = 0;
-      if (window.__mbHomeMountTries++ < 20) {
-        setTimeout(start, 100);
+      if (window.__mbHomeMountTries++ < 12) {
+        setTimeout(start, 50);
       }
       return;
     }
@@ -302,11 +308,15 @@
     loadHome();
   }
 
-  window.addEventListener('mineralbar:ready', function () { setTimeout(start, 150); });
+  window.addEventListener('mineralbar:ready', function () { setTimeout(start, 40); });
+  window.addEventListener('mineralbar:language-changed', function () {
+    // Re-render live strings in the selected language (DOM translator skips #mb-live-*)
+    if (document.getElementById('mb-live-home')) start();
+  });
   function onHomeLiveRefresh() {
     if (!document.getElementById('mb-live-home')) return;
     clearTimeout(window.__mbHomeRtTimer);
-    window.__mbHomeRtTimer = setTimeout(loadHome, 400);
+    window.__mbHomeRtTimer = setTimeout(loadHome, 180);
   }
   window.addEventListener('mineralbar:missions', onHomeLiveRefresh);
   window.addEventListener('mineralbar:messages', onHomeLiveRefresh);
@@ -319,14 +329,14 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 200); });
   } else {
-    setTimeout(start, 200);
+    setTimeout(start, 40);
   }
 
   if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
       if (!document.getElementById('mb-live-home')) return;
       loadHome();
-    }, { keys: /mission|task|ticket|message|chat|lead|customer|socket\.nudge/i, delay: 400 });
+    }, { keys: /mission|task|ticket|message|chat|lead|customer/i, delay: 180 });
   }
 
 })();

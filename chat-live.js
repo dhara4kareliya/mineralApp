@@ -824,14 +824,18 @@
   }
 
   function chatT(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
     try {
-      if (typeof window.t === 'function') return window.t(en);
+      if (typeof window.getCurrentLanguage === 'function') {
+        return window.getCurrentLanguage() === 'en' ? en : (he || en);
+      }
     } catch (e0) { /* ignore */ }
     try {
       var lang = (document.documentElement.getAttribute('lang') || document.body.getAttribute('data-lang') || '').toLowerCase();
       if (lang.indexOf('he') === 0 && he) return he;
+      if (lang.indexOf('en') === 0) return en;
     } catch (e1) { /* ignore */ }
-    return en;
+    return he || en;
   }
 
   function setAttachMenuOpen(open) {

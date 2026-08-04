@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  window.i18nDict = window.i18nDict || (window.appI18nDict || { "en": {} });
+  window.i18nDict = window.i18nTranslations || window.i18nDict || (window.appI18nDict || { "en": {} });
 
   window.switchLanguage = function(lang) {
     if (window.switchAppLanguage) {
@@ -123,10 +123,15 @@
     if (label) {
       var email = MineralBarApp.getEmail() || '';
       var role = MineralBarApp.getRole();
-      var roleLabel = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role] || role;
+      var isEn = typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+      var roleMap = isEn
+        ? { sales: 'Sales', service: 'Service', tech: 'Technician' }
+        : { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' };
+      var roleLabel = roleMap[role] || role;
       var user = MineralBarApp.getUser() || {};
+      var connected = isEn ? 'Connected' : 'מחובר';
       label.textContent =
-        (email || user.name || 'מחובר') + ' · ' + roleLabel + ' · ' + rtLabel(state.status, state.registered);
+        (email || user.name || connected) + ' · ' + roleLabel + ' · ' + rtLabel(state.status, state.registered);
     }
     if (state.status === 'ready' && state.registered) {
       chip.title =
@@ -143,22 +148,27 @@
     var email = MineralBarApp.getEmail() || user.email || '';
 
     // Visible on-screen socket debug (so logs are obvious without Console filters)
-    var dbg = document.createElement('div');
-    dbg.id = 'mb-socket-debug';
-    dbg.style.cssText = [
-      'position:fixed', 'bottom:10px', 'left:10px', 'z-index:2147483001',
-      'width:min(92vw,360px)', 'max-height:220px', 'overflow:auto',
-      'background:rgba(8,14,28,.94)', 'color:#d7e3ff',
-      'font:600 11px/1.35 ui-monospace,Menlo,monospace',
-      'padding:8px 10px', 'border-radius:12px',
-      'box-shadow:0 8px 24px rgba(0,0,0,.35)',
-      'white-space:pre-wrap', 'word-break:break-word'
-    ].join(';');
-    dbg.textContent = '[SocketDebug] waiting for connect…';
-    document.body.appendChild(dbg);
+    var dbg = document.getElementById('mb-socket-debug');
+    if (!dbg) {
+      dbg = document.createElement('div');
+      dbg.id = 'mb-socket-debug';
+      dbg.style.cssText = [
+        'position:fixed', 'bottom:10px', 'left:10px', 'z-index:2147483001',
+        'width:min(92vw,360px)', 'max-height:220px', 'overflow:auto',
+        'background:rgba(8,14,28,.94)', 'color:#d7e3ff',
+        'font:600 11px/1.35 ui-monospace,Menlo,monospace',
+        'padding:8px 10px', 'border-radius:12px',
+        'box-shadow:0 8px 24px rgba(0,0,0,.35)',
+        'white-space:pre-wrap', 'word-break:break-word'
+      ].join(';');
+      document.body.appendChild(dbg);
+    }
     function dbgLine(msg) {
       var t = new Date().toLocaleTimeString();
-      dbg.textContent = '[' + t + '] ' + msg + '\n' + dbg.textContent.split('\n').slice(0, 12).join('\n');
+      var prev = String(dbg.textContent || '')
+        .replace(/\[SocketDebug\] waiting for connect…\n?/g, '')
+        .replace(/^\s+|\s+$/g, '');
+      dbg.textContent = '[' + t + '] ' + msg + (prev ? '\n' + prev.split('\n').slice(0, 12).join('\n') : '');
     }
     window.addEventListener('mineralbar:socket-debug', function (ev) {
       var d = (ev && ev.detail) || {};
@@ -176,7 +186,10 @@
       dbgLine('APP realtime key=' + (d.key || '?') + ' group=' + (d.group || '?'));
     });
     dbgLine('boot start role=' + role + ' page=' + ((location.pathname || '').split('/').pop() || ''));
-
+    try {
+      var rt0 = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
+      if (rt0 && rt0.connected) dbgLine('socket already up status=' + (rt0.status || ''));
+    } catch (eRt) { /* ignore */ }
     var chip = document.createElement('div');
     chip.id = 'mb-sdk-chip';
     chip.setAttribute('dir', 'rtl');
@@ -190,13 +203,18 @@
       'max-width:min(92vw,360px)'
     ].join(';');
 
-    var roleLabel = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role] || role;
+    var isEnBoot = typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+    var roleLabel = (isEnBoot
+      ? { sales: 'Sales', service: 'Service', tech: 'Technician' }
+      : { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' })[role] || role;
+    var connectedLabel = isEnBoot ? 'Connected' : 'מחובר';
+    var logoutLabel = isEnBoot ? 'Logout' : 'יציאה';
     chip.innerHTML =
       '<span data-mb-dot style="width:8px;height:8px;border-radius:50%;background:#e6b422;flex:none;"></span>' +
       '<span data-mb-label style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
-      (email || user.name || 'מחובר') + ' · ' + roleLabel + ' · RT…' +
+      (email || user.name || connectedLabel) + ' · ' + roleLabel + ' · RT…' +
       '</span>' +
-      '<button type="button" id="mb-logout-btn" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:99px;padding:4px 8px;cursor:pointer;font:700 10px Heebo,sans-serif;flex:none;">יציאה</button>';
+      '<button type="button" id="mb-logout-btn" style="background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:99px;padding:4px 8px;cursor:pointer;font:700 10px Heebo,sans-serif;flex:none;">' + logoutLabel + '</button>';
 
     document.body.appendChild(chip);
     document.getElementById('mb-logout-btn').addEventListener('click', function () {
@@ -231,7 +249,7 @@
     //  - data-live-reload="hard" (forces hard reload fallback)
     (function setupSocketPageRefresh() {
       var refreshTimer = null;
-      var minGapMs = 1200;
+      var minGapMs = 280;
       var lastRefreshAt = 0;
       var allowAutoRefresh = (document.body.getAttribute('data-live-refresh') || 'on') !== 'off';
       if (!allowAutoRefresh) return;
@@ -297,11 +315,11 @@
           return;
         }
 
-        // Skip noisy presence/system events; refresh for data-changing events.
-        // Allow socket.nudge.* (explicit post-reconnect / visibility re-fetch).
-        if ((key.indexOf('socket') !== -1 || key.indexOf('connected') !== -1) && key.indexOf('nudge') === -1) {
-          return;
-        }
+        // Skip connect noise + other-app resume nudge only.
+        // Allow socket.nudge.bfcache / visible-reconnect so lists catch up after reconnect.
+        if (/^socket\.(connect|connected|disconnect)(\.|$)/i.test(key)) return;
+        if (/^socket\.nudge\.visible$/i.test(key)) return;
+        if (key === 'pageshow' || key === 'visible') return;
         if (!isRelevantForPage(detail)) {
           return;
         }
@@ -334,9 +352,10 @@
       if (name) {
         document.querySelectorAll('div').forEach(function (el) {
           if (el.children.length) return;
-          var t = (el.textContent || '').trim();
-          if (/^בוקר טוב,/.test(t) || /^צהריים טובים,/.test(t) || /^ערב טוב,/.test(t)) {
-            el.textContent = t.replace(/,.*/, ', ' + name + ' 👋');
+          var txt = (el.textContent || '').trim();
+          // Update greeting name for both HE and EN prefixes (don't fight language toggle)
+          if (/^(בוקר טוב|צהריים טובים|ערב טוב|Good morning|Good afternoon|Good evening),/.test(txt)) {
+            el.textContent = txt.replace(/,.*/, ', ' + name + ' 👋');
           }
         });
       }
@@ -346,6 +365,28 @@
       detail: { role: role, user: user, client: MineralBarApp.getClient() }
     }));
 
+    // Prefetch likely next screens so tab clicks feel faster
+    try {
+      var prefetch = [];
+      if (role === 'sales') {
+        prefetch = ['sales-home.html', 'leads-list.html', 'customers.html', 'sales-tasks.html', 'calls-list.html'];
+      } else if (role === 'service') {
+        prefetch = ['service-all-calls.html', 'customers.html', 'service-inventory.html', 'calls-list.html', 'sales-tasks.html'];
+      } else if (role === 'tech') {
+        prefetch = ['tech-dashboard.html', 'tech-open-calls.html', 'tech-daily-schedule.html', 'tech-time-clock.html', 'service-all-calls.html'];
+      }
+      var here = ((location.pathname || '').split('/').pop() || '').toLowerCase();
+      prefetch.forEach(function (href) {
+        if (!href || here === href.toLowerCase()) return;
+        if (document.querySelector('link[rel="prefetch"][href="' + href + '"]')) return;
+        var link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = href;
+        document.head.appendChild(link);
+      });
+    } catch (ePrefetch) { /* ignore */ }
+
+    // Connect socket immediately so add/edit/delete live updates work right away.
     MineralBarApp.connectRealtime()
       .then(function (handle) {
         return handle.promise.then(function (payload) {
@@ -355,7 +396,6 @@
       })
       .catch(function (err) {
         console.error('[SocketUI] socket connect FAILED', err);
-        // Retry once shortly after — covers race with auth refresh / slow socket.io.js
         setTimeout(function () {
           if (typeof MineralBarApp.ensureRealtimeConnected === 'function') {
             MineralBarApp.ensureRealtimeConnected('page-boot-retry');
@@ -379,10 +419,8 @@
     MineralBarApp.ensureAuth('login.html').then(function (client) {
       if (!client) return;
       bootUi();
-      // Re-apply after DC mount / chrome inject so HE placeholders don't stick as EN
-      [200, 600, 1400].forEach(function (ms) {
-        setTimeout(function () { applyLanguage(); }, ms);
-      });
+      // One deferred language pass after DC/chrome settle (was 200/600/1400 + ready storms)
+      setTimeout(function () { applyLanguage(); }, 320);
     }).catch(function (err) {
       console.warn('[MineralBar] ensureAuth failed', err);
       location.href = 'login.html';
@@ -391,6 +429,5 @@
 
   window.addEventListener('mineralbar:ready', function () {
     applyLanguage();
-    setTimeout(function () { applyLanguage(); }, 250);
   });
 })();
