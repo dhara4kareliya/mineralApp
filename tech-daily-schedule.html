@@ -1,15 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix11"></script>
-<script src="./biz1-app.js?v=socketfix11"></script>
-<script src="./page-boot.js?v=socketfix11"></script>
+<script src="./biz1-sdk.js?v=socketfix17"></script>
+<script src="./biz1-app.js?v=socketfix17"></script>
+<script src="./page-boot.js?v=socketfix17"></script>
+<script src="./live-sync.js?v=socketfix17"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull1"></script>
+<script src="./i18n-translations.js?v=hefull2"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body data-role="tech" data-active-tab="schedule">
@@ -133,7 +134,7 @@
                 </button>
 </div>
 </sc-if>
-<!-- actions: completed tickets — View only -->
+<!-- actions: completed tickets � View only -->
 <sc-if hint-placeholder-val="{{ true }}" value="{{ v.isDone }}">
 <div style="display:flex; gap:8px; margin-top:13px;">
 <a href="{{ v.phoneHref }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
@@ -148,7 +149,7 @@
 </div>
 </div>
 </sc-for>
-<div style="text-align:center; padding:8px 0 4px; color:#b6bdc8; font-size:12.5px; font-weight:600;">— end of day —</div>
+<div style="text-align:center; padding:8px 0 4px; color:#b6bdc8; font-size:12.5px; font-weight:600;">❖ end of day ❖</div>
 </div>
 <!-- customer card sheet -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ cardOpen }}">
@@ -211,6 +212,7 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    window.__mbDailyScheduleComp = this;
     this.ensureChrome();
     this.initData();
     window.addEventListener('mineralbar:ready', (ev) => {
@@ -220,10 +222,12 @@ class Component extends DCLogic {
     });
     window.addEventListener('mineralbar:realtime', (ev) => {
       var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
-      if (/ticket|mission|task|socket\\.nudge/.test(key)) this.initData();
+      if (/ticket|mission|task|socket\.nudge/.test(key)) this.scheduleRefresh();
     });
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.initData(), { keys: /ticket|mission|task|socket\\.nudge/i, delay: 350 });
+    if (window.LiveSync && typeof LiveSync.bind === 'function') {
+      LiveSync.bind(() => this.scheduleRefresh(), { retries: true, keys: /ticket|mission|task|socket\.nudge/i, delay: 350 });
+    } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.scheduleRefresh(), { keys: /ticket|mission|task|socket\.nudge/i, delay: 350 });
     }
     var self = this;
     document.addEventListener('click', function (e) {
@@ -236,6 +240,14 @@ class Component extends DCLogic {
         }, 80);
       }
     });
+  }
+
+  scheduleRefresh() {
+    var self = window.__mbDailyScheduleComp || this;
+    clearTimeout(self._schedTimer);
+    self._schedTimer = setTimeout(function () {
+      self.initData({ silent: true });
+    }, 280);
   }
 
   ensureChrome() {
@@ -289,10 +301,12 @@ class Component extends DCLogic {
   isClosedStatus(ticket) {
     if (!ticket) return false;
     if (ticket.is_done === 1 || ticket.closed === 1 || ticket.is_closed === 1 || ticket.close_date) return true;
-    var st = String(ticket.status_name || ticket.status_label || ticket.status || '').toLowerCase();
-    if (st === '2' || st === 'closed' || st === 'done' || st === 'completed' || st === 'סגור' || st === 'נסגר' || st === 'הושלם' || st === 'נסגרה') return true;
-    var sid = Number(ticket.status_id != null ? ticket.status_id : ticket.status);
-    if (sid === 2 || sid === 4 || sid === 5) return true;
+    var st = String(ticket.status_name || ticket.status_label || '').toLowerCase().trim();
+    if (/^(closed|done|completed)$/i.test(st)) return true;
+    if (st === 'סגור' || st === 'הושלם' || st === 'סגורה' || st === 'בוצע') return true;
+    // Numeric ticket.status is workflow stage (not closed) — only treat explicit closed ids if labeled
+    var sid = Number(ticket.status_id);
+    if (sid === 4 || sid === 5) return true;
     var msgs = ticket.messages || ticket.message || '';
     if (Array.isArray(msgs)) {
       msgs = msgs.map(function (m) { return m && (m.message || m.msg || m.text) || ''; }).join('\n');
@@ -341,20 +355,25 @@ class Component extends DCLogic {
 
   guessTypeKind(subject) {
     var s = String(subject || '').toLowerCase();
-    if (/install|התקנ/.test(s)) return 'install';
-    if (/repair|תיקון|נזיל/.test(s)) return 'repair';
-    if (/filter|סנן|מרכך/.test(s)) return 'filter';
+    // Do NOT put corrupted "?" into regex — "?" is a quantifier and crashes DC ("Nothing to repeat")
+    if (s.indexOf('install') !== -1 || s.indexOf('התקנ') !== -1) return 'install';
+    if (s.indexOf('filter') !== -1 || s.indexOf('מסנן') !== -1 || s.indexOf('פילטר') !== -1) return 'filter';
+    if (s.indexOf('repair') !== -1 || s.indexOf('תיקון') !== -1 || s.indexOf('תקלה') !== -1) return 'repair';
     return 'repair';
   }
 
-  async initData() {
+  async initData(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var client = this.getClient();
     if (!client) {
       this.setState({ loading: false, errorMsg: 'SDK not ready' });
       return;
     }
 
-    this.setState({ loading: true, errorMsg: '' });
+    if (!silent || !(this.state.tickets && this.state.tickets.length)) {
+      this.setState({ loading: true, errorMsg: '' });
+    }
     try {
       var userId = this.resolveUserId();
       if (!userId) {
@@ -363,7 +382,7 @@ class Component extends DCLogic {
       }
 
       var payload = {
-        limit: 25,
+        limit: 50,
         assign_member_id: String(userId),
         team_member: String(userId),
         team_member_id: String(userId)
@@ -381,6 +400,10 @@ class Component extends DCLogic {
       this.ensureChrome();
     } catch (e) {
       console.error('[DailySchedule] Ticket.List failed', e);
+      if (silent && this.state.tickets && this.state.tickets.length) {
+        this.setState({ loading: false });
+        return;
+      }
       this.setState({
         loading: false,
         errorMsg: (e && e.message) || 'Failed to load tickets',

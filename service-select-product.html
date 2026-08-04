@@ -5,11 +5,12 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix11"></script>
-<script src="./biz1-app.js?v=socketfix11"></script>
-<script src="./page-boot.js?v=socketfix11"></script>
+<script src="./biz1-sdk.js?v=socketfix15"></script>
+<script src="./biz1-app.js?v=socketfix15"></script>
+<script src="./page-boot.js?v=socketfix15"></script>
+<script src="./live-sync.js?v=socketfix15"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull1"></script>
+<script src="./i18n-translations.js?v=hefull2"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -129,7 +130,9 @@ class Component extends DCLogic {
   componentDidMount() {
     this.initData();
     window.addEventListener('mineralbar:ready', () => this.initData());
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    if (window.LiveSync && typeof LiveSync.bind === 'function') {
+      LiveSync.bind(() => this.initData(), { retries: true, keys: /product|invent|categorie|socket\.nudge/i, delay: 350 });
+    } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.initData(), { keys: /product|invent|categorie|socket\.nudge/i, delay: 350 });
     }
     window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));

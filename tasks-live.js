@@ -297,6 +297,34 @@
   var PAGE_SIZE = 25;
   var currentStart = 0;
   var currentTotal = 0;
+  var liveListenersWired = false;
+  var _rtTasksTimer = null;
+  var _rtTasksRetryTimers = [];
+
+  /** Mission.List can lag behind mission.done / created — debounce + short retries. */
+  function scheduleLiveTasksRefresh(detail) {
+    detail = detail || {};
+    var key = String(detail.key || '').toLowerCase();
+    if (/^socket\.(connect|connected|disconnect)(\.|$)/i.test(key)) return;
+    if (/^socket\.nudge\.visible$/i.test(key) || key === 'pageshow' || key === 'visible') return;
+
+    clearTimeout(_rtTasksTimer);
+    _rtTasksRetryTimers.forEach(clearTimeout);
+    _rtTasksRetryTimers = [];
+
+    var delays = /mission\.(done|created|updated|deleted|reopened)|socket\.nudge/.test(key)
+      ? [350, 1100, 2600]
+      : [400];
+
+    _rtTasksTimer = setTimeout(function () {
+      loadTasks(currentFilterType);
+      delays.slice(1).forEach(function (ms) {
+        _rtTasksRetryTimers.push(setTimeout(function () {
+          loadTasks(currentFilterType);
+        }, ms));
+      });
+    }, delays[0]);
+  }
 
   function pageCount(total) {
     var t = Number(total) || 0;
@@ -584,20 +612,46 @@
     wireFilterChips();
     populateQuickMissionDropdowns();
     wireQuickMission();
-    loadTasks('show_all_together_tasks');
+    loadTasks(currentFilterType || 'show_all_together_tasks');
 
-    window.addEventListener('mineralbar:realtime', function () { loadTasks(currentFilterType); });
-    window.addEventListener('mineralbar:missions', function () { loadTasks(currentFilterType); });
+    if (!liveListenersWired) {
+      liveListenersWired = true;
+      // Same pattern as Biz1_task: socket event → Mission.List re-fetch → innerHTML
+      if (window.LiveSync && typeof LiveSync.bind === 'function') {
+        LiveSync.bind(function () {
+          loadTasks(currentFilterType);
+        }, {
+          keys: /mission|task|ticket|socket\.nudge/i,
+          mount: '#mb-live-tasks',
+          delay: 300,
+          retries: true
+        });
+      } else {
+        window.addEventListener('mineralbar:realtime', function (ev) {
+          scheduleLiveTasksRefresh((ev && ev.detail) || {});
+        });
+        window.addEventListener('mineralbar:missions', function (ev) {
+          scheduleLiveTasksRefresh((ev && ev.detail) || {});
+          var list = document.getElementById('mb-live-tasks');
+          if (list && window.Biz1Pulse) window.Biz1Pulse(list);
+        });
+        window.addEventListener('mineralbar:page-refresh', function (ev) {
+          scheduleLiveTasksRefresh((ev && ev.detail) || {});
+        });
+      }
+    }
     
     var closeBtn = document.getElementById('close-task-panel');
-    if (closeBtn) {
+    if (closeBtn && !closeBtn.dataset.mbWired) {
+      closeBtn.dataset.mbWired = '1';
       closeBtn.addEventListener('click', function() {
         document.getElementById('task-detail-panel').style.display = 'none';
       });
     }
     
     var filterBtn = document.getElementById('task-filter-btn');
-    if (filterBtn) {
+    if (filterBtn && !filterBtn.dataset.mbWired) {
+      filterBtn.dataset.mbWired = '1';
       filterBtn.addEventListener('click', function() {
         var p = document.getElementById('task-filter-panel');
         if (p) p.style.display = 'flex';
@@ -605,7 +659,8 @@
     }
     
     var closeFilterBtn = document.getElementById('close-filter-panel');
-    if (closeFilterBtn) {
+    if (closeFilterBtn && !closeFilterBtn.dataset.mbWired) {
+      closeFilterBtn.dataset.mbWired = '1';
       closeFilterBtn.addEventListener('click', function() {
         var p = document.getElementById('task-filter-panel');
         if (p) p.style.display = 'none';
@@ -624,10 +679,12 @@
     setTimeout(start, 200);
   }
 
-  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () {
-      if (typeof loadTasks === 'function') loadTasks(typeof currentFilterType !== 'undefined' ? currentFilterType : undefined);
-    }, { keys: /mission|task|ticket|socket\.nudge/i, delay: 400 });
+  if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    // Already bound inside start() when LiveSync is present
+  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function (detail) {
+      scheduleLiveTasksRefresh(detail || {});
+    }, { keys: /mission|task|ticket|socket\.nudge/i, delay: 80 });
   }
 
 })();

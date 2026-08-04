@@ -140,7 +140,13 @@
     setTimeout(load, 250);
   }
 
-  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+  if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    LiveSync.bind(function () { if (typeof load === 'function') load(); }, {
+      keys: /document|file|customer|socket\.nudge/i,
+      delay: 300,
+      retries: true
+    });
+  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () { if (typeof load === 'function') load(); }, { keys: /document|file|customer|socket\.nudge/i, delay: 400 });
   }
 

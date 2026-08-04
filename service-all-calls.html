@@ -6,13 +6,14 @@
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <script src="./support.js"></script>
-  <script src="./biz1-sdk.js?v=socketfix11"></script>
-  <script src="./biz1-app.js?v=socketfix11"></script>
-  <script src="./page-boot.js?v=socketfix11"></script>
-  <link rel="stylesheet" href="./common.css" />
-  <script src="./i18n-translations.js?v=hefull1"></script>
-  <script src="./common-header-footer.js"></script>
-</head>
+<script src="./biz1-sdk.js?v=socketfix15"></script>
+<script src="./biz1-app.js?v=socketfix15"></script>
+<script src="./page-boot.js?v=socketfix15"></script>
+<script src="./live-sync.js?v=socketfix15"></script>
+<script src="./i18n-translations.js?v=hefull2"></script>
+<script src="./common-header-footer.js"></script>
+<link rel="stylesheet" href="./common.css" />
+  </head>
 
 <body data-role="service" data-active-tab="service">
   <x-dc>
@@ -410,6 +411,10 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    if (window.LiveSync && typeof LiveSync.bind === 'function') {
+      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+    }
+
     this.applyServiceDefaultFilter();
     this.loadTickets();
     window.addEventListener('mineralbar:ready', () => this.loadTickets());

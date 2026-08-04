@@ -5,12 +5,13 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix11"></script>
-<script src="./biz1-app.js?v=socketfix11"></script>
-<script src="./page-boot.js?v=socketfix11"></script>
-<link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull1"></script>
+<script src="./biz1-sdk.js?v=socketfix15"></script>
+<script src="./biz1-app.js?v=socketfix15"></script>
+<script src="./page-boot.js?v=socketfix15"></script>
+<script src="./live-sync.js?v=socketfix15"></script>
+<script src="./i18n-translations.js?v=hefull2"></script>
 <script src="./common-header-footer.js"></script>
+<link rel="stylesheet" href="./common.css"/>
 </head>
 <body>
 <x-dc>
@@ -222,6 +223,10 @@ class Component extends DCLogic {
   state = { callType: 'tech', priority: 'normal', charge: true, cust: null, email: '', phone: '', address: '', phone2: '', city: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '', products: [], productId: '', productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '' };
 
   componentDidMount() {
+    if (window.LiveSync && typeof LiveSync.bind === 'function') {
+      LiveSync.bind(() => { if (typeof this.initData === 'function') this.initData(); else if (typeof this.load === 'function') this.load(); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+    }
+
     try {
       const raw = localStorage.getItem('mineral_new_call_customer');
       if (raw) {

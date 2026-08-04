@@ -1426,7 +1426,18 @@
     setTimeout(start, 50);
   }
 
-  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+  if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    LiveSync.bind(function () {
+      if (!document.getElementById('mb-live-chat')) return;
+      if (typeof shouldReloadThread === 'function' && !shouldReloadThread()) return;
+      loadThread('mb-live-chat', params(), { silent: true });
+    }, {
+      keys: /message|chat|whatsapp|inbox|customer|socket\.nudge/i,
+      mount: '#mb-live-chat',
+      delay: 300,
+      retries: true
+    });
+  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
       if (!document.getElementById('mb-live-chat')) return;
       if (typeof shouldReloadThread === 'function' && !shouldReloadThread()) return;

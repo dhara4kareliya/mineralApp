@@ -1807,6 +1807,8 @@
   };
   var realtimeHandlersWired = false;
   var realtimeKeyHandlersWired = {};
+  // Survives connectRealtime() re-entry after ping-timeout / network drop.
+  var needsCatchUpAfterReconnect = false;
 
   function dispatchAppEvent(name, detail) {
     try {
@@ -2043,6 +2045,14 @@
       });
       socket.on('biz1:ready', function (payload) {
         dispatchAppEvent('mineralbar:socket-debug', { type: 'ready', payload: payload });
+        if (needsCatchUpAfterReconnect) {
+          needsCatchUpAfterReconnect = false;
+          setTimeout(function () {
+            if (typeof nudgePagesAfterSocket === 'function') {
+              nudgePagesAfterSocket('reconnect');
+            }
+          }, 250);
+        }
       });
     }
 
@@ -2091,8 +2101,11 @@
       // Network drops: Socket.IO reconnection handles most cases; if the socket
       // instance was cleared, visibility/online handlers will restore it.
       var intentional = reason === 'io client disconnect';
-      if (!intentional && global.document && global.document.visibilityState === 'visible') {
-        scheduleRealtimeReconnect('disconnect:' + reason, 800);
+      if (!intentional) {
+        needsCatchUpAfterReconnect = true;
+        if (global.document && global.document.visibilityState === 'visible') {
+          scheduleRealtimeReconnect('disconnect:' + reason, 800);
+        }
       }
     });
 
@@ -2276,10 +2289,16 @@
     detail = detail || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
-    // Skip connect noise + plain other-app resume. Allow bfcache / visible-reconnect catch-up.
+    // Skip connect noise + plain other-app resume. Allow bfcache / visible-reconnect / reconnect catch-up.
     if (/^socket\.(connect|connected|disconnect)(\.|$)/i.test(key)) return;
     if (/^socket\.nudge\.visible$/i.test(key)) return;
     if (key === 'pageshow' || key === 'visible') return;
+
+    // Like biz1_ticket: list APIs can lag behind the socket event — retry briefly.
+    var retryDelays = /ticket\.|mission\.(done|created|updated|deleted|reopened)|products?\.(created|updated|deleted)|categories\.|customer\.|lead\.|crm\.|message\.|chat\.|document\.|socket\.nudge\.(reconnect|poll|bfcache)/.test(key)
+      ? [0, 1000, 2500]
+      : [0];
+
     liveReloaders.forEach(function (entry) {
       if (!entry || typeof entry.fn !== 'function') return;
       if (entry.keys) {
@@ -2291,11 +2310,21 @@
         if (group && entry.groups.indexOf(group) === -1 && entry.groups.indexOf('other') === -1) return;
       }
       clearTimeout(entry._timer);
+      (entry._retries || []).forEach(clearTimeout);
+      entry._retries = [];
+      var baseDelay = entry.delay != null ? entry.delay : 400;
       entry._timer = setTimeout(function () {
         try { entry.fn(detail); } catch (err) {
           console.warn('[LiveReload] handler failed', err);
         }
-      }, entry.delay || 400);
+        retryDelays.slice(1).forEach(function (extraMs) {
+          entry._retries.push(setTimeout(function () {
+            try { entry.fn(detail); } catch (err2) {
+              console.warn('[LiveReload] retry failed', err2);
+            }
+          }, extraMs));
+        });
+      }, baseDelay);
     });
   }
 

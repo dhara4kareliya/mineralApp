@@ -181,15 +181,26 @@
     return null;
   }
 
-  async function loadList(mount, explicitFolderId) {
+  async function loadList(mount, explicitFolderId, opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var el = mount.el;
     var kind = mount.kind;
     var loadId = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
     mount._activeLoadId = loadId;
-    el.innerHTML = loadingHtml();
+
+    el = document.getElementById('mb-live-list') || el;
+    var hasRows = !!(el && el.querySelector('[data-customer-id]'));
+    // Socket / soft refresh: keep current list visible — never flash "Loading…"
+    if (!silent || !hasRows) {
+      el.innerHTML = loadingHtml();
+      var totalElBusy = document.getElementById('mb-total-label');
+      if (totalElBusy) {
+        totalElBusy.textContent = (typeof window.mbT === 'function' ? window.mbT('Loading…', 'טוען…') : 'טוען…');
+      }
+    }
 
     var totalEl = document.getElementById('mb-total-label');
-    if (totalEl) totalEl.textContent = (typeof window.mbT === 'function' ? window.mbT('Loading…', 'טוען…') : 'טוען…');
 
     var queryParams = { length: 100, start: 0, draw: 1 };
     // folder_id 0 / null / 'all' = every customer (no folder filter)
@@ -242,6 +253,11 @@
     }
 
     if (mount._activeLoadId !== loadId) return;
+    // Soft refresh failed — keep existing rows; only show error on first/manual load
+    if (silent && hasRows) {
+      console.warn('[ListLive] silent refresh failed — keeping list', lastErr);
+      return;
+    }
     console.error('[MineralBar] Customer.List failed', lastErr);
     el = document.getElementById('mb-live-list') || el;
     totalEl = document.getElementById('mb-total-label');
@@ -546,28 +562,57 @@
     return true;
   }
 
+  var _fullRefreshTimer = null;
+  var _fullRefreshPendingReason = '';
+
+  function fullListRefresh(reason) {
+    // Debounce LiveSync retries (300 / 1000 / 2500) into one silent re-fetch
+    _fullRefreshPendingReason = reason || _fullRefreshPendingReason || '';
+    clearTimeout(_fullRefreshTimer);
+    _fullRefreshTimer = setTimeout(function () {
+      var mount = detectMount();
+      if (!mount) return;
+      var why = _fullRefreshPendingReason;
+      _fullRefreshPendingReason = '';
+      loadList(mount, mount.folderId, { silent: true });
+      if (window.Biz1Pulse) window.Biz1Pulse(mount.el);
+      console.log('[ListLive] silent refresh', why);
+    }, 180);
+  }
+
   function applySocketCustomerEvent(detail) {
     var key = String((detail && detail.key) || '').toLowerCase();
-    if (!/lead|customer|crm/.test(key)) return;
+    if (!/lead|customer|crm|socket\.nudge/.test(key)) return;
     var mount = detectMount();
     if (!mount) return;
     var kind = mount.kind || 'customers';
+
+    // Poll / reconnect catch-up → always full REST re-fetch (biz1_ticket pattern)
+    if (/socket\.nudge/.test(key)) {
+      fullListRefresh(key);
+      return;
+    }
+
     var c = extractCustomerFromEvent(detail);
 
     if (/delete|deleted|purge|remove/.test(key)) {
       var delId = (c && c.id) ||
         (detail.event && detail.event.payload && (detail.event.payload.customer_id || detail.event.payload.id));
       if (delId) removeCustomerCard(delId);
+      else fullListRefresh(key);
       return;
     }
 
     if (!c || !c.id) {
-      console.warn('[ListLive] socket event missing customer payload — skip full reload', detail);
+      // Payload incomplete — same as ticket live: re-fetch list from API
+      console.warn('[ListLive] socket payload incomplete — full list refresh', key);
+      fullListRefresh(key);
       return;
     }
 
     // created / updated / restored / followup → upsert only that card
     upsertCustomerCard(c, kind);
+    if (window.Biz1Pulse) window.Biz1Pulse(mount.el);
   }
 
   window.addEventListener('mineralbar:ready', function (ev) {
@@ -588,7 +633,11 @@
   window.addEventListener('mineralbar:realtime', function (ev) {
     applySocketCustomerEvent((ev && ev.detail) || {});
   });
-  // Do NOT listen to mineralbar:page-refresh / polling — socket partial only
+  window.addEventListener('mineralbar:page-refresh', function (ev) {
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    if (/lead|customer|crm|socket\.nudge/.test(key) || !key) fullListRefresh(key || 'page-refresh');
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
@@ -602,13 +651,24 @@
   // Do NOT re-fetch on pageshow/visibility — returning from another app must stay on socket updates only.
   // (BFCache socket reconnect is handled in biz1-app.js)
 
-  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+  if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    LiveSync.bind(function (detail) {
+      var key = String((detail && detail.key) || '').toLowerCase();
+      if (/socket\.nudge/.test(key) || !key) {
+        fullListRefresh(key || 'livesync');
+        return;
+      }
+      applySocketCustomerEvent(detail || {});
+    }, {
+      keys: /customer|lead|crm|socket\.nudge/i,
+      mount: '#mb-live-list',
+      delay: 250,
+      retries: true
+    });
+  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
-      var mount = detectMount();
-      if (!mount) return;
-      mount.el.removeAttribute('data-initial-loaded');
-      loadList(mount, mount.folderId);
-    }, { keys: /customer|lead|crm/i, delay: 180 });
+      fullListRefresh('bindLiveReload');
+    }, { keys: /customer|lead|crm|socket\.nudge/i, delay: 180 });
   }
 
 })();

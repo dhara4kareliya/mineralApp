@@ -313,18 +313,49 @@
     // Re-render live strings in the selected language (DOM translator skips #mb-live-*)
     if (document.getElementById('mb-live-home')) start();
   });
-  function onHomeLiveRefresh() {
+  function onHomeLiveRefresh(detail) {
     if (!document.getElementById('mb-live-home')) return;
+    detail = detail || {};
+    var key = String(detail.key || '').toLowerCase();
+    if (/^socket\.(connect|connected|disconnect)(\.|$)/i.test(key)) return;
+    if (/^socket\.nudge\.visible$/i.test(key) || key === 'pageshow' || key === 'visible') return;
+
     clearTimeout(window.__mbHomeRtTimer);
-    window.__mbHomeRtTimer = setTimeout(loadHome, 180);
+    if (window.__mbHomeRtRetries) {
+      window.__mbHomeRtRetries.forEach(clearTimeout);
+    }
+    window.__mbHomeRtRetries = [];
+
+    // Mission.List / counts can lag briefly behind mission.done
+    var delays = /mission\.(done|created|updated|deleted|reopened)|socket\.nudge/.test(key)
+      ? [300, 1000, 2400]
+      : [180];
+
+    window.__mbHomeRtTimer = setTimeout(function () {
+      loadHome();
+      delays.slice(1).forEach(function (ms) {
+        window.__mbHomeRtRetries.push(setTimeout(loadHome, ms));
+      });
+    }, delays[0]);
   }
-  window.addEventListener('mineralbar:missions', onHomeLiveRefresh);
-  window.addEventListener('mineralbar:messages', onHomeLiveRefresh);
-  window.addEventListener('mineralbar:leads', onHomeLiveRefresh);
-  window.addEventListener('mineralbar:page-refresh', onHomeLiveRefresh);
+  window.addEventListener('mineralbar:missions', function (ev) {
+    onHomeLiveRefresh((ev && ev.detail) || {});
+  });
+  window.addEventListener('mineralbar:messages', function (ev) {
+    onHomeLiveRefresh((ev && ev.detail) || {});
+  });
+  window.addEventListener('mineralbar:leads', function (ev) {
+    onHomeLiveRefresh((ev && ev.detail) || {});
+  });
+  window.addEventListener('mineralbar:page-refresh', function (ev) {
+    onHomeLiveRefresh((ev && ev.detail) || {});
+  });
   window.addEventListener('mineralbar:realtime', function (ev) {
-    var key = String(((ev && ev.detail) || {}).key || '').toLowerCase();
-    if (!key || /mission|task|ticket|message|chat|lead|customer|crm/.test(key)) onHomeLiveRefresh();
+    var detail = (ev && ev.detail) || {};
+    var key = String(detail.key || '').toLowerCase();
+    if (!key || /mission|task|ticket|message|chat|lead|customer|crm|socket\.nudge/.test(key)) {
+      onHomeLiveRefresh(detail);
+    }
   });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 200); });
@@ -332,11 +363,20 @@
     setTimeout(start, 40);
   }
 
-  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () {
+  if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    LiveSync.bind(function (detail) {
+      onHomeLiveRefresh(detail || {});
+    }, {
+      keys: /mission|task|ticket|message|chat|lead|customer|socket\.nudge/i,
+      mount: '#mb-live-home',
+      delay: 250,
+      retries: true
+    });
+  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function (detail) {
       if (!document.getElementById('mb-live-home')) return;
-      loadHome();
-    }, { keys: /mission|task|ticket|message|chat|lead|customer/i, delay: 180 });
+      onHomeLiveRefresh(detail || {});
+    }, { keys: /mission|task|ticket|message|chat|lead|customer|socket\.nudge/i, delay: 80 });
   }
 
 })();

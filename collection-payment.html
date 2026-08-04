@@ -5,11 +5,12 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <script src="./support.js"></script>
-<script src="./biz1-sdk.js?v=socketfix11"></script>
-<script src="./biz1-app.js?v=socketfix11"></script>
-<script src="./page-boot.js?v=socketfix11"></script>
+<script src="./biz1-sdk.js?v=socketfix15"></script>
+<script src="./biz1-app.js?v=socketfix15"></script>
+<script src="./page-boot.js?v=socketfix15"></script>
+<script src="./live-sync.js?v=socketfix15"></script>
 <link rel="stylesheet" href="./common.css"/>
-<script src="./i18n-translations.js?v=hefull1"></script>
+<script src="./i18n-translations.js?v=hefull2"></script>
 <script src="./common-header-footer.js"></script>
 </head>
 <body>
@@ -132,7 +133,7 @@
 </div>
 <div style="flex:1;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">CVV</label>
-<input class="gv-input" placeholder="•••" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
+<input class="gv-input" placeholder="ï¿½ï¿½ï¿½" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
 </div>
 </div>
 <div style="margin-bottom:15px;">
@@ -155,7 +156,7 @@
 </div>
 <div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
 <svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
-                Secure through Patch · PCI Compliant
+                Secure through Patch ï¿½ PCI Compliant
               </div>
 </div>
 </sc-if>
@@ -218,7 +219,7 @@
 </div>
 <div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
 <svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
-                Secure digital authorization · Can be revoked at any time
+                Secure digital authorization ï¿½ Can be revoked at any time
               </div>
 </div>
 </sc-if>
@@ -446,7 +447,7 @@
 <span style="color:#1d60a2; font-weight:700;">aquacrm.co.il/pay/QT-0041</span>
 <div style="display:flex; align-items:center; gap:5px; color:#8a93a3; font-size:12px; margin-top:8px;">
 <svg fill="none" height="12" stroke="#c99a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
-                    Secure · Validity: 48 hours
+                    Secure ï¿½ Validity: 48 hours
                   </div>
 </div>
 <div style="display:flex; align-items:center; justify-content:space-between; margin-top:13px;">
@@ -502,7 +503,9 @@ class Component extends DCLogic {
   componentDidMount() {
     this.loadData();
     window.addEventListener('mineralbar:ready', () => this.loadData());
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    if (window.LiveSync && typeof LiveSync.bind === 'function') {
+      LiveSync.bind(() => this.loadData(), { retries: true, keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
+    } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.loadData(), { keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
     }
     window.addEventListener('mineralbar:page-refresh', () => this.loadData());
@@ -587,7 +590,7 @@ class Component extends DCLogic {
         return {
           id: String(r.id || r.number || r.doc_no || Math.random()),
           amount: amount,
-          label: '#' + (r.number || r.doc_no || r.id || '-') + ' · ' + (r.type || r.doc_type || 'Document') + ' · ' + this.fmtAmount(amount)
+          label: '#' + (r.number || r.doc_no || r.id || '-') + ' ï¿½ ' + (r.type || r.doc_type || 'Document') + ' ï¿½ ' + this.fmtAmount(amount)
         };
       });
       var selectedDocId = docs[0] ? docs[0].id : '';

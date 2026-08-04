@@ -310,7 +310,17 @@
     setTimeout(start, 50);
   }
 
-  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+  if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    LiveSync.bind(function () {
+      if (!document.getElementById('mb-live-messages')) return;
+      loadMessages('mb-live-messages');
+    }, {
+      keys: /message|chat|whatsapp|inbox|socket\.nudge/i,
+      mount: '#mb-live-messages',
+      delay: 300,
+      retries: true
+    });
+  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
       if (typeof start === 'function') start();
     }, { keys: /message|chat|whatsapp|inbox|socket\.nudge/i, delay: 400 });

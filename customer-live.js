@@ -404,8 +404,15 @@
     setTimeout(start, 20);
   }
 
-  if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () { start(); }, { keys: /customer|lead|crm|reminder/i, delay: 180 });
+  if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    LiveSync.bind(function () { start(); }, {
+      keys: /customer|lead|crm|reminder|socket\.nudge/i,
+      mount: '#mb-live-customer',
+      delay: 200,
+      retries: true
+    });
+  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    MineralBarApp.bindLiveReload(function () { start(); }, { keys: /customer|lead|crm|reminder|socket\.nudge/i, delay: 180 });
   }
 
 })();
