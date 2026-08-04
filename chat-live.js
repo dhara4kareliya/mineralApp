@@ -321,12 +321,14 @@
 
   function getMessageBadgeHtml(row) {
     var t = String(row.type || '').toLowerCase();
-    var direction = isOutgoing(row) ? 'outbound' : 'inbound';
-    if (t === 'notes' || t === 'send_notes') direction = 'internal';
+    var direction = isOutgoing(row)
+      ? chatT('outbound', 'יוצא')
+      : chatT('inbound', 'נכנס');
+    if (t === 'notes' || t === 'send_notes') direction = chatT('internal', 'פנימי');
     
     var bg = '#f0f2f5';
     var color = '#5a6473';
-    var text = 'Message';
+    var text = chatT('Message', 'הודעה');
     var icon = '💬';
 
     if (t === 'whatsapp') {
@@ -337,12 +339,12 @@
     } else if (t === 'email') {
       bg = '#eaf2fb';
       color = '#1d60a2';
-      text = 'Email';
+      text = chatT('Email', 'מייל');
       icon = '✉️';
     } else if (t === 'quick_email') {
       bg = '#eaf2fb';
       color = '#1d60a2';
-      text = 'Quick email';
+      text = chatT('Quick email', 'מייל מהיר');
       icon = '⚡';
     } else if (t === 'biz1') {
       bg = '#f0f2f5';
@@ -352,7 +354,7 @@
     } else if (t === 'notes' || t === 'send_notes') {
       bg = '#f3f0ff';
       color = '#6a5c9e';
-      text = 'Internal notes';
+      text = chatT('Internal notes', 'הערות פנימיות');
       icon = '📝';
     }
 
@@ -1397,6 +1399,12 @@
   window.addEventListener('mineralbar:ready', function () {
     wireChatBackButton();
     start();
+  });
+  window.addEventListener('mineralbar:language-changed', function () {
+    if (!document.getElementById('mb-live-chat')) return;
+    if (currentMessages && currentMessages.length) {
+      renderMessages('mb-live-chat', currentMessages, currentParams || params());
+    }
   });
   window.addEventListener('mineralbar:messages', function () {
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;

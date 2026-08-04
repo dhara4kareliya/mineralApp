@@ -67,7 +67,7 @@ mbCss('./common.css');
 <div style="text-align:center; padding:28px 12px; color:#8a93a3; font-size:13.5px; font-weight:600;" data-no-i18n="true">{{ loadingMsg }}</div>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
-<div style="background:#fbeeed; border:1px solid #f1c9c4; border-radius:14px; padding:12px 14px; margin-bottom:13px; color:#a3302e; font-size:13px; font-weight:600;">{{ errorMsg }}</div>
+<div style="background:#fbeeed; border:1px solid #f1c9c4; border-radius:14px; padding:12px 14px; margin-bottom:13px; color:#a3302e; font-size:13px; font-weight:600;" data-no-i18n="true">{{ errorMsg }}</div>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ emptyList }}">
 <div style="text-align:center; padding:28px 12px; color:#9aa3b0; font-size:13.5px; font-weight:600;" data-no-i18n="true">{{ emptyMsg }}</div>
@@ -154,7 +154,7 @@ mbCss('./common.css');
 </div>
 </div>
 </sc-for>
-<div style="text-align:center; padding:8px 0 4px; color:#b6bdc8; font-size:12.5px; font-weight:600;">❖ end of day ❖</div>
+<div style="text-align:center; padding:8px 0 4px; color:#b6bdc8; font-size:12.5px; font-weight:600;">{{ endOfDayLabel }}</div>
 </div>
 <!-- customer card sheet -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ cardOpen }}">
@@ -209,11 +209,32 @@ class Component extends DCLogic {
   };
 
   isEn() {
+    if (typeof window.mbT === 'function') {
+      return window.mbT('EN', 'HE') === 'EN';
+    }
     return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
   }
 
   t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
     return this.isEn() ? en : he;
+  }
+
+  localizeError(err) {
+    var raw = String((err && err.message) || err || '').trim();
+    if (!raw) return this.t('Failed to load tickets', 'טעינת הקריאות נכשלה');
+    var lower = raw.toLowerCase();
+    if (/too many requests|rate.?limit|please wait/i.test(lower)) {
+      return this.t(
+        'Too many requests. Please wait and try again.',
+        'יותר מדי בקשות. אנא המתינו ונסו שוב.'
+      );
+    }
+    if (/sdk not ready/i.test(lower)) return this.t('SDK not ready', 'המערכת עדיין לא מוכנה');
+    if (/missing logged-in user/i.test(lower)) return this.t('Missing logged-in user id', 'חסר מזהה משתמש מחובר');
+    if (/missing customer/i.test(lower)) return this.t('Missing customer_id', 'חסר מזהה לקוח');
+    if (/failed to load/i.test(lower)) return this.t('Failed to load tickets', 'טעינת הקריאות נכשלה');
+    return raw;
   }
 
   componentDidMount() {
@@ -244,6 +265,9 @@ class Component extends DCLogic {
           }
         }, 80);
       }
+    });
+    window.addEventListener('mineralbar:language-changed', function () {
+      self.setState({ langTick: Date.now() });
     });
   }
 
@@ -372,7 +396,7 @@ class Component extends DCLogic {
     var silent = !!opts.silent;
     var client = this.getClient();
     if (!client) {
-      this.setState({ loading: false, errorMsg: 'SDK not ready' });
+      this.setState({ loading: false, errorMsg: this.t('SDK not ready', 'המערכת עדיין לא מוכנה') });
       return;
     }
 
@@ -382,7 +406,7 @@ class Component extends DCLogic {
     try {
       var userId = this.resolveUserId();
       if (!userId) {
-        this.setState({ loading: false, errorMsg: 'Missing logged-in user id', tickets: [] });
+        this.setState({ loading: false, errorMsg: this.t('Missing logged-in user id', 'חסר מזהה משתמש מחובר'), tickets: [] });
         return;
       }
 
@@ -411,7 +435,7 @@ class Component extends DCLogic {
       }
       this.setState({
         loading: false,
-        errorMsg: (e && e.message) || 'Failed to load tickets',
+        errorMsg: this.localizeError(e),
         tickets: []
       });
     }
@@ -436,7 +460,7 @@ class Component extends DCLogic {
       window.location.href = 'service-call-details.html?ticket_id=' + encodeURIComponent(ticketId);
       return;
     }
-    this.setState({ errorMsg: 'Missing customer_id' });
+    this.setState({ errorMsg: this.t('Missing customer_id', 'חסר מזהה לקוח') });
   }
 
   closeCard() {
@@ -573,6 +597,7 @@ class Component extends DCLogic {
       hasError: !!st.errorMsg,
       errorMsg: st.errorMsg || '',
       emptyList: !st.loading && !st.errorMsg && visits.length === 0,
+      langTick: st.langTick || 0,
       pageTitle: this.t('My schedule', 'הלו״ז שלי'),
       loadingMsg: this.t('Loading…', 'טוען…'),
       emptyMsg: this.t('No assigned tickets today', 'אין קריאות משויכות להיום'),
@@ -585,6 +610,7 @@ class Component extends DCLogic {
       doneCount: doneCount,
       waitingCount: waiting.length,
       visits: visits,
+      endOfDayLabel: this.t('❖ end of day ❖', '❖ סוף היום ❖'),
       cardOpen: !!st.cardOpen,
       cardName: cardName || this.t('Customer', 'לקוח'),
       cardInitials: this.initials(cardName || 'C'),

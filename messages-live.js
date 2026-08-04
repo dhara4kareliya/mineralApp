@@ -7,6 +7,7 @@
 
   var CHAT_PAGE = 'chat-customer.html';
   var allRows = [];
+  var lastTotal = 0;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -16,8 +17,15 @@
       .replace(/"/g, '&quot;');
   }
 
+  /** Live mounts (#mb-live-*) skip DOM i18n — localize here. */
+  function uiT(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
+    return lang === 'en' ? en : he;
+  }
+
   function apiErrorText(err) {
-    if (!err) return 'Unknown API error';
+    if (!err) return uiT('Unknown API error', 'שגיאת API לא ידועה');
     var parts = [];
     if (err.message) parts.push(String(err.message).replace(/<[^>]+>/g, ' ').trim().slice(0, 500));
     if (err.route) parts.push('route: ' + err.route);
@@ -50,8 +58,7 @@
   function loadingHtml() {
     return (
       '<div style="text-align:center;padding:48px 20px;">' +
-      '<div style="font-size:14px;font-weight:700;color:#8a93a3;">Loading from server…</div>' +
-      '<div style="font-size:12px;color:#b6bdc8;margin-top:6px;">Chat.Conversations</div>' +
+      '<div style="font-size:14px;font-weight:700;color:#8a93a3;">' + esc(uiT('Loading from server…', 'טוען מהשרת…')) + '</div>' +
       '</div>'
     );
   }
@@ -62,8 +69,8 @@
       '<div style="width:56px;height:56px;border-radius:50%;background:#e3e7ec;display:flex;align-items:center;justify-content:center;margin:0 auto 13px;">' +
       '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#aab2bf" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>' +
       '</div>' +
-      '<div style="font-size:15px;font-weight:800;color:#5a6473;">No conversations currently</div>' +
-      '<div style="font-size:12.5px;color:#9aa3b0;margin-top:6px;">Chat.Conversations · List is empty</div>' +
+      '<div style="font-size:15px;font-weight:800;color:#5a6473;">' + esc(uiT('No conversations currently', 'אין שיחות כרגע')) + '</div>' +
+      '<div style="font-size:12.5px;color:#9aa3b0;margin-top:6px;">' + esc(uiT('List is empty', 'הרשימה ריקה')) + '</div>' +
       '</div>'
     );
   }
@@ -73,12 +80,12 @@
       '<div style="background:#fbeeed;border:1px solid #f0c9c4;border-radius:14px;padding:14px 14px 16px;margin:12px 16px;">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>' +
-      '<div style="font-size:14px;font-weight:800;color:#c0392b;">API error</div>' +
+      '<div style="font-size:14px;font-weight:800;color:#c0392b;">' + esc(uiT('API error', 'שגיאת API')) + '</div>' +
       '</div>' +
       '<pre style="margin:0;white-space:pre-wrap;word-break:break-word;font:600 11.5px/1.5 Heebo,monospace;color:#7a2e28;max-height:280px;overflow:auto;">' +
       esc(apiErrorText(err)) +
       '</pre>' +
-      '<button type="button" id="mb-messages-retry" style="margin-top:12px;padding:9px 14px;border:none;border-radius:10px;background:#c0392b;color:#fff;font:800 13px Heebo,sans-serif;cursor:pointer;">Try again</button>' +
+      '<button type="button" id="mb-messages-retry" style="margin-top:12px;padding:9px 14px;border:none;border-radius:10px;background:#c0392b;color:#fff;font:800 13px Heebo,sans-serif;cursor:pointer;">' + esc(uiT('Try again', 'נסה שוב')) + '</button>' +
       '</div>'
     );
   }
@@ -177,30 +184,43 @@
     var type = row.raw && row.raw.last_message_type;
     if (!type) return '';
     type = String(type).trim().toLowerCase();
-    
+
     var bg = '#eceff1';
     var color = '#37474f';
-    
+    var label = type;
+
     if (type === 'whatsapp') {
       bg = '#e8f5e9';
       color = '#2e7d32';
+      label = 'WhatsApp';
     } else if (type === 'email') {
       bg = '#e3f2fd';
       color = '#1565c0';
+      label = uiT('Email', 'מייל');
     } else if (type === 'sms') {
       bg = '#fff3e0';
       color = '#ef6c00';
+      label = 'SMS';
     } else if (type === 'chat') {
       bg = '#f3e5f5';
       color = '#6a1b9a';
+      label = uiT('Chat', 'צ׳אט');
+    } else if (type === 'notes' || type === 'send_notes' || type === 'internal') {
+      bg = '#f3e5f5';
+      color = '#6a1b9a';
+      label = uiT('NOTES', 'הערות');
+    } else if (type === 'quick_email') {
+      bg = '#e3f2fd';
+      color = '#1565c0';
+      label = uiT('Quick email', 'מייל מהיר');
     }
-    
-    return '<span style="font-size:10.5px;padding:2px 8px;border-radius:12px;background:' + bg + ';color:' + color + ';font-weight:800;text-transform:uppercase;letter-spacing:0.5px;line-height:1;margin-bottom:2px;">' + esc(type) + '</span>';
+
+    return '<span style="font-size:10.5px;padding:2px 8px;border-radius:12px;background:' + bg + ';color:' + color + ';font-weight:800;letter-spacing:0.5px;line-height:1;margin-bottom:2px;">' + esc(label) + '</span>';
   }
 
   function rowHtml(row, idx) {
-    var label = row.name || row.email || ('Customer #' + (row.customer_id || idx));
-    var snippet = row.subject || 'Conversation';
+    var label = row.name || row.email || (uiT('Customer #', 'לקוח #') + (row.customer_id || idx));
+    var snippet = row.subject || uiT('Conversation', 'שיחה');
     var when = formatConversationDate(row);
     var av = initials(label);
     var col = avatarColor(label);
@@ -251,16 +271,17 @@
     if (!silent || !hasRows) {
       if (el) el.innerHTML = loadingHtml();
       var totalElBusy = document.getElementById('mb-messages-total');
-      if (totalElBusy) totalElBusy.textContent = 'Loading…';
+      if (totalElBusy) totalElBusy.textContent = uiT('Loading…', 'טוען…');
     }
 
     try {
       var result = await MineralBarApp.listChatConversations({ page: 1, limit: 25 });
       allRows = result.rows || [];
       var total = result.total != null ? result.total : allRows.length;
+      lastTotal = total;
       
       var totalEl = document.getElementById('mb-messages-total');
-      if (totalEl) totalEl.textContent = total + ' conversations · Chat.Conversations';
+      if (totalEl) totalEl.textContent = total + ' ' + uiT('conversations', 'שיחות');
 
       el = document.getElementById(elId);
       if (!el) return;
@@ -278,7 +299,7 @@
       }
       console.error('[MineralBar] Chat.Conversations failed', err);
       var totalElErr = document.getElementById('mb-messages-total');
-      if (totalElErr) totalElErr.textContent = 'API error';
+      if (totalElErr) totalElErr.textContent = uiT('API error', 'שגיאת API');
       el = document.getElementById(elId);
       if (el) el.innerHTML = errorHtml(err);
       var btn = document.getElementById('mb-messages-retry');
@@ -307,6 +328,17 @@
   });
 
   window.addEventListener('mineralbar:ready', start);
+  window.addEventListener('mineralbar:language-changed', function () {
+    var elId = 'mb-live-messages';
+    if (!document.getElementById(elId)) return;
+    var totalEl = document.getElementById('mb-messages-total');
+    if (totalEl && (lastTotal || allRows.length)) {
+      totalEl.textContent = (lastTotal || allRows.length) + ' ' + uiT('conversations', 'שיחות');
+    }
+    var search = document.getElementById('mb-messages-search');
+    if (allRows.length) renderFiltered(elId, search && search.value);
+    else loadMessages(elId, { silent: true });
+  });
   window.addEventListener('mineralbar:messages', function () {
     var elId = 'mb-live-messages';
     if (!document.getElementById(elId) || !window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;

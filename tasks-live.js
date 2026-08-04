@@ -12,6 +12,13 @@
       .replace(/"/g, '&quot;');
   }
 
+  /** Live mounts (#mb-live-*) skip DOM i18n — localize here. */
+  function uiT(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
+    return lang === 'en' ? en : he;
+  }
+
   function todayKey() {
     var d = new Date();
     return d.getFullYear() + '-' +
@@ -353,13 +360,13 @@
     return (
       '<div id="mb-tasks-pager" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 6px;padding:12px 12px;background:var(--bg-panel,#fff);border:1px solid var(--border-panel,#e8eaee);border-radius:14px;">' +
       '<button type="button" id="mb-tasks-prev" ' + (canPrev ? '' : 'disabled ') +
-      'style="' + (canPrev ? btnOn : btnOff) + '">‹ Prev</button>' +
+      'style="' + (canPrev ? btnOn : btnOff) + '">' + esc(uiT('‹ Prev', '‹ הקודם')) + '</button>' +
       '<div style="text-align:center;flex:1;min-width:0;">' +
-      '<div style="font-size:12.5px;font-weight:800;color:var(--text-title,#1f2a3a);">' + from + '–' + to + ' of ' + t + '</div>' +
-      '<div style="font-size:11.5px;font-weight:700;color:var(--text-sub,#8a93a3);margin-top:2px;">Page ' + page + ' of ' + pages + '</div>' +
+      '<div style="font-size:12.5px;font-weight:800;color:var(--text-title,#1f2a3a);">' + from + '–' + to + ' ' + esc(uiT('of', 'מתוך')) + ' ' + t + '</div>' +
+      '<div style="font-size:11.5px;font-weight:700;color:var(--text-sub,#8a93a3);margin-top:2px;">' + esc(uiT('Page', 'עמוד')) + ' ' + page + ' ' + esc(uiT('of', 'מתוך')) + ' ' + pages + '</div>' +
       '</div>' +
       '<button type="button" id="mb-tasks-next" ' + (canNext ? '' : 'disabled ') +
-      'style="' + (canNext ? btnOn : btnOff) + '">Next ›</button>' +
+      'style="' + (canNext ? btnOn : btnOff) + '">' + esc(uiT('Next ›', 'הבא ›')) + '</button>' +
       '</div>'
     );
   }
@@ -527,7 +534,7 @@
 
     // Socket / soft refresh: keep current list + count visible — never flash "Loading…"
     if (!silent || !hasRows) {
-      if (totalEl) totalEl.textContent = 'Loading…';
+      if (totalEl) totalEl.textContent = uiT('Loading…', 'טוען…');
     }
 
     if (_tasksLoadInFlight && silent) return _tasksLoadInFlight;
@@ -558,13 +565,13 @@
 
       if (totalEl) {
         if (!total) {
-          totalEl.textContent = 'No tasks';
+          totalEl.textContent = uiT('No tasks', 'אין משימות');
         } else if (total > PAGE_SIZE) {
           var from = currentStart + 1;
           var to = Math.min(currentStart + shownCount, total);
-          totalEl.textContent = total + ' tasks · showing ' + from + '–' + to;
+          totalEl.textContent = total + ' ' + uiT('tasks · showing', 'משימות · מוצגות') + ' ' + from + '–' + to;
         } else {
-          totalEl.textContent = total + ' tasks';
+          totalEl.textContent = total + ' ' + uiT('tasks', 'משימות');
         }
       }
 
@@ -573,7 +580,8 @@
         if (!g.rows || !g.rows.length) return;
         var groupColor = '#1d60a2';
         var gId = g.id || ('group_' + idx);
-        var labelStr = esc(g.label === 'משימות' ? 'Tasks' : g.label);
+        var tasksLabel = uiT('Tasks', 'משימות');
+        var labelStr = esc(g.label === 'משימות' || g.label === 'Tasks' ? tasksLabel : g.label);
         var countLabel = total > PAGE_SIZE ? (g.rows.length + ' / ' + total) : String(g.total != null ? g.total : g.rows.length);
 
         html += '<div class="task-group-container" data-group-id="' + esc(gId) + '">';
@@ -589,13 +597,13 @@
       if (!html && flatRows.length) {
         var flatCount = total > PAGE_SIZE ? (flatRows.length + ' / ' + total) : String(flatRows.length);
         html += '<div class="task-group-container">';
-        html += '<div class="task-group-header"><span class="task-group-dot"></span><span class="task-group-title">Tasks</span><span class="task-group-count">• ' + flatCount + '</span></div>';
+        html += '<div class="task-group-header"><span class="task-group-dot"></span><span class="task-group-title">' + esc(uiT('Tasks', 'משימות')) + '</span><span class="task-group-count">• ' + flatCount + '</span></div>';
         html += flatRows.map(function(m) { return missionRow(m, today); }).join('');
         html += '</div>';
       }
 
       if (!html) {
-        html = '<div style="text-align:center; padding:40px 20px; color:var(--text-sub); font-weight:600;">No tasks found.</div>';
+        html = '<div style="text-align:center; padding:40px 20px; color:var(--text-sub); font-weight:600;">' + esc(uiT('No tasks found.', 'לא נמצאו משימות.')) + '</div>';
       } else {
         html += renderPager(total, shownCount);
       }
@@ -620,7 +628,7 @@
         return;
       }
       console.error(err);
-      if (mount) mount.innerHTML = '<div style="color:#c0392b; text-align:center; padding:20px;">Failed to load tasks.</div>';
+      if (mount) mount.innerHTML = '<div style="color:#c0392b; text-align:center; padding:20px;">' + esc(uiT('Failed to load tasks.', 'טעינת משימות נכשלה.')) + '</div>';
     }
     })();
 

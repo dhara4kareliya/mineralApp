@@ -170,7 +170,8 @@ class Component extends DCLogic {
     selectedMonth: new Date().getMonth(),
     monthPickerOpen: false,
     productsPage: 1,
-    productsPageSize: 5
+    productsPageSize: 5,
+    langTick: 0
   };
 
   COLORS = ['#1d60a2', '#2e8a63', '#50439d', '#bd8324', '#c0392b'];
@@ -181,6 +182,19 @@ class Component extends DCLogic {
     '#bd8324': { bg: '#fdf1dd' },
     '#c0392b': { bg: '#fbeeed' },
   };
+
+  isEn() {
+    try {
+      if (typeof window.getCurrentLanguage === 'function') return window.getCurrentLanguage() === 'en';
+      if (typeof getCurrentLanguage === 'function') return getCurrentLanguage() === 'en';
+    } catch (e) {}
+    return false;
+  }
+
+  t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    return this.isEn() ? en : he;
+  }
 
   pad(n) { return n < 10 ? '0' + n : '' + n; }
 
@@ -344,6 +358,18 @@ class Component extends DCLogic {
     }
     setTimeout(() => this.ensureChrome(), 200);
     setTimeout(() => this.ensureChrome(), 800);
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+          self.ensureChrome();
+        }, 80);
+      }
+    });
+    window.addEventListener('mineralbar:language-changed', function () {
+      self.setState({ langTick: Date.now() });
+    });
   }
 
   async initData(opts) {
@@ -518,14 +544,17 @@ class Component extends DCLogic {
 
   renderVals() {
     var st = this.state;
-    var isEn = false;
-    try { isEn = (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he') === 'en'; } catch (e) {}
+    var isEn = this.isEn();
+    void st.langTick;
 
     var weekSeconds = (st.weekSeconds && st.weekSeconds.length === 4) ? st.weekSeconds : [0, 0, 0, 0];
     var maxSec = Math.max.apply(null, weekSeconds.concat([1]));
-    var weekLabels = isEn
-      ? ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-      : ['שבוע 1', 'שבוע 2', 'שבוע 3', 'שבוע 4'];
+    var weekLabels = [
+      this.t('Week 1', 'שבוע 1'),
+      this.t('Week 2', 'שבוע 2'),
+      this.t('Week 3', 'שבוע 3'),
+      this.t('Week 4', 'שבוע 4')
+    ];
     var now = new Date();
     var activeWeek = 3;
     if (st.selectedYear === now.getFullYear() && st.selectedMonth === now.getMonth()) {
@@ -544,7 +573,7 @@ class Component extends DCLogic {
     }.bind(this));
     var totalSec = weekSeconds.reduce(function (a, b) { return a + b; }, 0);
     var weeksTotalLabel = st.loadingHours
-      ? (isEn ? 'Loading…' : 'טוען…')
+      ? this.t('Loading…', 'טוען…')
       : (isEn
         ? ('A total of ' + this.formatHoursShort(totalSec) + 'h')
         : ('סה״כ ' + this.formatHoursShort(totalSec) + ' שעות'));
@@ -565,9 +594,10 @@ class Component extends DCLogic {
       var color = this.COLORS[(startIdx + i) % this.COLORS.length];
       var tone = this.TONE[color] || { bg: '#eef0f3' };
       var bar = this.stockBar(p);
-      var stockLabel = isEn
-        ? ('Left ' + p.stock + ' · Min ' + p.min_stock)
-        : ('נותר ' + p.stock + ' · מינ׳ ' + p.min_stock);
+      var stockLabel = this.t(
+        'Left ' + p.stock + ' · Min ' + p.min_stock,
+        'נותר ' + p.stock + ' · מינ׳ ' + p.min_stock
+      );
       return {
         name: p.name,
         count: p.stock,
@@ -621,10 +651,12 @@ class Component extends DCLogic {
       types: types,
       productsLoading: !!st.loadingProducts,
       productsEmpty: !st.loadingProducts && totalProducts === 0,
-      productsCountLabel: totalProducts + (isEn ? ' products' : ' מוצרים'),
+      productsCountLabel: totalProducts + ' ' + this.t('products', 'מוצרים'),
       showProductsPager: !st.loadingProducts && totalProducts > 0,
-      productsRangeLabel: totalProducts ? (from + '–' + to + ' of ' + totalProducts) : '',
-      productsPageLabel: (isEn ? 'Page ' : 'עמוד ') + page + ' / ' + totalPages,
+      productsRangeLabel: totalProducts
+        ? (from + '–' + to + ' ' + this.t('of', 'מתוך') + ' ' + totalProducts)
+        : '',
+      productsPageLabel: this.t('Page ', 'עמוד ') + page + ' / ' + totalPages,
       prevProducts: function () { self.prevProducts(); },
       nextProducts: function () { self.nextProducts(); },
       prodPrevBg: canPrev ? '#1d60a2' : '#e9ecf0',
@@ -636,11 +668,11 @@ class Component extends DCLogic {
       prodPrevOpacity: canPrev ? '1' : '0.7',
       prodNextOpacity: canNext ? '1' : '0.7',
       docTotal: st.loadingDocs ? '…' : st.docTotal,
-      docTotalLabel: 'docs',
+      docTotalLabel: this.t('docs', 'מסמכים'),
       docInvoices: st.loadingDocs ? '…' : st.docInvoices,
       docReceipts: st.loadingDocs ? '…' : st.docReceipts,
       docCredits: st.loadingDocs ? '…' : st.docCredits,
-      updatedLabel: (isEn ? 'Updated today · ' : 'עודכן היום · ') + updated
+      updatedLabel: this.t('Updated today · ', 'עודכן היום · ') + updated
     };
   }
 }

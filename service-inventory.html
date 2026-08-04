@@ -146,10 +146,10 @@ mbCss('./common.css');
   <!-- Active / Inactive tabs -->
   <div style="display:flex; gap:8px; padding:0 16px 12px; flex:none;">
     <button onclick="{{ setStatusActive }}" style="flex:1; padding:10px 12px; border-radius:12px; font-size:13.5px; font-weight:700; cursor:pointer; border:1.5px solid {{ statusActiveBorder }}; background:{{ statusActiveBg }}; color:{{ statusActiveColor }};">
-      Active <span style="opacity:0.7; font-weight:600;">({{ activeCount }})</span>
+      Active <span dir="ltr" style="opacity:0.7; font-weight:600; unicode-bidi:isolate;">({{ activeCount }})</span>
     </button>
     <button onclick="{{ setStatusInactive }}" style="flex:1; padding:10px 12px; border-radius:12px; font-size:13.5px; font-weight:700; cursor:pointer; border:1.5px solid {{ statusInactiveBorder }}; background:{{ statusInactiveBg }}; color:{{ statusInactiveColor }};">
-      Inactive <span style="opacity:0.7; font-weight:600;">({{ inactiveCount }})</span>
+      Inactive <span dir="ltr" style="opacity:0.7; font-weight:600; unicode-bidi:isolate;">({{ inactiveCount }})</span>
     </button>
   </div>
 
@@ -183,7 +183,7 @@ mbCss('./common.css');
             <div onclick="{{ it.click }}" style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid {{ it.border }}; cursor:pointer;">
               <div style="flex:1; text-align:start;">
                 <div style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ it.name }}</div>
-                <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }} � <span style="color:#2e8a63; font-weight:700;">{{ it.priceText }}</span></div>
+                <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }} · <span style="color:#2e8a63; font-weight:700;">{{ it.priceText }}</span></div>
               </div>
               <div style="display:inline-flex; align-items:center; gap:4px; background:{{ it.tagBg }}; color:{{ it.tagColor }}; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; flex:none;">
                 <span style="width:6px; height:6px; border-radius:50%; background:{{ it.tagColor }};"></span>{{ it.tag }}
@@ -319,7 +319,7 @@ mbCss('./common.css');
               <sc-for as="chip" list="{{ selectedStorageChips }}">
                 <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
                   {{ chip.name }}
-                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">�</button>
+                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">&times;</button>
                 </span>
               </sc-for>
             </div>
@@ -342,7 +342,7 @@ mbCss('./common.css');
         <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:120px; margin-bottom:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; overflow:hidden;">
           <input type="file" accept="image/*" onchange="{{ onAddImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
           <sc-if value="{{ hasAddImage }}">
-            <img src="{{ addImagePreview }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+            <img src="{{ addImagePreviewSrc }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
             <div style="font-size:12px; font-weight:700; color:#1f2a3a; position:relative; z-index:1;">{{ addImageName }}</div>
           </sc-if>
           <sc-if value="{{ noAddImage }}">
@@ -374,7 +374,7 @@ mbCss('./common.css');
               </div>
               <div style="flex:1;">
                 <label class="form-label">Price After</label>
-                <input class="gv-in premium-input" type="number" placeholder="Price After" value="{{ addPriceAfter }}" oninput="{{ onAddPriceAfterChange }}"/>
+                <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Price After" value="{{ addPriceAfter }}" oninput="{{ onAddPriceAfterChange }}"/>
               </div>
             </div>
           </div>
@@ -383,11 +383,11 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Stock qty</label>
-            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ addStock }}" oninput="{{ onAddStockChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ addStock }}" oninput="{{ onAddStockChange }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Min stock</label>
-            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ addMinStock }}" oninput="{{ onAddMinStockChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ addMinStock }}" oninput="{{ onAddMinStockChange }}"/>
           </div>
         </div>
 
@@ -397,16 +397,16 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Price</label>
-            <input class="gv-in premium-input" type="number" placeholder="Insert product price" value="{{ addPrice }}" oninput="{{ onAddPriceChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Insert product price" value="{{ addPrice }}" oninput="{{ onAddPriceChange }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Cost price</label>
-            <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ addCost }}" oninput="{{ onAddCostChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ addCost }}" oninput="{{ onAddCostChange }}"/>
           </div>
         </div>
 
         <label class="form-label">Discount price</label>
-        <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ addDiscountPrice }}" oninput="{{ onAddDiscountChange }}"/>
+        <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ addDiscountPrice }}" oninput="{{ onAddDiscountChange }}"/>
 
         <!-- Section 3: Details (no status on create) -->
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Options</div>
@@ -547,7 +547,7 @@ mbCss('./common.css');
               <sc-for as="chip" list="{{ editSelectedStorageChips }}">
                 <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
                   {{ chip.name }}
-                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">�</button>
+                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">&times;</button>
                 </span>
               </sc-for>
             </div>
@@ -570,7 +570,7 @@ mbCss('./common.css');
         <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:120px; margin-bottom:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; overflow:hidden;">
           <input type="file" accept="image/*" onchange="{{ onEditImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
           <sc-if value="{{ hasEditImage }}">
-            <img src="{{ editImagePreview }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+            <img src="{{ editImagePreviewSrc }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
             <div style="font-size:12px; font-weight:700; color:#1f2a3a; position:relative; z-index:1;">{{ editImageName }}</div>
           </sc-if>
           <sc-if value="{{ noEditImage }}">
@@ -602,7 +602,7 @@ mbCss('./common.css');
               </div>
               <div style="flex:1;">
                 <label class="form-label">Price After</label>
-                <input class="gv-in premium-input" type="number" placeholder="Price After" value="{{ editPriceAfter }}" oninput="{{ onEditPriceAfterChange }}"/>
+                <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Price After" value="{{ editPriceAfter }}" oninput="{{ onEditPriceAfterChange }}"/>
               </div>
             </div>
           </div>
@@ -611,11 +611,11 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Stock qty</label>
-            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ editStockQty }}" oninput="{{ onEditStockChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ editStockQty }}" oninput="{{ onEditStockChange }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Min stock</label>
-            <input class="gv-in premium-input" type="number" placeholder="0" value="{{ editMinStock }}" oninput="{{ onEditMinStockChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ editMinStock }}" oninput="{{ onEditMinStockChange }}"/>
           </div>
         </div>
 
@@ -624,16 +624,16 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Price</label>
-            <input class="gv-in premium-input" type="number" placeholder="Insert product price" value="{{ editPrice }}" oninput="{{ onEditPriceChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Insert product price" value="{{ editPrice }}" oninput="{{ onEditPriceChange }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Cost price</label>
-            <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ editCost }}" oninput="{{ onEditCostChange }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ editCost }}" oninput="{{ onEditCostChange }}"/>
           </div>
         </div>
 
         <label class="form-label">Discount price</label>
-        <input class="gv-in premium-input" type="number" placeholder="0.00" value="{{ editDiscountPrice }}" oninput="{{ onEditDiscountChange }}"/>
+        <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ editDiscountPrice }}" oninput="{{ onEditDiscountChange }}"/>
 
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Options</div>
         
@@ -1878,7 +1878,7 @@ class Component extends DCLogic {
             name: it.name,
             sku: it.sku,
             qty: it.stock,
-            priceText: it.price + '?',
+            priceText: (it.price != null && it.price !== '' ? (String(it.price) + ' ₪') : ''),
             tag: tag,
             tagColor: tagColor,
             tagBg: tagBg,
@@ -2004,6 +2004,7 @@ class Component extends DCLogic {
       addPriceAfter: s.addPriceAfter,
       addStoragePlace: s.addStoragePlace || '',
       addImagePreview: s.addImagePreview || '',
+      addImagePreviewSrc: s.addImagePreview || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
       addImageName: s.addImageName || '',
       hasAddImage: hasAddImage,
       noAddImage: !hasAddImage,
@@ -2034,6 +2035,7 @@ class Component extends DCLogic {
       editPriceAfter: s.editPriceAfter || 0,
       editStoragePlace: s.editStoragePlace || '',
       editImagePreview: s.editImagePreview || '',
+      editImagePreviewSrc: s.editImagePreview || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
       editImageName: s.editImageName || '',
       hasEditImage: hasEditImage,
       noEditImage: !hasEditImage,
