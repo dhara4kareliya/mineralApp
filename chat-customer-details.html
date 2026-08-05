@@ -80,8 +80,9 @@ mbCss('./common.css');
       <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 14px 20px; display:flex; flex-direction:column;">
 
         <!-- Loading overlay/indicator -->
-        <div id="details-loading" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0; color:#7b8595;">
-          <div id="ui-loading-text" style="font-size:14px; font-weight:700;">Loading data...</div>
+        <div id="details-loading" class="mb-inline-loader" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <div class="mb-page-loader__spin" aria-hidden="true"></div>
+          <div id="ui-loading-text" class="mb-page-loader__label">Loading data...</div>
         </div>
 
         <!-- Details block (shown after load) -->

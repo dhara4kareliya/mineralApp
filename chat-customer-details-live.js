@@ -541,7 +541,11 @@
     var loading = document.getElementById('details-loading');
     var content = document.getElementById('details-content');
     if (!currentCustomerId) {
-      if (loading && !silent) loading.textContent = t('missingId');
+      if (loading && !silent) {
+        var miss = document.getElementById('ui-loading-text');
+        if (miss) miss.textContent = t('missingId');
+        else loading.textContent = t('missingId');
+      }
       return;
     }
 
@@ -594,7 +598,9 @@
       console.error('[DetailsLive] getCustomer failed', err);
       if (loading) {
         loading.style.display = 'flex';
-        loading.textContent = t('errorLoading') + err.message;
+        var errEl = document.getElementById('ui-loading-text');
+        if (errEl) errEl.textContent = t('errorLoading') + err.message;
+        else loading.textContent = t('errorLoading') + err.message;
       }
     }
   }

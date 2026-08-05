@@ -607,3 +607,50 @@ html[dir="rtl"] .select-wrap .select-chevron,
   right: auto;
 }
 
+
+/* Shared page loader (all screens via page-boot.js) */
+@keyframes mbSpin {
+  to { transform: rotate(360deg); }
+}
+.mb-page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483640;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(238, 240, 243, 0.92);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  transition: opacity 0.22s ease;
+}
+.mb-page-loader.is-hiding {
+  opacity: 0;
+  pointer-events: none;
+}
+.mb-page-loader__inner {
+  text-align: center;
+  padding: 20px 24px;
+}
+.mb-page-loader__spin {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 14px;
+  border: 3px solid #d5dbe5;
+  border-top-color: #2e8a63;
+  border-radius: 50%;
+  animation: mbSpin 0.7s linear infinite;
+}
+.mb-page-loader__label {
+  font-family: 'Heebo', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #8a93a3;
+}
+.mb-inline-loader {
+  text-align: center;
+  padding: 48px 16px;
+}
+.mb-inline-loader .mb-page-loader__spin {
+  margin-bottom: 14px;
+}

@@ -49,22 +49,25 @@ mbCss('./common.css');
 <!-- summary strip -->
 <div style="display:flex; gap:9px; margin-top:14px;" data-no-i18n="true">
 <div style="flex:1; background:#fff; border-radius:13px; padding:11px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
-<div style="font-size:21px; font-weight:800; color:#1d60a2; line-height:1;">{{ visitCount }}</div>
+<div style="font-size:21px; font-weight:800; color:#1d60a2; line-height:1;">{{ visitCountLabel }}</div>
 <div style="font-size:11.5px; color:#8a93a3; margin-top:4px; font-weight:600;">{{ labelVisits }}</div>
 </div>
 <div style="flex:1; background:#fff; border-radius:13px; padding:11px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
-<div style="font-size:21px; font-weight:800; color:#2e8a63; line-height:1;">{{ doneCount }}</div>
+<div style="font-size:21px; font-weight:800; color:#2e8a63; line-height:1;">{{ doneCountLabel }}</div>
 <div style="font-size:11.5px; color:#8a93a3; margin-top:4px; font-weight:600;">{{ labelDone }}</div>
 </div>
 <div style="flex:1; background:#fff; border-radius:13px; padding:11px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
-<div style="font-size:21px; font-weight:800; color:#bd8324; line-height:1;">{{ waitingCount }}</div>
+<div style="font-size:21px; font-weight:800; color:#bd8324; line-height:1;">{{ waitingCountLabel }}</div>
 <div style="font-size:11.5px; color:#8a93a3; margin-top:4px; font-weight:600;">{{ labelWaiting }}</div>
 </div>
 </div>
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
 <sc-if hint-placeholder-val="{{ true }}" value="{{ loading }}">
-<div style="text-align:center; padding:28px 12px; color:#8a93a3; font-size:13.5px; font-weight:600;" data-no-i18n="true">{{ loadingMsg }}</div>
+<div class="mb-inline-loader">
+<div class="mb-page-loader__spin" aria-hidden="true"></div>
+<div class="mb-page-loader__label" data-no-i18n="true">{{ loadingMsg }}</div>
+</div>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
 <div style="background:#fbeeed; border:1px solid #f1c9c4; border-radius:14px; padding:12px 14px; margin-bottom:13px; color:#a3302e; font-size:13px; font-weight:600;" data-no-i18n="true">{{ errorMsg }}</div>
@@ -72,7 +75,7 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ false }}" value="{{ emptyList }}">
 <div style="text-align:center; padding:28px 12px; color:#9aa3b0; font-size:13.5px; font-weight:600;" data-no-i18n="true">{{ emptyMsg }}</div>
 </sc-if>
-<sc-for as="v" hint-placeholder-count="4" list="{{ visits }}">
+<sc-for as="v" hint-placeholder-count="0" list="{{ visits }}">
 <div style="display:flex; gap:11px; margin-bottom:4px;">
 <!-- timeline -->
 <div style="flex:none; width:46px; text-align:center; padding-top:14px;">
@@ -154,7 +157,9 @@ mbCss('./common.css');
 </div>
 </div>
 </sc-for>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showEndOfDay }}">
 <div style="text-align:center; padding:8px 0 4px; color:#b6bdc8; font-size:12.5px; font-weight:600;">{{ endOfDayLabel }}</div>
+</sc-if>
 </div>
 <!-- customer card sheet -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ cardOpen }}">
@@ -606,10 +611,11 @@ class Component extends DCLogic {
       labelWaiting: this.t('waiting', 'ממתינים'),
       dayLabel: dayLabel,
       dateShort: dateShort,
-      visitCount: tickets.length,
-      doneCount: doneCount,
-      waitingCount: waiting.length,
-      visits: visits,
+      visitCountLabel: st.loading ? '…' : String(tickets.length),
+      doneCountLabel: st.loading ? '…' : String(doneCount),
+      waitingCountLabel: st.loading ? '…' : String(waiting.length),
+      visits: st.loading ? [] : visits,
+      showEndOfDay: !st.loading,
       endOfDayLabel: this.t('❖ end of day ❖', '❖ סוף היום ❖'),
       cardOpen: !!st.cardOpen,
       cardName: cardName || this.t('Customer', 'לקוח'),

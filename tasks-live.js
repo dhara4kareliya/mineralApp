@@ -532,9 +532,20 @@
     var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
     var hasRows = !!(mount && mount.querySelector('.task-row-card'));
 
-    // Socket / soft refresh: keep current list + count visible — never flash "Loading…"
+    // Socket / soft refresh: keep current list + count visible — never flash loader
     if (!silent || !hasRows) {
       if (totalEl) totalEl.textContent = uiT('Loading…', 'טוען…');
+      if (mount && !hasRows) {
+        if (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function') {
+          mount.innerHTML = MineralBarLoader.inlineHtml(uiT('Loading tasks…', 'טוען משימות…'));
+        } else {
+          mount.innerHTML =
+            '<div class="mb-inline-loader">' +
+            '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+            '<div class="mb-page-loader__label">' + esc(uiT('Loading tasks…', 'טוען משימות…')) + '</div>' +
+            '</div>';
+        }
+      }
     }
 
     if (_tasksLoadInFlight && silent) return _tasksLoadInFlight;

@@ -247,8 +247,15 @@
 
       var loadingEl = missionsMount();
       if (loadingEl) {
-        loadingEl.innerHTML =
-          '<div style="padding:18px 2px;font-size:13px;font-weight:700;color:#8a93a3;">' + esc(t('Loading tasks…', 'טוען משימות…')) + '</div>';
+        if (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function') {
+          loadingEl.innerHTML = MineralBarLoader.inlineHtml(t('Loading tasks…', 'טוען משימות…'));
+        } else {
+          loadingEl.innerHTML =
+            '<div class="mb-inline-loader">' +
+            '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+            '<div class="mb-page-loader__label">' + esc(t('Loading tasks…', 'טוען משימות…')) + '</div>' +
+            '</div>';
+        }
       }
     }
 

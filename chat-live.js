@@ -748,8 +748,15 @@
       return row && row._localId && row._pending;
     });
     if (el && !silent) {
-      el.innerHTML =
-        '<div style="text-align:center;padding:28px;font-size:13px;font-weight:700;color:#8a93a3;">טוען שיחה…</div>';
+      if (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function') {
+        el.innerHTML = MineralBarLoader.inlineHtml(chatT('Loading conversation…', 'טוען שיחה…'));
+      } else {
+        el.innerHTML =
+          '<div class="mb-inline-loader">' +
+          '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+          '<div class="mb-page-loader__label">טוען שיחה…</div>' +
+          '</div>';
+      }
     }
 
     var messengerMetaId = p.messenger_meta_id;

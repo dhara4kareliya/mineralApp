@@ -83,6 +83,15 @@
           <div data-screen-label="Ticket details"
             style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
             <!-- navy header -->
+            <sc-if hint-placeholder-val="{{ false }}" value="{{ loading }}">
+            <div class="mb-inline-loader" style="flex:1;display:flex;align-items:center;justify-content:center;">
+              <div>
+                <div class="mb-page-loader__spin" aria-hidden="true"></div>
+                <div class="mb-page-loader__label">{{ loadingMsg }}</div>
+              </div>
+            </div>
+            </sc-if>
+            <sc-if hint-placeholder-val="{{ true }}" value="{{ showContent }}">
             <div style="background:#16223a; padding:13px 18px 16px; flex:none;">
               <div style="display:flex; align-items:center; justify-content:space-between;">
                 <a href="service-all-calls.html"
@@ -403,6 +412,7 @@
                 <div class="photo-lightbox-caption">{{ lightboxCaption }}</div>
               </div>
             </sc-if>
+            </sc-if>
           </div>
         </div>
       </div>
@@ -434,6 +444,7 @@
     ];
 
     state = {
+      loading: true,
       ticket: null,
       linkedProducts: [],
       lightboxUrl: '',
@@ -824,12 +835,14 @@
         const res = await window.MineralBarApp.getTicket(ticketId);
         if (res && res.ticket) {
           const linkedProducts = await this.resolveLinkedProducts(res.ticket);
-          this.setState({ ticket: res.ticket, linkedProducts: linkedProducts });
+          this.setState({ loading: false, ticket: res.ticket, linkedProducts: linkedProducts });
         } else {
           console.warn('[service-call-details] response did not contain ticket property', res);
+          this.setState({ loading: false });
         }
       } catch (e) {
         console.error('[service-call-details] Failed to load ticket details:', e);
+        this.setState({ loading: false });
       }
     }
 
@@ -952,7 +965,21 @@
     renderVals() {
       const t = this.state.ticket;
       if (!t) {
-        return;
+        const stillLoading = this.state.loading !== false;
+        return {
+          loading: stillLoading,
+          showContent: false,
+          callId: '',
+          openedAt: '',
+          chatLink: '#',
+          loadingMsg: stillLoading
+            ? ((typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en')
+              ? 'Loading…'
+              : 'טוען…')
+            : ((typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en')
+              ? 'Ticket not found'
+              : 'קריאה לא נמצאה')
+        };
       }
 
       const isEn = typeof window !== 'undefined' && typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
@@ -1186,6 +1213,9 @@
         feeColor: fee.color, feeBg: fee.bg, feeBorder: fee.border, feeIconBg: fee.iconBg,
 
         primaryLabel: isEn ? 'Assign Technician' : 'שבץ טכנאי',
+        loading: false,
+        showContent: true,
+        loadingMsg: ''
       };
     }
   }

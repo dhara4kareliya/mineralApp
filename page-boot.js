@@ -96,6 +96,99 @@
     else fn();
   }
 
+  function isLoginPage() {
+    var path = (location.pathname || '').toLowerCase();
+    return path.indexOf('login.html') !== -1 || path.indexOf('התחברות') !== -1 || path.indexOf('login-screen') !== -1;
+  }
+
+  function loaderLabel() {
+    var isEn = typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+    try {
+      if (!isEn && localStorage.getItem('app_lang') === 'en') isEn = true;
+    } catch (e) { /* ignore */ }
+    return isEn ? 'Loading…' : 'טוען…';
+  }
+
+  /**
+   * Shared green spinner used on every protected HTML page.
+   *   MineralBarLoader.show('Loading…')
+   *   MineralBarLoader.hide()
+   *   MineralBarLoader.inlineHtml(label)  // markup for in-page content areas
+   */
+  var pageLoader = (function () {
+    var el = null;
+    var hideTimer = null;
+    var safetyTimer = null;
+    var refCount = 0;
+
+    function ensure() {
+      if (el && el.parentNode) return el;
+      el = document.getElementById('mb-page-loader');
+      if (el) return el;
+      el = document.createElement('div');
+      el.id = 'mb-page-loader';
+      el.className = 'mb-page-loader';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      el.innerHTML =
+        '<div class="mb-page-loader__inner">' +
+        '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+        '<div class="mb-page-loader__label" data-mb-loader-label></div>' +
+        '</div>';
+      (document.body || document.documentElement).appendChild(el);
+      return el;
+    }
+
+    function show(label) {
+      if (isLoginPage()) return;
+      if (document.body && document.body.getAttribute('data-page-loader') === 'off') return;
+      refCount += 1;
+      clearTimeout(hideTimer);
+      var node = ensure();
+      node.classList.remove('is-hiding');
+      node.style.display = 'flex';
+      var lab = node.querySelector('[data-mb-loader-label]');
+      if (lab) lab.textContent = label || loaderLabel();
+      clearTimeout(safetyTimer);
+      safetyTimer = setTimeout(function () { hide(true); }, 12000);
+    }
+
+    function hide(force) {
+      if (force) refCount = 0;
+      else refCount = Math.max(0, refCount - 1);
+      if (refCount > 0 && !force) return;
+      clearTimeout(safetyTimer);
+      if (!el || !el.parentNode) return;
+      el.classList.add('is-hiding');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(function () {
+        if (el) {
+          el.style.display = 'none';
+          el.classList.remove('is-hiding');
+        }
+      }, 220);
+    }
+
+    function inlineHtml(label) {
+      return (
+        '<div class="mb-inline-loader">' +
+        '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+        '<div class="mb-page-loader__label">' + String(label || loaderLabel()).replace(/</g, '&lt;') + '</div>' +
+        '</div>'
+      );
+    }
+
+    return { show: show, hide: hide, inlineHtml: inlineHtml };
+  })();
+
+  window.MineralBarLoader = pageLoader;
+
+  // Show as soon as page-boot runs (before auth) — skip login
+  if (!isLoginPage()) {
+    if (document.body) pageLoader.show();
+    else document.addEventListener('DOMContentLoaded', function () { pageLoader.show(); });
+  }
+
   function rtDotColor(status) {
     if (status === 'ready') return '#3dce7c';
     if (status === 'connecting' || status === 'loading_io') return '#e6b422';
@@ -423,25 +516,36 @@
 
     if (!window.MineralBarApp) {
       console.error('[MineralBar] biz1-app.js missing');
+      pageLoader.hide(true);
       return;
     }
 
-    var path = (location.pathname || '').toLowerCase();
-    var isLogin = path.indexOf('login.html') !== -1 || path.indexOf('התחברות') !== -1;
-    if (isLogin) return;
+    if (isLoginPage()) {
+      pageLoader.hide(true);
+      return;
+    }
 
+    pageLoader.show();
     MineralBarApp.ensureAuth('login.html').then(function (client) {
-      if (!client) return;
+      if (!client) {
+        pageLoader.hide(true);
+        return;
+      }
       bootUi();
+      // Hide boot overlay once chrome is up; pages may show their own content loaders
+      pageLoader.hide(true);
       // One deferred language pass after DC/chrome settle (was 200/600/1400 + ready storms)
       setTimeout(function () { applyLanguage(); }, 320);
     }).catch(function (err) {
       console.warn('[MineralBar] ensureAuth failed', err);
+      pageLoader.hide(true);
       location.href = 'login.html';
     });
   });
 
   window.addEventListener('mineralbar:ready', function () {
     applyLanguage();
+    // Auth/session ready — drop boot spinner if still up
+    if (window.MineralBarLoader) window.MineralBarLoader.hide(true);
   });
 })();

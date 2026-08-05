@@ -56,9 +56,13 @@
   }
 
   function loadingHtml() {
+    if (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function') {
+      return MineralBarLoader.inlineHtml(uiT('Loading from server…', 'טוען מהשרת…'));
+    }
     return (
-      '<div style="text-align:center;padding:48px 20px;">' +
-      '<div style="font-size:14px;font-weight:700;color:#8a93a3;">' + esc(uiT('Loading from server…', 'טוען מהשרת…')) + '</div>' +
+      '<div class="mb-inline-loader">' +
+      '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+      '<div class="mb-page-loader__label">' + esc(uiT('Loading from server…', 'טוען מהשרת…')) + '</div>' +
       '</div>'
     );
   }

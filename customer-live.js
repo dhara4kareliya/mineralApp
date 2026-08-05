@@ -127,11 +127,15 @@
   }
 
   function loadingHtml() {
+    if (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function') {
+      return MineralBarLoader.inlineHtml(
+        typeof window.mbT === 'function' ? window.mbT('Loading customer…', 'טוען כרטיס…') : 'טוען כרטיס…'
+      );
+    }
     return (
-      '<div class="mb-customer-loader" data-no-i18n="true" style="text-align:center;padding:48px 16px;">' +
-      '<div class="mb-customer-loader__spin" style="width:36px;height:36px;margin:0 auto 14px;border-radius:50%;border:3px solid #d7dde6;border-top-color:#1d60a2;animation:mb-spin .7s linear infinite;"></div>' +
-      '<div class="mb-customer-loader__title" style="font-size:14px;font-weight:700;color:#8a93a3;">טוען כרטיס…</div>' +
-      '<div class="mb-customer-loader__sub" style="font-size:12px;color:#b6bdc8;margin-top:6px;">Customer.Get</div>' +
+      '<div class="mb-inline-loader">' +
+      '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+      '<div class="mb-page-loader__label">טוען כרטיס…</div>' +
       '</div>'
     );
   }

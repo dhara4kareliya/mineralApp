@@ -94,6 +94,13 @@ mbCss('./common.css');
 <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Work hours by week</span>
 <span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ weeksTotalLabel }}</span>
 </div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hoursLoading }}">
+<div class="mb-inline-loader" style="padding:28px 16px;">
+<div class="mb-page-loader__spin" aria-hidden="true"></div>
+<div class="mb-page-loader__label">Loading…</div>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ hoursReady }}">
 <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; height:130px;">
 <sc-for as="w" hint-placeholder-count="4" list="{{ weeks }}">
 <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
@@ -103,6 +110,7 @@ mbCss('./common.css');
 </div>
 </sc-for>
 </div>
+</sc-if>
 </div>
 <!-- breakdown by install type -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
@@ -111,7 +119,10 @@ mbCss('./common.css');
 </div>
 <div style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ productsLoading }}">
-<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">Loading…</div>
+<div class="mb-inline-loader">
+<div class="mb-page-loader__spin" aria-hidden="true"></div>
+<div class="mb-page-loader__label">Loading…</div>
+</div>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ productsEmpty }}">
 <div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">No products</div>
@@ -566,14 +577,14 @@ class Component extends DCLogic {
       if (hPct < 8) hPct = 8; // keep a minor stub bar for 0 / tiny values
       return {
         label: weekLabels[i],
-        val: st.loadingHours ? '…' : this.formatHoursShort(sec),
-        h: (st.loadingHours ? 8 : hPct) + '%',
+        val: this.formatHoursShort(sec),
+        h: hPct + '%',
         bg: i === activeWeek ? '#1d60a2' : '#bcd3ea'
       };
     }.bind(this));
     var totalSec = weekSeconds.reduce(function (a, b) { return a + b; }, 0);
     var weeksTotalLabel = st.loadingHours
-      ? this.t('Loading…', 'טוען…')
+      ? ''
       : (isEn
         ? ('A total of ' + this.formatHoursShort(totalSec) + 'h')
         : ('סה״כ ' + this.formatHoursShort(totalSec) + ' שעות'));
@@ -648,6 +659,8 @@ class Component extends DCLogic {
       monthOptions: monthOptions,
       weeks: weeks,
       weeksTotalLabel: weeksTotalLabel,
+      hoursLoading: !!st.loadingHours,
+      hoursReady: !st.loadingHours,
       types: types,
       productsLoading: !!st.loadingProducts,
       productsEmpty: !st.loadingProducts && totalProducts === 0,

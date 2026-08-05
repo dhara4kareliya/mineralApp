@@ -463,7 +463,20 @@
 
     // Socket / soft refresh: keep current list + count visible — never flash "Loading…"
     if (!silent || !hasRows) {
-      if (totalEl) totalEl.textContent = 'Loading…';
+      if (totalEl) totalEl.textContent = (typeof window.mbT === 'function' ? window.mbT('Loading…', 'טוען…') : 'טוען…');
+      if (mount) {
+        if (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function') {
+          mount.innerHTML = MineralBarLoader.inlineHtml(
+            typeof window.mbT === 'function' ? window.mbT('Loading tasks…', 'טוען משימות…') : 'טוען משימות…'
+          );
+        } else {
+          mount.innerHTML =
+            '<div class="mb-inline-loader">' +
+            '<div class="mb-page-loader__spin" aria-hidden="true"></div>' +
+            '<div class="mb-page-loader__label">טוען משימות…</div>' +
+            '</div>';
+        }
+      }
     }
 
     try {

@@ -46,8 +46,15 @@ mbCss('./common.css');
 <div style="width:40px;"></div>
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
+<!-- loading -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ loading }}">
+<div class="mb-inline-loader">
+<div class="mb-page-loader__spin" aria-hidden="true"></div>
+<div class="mb-page-loader__label">{{ loadingLabel }}</div>
+</div>
+</sc-if>
 <!-- enforcement banner -->
-<sc-if hint-placeholder-val="{{ true }}" value="{{ hasOpen }}">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showOpenBanner }}">
 <div style="display:flex; gap:11px; background:#fbeeed; border:1px solid #f1c9c4; border-radius:15px; padding:14px 15px; margin-bottom:16px;">
 <div style="width:40px; height:40px; border-radius:11px; background:#c0392b; display:flex; align-items:center; justify-content:center; flex:none;">
 <svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
@@ -58,7 +65,7 @@ mbCss('./common.css');
 </div>
 </div>
 </sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ allClosed }}">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showClosedBanner }}">
 <div style="display:flex; gap:11px; background:#eafaf0; border:1px solid #cdeeda; border-radius:15px; padding:14px 15px; margin-bottom:16px;">
 <div style="width:40px; height:40px; border-radius:11px; background:#25b35e; display:flex; align-items:center; justify-content:center; flex:none;">
 <svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="22"><path d="M20 6 9 17l-5-5"></path></svg>
@@ -70,7 +77,7 @@ mbCss('./common.css');
 </div>
 </sc-if>
 <!-- open calls list -->
-<sc-for as="c" hint-placeholder-count="3" list="{{ calls }}">
+<sc-for as="c" hint-placeholder-count="0" list="{{ calls }}">
 <div style="background:#fff; border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); border-right:4px solid {{ c.accent }};">
 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
 <div style="flex:1; text-align:left; min-width:0;">
@@ -163,15 +170,16 @@ mbCss('./common.css');
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = {
-    calls: [
-      { id: 1, name: 'דוד מזרחי', address: 'גבעתיים · כצנלסון 22', time: '12:00', type: 'תיקון נזילה', status: 'overdue' },
-      { id: 2, name: 'רותם רחמים', address: 'הוד השרון · סוקולוב 5', time: '14:30', type: 'החלפת מרכך', status: 'open' },
-      { id: 3, name: 'נועה ברק', address: 'רעננה · אחוזה 40', time: '16:15', type: 'בדיקת מערכת', status: 'open' },
-    ],
+    loading: true,
+    busyOut: false,
+    errorMsg: '',
+    calls: [],
     deferred: [],
     deferTarget: null,
     deferReason: null,
-    langTick: 0,
+    shiftRunning: false,
+    teamHoursId: null,
+    langTick: 0
   };
 
   isEn() {
@@ -182,16 +190,39 @@ class Component extends DCLogic {
     return this.isEn() ? en : he;
   }
 
+  timerStorageKey() {
+    var email = '';
+    try {
+      email = String((window.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
+    } catch (e) { /* ignore */ }
+    return 'mb_tech_timer_v1:' + (email || 'default');
+  }
+
+  clearLocalTimer() {
+    try { localStorage.removeItem(this.timerStorageKey()); } catch (e) { /* ignore */ }
+  }
+
+  readLocalTimer() {
+    try {
+      var raw = localStorage.getItem(this.timerStorageKey());
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      return data && typeof data === 'object' ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
       LiveSync.bind(() => this.initData({ silent: true }), {
         retries: false,
-        keys: /ticket|mission|task|call|service/i,
+        keys: /ticket|mission|task|call|service|team_hours|teamhours/i,
         delay: 350
       });
     } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.initData({ silent: true }), {
-        keys: /ticket|mission|task|call|service/i,
+        keys: /ticket|mission|task|call|service|team_hours|teamhours/i,
         delay: 350
       });
     }
@@ -229,7 +260,7 @@ class Component extends DCLogic {
     if (/^socket\.(connect|connected|disconnect|nudge)/i.test(key)) return;
     if (key === 'pageshow' || key === 'visible') return;
     var relevant =
-      /ticket|mission|task|call|service|appointment|reminder/.test(key) ||
+      /ticket|mission|task|call|service|appointment|reminder|team_hours|teamhours/.test(key) ||
       group === 'missions' ||
       group === 'other';
     if (!relevant) return;
@@ -240,6 +271,32 @@ class Component extends DCLogic {
     }, 350);
   }
 
+  async loadShiftStatus(client) {
+    var running = false;
+    var teamHoursId = null;
+    try {
+      var statusRes = await client.request('TeamHours.Get', {});
+      var data = (statusRes && statusRes.data) || {};
+      running = !!(statusRes && (statusRes.running === true || statusRes.running === 1 ||
+        (data && (Number(data.status) === 1 || data.running))));
+      teamHoursId = (statusRes && statusRes.team_hours_id) || data.id || null;
+    } catch (e) {
+      var local = this.readLocalTimer();
+      if (local && local.running) {
+        running = true;
+        teamHoursId = local.teamHoursId || null;
+      }
+    }
+    if (!running) {
+      var local2 = this.readLocalTimer();
+      if (local2 && local2.running) {
+        running = true;
+        teamHoursId = teamHoursId || local2.teamHoursId || null;
+      }
+    }
+    return { running: running, teamHoursId: teamHoursId };
+  }
+
   async initData(opts) {
     opts = opts || {};
     var silent = !!opts.silent;
@@ -247,33 +304,36 @@ class Component extends DCLogic {
       this._ticketsQueued = { silent: silent && !(this._ticketsQueued && this._ticketsQueued.silent === false) };
       return this._ticketsInFlight;
     }
-    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
-      var self = this;
-      this._ticketsInFlight = (async function () {
-        try {
-          var client = MineralBarApp.getClient();
-          var res = await client.request('Ticket.List', { limit: 25 });
-          var data = res && (res.data || res.output || res);
-          if (Array.isArray(data) && data.length > 0) {
-            var openTickets = [];
-            data.forEach(function(item) {
-              var lastMsg = '';
-              if (Array.isArray(item.messages) && item.messages.length > 0) {
-                lastMsg = item.messages[item.messages.length - 1].message || '';
-              } else if (typeof item.messages === 'string') {
-                lastMsg = item.messages;
-              } else if (item.message) {
-                lastMsg = item.message;
-              }
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
+      this.setState({ loading: false, calls: [], errorMsg: 'SDK not ready' });
+      return;
+    }
+    var self = this;
+    if (!silent) this.setState({ loading: true, errorMsg: '' });
+    this._ticketsInFlight = (async function () {
+      try {
+        var client = MineralBarApp.getClient();
+        var shift = await self.loadShiftStatus(client);
+        var res = await client.request('Ticket.List', { limit: 25 });
+        var data = res && (res.data || res.output || res);
+        var openTickets = [];
+        if (Array.isArray(data) && data.length > 0) {
+          data.forEach(function (item) {
+            var lastMsg = '';
+            if (Array.isArray(item.messages) && item.messages.length > 0) {
+              lastMsg = item.messages[item.messages.length - 1].message || '';
+            } else if (typeof item.messages === 'string') {
+              lastMsg = item.messages;
+            } else if (item.message) {
+              lastMsg = item.message;
+            }
 
-              var closed = self.isTicketClosed(item, lastMsg);
-              if (closed) return;
+            var closed = self.isTicketClosed(item, lastMsg);
+            if (closed) return;
 
-              var st = String(item.status || '').toLowerCase();
-
-              var name = item.subject || '';
-
-              var address = item.address;
+            var st = String(item.status || '').toLowerCase();
+            var name = item.subject || '';
+            var address = item.address;
             if (!address || address === 'null') {
               address = (item.city_id && item.city_id !== 'undefined') ? item.city_id : '';
             }
@@ -290,9 +350,7 @@ class Component extends DCLogic {
                 timeVal = day + '/' + month + ' · ' + hrs + ':' + mins;
               } catch (e) {
                 var timeParts = dateStr.split('T')[1] || '';
-                if (timeParts) {
-                  timeVal = timeParts.substring(0, 5);
-                }
+                if (timeParts) timeVal = timeParts.substring(0, 5);
               }
             }
 
@@ -313,22 +371,75 @@ class Component extends DCLogic {
               isClosed: false
             });
           });
-
-            self.setState({ calls: openTickets });
-          }
-          self._booted = true;
-        } catch (err) {
-          console.warn('[MineralBar] failed to load tickets', err);
-        } finally {
-          self._ticketsInFlight = null;
-          var queued = self._ticketsQueued;
-          self._ticketsQueued = null;
-          if (queued) {
-            return self.initData(queued);
-          }
         }
-      })();
-      return this._ticketsInFlight;
+
+        self.setState({
+          loading: false,
+          calls: openTickets,
+          shiftRunning: !!shift.running,
+          teamHoursId: shift.teamHoursId || null,
+          errorMsg: ''
+        });
+        self._booted = true;
+      } catch (err) {
+        console.warn('[MineralBar] failed to load tickets', err);
+        self.setState({
+          loading: false,
+          calls: [],
+          errorMsg: (err && err.message) || 'Failed to load tickets'
+        });
+      } finally {
+        self._ticketsInFlight = null;
+        var queued = self._ticketsQueued;
+        self._ticketsQueued = null;
+        if (queued) {
+          return self.initData(queued);
+        }
+      }
+    })();
+    return this._ticketsInFlight;
+  }
+
+  async clockOut() {
+    if (this.state.busyOut || this.state.loading) return;
+    var openOnly = (this.state.calls || []).filter(function (c) { return !c.isClosed && c.status !== 'closed'; });
+    if (openOnly.length > 0) return;
+
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
+      this.setState({ errorMsg: 'SDK not ready' });
+      return;
+    }
+
+    this.setState({ busyOut: true, errorMsg: '' });
+    try {
+      var client = MineralBarApp.getClient();
+      var shift = await this.loadShiftStatus(client);
+      if (!shift.running) {
+        // Nothing to stop — go to time clock so user can see status
+        window.location.href = 'tech-time-clock.html';
+        return;
+      }
+
+      try { await client.request('TeamHours.WhenStop', {}); } catch (e0) { /* continue */ }
+      var stopPayload = { timer_action: 'stop' };
+      var id = shift.teamHoursId || this.state.teamHoursId;
+      if (id) {
+        stopPayload.team_hours_id = id;
+        stopPayload.id = id;
+      }
+      var stopRes = await client.request('TeamHours.StartStop', stopPayload);
+      var stopOk = stopRes && (Number(stopRes.success) === 1 || stopRes.success === true);
+      if (!stopOk) throw new Error((stopRes && stopRes.message) || 'Failed to clock out');
+
+      this.clearLocalTimer();
+      this.setState({ shiftRunning: false, teamHoursId: null, busyOut: false });
+      window.location.href = 'tech-time-clock.html';
+    } catch (err) {
+      console.error('[OpenTickets] clock out failed', err);
+      this.setState({
+        busyOut: false,
+        errorMsg: (err && err.message) || 'Clock out failed'
+      });
     }
   }
 
@@ -443,18 +554,20 @@ class Component extends DCLogic {
   renderVals() {
     void this.state.langTick;
     const st = this.state;
+    const loading = !!st.loading;
     const openOnly = (st.calls || []).filter(function (c) { return !c.isClosed && c.status !== 'closed'; });
     const openCount = openOnly.length;
     const hasOpen = openCount > 0;
+    const allClosed = !loading && !hasOpen;
     const fallbackCall = this.t('Service call', 'קריאת שירות');
     const fallbackAddr = this.t('No address listed', 'לא צוינה כתובת');
     const fallbackCust = this.t('Customer', 'לקוח');
 
-    var userName = 'Yossi Cohen';
-    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+    var userName = this.t('Technician', 'טכנאי');
+    if (window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
       var user = MineralBarApp.getUser();
       if (user) {
-        userName = user.name || user.first_name || user.user_name || user.email || 'Yossi Cohen';
+        userName = user.name || user.first_name || user.user_name || user.email || userName;
       }
     }
 
@@ -470,7 +583,7 @@ class Component extends DCLogic {
       closed: { accent: '#c0392b', badge: this.t('Closed', 'סגור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
     };
 
-    const calls = openOnly.map(c => {
+    const calls = loading ? [] : openOnly.map(c => {
       const custName = c.custName || fallbackCust;
       const preview = this.cleanMessagePreview(c.lastMsg || c.customerDetail || '');
       const stMeta = ST[c.status] || ST.open;
@@ -513,23 +626,37 @@ class Component extends DCLogic {
     });
 
     const canConfirm = !!st.deferReason;
+    const blocked = loading || hasOpen || !!st.busyOut;
+    const canClockOut = !loading && !hasOpen && !st.busyOut;
+    var outLabel;
+    if (loading) outLabel = this.t('Loading…', 'טוען…');
+    else if (st.busyOut) outLabel = this.t('Clocking out…', 'חותם יציאה…');
+    else if (hasOpen) outLabel = this.t('Close tickets to clock out', 'סגור טיקטים כדי להחתים יציאה');
+    else if (st.shiftRunning) outLabel = this.t('Clock out · End of day', 'החתם יציאה · סיום יום');
+    else outLabel = this.t('Open time clock', 'פתח שעון נוכחות');
 
     return {
       userName,
       todayDate,
-      hasOpen, allClosed: !hasOpen, openCount,
+      loading,
+      loadingLabel: this.t('Loading open tickets…', 'טוען קריאות פתוחות…'),
+      hasOpen,
+      allClosed,
+      showOpenBanner: !loading && hasOpen,
+      showClosedBanner: allClosed,
+      openCount,
       calls,
-      deferred, hasDeferred: deferred.length > 0,
+      deferred, hasDeferred: !loading && deferred.length > 0,
+      errorMsg: st.errorMsg || '',
+      hasError: !!(st.errorMsg && !loading),
 
-      blocked: hasOpen,
-      clockOut: () => {},
-      outBg: hasOpen ? '#e9ecf0' : 'linear-gradient(#33a571,#2c8a60)',
-      outColor: hasOpen ? '#9aa3b0' : '#fff',
-      outCursor: hasOpen ? 'not-allowed' : 'pointer',
-      outShadow: hasOpen ? 'none' : '0 6px 16px rgba(44,138,96,.32)',
-      outLabel: hasOpen
-        ? this.t('Close tickets to clock out', 'סגור טיקטים כדי להחתים יציאה')
-        : this.t('Clock out · End of day', 'החתם יציאה · סיום יום'),
+      blocked: blocked,
+      clockOut: () => this.clockOut(),
+      outBg: canClockOut ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0',
+      outColor: canClockOut ? '#fff' : '#9aa3b0',
+      outCursor: canClockOut ? 'pointer' : 'not-allowed',
+      outShadow: canClockOut ? '0 6px 16px rgba(44,138,96,.32)' : 'none',
+      outLabel: outLabel,
 
       deferOpen: st.deferTarget !== null,
       cancelDefer: () => this.cancelDefer(),

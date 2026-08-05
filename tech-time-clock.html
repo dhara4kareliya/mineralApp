@@ -46,7 +46,10 @@ mbCss('./common.css');
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
 <sc-if hint-placeholder-val="{{ true }}" value="{{ loading }}">
-<div style="text-align:center; padding:28px 12px; color:#8a93a3; font-size:13.5px; font-weight:600;">Loading…</div>
+<div class="mb-inline-loader">
+<div class="mb-page-loader__spin" aria-hidden="true"></div>
+<div class="mb-page-loader__label">Loading…</div>
+</div>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
 <div style="background:#fbeeed; border:1px solid #f1c9c4; border-radius:14px; padding:12px 14px; margin-bottom:13px; color:#a3302e; font-size:13px; font-weight:600;">{{ errorMsg }}</div>
@@ -442,18 +445,20 @@ class Component extends DCLogic {
     var st = this.state;
     if (!st.running) return this.elapsedToSeconds(st.elapsedRaw);
 
-    // Prefer wall-clock from shift start so leaving the page does not reset to 00:00:00
-    var start = this.parseDateTime(st.startTime);
-    if (start) {
-      return Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
-    }
-
+    // Prefer local wall-clock anchor. API start_time is often local wall time without TZ;
+    // parsing it as UTC makes start appear in the future → elapsed snaps back to 00:00:00.
     var local = this.readLocalTimer();
     if (local && local.startedAtMs) {
       var ms = Number(local.startedAtMs);
-      if (isFinite(ms) && ms > 0) {
+      if (isFinite(ms) && ms > 0 && ms <= Date.now() + 5000 && (Date.now() - ms) < 36 * 3600 * 1000) {
         return Math.max(0, Math.floor((Date.now() - ms) / 1000));
       }
+    }
+
+    var start = this.parseDateTime(st.startTime);
+    if (start) {
+      var fromApi = Math.floor((Date.now() - start.getTime()) / 1000);
+      if (fromApi >= 0) return fromApi;
     }
 
     var base = this.elapsedToSeconds(st.elapsedRaw);
@@ -537,11 +542,12 @@ class Component extends DCLogic {
       var localPrev = this.readLocalTimer();
       var startParsed = this.parseDateTime(startTime);
       var startedAtMs = startParsed ? startParsed.getTime() : Date.now();
+      // Keep the device clock-in moment — do not let API TZ quirks reset the live timer
       if (localPrev && localPrev.startedAtMs) {
         var localMs = Number(localPrev.startedAtMs);
-        if (isFinite(localMs) && localMs > 0 && localMs < startedAtMs && (Date.now() - localMs) < 36 * 3600 * 1000) {
+        if (isFinite(localMs) && localMs > 0 && localMs <= Date.now() + 5000 && (Date.now() - localMs) < 36 * 3600 * 1000) {
           startedAtMs = localMs;
-          if (!startTime && localPrev.startTime) startTime = localPrev.startTime;
+          if (localPrev.startTime) startTime = localPrev.startTime;
         }
       }
       if (!startTime) {
@@ -551,7 +557,7 @@ class Component extends DCLogic {
       }
       this.writeLocalTimer({
         running: true,
-        teamHoursId: teamHoursId,
+        teamHoursId: teamHoursId || (localPrev && localPrev.teamHoursId) || null,
         startTime: startTime,
         startedAtMs: startedAtMs
       });
@@ -676,17 +682,28 @@ class Component extends DCLogic {
         var startOk = startRes && (Number(startRes.success) === 1 || startRes.success === true);
         if (!startOk) {
           this.clearLocalTimer();
+          this.setState({ running: false, startTime: null, elapsedRaw: '00:00:00' });
           throw new Error((startRes && startRes.message) || 'Failed to clock in');
         }
         var startData = (startRes && startRes.data) || startRes || {};
         var newId = startRes.team_hours_id || startData.id || startData.team_hours_id || null;
-        var apiStart = startData.start_time || startRes.start_time || localStartStr;
+        // Keep device startedAtMs — only store API id. Refresh must not rewind the live clock.
         this.writeLocalTimer({
           running: true,
           startedAtMs: startedAtMs,
-          startTime: apiStart,
+          startTime: localStartStr,
           teamHoursId: newId
         });
+        this.setState({
+          running: true,
+          teamHoursId: newId,
+          startTime: localStartStr,
+          elapsedRaw: '00:00:00',
+          fetchedAt: startedAtMs,
+          tickNow: Date.now()
+        });
+        // Soft refresh history/totals without letting API start_time reset the timer
+        await this.refreshAll(false);
       } else {
         try { await client.request('TeamHours.WhenStop', {}); } catch (e) { /* continue */ }
         var stopPayload = { timer_action: 'stop' };
@@ -698,8 +715,9 @@ class Component extends DCLogic {
         var stopOk = stopRes && (Number(stopRes.success) === 1 || stopRes.success === true);
         if (!stopOk) throw new Error((stopRes && stopRes.message) || 'Failed to clock out');
         this.clearLocalTimer();
+        this.setState({ running: false, startTime: null, teamHoursId: null });
+        await this.refreshAll(false);
       }
-      await this.refreshAll(false);
     } catch (e) {
       console.error('[TimeClock] StartStop failed', e);
       this.setState({ errorMsg: (e && e.message) || 'Clock action failed' });
