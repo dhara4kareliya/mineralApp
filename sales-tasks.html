@@ -21,6 +21,38 @@
   ]);
   mbCss('./common.css');
   </script>
+  <style>
+    .tasks-filter-hbar {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .tasks-filter-hbar::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+    }
+    .tasks-filter-hbar > button,
+    .tasks-filter-hbar .mb-filter-chip {
+      flex: 0 0 auto !important;
+      white-space: nowrap !important;
+    }
+  </style>
 </head>
 <body data-role="sales" data-active-tab="tasks">
   <div class="app-viewport">
@@ -67,13 +99,13 @@
           </div>
 
           <!-- Filter Chips Bar -->
-          <div id="mb-task-filter-chips" class="dc-scroll" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:10px; margin-bottom:14px; scrollbar-width:none;">
-            <button type="button" class="mb-filter-chip" data-type="show_all_together_tasks" style="padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:none; background:var(--color-primary); color:#fff; cursor:pointer; white-space:nowrap;">All</button>
-            <button type="button" class="mb-filter-chip" data-type="today_tasks" style="padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Today</button>
-            <button type="button" class="mb-filter-chip" data-type="priority_tasks" style="padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Priority</button>
-            <button type="button" class="mb-filter-chip" data-type="upcoming_tasks" style="padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Upcoming</button>
-            <button type="button" class="mb-filter-chip" data-type="done_tasks" style="padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Done</button>
-            <button type="button" class="mb-filter-chip" data-type="private_tasks" style="padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Private</button>
+          <div id="mb-task-filter-chips" class="tasks-filter-hbar" style="display:flex; flex-wrap:nowrap; gap:8px; padding-bottom:10px; margin-bottom:14px; overflow-x:auto; overflow-y:hidden; width:100%; max-width:100%; min-width:0; box-sizing:border-box; cursor:grab; -webkit-overflow-scrolling:touch; touch-action:pan-x;">
+            <button type="button" class="mb-filter-chip" data-type="show_all_together_tasks" style="flex:0 0 auto; padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:none; background:var(--color-primary); color:#fff; cursor:pointer; white-space:nowrap;">All</button>
+            <button type="button" class="mb-filter-chip" data-type="today_tasks" style="flex:0 0 auto; padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Today</button>
+            <button type="button" class="mb-filter-chip" data-type="priority_tasks" style="flex:0 0 auto; padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Priority</button>
+            <button type="button" class="mb-filter-chip" data-type="upcoming_tasks" style="flex:0 0 auto; padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Upcoming</button>
+            <button type="button" class="mb-filter-chip" data-type="done_tasks" style="flex:0 0 auto; padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Done</button>
+            <button type="button" class="mb-filter-chip" data-type="private_tasks" style="flex:0 0 auto; padding:7px 15px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--border-panel); background:var(--bg-panel); color:var(--text-sub); cursor:pointer; white-space:nowrap;">Private</button>
           </div>
           
           <!-- Add a task CTA Button -->
@@ -121,41 +153,70 @@
       if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
     });
 
-    // Drag-to-scroll implementation for the filter chips
-    document.addEventListener('DOMContentLoaded', () => {
-      const slider = document.getElementById('mb-task-filter-chips');
-      let isDown = false;
-      let startX;
-      let scrollLeft;
+    // Drag / swipe scroll for filter chips
+    document.addEventListener('DOMContentLoaded', function () {
+      var el = document.getElementById('mb-task-filter-chips');
+      if (!el || el.getAttribute('data-drag-bound') === '1') return;
+      el.setAttribute('data-drag-bound', '1');
 
-      if (slider) {
-        slider.style.cursor = 'grab';
+      var isDown = false;
+      var didDrag = false;
+      var startX = 0;
+      var scrollLeft = 0;
 
-        slider.addEventListener('mousedown', (e) => {
-          isDown = true;
-          slider.style.cursor = 'grabbing';
-          startX = e.pageX - slider.offsetLeft;
-          scrollLeft = slider.scrollLeft;
-        });
-
-        slider.addEventListener('mouseleave', () => {
-          isDown = false;
-          slider.style.cursor = 'grab';
-        });
-
-        slider.addEventListener('mouseup', () => {
-          isDown = false;
-          slider.style.cursor = 'grab';
-        });
-
-        slider.addEventListener('mousemove', (e) => {
-          if (!isDown) return;
-          e.preventDefault();
-          const x = e.pageX - slider.offsetLeft;
-          const walk = (x - startX) * 2; // Adjust scroll speed here
-          slider.scrollLeft = scrollLeft - walk;
-        });
+      function getX(e) {
+        return e.touches && e.touches.length ? e.touches[0].pageX : e.pageX;
       }
+
+      function onStart(e) {
+        isDown = true;
+        didDrag = false;
+        startX = getX(e);
+        scrollLeft = el.scrollLeft;
+        el.style.cursor = 'grabbing';
+      }
+
+      function onMove(e) {
+        if (!isDown) return;
+        var x = getX(e);
+        var walk = (x - startX) * 1.6;
+        if (Math.abs(walk) > 4) didDrag = true;
+        el.scrollLeft = scrollLeft - walk;
+        if (didDrag && e.cancelable) e.preventDefault();
+      }
+
+      function onEnd() {
+        isDown = false;
+        el.style.cursor = 'grab';
+      }
+
+      el.addEventListener('mousedown', onStart);
+      el.addEventListener('mousemove', onMove);
+      el.addEventListener('mouseup', onEnd);
+      el.addEventListener('mouseleave', onEnd);
+      el.addEventListener('touchstart', onStart, { passive: true });
+      el.addEventListener('touchmove', onMove, { passive: false });
+      el.addEventListener('touchend', onEnd);
+      el.addEventListener('touchcancel', onEnd);
+      el.addEventListener('wheel', function (e) {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          el.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      el.addEventListener('click', function (e) {
+        if (didDrag) {
+          e.preventDefault();
+          e.stopPropagation();
+          didDrag = false;
+        }
+      }, true);
+
+      el.style.cursor = 'grab';
+      el.style.minWidth = '0';
+      el.style.maxWidth = '100%';
+      el.style.overflowX = 'auto';
     });
   </script>
 </body>

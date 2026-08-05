@@ -30,12 +30,29 @@ mbCss('./common.css');
   html[dir="ltr"], html[dir="ltr"] body { direction: ltr; }
   button, input, select, textarea { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
-  .dc-hbar::-webkit-scrollbar { height: 0; }
+  .dc-hbar::-webkit-scrollbar { height: 0 !important; width: 0 !important; display: none !important; }
   .dc-hbar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     user-select: none;
     -webkit-user-select: none;
+    cursor: grab;
+  }
+  .dc-hbar > button,
+  .dc-hbar button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
   }
   
   .search-input {
@@ -161,9 +178,9 @@ mbCss('./common.css');
   </div>
 
   <!-- category chips (drag / swipe to scroll) -->
-  <div id="inventory-category-chips" ref="{{ chipsRef }}" class="dc-hbar" style="display:flex; gap:8px; padding:2px 16px 12px; overflow-x:auto; flex:none; cursor:grab;">
+  <div id="inventory-category-chips" ref="{{ chipsRef }}" class="dc-hbar" style="display:flex; flex-wrap:nowrap; gap:8px; padding:2px 16px 12px; overflow-x:auto; overflow-y:hidden; flex:none; width:100%; max-width:100%; min-width:0; box-sizing:border-box; cursor:grab; -webkit-overflow-scrolling:touch; touch-action:pan-x;">
     <sc-for as="c" list="{{ categories }}">
-      <button type="button" onclick="{{ c.pick }}" style="flex:none; padding:8px 15px; border-radius:99px; font-size:13px; font-weight:{{ c.weight }}; cursor:pointer; white-space:nowrap; background:{{ c.bg }}; color:{{ c.color }}; border:1.3px solid {{ c.border }}; pointer-events:auto;">{{ c.label }}</button>
+      <button type="button" onclick="{{ c.pick }}" style="flex:0 0 auto; padding:8px 15px; border-radius:99px; font-size:13px; font-weight:{{ c.weight }}; cursor:pointer; white-space:nowrap; background:{{ c.bg }}; color:{{ c.color }}; border:1.3px solid {{ c.border }}; pointer-events:auto;">{{ c.label }}</button>
     </sc-for>
   </div>
 
@@ -964,18 +981,18 @@ class Component extends DCLogic {
       function onStart(e) {
         isDown = true;
         didDrag = false;
-        startX = getX(e) - el.offsetLeft;
+        startX = getX(e);
         scrollLeft = el.scrollLeft;
         el.style.cursor = 'grabbing';
       }
 
       function onMove(e) {
         if (!isDown) return;
-        var x = getX(e) - el.offsetLeft;
+        var x = getX(e);
         var walk = (x - startX) * 1.6;
         if (Math.abs(walk) > 4) didDrag = true;
         el.scrollLeft = scrollLeft - walk;
-        if (e.cancelable) e.preventDefault();
+        if (didDrag && e.cancelable) e.preventDefault();
       }
 
       function onEnd() {
@@ -991,6 +1008,12 @@ class Component extends DCLogic {
       el.addEventListener('touchmove', onMove, { passive: false });
       el.addEventListener('touchend', onEnd);
       el.addEventListener('touchcancel', onEnd);
+      el.addEventListener('wheel', function (e) {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          el.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
 
       // Ignore chip click if the user was dragging
       el.addEventListener('click', function (e) {
@@ -1002,6 +1025,9 @@ class Component extends DCLogic {
       }, true);
 
       el.style.cursor = 'grab';
+      el.style.minWidth = '0';
+      el.style.maxWidth = '100%';
+      el.style.overflowX = 'auto';
       self._chipsDragBound = true;
     }, 50);
   }

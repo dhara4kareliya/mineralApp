@@ -51,6 +51,37 @@
         .dc-scroll::-webkit-scrollbar {
           width: 0;
         }
+
+        .docs-filter-hbar {
+          display: flex !important;
+          flex-wrap: nowrap !important;
+          gap: 8px;
+          padding: 4px 16px 12px;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-x;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          background: #eef0f3;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box;
+          cursor: grab;
+          user-select: none;
+          -webkit-user-select: none;
+        }
+        .docs-filter-hbar::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;
+          display: none !important;
+        }
+        .docs-filter-hbar > button,
+        .docs-filter-hbar button {
+          flex: 0 0 auto !important;
+          white-space: nowrap !important;
+        }
       </style>
     </helmet>
     <div 
@@ -101,11 +132,10 @@
             </div>
           </div>
           <!-- filter chips -->
-          <div class="dc-scroll"
-            style="display:flex; gap:8px; padding:4px 16px 12px; overflow-x:auto; background:#eef0f3;">
+          <div id="all-docs-filter-chips" class="docs-filter-hbar" style="display:flex; flex-wrap:nowrap; gap:8px; padding:4px 16px 12px; overflow-x:auto; overflow-y:hidden; width:100%; max-width:100%; min-width:0; box-sizing:border-box; cursor:grab; -webkit-overflow-scrolling:touch; touch-action:pan-x;">
             <sc-for as="f" hint-placeholder-count="5" list="{{ filters }}">
-              <button onclick="{{ f.pick }}"
-                style="flex:none; padding:8px 15px; border-radius:99px; font-size:13px; font-weight:{{ f.weight }}; cursor:pointer; white-space:nowrap; background:{{ f.bg }}; color:{{ f.color }}; border:1.4px solid {{ f.border }};">{{
+              <button type="button" onclick="{{ f.pick }}"
+                style="flex:0 0 auto; padding:8px 15px; border-radius:99px; font-size:13px; font-weight:{{ f.weight }}; cursor:pointer; white-space:nowrap; background:{{ f.bg }}; color:{{ f.color }}; border:1.4px solid {{ f.border }};">{{
                 f.label }}</button>
             </sc-for>
           </div>
@@ -269,9 +299,78 @@ class Component extends DCLogic {
         setTimeout(function () {
           self.setState({ langTick: Date.now() });
           if (typeof applyTranslations === 'function') applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+          self.setupFilterDragScroll();
         }, 80);
       }
     });
+    this.setupFilterDragScroll();
+    setTimeout(function () { self.setupFilterDragScroll(); }, 200);
+    setTimeout(function () { self.setupFilterDragScroll(); }, 800);
+  }
+
+  setupFilterDragScroll() {
+    var el = document.getElementById('all-docs-filter-chips');
+    if (!el || el.getAttribute('data-drag-bound') === '1') return;
+    el.setAttribute('data-drag-bound', '1');
+
+    var isDown = false;
+    var didDrag = false;
+    var startX = 0;
+    var scrollLeft = 0;
+
+    function getX(e) {
+      return e.touches && e.touches.length ? e.touches[0].pageX : e.pageX;
+    }
+
+    function onStart(e) {
+      isDown = true;
+      didDrag = false;
+      startX = getX(e);
+      scrollLeft = el.scrollLeft;
+      el.style.cursor = 'grabbing';
+    }
+
+    function onMove(e) {
+      if (!isDown) return;
+      var x = getX(e);
+      var walk = (x - startX) * 1.6;
+      if (Math.abs(walk) > 4) didDrag = true;
+      el.scrollLeft = scrollLeft - walk;
+      if (didDrag && e.cancelable) e.preventDefault();
+    }
+
+    function onEnd() {
+      isDown = false;
+      el.style.cursor = 'grab';
+    }
+
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseup', onEnd);
+    el.addEventListener('mouseleave', onEnd);
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    el.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    el.addEventListener('click', function (e) {
+      if (didDrag) {
+        e.preventDefault();
+        e.stopPropagation();
+        didDrag = false;
+      }
+    }, true);
+
+    el.style.cursor = 'grab';
+    el.style.minWidth = '0';
+    el.style.maxWidth = '100%';
+    el.style.overflowX = 'auto';
   }
 
   getCustomerId() {
