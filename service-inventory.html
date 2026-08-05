@@ -128,6 +128,50 @@ mbCss('./common.css');
   html[dir="rtl"] .inv-product-sheet {
     text-align: right;
   }
+
+  /* Overlay above bottom nav so Create/Save stay reachable */
+  .inv-product-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+  }
+  .inv-product-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 90%;
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -10px 40px rgba(15, 24, 40, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 61;
+    padding: 0;
+  }
+  .inv-product-sheet-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 20px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .inv-product-sheet-head {
+    flex: none;
+    padding: 20px 20px 0;
+  }
+  .inv-product-sheet-actions {
+    flex: none;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 20px 18px;
+    border-top: 1px solid #eef0f3;
+    background: #fff;
+    box-shadow: 0 -6px 16px rgba(15, 24, 40, 0.06);
+  }
 </style>
 </helmet>
 
@@ -223,13 +267,14 @@ mbCss('./common.css');
 
   <!-- Add Product Modal Sheet overlay -->
   <sc-if value="{{ addOpen }}">
-    <div style="position:absolute; inset:0; z-index:40;">
+    <div class="inv-product-overlay">
       <div onclick="{{ closeAdd }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
-      <div class="dc-scroll inv-product-sheet" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41;">
-        <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px; flex:none;"></div>
-        
-        <div style="font-size:19px; font-weight:800; color:#1f2a3a; margin-bottom:18px;">Add product</div>
-        
+      <div class="inv-product-sheet">
+        <div class="inv-product-sheet-head">
+          <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px;"></div>
+          <div style="font-size:19px; font-weight:800; color:#1f2a3a; margin-bottom:18px;">Add product</div>
+        </div>
+        <div class="dc-scroll inv-product-sheet-body">
         <!-- Section 1: Basic Info -->
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Basic Info</div>
         
@@ -437,7 +482,8 @@ mbCss('./common.css');
         <label class="form-label">Product details</label>
         <textarea id="mb-add-product-desc" class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details"></textarea>
         
-        <div style="display:flex; gap:12px; align-items:center; margin-top:16px; flex:none;">
+        </div>
+        <div class="inv-product-sheet-actions">
           <button onclick="{{ closeAdd }}" style="flex:1; padding:14px; border:1.6px solid #cbd5e0; border-radius:12px; background:#fff; color:#2d3748; font-size:15px; font-weight:700; cursor:pointer;">Cancel</button>
           <button onclick="{{ createProduct }}" style="flex:1.5; padding:14px; border:none; border-radius:12px; background:#2bb260; color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(43,178,96,0.24);">Create</button>
         </div>
@@ -447,18 +493,19 @@ mbCss('./common.css');
 
   <!-- Edit Product Modal Sheet overlay -->
   <sc-if value="{{ detailOpen }}">
-    <div style="position:absolute; inset:0; z-index:40;">
+    <div class="inv-product-overlay">
       <div onclick="{{ closeDetail }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
-      <div class="dc-scroll inv-product-sheet" style="position:absolute; bottom:0; left:0; right:0; max-height:90%; background:#fff; border-radius:24px 24px 0 0; padding:20px; box-shadow:0 -10px 40px rgba(15,24,40,.15); display:flex; flex-direction:column; overflow-y:auto; z-index:41;">
-        <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px; flex:none;"></div>
-        
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex:none;">
-          <div style="font-size:19px; font-weight:800; color:#1f2a3a;">Edit product</div>
-          <button onclick="{{ onDeleteClick }}" style="background:none; border:none; color:#c0392b; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:8px;">
-            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
-          </button>
+      <div class="inv-product-sheet">
+        <div class="inv-product-sheet-head">
+          <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px;"></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+            <div style="font-size:19px; font-weight:800; color:#1f2a3a;">Edit product</div>
+            <button onclick="{{ onDeleteClick }}" style="background:none; border:none; color:#c0392b; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:8px;">
+              <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
+            </button>
+          </div>
         </div>
-
+        <div class="dc-scroll inv-product-sheet-body">
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Basic Info</div>
         
         <label class="form-label">Product name *</label>
@@ -672,7 +719,8 @@ mbCss('./common.css');
         <label class="form-label">Product details</label>
         <textarea class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" value="{{ editDesc }}" oninput="{{ onEditDescChange }}"></textarea>
         
-        <div style="display:flex; gap:12px; align-items:center; margin-top:10px;">
+        </div>
+        <div class="inv-product-sheet-actions">
           <button onclick="{{ closeDetail }}" style="flex:1; padding:14px; border:1.6px solid #cbd5e0; border-radius:12px; background:#fff; color:#2d3748; font-size:15px; font-weight:700; cursor:pointer;">Cancel</button>
           <button onclick="{{ updateStock }}" style="flex:1.5; padding:14px; border:none; border-radius:12px; background:#1d60a2; color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(29,96,162,0.24);">Save changes</button>
         </div>
@@ -682,7 +730,7 @@ mbCss('./common.css');
 
   <!-- In-app Confirmation Modal overlay -->
   <sc-if value="{{ confirmDeleteOpen }}">
-    <div style="position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div style="position:absolute; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; padding:20px;">
       <div onclick="{{ closeConfirmDelete }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
       <div style="background:#fff; border-radius:18px; padding:22px 20px; box-shadow:0 10px 30px rgba(15,24,40,.2); width:100%; max-width:320px; text-align:center; z-index:51; position:relative;">
         <div style="width:46px; height:46px; border-radius:50%; background:#fbeeed; color:#c0392b; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
