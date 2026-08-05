@@ -904,12 +904,12 @@ class Component extends DCLogic {
       (detail && detail.payload && (detail.payload.id || detail.payload.product_id)) ||
       ''
     );
-    // Event-level id is the realtime cursor id � only use payload/product ids.
+    // Event-level id is the realtime cursor id — only use payload/product ids.
     if (id && String(ev.id) === id && !payload.id && !product.id && !product.product_id) {
       id = '';
     }
     if (!id) {
-      console.warn('[Inventory] socket product event missing id � full refresh only', key);
+      console.warn('[Inventory] socket product event missing id — full refresh only', key);
       return;
     }
 
@@ -1619,7 +1619,7 @@ class Component extends DCLogic {
       return;
     }
 
-    // Read Product details directly from textarea � value/oninput binding
+    // Read Product details directly from textarea — value/oninput binding
     // is unreliable for <textarea> in this template engine on create.
     var descEl = document.getElementById('mb-add-product-desc');
     var desc = '';
@@ -1664,7 +1664,7 @@ class Component extends DCLogic {
     if (s.addSupplierId) payload.suppliers_id = Number(s.addSupplierId) || s.addSupplierId;
     if (s.addTeamMemberId) payload.team_member_id = Number(s.addTeamMemberId) || s.addTeamMemberId;
     // Products.Add rejects: company_id, invoice_setting_id, storage_id, storage,
-    // generate_sku, price_as_cost, vat_included, vat � keep only accepted fields.
+    // generate_sku, price_as_cost, vat_included, vat — keep only accepted fields.
     if (s.addStoragePlace) payload.storage_place = s.addStoragePlace;
 
     if (type === 'subscription') {
@@ -2164,7 +2164,7 @@ class Component extends DCLogic {
     if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
     if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
   });
-  // DC remount can wipe the footer � re-inject shortly after
+  // DC remount can wipe the footer — re-inject shortly after
   setTimeout(function () {
     if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
   }, 300);
