@@ -92,7 +92,7 @@ mbCss('./common.css');
 <div style="background:#fff; border-radius:18px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
 <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Work hours by week</span>
-<span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ weeksTotalLabel }}</span>
+<span style="font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ weeksTotalLabel }}</span>
 </div>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hoursLoading }}">
 <div class="mb-inline-loader" style="padding:28px 16px;">
@@ -104,9 +104,9 @@ mbCss('./common.css');
 <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; height:130px;">
 <sc-for as="w" hint-placeholder-count="4" list="{{ weeks }}">
 <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
-<span style="font-size:12.5px; font-weight:800; color:#1d60a2;">{{ w.val }}</span>
+<span style="font-size:10px; font-weight:800; color:#1d60a2; white-space:nowrap;" data-no-i18n="true">{{ w.val }}</span>
 <div style="width:100%; max-width:40px; border-radius:8px 8px 4px 4px; background:{{ w.bg }}; height:{{ w.h }};"></div>
-<span style="font-size:11.5px; color:#9aa3b0; font-weight:600;">{{ w.label }}</span>
+<span style="font-size:10.5px; color:#9aa3b0; font-weight:600; white-space:nowrap;" data-no-i18n="true">{{ w.label }}</span>
 </div>
 </sc-for>
 </div>
@@ -258,10 +258,11 @@ class Component extends DCLogic {
   }
 
   formatHoursShort(totalSec) {
-    var h = Math.max(0, totalSec || 0) / 3600;
-    if (h <= 0) return '0';
-    if (h < 10) return (Math.round(h * 10) / 10).toString();
-    return String(Math.round(h));
+    var sec = Math.max(0, Math.floor(totalSec || 0));
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    return h + 'h.' + m + 'm.' + s + 's';
   }
 
   weekIndexForDate(d) {
@@ -271,6 +272,27 @@ class Component extends DCLogic {
     if (day <= 14) return 1;
     if (day <= 21) return 2;
     return 3;
+  }
+
+  weekDateRangeLabel(weekIdx, year, month) {
+    var y = Number(year);
+    var m = Number(month);
+    if (!isFinite(y) || !isFinite(m)) {
+      var now = new Date();
+      y = now.getFullYear();
+      m = now.getMonth();
+    }
+    var lastDay = new Date(y, m + 1, 0).getDate();
+    var ranges = [
+      [1, Math.min(7, lastDay)],
+      [8, Math.min(14, lastDay)],
+      [15, Math.min(21, lastDay)],
+      [22, lastDay]
+    ];
+    var r = ranges[weekIdx];
+    if (!r || r[0] > lastDay) return '';
+    var mm = this.pad(m + 1);
+    return this.pad(r[0]) + '–' + this.pad(r[1]) + '/' + mm;
   }
 
   getClient() {
@@ -560,15 +582,18 @@ class Component extends DCLogic {
 
     var weekSeconds = (st.weekSeconds && st.weekSeconds.length === 4) ? st.weekSeconds : [0, 0, 0, 0];
     var maxSec = Math.max.apply(null, weekSeconds.concat([1]));
-    var weekLabels = [
-      this.t('Week 1', 'שבוע 1'),
-      this.t('Week 2', 'שבוע 2'),
-      this.t('Week 3', 'שבוע 3'),
-      this.t('Week 4', 'שבוע 4')
-    ];
     var now = new Date();
+    var selY = Number(st.selectedYear);
+    var selM = Number(st.selectedMonth);
+    if (!isFinite(selY) || !isFinite(selM)) {
+      selY = now.getFullYear();
+      selM = now.getMonth();
+    }
+    var weekLabels = [0, 1, 2, 3].map(function (i) {
+      return this.weekDateRangeLabel(i, selY, selM);
+    }.bind(this));
     var activeWeek = 3;
-    if (st.selectedYear === now.getFullYear() && st.selectedMonth === now.getMonth()) {
+    if (selY === now.getFullYear() && selM === now.getMonth()) {
       activeWeek = this.weekIndexForDate(now);
       if (activeWeek < 0) activeWeek = 3;
     }
@@ -586,8 +611,8 @@ class Component extends DCLogic {
     var weeksTotalLabel = st.loadingHours
       ? ''
       : (isEn
-        ? ('A total of ' + this.formatHoursShort(totalSec) + 'h')
-        : ('סה״כ ' + this.formatHoursShort(totalSec) + ' שעות'));
+        ? ('A total of ' + this.formatHoursShort(totalSec))
+        : ('סה״כ ' + this.formatHoursShort(totalSec)));
 
     var products = st.products || [];
     var pageSize = Math.max(1, Number(st.productsPageSize) || 5);
@@ -626,8 +651,6 @@ class Component extends DCLogic {
     var monthsHe = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
     var monthsShortEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     var monthNames = isEn ? monthsEn : monthsHe;
-    var selY = Number(st.selectedYear);
-    var selM = Number(st.selectedMonth);
     var monthName = monthNames[selM] || monthNames[now.getMonth()];
     var monthLabel = monthName + ' ' + selY;
     var monthShort = isEn ? (monthsShortEn[selM] || monthName) : monthName;

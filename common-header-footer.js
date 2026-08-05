@@ -153,6 +153,7 @@
     "סינון ומיון": "Filtering and sorting",
     "נקה הכל": "Clear all",
     "חיפוש לפי שם, טלפון, עיר...": "Search by name, phone, postal code...",
+    "חיפוש קריאות (שם, מס׳)...": "Search calls (Name, No.)...",
     "סוג": "Type",
     "סטטוס": "Status",
     "סוג חידוש": "Renewal type",

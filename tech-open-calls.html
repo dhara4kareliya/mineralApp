@@ -35,15 +35,11 @@ mbCss('./common.css');
 <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
 <div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
 <!-- header -->
-<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 12px; flex:none;">
-<button type="button" onclick="{{ onClose }}" style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06);">
-<svg fill="none" height="18" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m15 18-6-6 6-6"></path></svg>
-</button>
+<div style="padding:6px 16px 12px; flex:none;">
 <div style="text-align:center;">
 <div style="font-size:18px; font-weight:800; color:#1f2a3a;">open tickets</div>
 <div style="font-size:12px; color:#8a93a3; margin-top:1px;">{{ todayDate }} · {{ userName }}</div>
 </div>
-<div style="width:40px;"></div>
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
 <!-- loading -->
@@ -106,8 +102,8 @@ mbCss('./common.css');
               </div>
 </div>
 <div style="display:flex; gap:8px; margin-top:13px;">
-<button type="button" onclick="{{ c.action }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:none; border-radius:11px; background:{{ c.btnBg }}; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:{{ c.btnShadow }};">
-<svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="{{ c.btnIcon }}"></path></svg>
+<button type="button" onclick="{{ c.action }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:1.5px solid #dde2ea; border-radius:11px; background:#fff; color:#5a6473; font-size:13.5px; font-weight:700; cursor:pointer;">
+<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 {{ c.btnLabel }}
               </button>
 </div>
@@ -129,13 +125,6 @@ mbCss('./common.css');
 </div>
 </sc-for>
 </sc-if>
-</div>
-<!-- bottom clock-out bar -->
-<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 10px;">
-<button onclick="{{ clockOut }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ outBg }}; color:{{ outColor }}; font-size:15.5px; font-weight:800; cursor:{{ outCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ outShadow }};">
-<sc-if hint-placeholder-val="{{ true }}" value="{{ blocked }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></sc-if>
-          {{ outLabel }}
-        </button>
 </div>
 <!-- defer confirmation sheet -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ deferOpen }}">
@@ -171,14 +160,11 @@ mbCss('./common.css');
 class Component extends DCLogic {
   state = {
     loading: true,
-    busyOut: false,
     errorMsg: '',
     calls: [],
     deferred: [],
     deferTarget: null,
     deferReason: null,
-    shiftRunning: false,
-    teamHoursId: null,
     langTick: 0
   };
 
@@ -188,29 +174,6 @@ class Component extends DCLogic {
 
   t(en, he) {
     return this.isEn() ? en : he;
-  }
-
-  timerStorageKey() {
-    var email = '';
-    try {
-      email = String((window.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
-    } catch (e) { /* ignore */ }
-    return 'mb_tech_timer_v1:' + (email || 'default');
-  }
-
-  clearLocalTimer() {
-    try { localStorage.removeItem(this.timerStorageKey()); } catch (e) { /* ignore */ }
-  }
-
-  readLocalTimer() {
-    try {
-      var raw = localStorage.getItem(this.timerStorageKey());
-      if (!raw) return null;
-      var data = JSON.parse(raw);
-      return data && typeof data === 'object' ? data : null;
-    } catch (e) {
-      return null;
-    }
   }
 
   componentDidMount() {
@@ -271,32 +234,6 @@ class Component extends DCLogic {
     }, 350);
   }
 
-  async loadShiftStatus(client) {
-    var running = false;
-    var teamHoursId = null;
-    try {
-      var statusRes = await client.request('TeamHours.Get', {});
-      var data = (statusRes && statusRes.data) || {};
-      running = !!(statusRes && (statusRes.running === true || statusRes.running === 1 ||
-        (data && (Number(data.status) === 1 || data.running))));
-      teamHoursId = (statusRes && statusRes.team_hours_id) || data.id || null;
-    } catch (e) {
-      var local = this.readLocalTimer();
-      if (local && local.running) {
-        running = true;
-        teamHoursId = local.teamHoursId || null;
-      }
-    }
-    if (!running) {
-      var local2 = this.readLocalTimer();
-      if (local2 && local2.running) {
-        running = true;
-        teamHoursId = teamHoursId || local2.teamHoursId || null;
-      }
-    }
-    return { running: running, teamHoursId: teamHoursId };
-  }
-
   async initData(opts) {
     opts = opts || {};
     var silent = !!opts.silent;
@@ -313,7 +250,6 @@ class Component extends DCLogic {
     this._ticketsInFlight = (async function () {
       try {
         var client = MineralBarApp.getClient();
-        var shift = await self.loadShiftStatus(client);
         var res = await client.request('Ticket.List', { limit: 25 });
         var data = res && (res.data || res.output || res);
         var openTickets = [];
@@ -376,8 +312,6 @@ class Component extends DCLogic {
         self.setState({
           loading: false,
           calls: openTickets,
-          shiftRunning: !!shift.running,
-          teamHoursId: shift.teamHoursId || null,
           errorMsg: ''
         });
         self._booted = true;
@@ -398,49 +332,6 @@ class Component extends DCLogic {
       }
     })();
     return this._ticketsInFlight;
-  }
-
-  async clockOut() {
-    if (this.state.busyOut || this.state.loading) return;
-    var openOnly = (this.state.calls || []).filter(function (c) { return !c.isClosed && c.status !== 'closed'; });
-    if (openOnly.length > 0) return;
-
-    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
-      this.setState({ errorMsg: 'SDK not ready' });
-      return;
-    }
-
-    this.setState({ busyOut: true, errorMsg: '' });
-    try {
-      var client = MineralBarApp.getClient();
-      var shift = await this.loadShiftStatus(client);
-      if (!shift.running) {
-        // Nothing to stop — go to time clock so user can see status
-        window.location.href = 'tech-time-clock.html';
-        return;
-      }
-
-      try { await client.request('TeamHours.WhenStop', {}); } catch (e0) { /* continue */ }
-      var stopPayload = { timer_action: 'stop' };
-      var id = shift.teamHoursId || this.state.teamHoursId;
-      if (id) {
-        stopPayload.team_hours_id = id;
-        stopPayload.id = id;
-      }
-      var stopRes = await client.request('TeamHours.StartStop', stopPayload);
-      var stopOk = stopRes && (Number(stopRes.success) === 1 || stopRes.success === true);
-      if (!stopOk) throw new Error((stopRes && stopRes.message) || 'Failed to clock out');
-
-      this.clearLocalTimer();
-      this.setState({ shiftRunning: false, teamHoursId: null, busyOut: false });
-      window.location.href = 'tech-time-clock.html';
-    } catch (err) {
-      console.error('[OpenTickets] clock out failed', err);
-      this.setState({
-        busyOut: false,
-        errorMsg: (err && err.message) || 'Clock out failed'
-      });
-    }
   }
 
   isTicketClosed(item, lastMsg) {
@@ -488,6 +379,19 @@ class Component extends DCLogic {
     text = text.replace(/^[\s·\-]+|[\s·\-]+$/g, '');
     if (text.length > 90) text = text.slice(0, 87).trim() + '…';
     return text;
+  }
+
+  openTicketDetails(id) {
+    var q = new URLSearchParams();
+    if (id) q.set('ticket_id', String(id));
+    var call = (this.state.calls || []).find(function (c) { return String(c.id) === String(id); });
+    if (call && call.name) {
+      q.set('name', call.name);
+      q.set('subject', call.name);
+    }
+    if (call && call.custName) q.set('customer', call.custName);
+    q.set('back', 'tech-open-calls.html');
+    window.location.href = 'service-call-details.html?' + q.toString();
   }
 
   closeCall(id) {
@@ -541,16 +445,6 @@ class Component extends DCLogic {
     });
   }
 
-  goBack() {
-    try {
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-    } catch (e) { /* fallback below */ }
-    window.location.href = 'tech-dashboard.html';
-  }
-
   renderVals() {
     void this.state.langTick;
     const st = this.state;
@@ -599,12 +493,8 @@ class Component extends DCLogic {
         badge: stMeta.badge,
         badgeBg: stMeta.badgeBg,
         badgeColor: stMeta.badgeColor,
-        btnBg: '#1d60a2',
-        btnShadow: 'none',
-        btnLabel: this.t('close ticket', 'סגור טיקט'),
-        btnIcon: 'M20 6 9 17l-5-5',
-        action: () => this.closeCall(c.id),
-        close: () => this.closeCall(c.id),
+        btnLabel: this.t('Ticket details', 'פרטי קריאה'),
+        action: () => this.openTicketDetails(c.id),
         defer: () => this.openDefer(c.id),
       };
     });
@@ -626,14 +516,6 @@ class Component extends DCLogic {
     });
 
     const canConfirm = !!st.deferReason;
-    const blocked = loading || hasOpen || !!st.busyOut;
-    const canClockOut = !loading && !hasOpen && !st.busyOut;
-    var outLabel;
-    if (loading) outLabel = this.t('Loading…', 'טוען…');
-    else if (st.busyOut) outLabel = this.t('Clocking out…', 'חותם יציאה…');
-    else if (hasOpen) outLabel = this.t('Close tickets to clock out', 'סגור טיקטים כדי להחתים יציאה');
-    else if (st.shiftRunning) outLabel = this.t('Clock out · End of day', 'החתם יציאה · סיום יום');
-    else outLabel = this.t('Open time clock', 'פתח שעון נוכחות');
 
     return {
       userName,
@@ -650,14 +532,6 @@ class Component extends DCLogic {
       errorMsg: st.errorMsg || '',
       hasError: !!(st.errorMsg && !loading),
 
-      blocked: blocked,
-      clockOut: () => this.clockOut(),
-      outBg: canClockOut ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0',
-      outColor: canClockOut ? '#fff' : '#9aa3b0',
-      outCursor: canClockOut ? 'pointer' : 'not-allowed',
-      outShadow: canClockOut ? '0 6px 16px rgba(44,138,96,.32)' : 'none',
-      outLabel: outLabel,
-
       deferOpen: st.deferTarget !== null,
       cancelDefer: () => this.cancelDefer(),
       confirmDefer: () => this.confirmDefer(),
@@ -665,7 +539,6 @@ class Component extends DCLogic {
       confirmBg: canConfirm ? '#1d60a2' : '#e9ecf0',
       confirmColor: canConfirm ? '#fff' : '#9aa3b0',
       confirmCursor: canConfirm ? 'pointer' : 'not-allowed',
-      onClose: () => this.goBack(),
     };
   }
 }

@@ -29,6 +29,7 @@ mbCss('./common.css');
   html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
   button { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
+  .mb-cal-day { -webkit-tap-highlight-color: transparent; }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
@@ -38,12 +39,12 @@ mbCss('./common.css');
 <div style="padding:6px 18px 13px; flex:none;">
 <div style="display:flex; align-items:flex-start; justify-content:space-between;">
 <div>
-<div style="font-size:13px; color:#8a93a3; font-weight:600;">{{ dayLabel }}</div>
+<div style="font-size:13px; color:#8a93a3; font-weight:600;" data-no-i18n="true">{{ dayLabel }}</div>
 <div style="font-size:22px; font-weight:800; color:#1f2a3a; margin-top:1px;" data-no-i18n="true">{{ pageTitle }}</div>
 </div>
-<button type="button" style="display:flex; align-items:center; gap:7px; background:#fff; border:none; border-radius:12px; padding:9px 13px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+<button type="button" onclick="{{ openCalendar }}" style="display:flex; align-items:center; gap:7px; background:#fff; border:none; border-radius:12px; padding:9px 13px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06);">
 <svg fill="none" height="16" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect><path d="M3 9h18M8 2.5v4M16 2.5v4"></path></svg>
-<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ dateShort }}</span>
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;" data-no-i18n="true">{{ dateShort }}</span>
 </button>
 </div>
 <!-- summary strip -->
@@ -161,6 +162,51 @@ mbCss('./common.css');
 <div style="text-align:center; padding:8px 0 4px; color:#b6bdc8; font-size:12.5px; font-weight:600;">{{ endOfDayLabel }}</div>
 </sc-if>
 </div>
+<!-- clock-out bar (today only) -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showClockOut }}">
+<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 10px;">
+<button type="button" onclick="{{ clockOut }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ outBg }}; color:{{ outColor }}; font-size:15.5px; font-weight:800; cursor:{{ outCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ outShadow }}; font-family:inherit;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ blocked }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></sc-if>
+<span data-no-i18n="true">{{ outLabel }}</span>
+</button>
+</div>
+</sc-if>
+<!-- date calendar sheet -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ calendarOpen }}">
+<div style="position:absolute; inset:0; z-index:50; background:rgba(15,24,40,.45); display:flex; align-items:flex-end;">
+<div style="width:100%; background:#fff; border-radius:22px 22px 0 0; padding:18px 16px 28px;">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+<button type="button" onclick="{{ prevMonth }}" style="width:36px; height:36px; border:none; border-radius:50%; background:#f0f2f5; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="16" stroke="#5a6473" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="16"><path d="m15 18-6-6 6-6"></path></svg>
+</button>
+<div style="text-align:center;">
+<div style="font-size:16px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ calMonthLabel }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:2px; font-weight:600;" data-no-i18n="true">{{ calHint }}</div>
+</div>
+<button type="button" onclick="{{ nextMonth }}" style="width:36px; height:36px; border:none; border-radius:50%; background:#f0f2f5; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="16" stroke="#5a6473" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="16"><path d="m9 18 6-6-6-6"></path></svg>
+</button>
+</div>
+<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:6px;" data-no-i18n="true">
+<sc-for as="w" hint-placeholder-count="7" list="{{ calWeekdays }}">
+<div style="text-align:center; font-size:11px; font-weight:700; color:#9aa3b0; padding:4px 0;">{{ w.label }}</div>
+</sc-for>
+</div>
+<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;" data-no-i18n="true">
+<sc-for as="d" hint-placeholder-count="35" list="{{ calDays }}">
+<button type="button" class="mb-cal-day" onclick="{{ d.pick }}" style="aspect-ratio:1; border:{{ d.border }}; border-radius:11px; background:{{ d.bg }}; color:{{ d.color }}; font-size:13.5px; font-weight:{{ d.weight }}; cursor:{{ d.cursor }}; opacity:{{ d.opacity }}; display:flex; align-items:center; justify-content:center; font-family:inherit; position:relative;">
+{{ d.label }}
+<span style="position:absolute; bottom:4px; width:4px; height:4px; border-radius:50%; background:{{ d.dot }};"></span>
+</button>
+</sc-for>
+</div>
+<div style="display:flex; gap:8px; margin-top:16px;">
+<button type="button" onclick="{{ pickToday }}" style="flex:1; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; background:#fff; color:#1d60a2; font-size:14px; font-weight:800; cursor:pointer;">{{ todayBtnLabel }}</button>
+<button type="button" onclick="{{ closeCalendar }}" style="flex:1; padding:13px; border:none; border-radius:13px; background:#1d60a2; color:#fff; font-size:14px; font-weight:800; cursor:pointer;">{{ closeCalLabel }}</button>
+</div>
+</div>
+</div>
+</sc-if>
 <!-- customer card sheet -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ cardOpen }}">
 <div style="position:absolute; inset:0; z-index:40; background:#eef0f3; display:flex; flex-direction:column;">
@@ -210,8 +256,154 @@ class Component extends DCLogic {
     tickets: [],
     cardOpen: false,
     cardTicket: null,
-    langTick: 0
+    langTick: 0,
+    selectedDate: '',
+    calendarOpen: false,
+    calYear: 0,
+    calMonth: 0,
+    busyOut: false,
+    shiftRunning: false,
+    teamHoursId: null
   };
+
+  timerStorageKey() {
+    var email = '';
+    try {
+      email = String((window.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
+    } catch (e) { /* ignore */ }
+    return 'mb_tech_timer_v1:' + (email || 'default');
+  }
+
+  clearLocalTimer() {
+    try { localStorage.removeItem(this.timerStorageKey()); } catch (e) { /* ignore */ }
+  }
+
+  readLocalTimer() {
+    try {
+      var raw = localStorage.getItem(this.timerStorageKey());
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      return data && typeof data === 'object' ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async loadShiftStatus(client) {
+    var running = false;
+    var teamHoursId = null;
+    try {
+      var statusRes = await client.request('TeamHours.Get', {});
+      var data = (statusRes && statusRes.data) || {};
+      running = !!(statusRes && (statusRes.running === true || statusRes.running === 1 ||
+        (data && (Number(data.status) === 1 || data.running))));
+      teamHoursId = (statusRes && statusRes.team_hours_id) || data.id || null;
+    } catch (e) {
+      var local = this.readLocalTimer();
+      if (local && local.running) {
+        running = true;
+        teamHoursId = local.teamHoursId || null;
+      }
+    }
+    if (!running) {
+      var local2 = this.readLocalTimer();
+      if (local2 && local2.running) {
+        running = true;
+        teamHoursId = teamHoursId || local2.teamHoursId || null;
+      }
+    }
+    return { running: running, teamHoursId: teamHoursId };
+  }
+
+  todayKey() {
+    return this.toDateKey(new Date());
+  }
+
+  toDateKey(d) {
+    if (!d || isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + this.pad(d.getMonth() + 1) + '-' + this.pad(d.getDate());
+  }
+
+  parseDateKey(key) {
+    var m = String(key || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  ticketDateKey(t) {
+    if (!t) return '';
+    var raw = String(t.due_date || t.schedule_date || t.appointment_date || t.open_date || '');
+    if (!raw || raw === 'null' || raw === 'undefined') return '';
+    var m = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[1] + '-' + m[2] + '-' + m[3];
+    var d = new Date(raw);
+    if (!isNaN(d.getTime())) return this.toDateKey(d);
+    return '';
+  }
+
+  ensureSelectedDate() {
+    if (this.state.selectedDate) return this.state.selectedDate;
+    var fromUrl = '';
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      fromUrl = String(p.get('date') || '').trim();
+    } catch (e) { fromUrl = ''; }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fromUrl) && this.parseDateKey(fromUrl)) return fromUrl;
+    return this.todayKey();
+  }
+
+  syncDateToUrl(dateKey) {
+    try {
+      if (!window.history || !window.history.replaceState) return;
+      var url = 'tech-daily-schedule.html';
+      if (dateKey && dateKey !== this.todayKey()) url += '?date=' + encodeURIComponent(dateKey);
+      window.history.replaceState(null, '', url);
+    } catch (e) { /* ignore */ }
+  }
+
+  openCalendar() {
+    var key = this.ensureSelectedDate();
+    var d = this.parseDateKey(key) || new Date();
+    this.setState({
+      calendarOpen: true,
+      selectedDate: key,
+      calYear: d.getFullYear(),
+      calMonth: d.getMonth()
+    });
+  }
+
+  closeCalendar() {
+    this.setState({ calendarOpen: false });
+  }
+
+  prevMonth() {
+    var y = this.state.calYear || new Date().getFullYear();
+    var m = this.state.calMonth != null ? this.state.calMonth : new Date().getMonth();
+    m -= 1;
+    if (m < 0) { m = 11; y -= 1; }
+    this.setState({ calYear: y, calMonth: m });
+  }
+
+  nextMonth() {
+    var y = this.state.calYear || new Date().getFullYear();
+    var m = this.state.calMonth != null ? this.state.calMonth : new Date().getMonth();
+    m += 1;
+    if (m > 11) { m = 0; y += 1; }
+    this.setState({ calYear: y, calMonth: m });
+  }
+
+  pickDate(dateKey) {
+    if (!dateKey || !this.parseDateKey(dateKey)) return;
+    this.syncDateToUrl(dateKey);
+    this.state.selectedDate = dateKey;
+    this.setState({ selectedDate: dateKey, calendarOpen: false });
+    this.initData();
+  }
+
+  pickToday() {
+    this.pickDate(this.todayKey());
+  }
 
   isEn() {
     if (typeof window.mbT === 'function') {
@@ -256,9 +448,9 @@ class Component extends DCLogic {
       if (/ticket|mission|task|socket\.nudge/.test(key)) this.scheduleRefresh();
     });
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => this.scheduleRefresh(), { retries: true, keys: /ticket|mission|task|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => this.scheduleRefresh(), { retries: true, keys: /ticket|mission|task|team_hours|teamhours|socket\.nudge/i, delay: 350 });
     } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.scheduleRefresh(), { keys: /ticket|mission|task|socket\.nudge/i, delay: 350 });
+      MineralBarApp.bindLiveReload(() => this.scheduleRefresh(), { keys: /ticket|mission|task|team_hours|teamhours|socket\.nudge/i, delay: 350 });
     }
     var self = this;
     document.addEventListener('click', function (e) {
@@ -405,6 +597,11 @@ class Component extends DCLogic {
       return;
     }
 
+    var selectedDate = this.ensureSelectedDate();
+    if (!this.state.selectedDate) {
+      this.setState({ selectedDate: selectedDate });
+    }
+
     if (!silent || !(this.state.tickets && this.state.tickets.length)) {
       this.setState({ loading: true, errorMsg: '' });
     }
@@ -416,21 +613,33 @@ class Component extends DCLogic {
       }
 
       var payload = {
-        limit: 50,
+        limit: 200,
         assign_member_id: String(userId),
         team_member: String(userId),
         team_member_id: String(userId)
       };
 
       var res = await client.request('Ticket.List', payload);
+      var today = this.todayKey();
       var rows = this.extractRows(res).filter(function (t) {
-        return this.isAssignedToUser(t, userId);
+        if (!this.isAssignedToUser(t, userId)) return false;
+        var key = this.ticketDateKey(t);
+        if (!key) return selectedDate === today;
+        return key === selectedDate;
       }.bind(this));
       rows.sort(function (a, b) {
         return this.ticketSortKey(a) - this.ticketSortKey(b);
       }.bind(this));
 
-      this.setState({ loading: false, errorMsg: '', tickets: rows });
+      var shift = await this.loadShiftStatus(client);
+      this.setState({
+        loading: false,
+        errorMsg: '',
+        tickets: rows,
+        selectedDate: selectedDate,
+        shiftRunning: !!shift.running,
+        teamHoursId: shift.teamHoursId || null
+      });
       this.ensureChrome();
     } catch (e) {
       console.error('[DailySchedule] Ticket.List failed', e);
@@ -442,6 +651,52 @@ class Component extends DCLogic {
         loading: false,
         errorMsg: this.localizeError(e),
         tickets: []
+      });
+    }
+  }
+
+  async clockOut() {
+    if (this.state.busyOut || this.state.loading) return;
+    var selected = this.ensureSelectedDate();
+    if (selected !== this.todayKey()) return;
+    var openTickets = (this.state.tickets || []).filter(function (t) {
+      return !this.isClosedStatus(t);
+    }.bind(this));
+    if (openTickets.length > 0) return;
+
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ errorMsg: this.t('SDK not ready', 'המערכת עדיין לא מוכנה') });
+      return;
+    }
+
+    this.setState({ busyOut: true, errorMsg: '' });
+    try {
+      var shift = await this.loadShiftStatus(client);
+      if (!shift.running) {
+        window.location.href = 'tech-time-clock.html';
+        return;
+      }
+
+      try { await client.request('TeamHours.WhenStop', {}); } catch (e0) { /* continue */ }
+      var stopPayload = { timer_action: 'stop' };
+      var id = shift.teamHoursId || this.state.teamHoursId;
+      if (id) {
+        stopPayload.team_hours_id = id;
+        stopPayload.id = id;
+      }
+      var stopRes = await client.request('TeamHours.StartStop', stopPayload);
+      var stopOk = stopRes && (Number(stopRes.success) === 1 || stopRes.success === true);
+      if (!stopOk) throw new Error((stopRes && stopRes.message) || this.t('Failed to clock out', 'החתמת יציאה נכשלה'));
+
+      this.clearLocalTimer();
+      this.setState({ shiftRunning: false, teamHoursId: null, busyOut: false });
+      window.location.href = 'tech-time-clock.html';
+    } catch (err) {
+      console.error('[DailySchedule] clock out failed', err);
+      this.setState({
+        busyOut: false,
+        errorMsg: (err && err.message) || this.t('Clock out failed', 'החתמת יציאה נכשלה')
       });
     }
   }
@@ -582,11 +837,55 @@ class Component extends DCLogic {
       visits.push(this.mapVisit(t, key));
     }.bind(this));
 
-    var now = new Date();
+    var selectedKey = st.selectedDate || this.ensureSelectedDate();
+    var selectedDate = this.parseDateKey(selectedKey) || new Date();
+    var todayKey = this.todayKey();
     var dayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     var dayNamesHe = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'];
-    var dayLabel = this.isEn() ? dayNamesEn[now.getDay()] : dayNamesHe[now.getDay()];
-    var dateShort = this.pad(now.getDate()) + '/' + this.pad(now.getMonth() + 1);
+    var dayLabel = this.isEn() ? dayNamesEn[selectedDate.getDay()] : dayNamesHe[selectedDate.getDay()];
+    if (selectedKey === todayKey) {
+      dayLabel = this.t('Today', 'היום') + ' · ' + dayLabel;
+    }
+    var dateShort = this.pad(selectedDate.getDate()) + '/' + this.pad(selectedDate.getMonth() + 1);
+
+    var calYear = st.calYear || selectedDate.getFullYear();
+    var calMonth = st.calMonth != null ? st.calMonth : selectedDate.getMonth();
+    var monthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var monthNamesHe = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+    var calMonthLabel = (this.isEn() ? monthNamesEn[calMonth] : monthNamesHe[calMonth]) + ' ' + calYear;
+
+    var weekdaysEn = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    var weekdaysHe = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+    var weekSrc = this.isEn() ? weekdaysEn : weekdaysHe;
+    var calWeekdays = weekSrc.map(function (label) { return { label: label }; });
+
+    var first = new Date(calYear, calMonth, 1);
+    var startPad = first.getDay();
+    var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    var self = this;
+    var calDays = [];
+    var totalCells = Math.ceil((startPad + daysInMonth) / 7) * 7;
+    for (var i = 0; i < totalCells; i++) {
+      var dayNum = i - startPad + 1;
+      var inMonth = dayNum >= 1 && dayNum <= daysInMonth;
+      var cellKey = inMonth
+        ? (calYear + '-' + self.pad(calMonth + 1) + '-' + self.pad(dayNum))
+        : '';
+      var isSelected = inMonth && cellKey === selectedKey;
+      var isToday = inMonth && cellKey === todayKey;
+      var pickKey = cellKey;
+      calDays.push({
+        label: inMonth ? String(dayNum) : '',
+        bg: isSelected ? '#1d60a2' : (isToday ? '#eaf2fb' : '#fff'),
+        color: isSelected ? '#fff' : (inMonth ? '#1f2a3a' : '#c5cad3'),
+        weight: isSelected || isToday ? '800' : '600',
+        border: isToday && !isSelected ? '1.5px solid #1d60a2' : '1.5px solid transparent',
+        opacity: inMonth ? '1' : '0.35',
+        cursor: inMonth ? 'pointer' : 'default',
+        dot: 'transparent',
+        pick: inMonth ? (function (k) { return function () { self.pickDate(k); }; })(pickKey) : function () {}
+      });
+    }
 
     var card = st.cardTicket || {};
     var cardName = card.customer_name || card.joined_customer_name || card.cust_name || card.name || card.subject || '';
@@ -597,6 +896,21 @@ class Component extends DCLogic {
     if (cardTicketId) detailsQ.set('ticket_id', cardTicketId);
     if (cardCustomerId) detailsQ.set('customer_id', cardCustomerId);
 
+    var emptyMsg = selectedKey === todayKey
+      ? this.t('No assigned tickets today', 'אין קריאות משויכות להיום')
+      : this.t('No assigned tickets for this day', 'אין קריאות משויכות ליום זה');
+
+    var hasOpen = waiting.length > 0;
+    var isToday = selectedKey === todayKey;
+    var blocked = !!st.loading || hasOpen || !!st.busyOut;
+    var canClockOut = isToday && !st.loading && !hasOpen && !st.busyOut;
+    var outLabel;
+    if (st.loading) outLabel = this.t('Loading…', 'טוען…');
+    else if (st.busyOut) outLabel = this.t('Clocking out…', 'חותם יציאה…');
+    else if (hasOpen) outLabel = this.t('Close tickets to clock out', 'סגור טיקטים כדי להחתים יציאה');
+    else if (st.shiftRunning) outLabel = this.t('Clock out · End of day', 'החתם יציאה · סיום יום');
+    else outLabel = this.t('Open time clock', 'פתח שעון נוכחות');
+
     return {
       loading: !!st.loading,
       hasError: !!st.errorMsg,
@@ -605,7 +919,7 @@ class Component extends DCLogic {
       langTick: st.langTick || 0,
       pageTitle: this.t('My schedule', 'הלו״ז שלי'),
       loadingMsg: this.t('Loading…', 'טוען…'),
-      emptyMsg: this.t('No assigned tickets today', 'אין קריאות משויכות להיום'),
+      emptyMsg: emptyMsg,
       labelVisits: this.t('visits', 'ביקורים'),
       labelDone: this.t('completed', 'הושלמו'),
       labelWaiting: this.t('waiting', 'ממתינים'),
@@ -615,7 +929,7 @@ class Component extends DCLogic {
       doneCountLabel: st.loading ? '…' : String(doneCount),
       waitingCountLabel: st.loading ? '…' : String(waiting.length),
       visits: st.loading ? [] : visits,
-      showEndOfDay: !st.loading,
+      showEndOfDay: !st.loading && visits.length > 0,
       endOfDayLabel: this.t('❖ end of day ❖', '❖ סוף היום ❖'),
       cardOpen: !!st.cardOpen,
       cardName: cardName || this.t('Customer', 'לקוח'),
@@ -624,7 +938,29 @@ class Component extends DCLogic {
       cardAddress: card.address || card.city || '',
       cardPhoneHref: cardPhone ? ('tel:' + cardPhone) : '#',
       cardDetailsHref: 'service-call-details.html?' + detailsQ.toString(),
-      closeCard: () => this.closeCard()
+      closeCard: () => this.closeCard(),
+
+      calendarOpen: !!st.calendarOpen,
+      openCalendar: () => this.openCalendar(),
+      closeCalendar: () => this.closeCalendar(),
+      prevMonth: () => this.prevMonth(),
+      nextMonth: () => this.nextMonth(),
+      pickToday: () => this.pickToday(),
+      calMonthLabel: calMonthLabel,
+      calHint: this.t('Select a day to view tickets', 'בחרו יום לצפייה בקריאות'),
+      calWeekdays: calWeekdays,
+      calDays: calDays,
+      todayBtnLabel: this.t('Today', 'היום'),
+      closeCalLabel: this.t('Close', 'סגור'),
+
+      blocked: blocked,
+      showClockOut: isToday,
+      clockOut: () => this.clockOut(),
+      outBg: canClockOut ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0',
+      outColor: canClockOut ? '#fff' : '#9aa3b0',
+      outCursor: canClockOut ? 'pointer' : 'not-allowed',
+      outShadow: canClockOut ? '0 6px 16px rgba(44,138,96,.32)' : 'none',
+      outLabel: outLabel
     };
   }
 }

@@ -60,8 +60,8 @@
           <div
             style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 12px; flex:none;">
             <sc-if hint-placeholder-val="{{ false }}" value="{{ searchOpen }}">
-              <input class="mb-search" oninput="{{ onSearch }}" value="{{ search }}" type="text" placeholder="חיפוש קריאות (שם, מס׳)..." style="flex:1; border:none; background:#fff; border-radius:99px; padding:10px 16px; font-family:Heebo; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06); text-align:start;" />
-              <button onclick="{{ toggleSearch }}" style="margin-right:10px; border:none; background:none; font-weight:700; color:#1d60a2; cursor:pointer; font-family:Heebo;">ביטול</button>
+              <input class="mb-search" oninput="{{ onSearch }}" value="{{ search }}" type="text" placeholder="Search calls (Name, No.)..." style="flex:1; border:none; background:#fff; border-radius:99px; padding:10px 16px; font-family:Heebo; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06); text-align:start;" />
+              <button onclick="{{ toggleSearch }}" style="margin-right:10px; border:none; background:none; font-weight:700; color:#1d60a2; cursor:pointer; font-family:Heebo;">Cancel</button>
             </sc-if>
             <sc-if hint-placeholder-val="{{ true }}" value="{{ notSearchOpen }}">
               <button onclick="{{ toggleSearch }}"
@@ -548,20 +548,20 @@ class Component extends DCLogic {
           return {
             id: '#SRV-' + t.ticket_id,
             ticketIdNum: ticketIdNum,
-            name: t.joined_customer_name || t.customer_name || 'לקוח',
+            name: t.joined_customer_name || t.customer_name || 'Customer',
             age: age,
             bucket: bucket,
             badge: badge,
-            type: t.subject || 'שירות טכני',
+            type: t.subject || 'Technical Service',
             wait: wait,
             charge: t.approved_by_customer === 1 || sid === 3,
             isDoneFlag: closed,
             address: t.address || '',
-            region: t.city_id && t.city_id !== 'undefined' ? t.city_id : 'מרכז',
+            region: t.city_id && t.city_id !== 'undefined' ? t.city_id : 'Center',
             prio: prio,
             desc: descText,
             ts: t.open_date ? new Date(t.open_date).getTime() / 1000 : 0,
-            department: t.department === 341 ? 'שירות לקוחות' : 'שירות טכני',
+            department: t.department === 341 ? 'Customer Service' : 'Technical Service',
             rating: t.rating || '0',
             dueDate: dueDateStr,
             cust_id: t.cust_id || t.customer_id || '',
