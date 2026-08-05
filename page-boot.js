@@ -169,23 +169,35 @@
         .replace(/\[SocketDebug\] waiting for connect…\n?/g, '')
         .replace(/^\s+|\s+$/g, '');
       dbg.textContent = '[' + t + '] ' + msg + (prev ? '\n' + prev.split('\n').slice(0, 12).join('\n') : '');
+      try { console.log('[SocketTest] UI', msg); } catch (e0) { /* ignore */ }
     }
     window.addEventListener('mineralbar:socket-debug', function (ev) {
       var d = (ev && ev.detail) || {};
       if (d.type === 'connect') dbgLine('CONNECTED id=' + (d.id || ''));
       else if (d.type === 'ready') dbgLine('READY events=' + (((d.payload && d.payload.events) || []).length));
-      else if (d.type === 'event') dbgLine('EVENT ' + (d.key || '?') + ' group=' + (d.group || '?'));
+      else if (d.type === 'event') dbgLine('EVENT ' + (d.key || '?') + ' group=' + (d.group || '?') + ' via=' + (d.source || '?'));
       else if (d.type === 'onAny') dbgLine('onAny ' + (d.eventName || '?'));
       else if (d.type === 'error') dbgLine('ERROR ' + (d.error || ''));
       else if (d.type === 'disconnect') dbgLine('DISCONNECTED ' + (d.reason || ''));
       else if (d.type === 'cursor_reset') dbgLine('CURSOR RESET was=' + (d.previous || 0));
+      else if (d.type === 'reconnect_attempt') dbgLine('RECONNECT try reason=' + (d.reason || ''));
       else dbgLine(JSON.stringify(d));
     });
     window.addEventListener('mineralbar:realtime', function (ev) {
       var d = (ev && ev.detail) || {};
       dbgLine('APP realtime key=' + (d.key || '?') + ' group=' + (d.group || '?'));
     });
-    dbgLine('boot start role=' + role + ' page=' + ((location.pathname || '').split('/').pop() || ''));
+    window.addEventListener('mineralbar:page-refresh', function (ev) {
+      var d = (ev && ev.detail) || {};
+      dbgLine('PAGE refresh key=' + (d.key || '?'));
+    });
+    dbgLine('boot start role=' + role + ' page=' + ((location.pathname || '').split('/').pop() || '') + ' asset=v' + (window.MB_ASSET_V || '?'));
+    try {
+      console.log('[SocketTest] Filter console by: SocketTest');
+      console.log('[SocketTest] Expected flow: START → CONNECT → biz1:ready → EVENT/forceRelay/SDK relay → LiveReload RUN');
+      console.log('[SocketTest] If you RECEIVE a message and see NO onAny lines, the SERVER is not pushing to this socket (client is fine).');
+      console.log('[SocketTest] Chat page also polls REST every 8s as fallback — look for "chat poll saw change".');
+    } catch (eHint) { /* ignore */ }
     try {
       var rt0 = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
       if (rt0 && rt0.connected) dbgLine('socket already up status=' + (rt0.status || ''));
@@ -391,11 +403,13 @@
       .then(function (handle) {
         return handle.promise.then(function (payload) {
           var registered = (payload && payload.events) || [];
+          console.log('[SocketTest] page-boot connect OK events=' + registered.length);
           return payload;
         });
       })
       .catch(function (err) {
         console.error('[SocketUI] socket connect FAILED', err);
+        console.warn('[SocketTest] page-boot connect FAILED — retry in 1.5s', (err && err.message) || err);
         setTimeout(function () {
           if (typeof MineralBarApp.ensureRealtimeConnected === 'function') {
             MineralBarApp.ensureRealtimeConnected('page-boot-retry');

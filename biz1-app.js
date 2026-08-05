@@ -1810,6 +1810,15 @@
   // Survives connectRealtime() re-entry after ping-timeout / network drop.
   var needsCatchUpAfterReconnect = false;
 
+  /** Console filter: [SocketTest] — always on for live debugging. */
+  function socketTestLog() {
+    try {
+      var args = Array.prototype.slice.call(arguments);
+      args.unshift('[SocketTest]');
+      console.log.apply(console, args);
+    } catch (e) { /* ignore */ }
+  }
+
   function dispatchAppEvent(name, detail) {
     try {
       if (typeof global.dispatchEvent === 'function' && typeof global.CustomEvent === 'function') {
@@ -1884,11 +1893,18 @@
         ''
       );
       if (!key) {
+        socketTestLog('SDK relay SKIP empty key', { source: source || 'sdk', event: ev });
         return;
       }
       var normalized = Object.assign({}, ev, { key: key });
       var group = classifyRealtimeEvent(normalized);
       var detail = { group: group, key: key, event: normalized };
+      socketTestLog('SDK relay → mineralbar:realtime', {
+        source: source || 'sdk',
+        key: key,
+        group: group,
+        id: ev && ev.id
+      });
       dispatchAppEvent('mineralbar:realtime', detail);
       if (group === 'messages') dispatchAppEvent('mineralbar:messages', detail);
       if (group === 'missions') dispatchAppEvent('mineralbar:missions', detail);
@@ -1897,11 +1913,13 @@
     }
 
     function wireReadyEventKeys(events) {
+      console.log('wireReadyEventKeys', events);
       (events || []).forEach(function (eventKey) {
         var key = String(eventKey || '');
         if (!key || realtimeKeyHandlersWired[key]) return;
         realtimeKeyHandlersWired[key] = true;
         client.realtime.on(key, function (event) {
+          console.log('wireReadyEventKeys on', key, event);
           relayRealtime(event || {}, key, 'ready-key:' + key);
         });
       });
@@ -1914,11 +1932,50 @@
       setRealtimeStatus('ready');
       wireReadyEventKeys(realtimeState.registered);
       // Registration is automatic via bearer auth — ready.events is the subscribed catalog.
+      var msgKeys = realtimeState.registered.filter(function (k) {
+        return classifyRealtimeEvent({ key: k }) === 'messages';
+      });
+      socketTestLog('biz1:ready message keys in catalog', {
+        count: msgKeys.length,
+        keys: msgKeys,
+        has_message_created: msgKeys.indexOf('message.created') !== -1,
+        has_chat_received: msgKeys.indexOf('chat.message.received') !== -1,
+        has_whatsapp_received: msgKeys.indexOf('whatsapp.message.received') !== -1
+      });
+      // Preferences can mute socket delivery even when the catalog lists the event.
+      try {
+        client.request('NotificationPreferences.Get', {}).then(function (prefs) {
+          var list = (prefs && (prefs.preferences || prefs.data || prefs)) || [];
+          if (!Array.isArray(list) && list.preferences) list = list.preferences;
+          if (!Array.isArray(list)) list = [];
+          var interesting = list.filter(function (row) {
+            var k = String((row && (row.event_key || row.key)) || '');
+            return /message|chat|whatsapp|inbox/i.test(k);
+          }).map(function (row) {
+            return {
+              key: row.event_key || row.key,
+              enabled: row.enabled,
+              delivery_socket: row.delivery_socket
+            };
+          });
+          socketTestLog('NotificationPreferences message/chat', interesting);
+          var muted = interesting.filter(function (r) {
+            return Number(r.enabled) === 0 || Number(r.delivery_socket) === 0;
+          });
+          if (muted.length) {
+            socketTestLog('WARNING muted socket prefs (server may not push these)', muted);
+          }
+        }).catch(function (err) {
+          socketTestLog('NotificationPreferences.Get failed', (err && err.message) || err);
+        });
+      } catch (ePref) {
+        socketTestLog('NotificationPreferences probe error', ePref);
+      }
       dispatchAppEvent('mineralbar:socket', {
         type: 'ready',
         payload: payload,
         registered: realtimeState.registered,
-        messages: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'messages'; }),
+        messages: msgKeys,
         missions: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'missions'; })
       });
     });
@@ -1950,7 +2007,15 @@
       throw new Error('Realtime connect requires login');
     }
 
+    socketTestLog('connectRealtime START', {
+      domain: DOMAIN,
+      path: options.path || '/realtime/socket.io',
+      hasToken: !!client.getToken(),
+      statusBefore: realtimeState.status
+    });
+
     await ensureSocketIo();
+    socketTestLog('socket.io.js loaded', { hasIo: !!global.io });
     wireRealtimeHandlers(client);
     setRealtimeStatus('connecting');
 
@@ -1964,10 +2029,13 @@
       keepCursor = /[?&]socket_keep_cursor=1/.test(String(global.location && global.location.search || ''));
       if (!keepCursor && lastIdBefore > 0) {
         global.localStorage.removeItem('biz1_realtime_last_event_id');
+        socketTestLog('cursor RESET', { previous: lastIdBefore });
         dispatchAppEvent('mineralbar:socket-debug', {
           type: 'cursor_reset',
           previous: lastIdBefore
         });
+      } else {
+        socketTestLog('cursor', { lastEventId: lastIdBefore, keepCursor: keepCursor });
       }
     } catch (e) {
       console.warn('[Socket] could not read/clear lastEventId', e);
@@ -1983,6 +2051,7 @@
       lastEventId: keepCursor ? undefined : 0
     });
     realtimeState.socket = socket;
+    socketTestLog('io() created', { socketId: socket && socket.id, connected: !!(socket && socket.connected) });
 
     var relayedEventIds = Object.create(null);
     var relayedEventIdOrder = [];
@@ -2007,11 +2076,17 @@
         if (!key && source && String(source).indexOf('onAny:') === 0) {
           key = String(source).slice(6);
         }
-        if (!key || key === 'biz1:event' || key === 'biz1:ready') return;
+        if (!key || key === 'biz1:event' || key === 'biz1:ready') {
+          socketTestLog('forceRelay SKIP', { source: source, key: key || '(empty)' });
+          return;
+        }
 
         var eid = ev.id != null ? String(ev.id) : '';
         if (eid) {
-          if (relayedEventIds[eid]) return;
+          if (relayedEventIds[eid]) {
+            socketTestLog('forceRelay DEDUPE skip', { source: source, key: key, id: eid });
+            return;
+          }
           relayedEventIds[eid] = 1;
           relayedEventIdOrder.push(eid);
           if (relayedEventIdOrder.length > 200) {
@@ -2022,6 +2097,12 @@
 
         var group = classifyRealtimeEvent({ key: key });
         var detail = { group: group, key: key, event: ev };
+        socketTestLog('forceRelay → mineralbar:realtime', {
+          source: source,
+          key: key,
+          group: group,
+          id: eid || '(no-id)'
+        });
         dispatchAppEvent('mineralbar:realtime', detail);
         if (group === 'messages') dispatchAppEvent('mineralbar:messages', detail);
         if (group === 'leads') dispatchAppEvent('mineralbar:leads', detail);
@@ -2041,14 +2122,18 @@
 
     if (socket && typeof socket.on === 'function') {
       socket.on('biz1:event', function (event) {
+        socketTestLog('raw socket.on(biz1:event)', { id: event && event.id, key: event && event.key });
         forceRelayFromSocket(event, 'biz1:event');
       });
       socket.on('biz1:ready', function (payload) {
+        var n = (payload && Array.isArray(payload.events)) ? payload.events.length : 0;
+        socketTestLog('biz1:ready', { events: n, status: realtimeState.status });
         dispatchAppEvent('mineralbar:socket-debug', { type: 'ready', payload: payload });
         if (needsCatchUpAfterReconnect) {
           needsCatchUpAfterReconnect = false;
           setTimeout(function () {
             if (typeof nudgePagesAfterSocket === 'function') {
+              socketTestLog('nudge after reconnect');
               nudgePagesAfterSocket('reconnect');
             }
           }, 250);
@@ -2060,8 +2145,11 @@
     if (socket && typeof socket.onAny === 'function') {
       socket.onAny(function (eventName) {
         var args = Array.prototype.slice.call(arguments, 1);
-        dispatchAppEvent('mineralbar:socket-debug', { type: 'onAny', eventName: eventName, args: args });
         var name = String(eventName || '');
+        if (!/^(ping|pong)$/i.test(name)) {
+          socketTestLog('onAny', name, args[0] && typeof args[0] === 'object' ? { id: args[0].id, key: args[0].key } : args[0]);
+        }
+        dispatchAppEvent('mineralbar:socket-debug', { type: 'onAny', eventName: eventName, args: args });
         if (!name || /^(connect|disconnect|connect_error|error|reconnect|reconnect_attempt|reconnecting|ping|pong|biz1:ready)$/i.test(name)) {
           return;
         }
@@ -2083,17 +2171,20 @@
     }
 
     socket.on('connect', function () {
+      socketTestLog('CONNECT', { id: socket.id, transport: socket.io && socket.io.engine && socket.io.engine.transport && socket.io.engine.transport.name });
       if (realtimeState.status !== 'ready') setRealtimeStatus('connecting');
       dispatchAppEvent('mineralbar:socket', { type: 'connect', id: socket.id });
       dispatchAppEvent('mineralbar:socket-debug', { type: 'connect', id: socket.id });
     });
     socket.on('connect_error', function (err) {
       var msg = (err && err.message) || String(err);
+      socketTestLog('CONNECT_ERROR', msg, err);
       setRealtimeStatus('error', msg);
       dispatchAppEvent('mineralbar:socket', { type: 'error', error: msg });
       dispatchAppEvent('mineralbar:socket-debug', { type: 'error', error: msg });
     });
     socket.on('disconnect', function (reason) {
+      socketTestLog('DISCONNECT', reason, { status: realtimeState.status });
       if (realtimeState.status !== 'error') setRealtimeStatus('offline');
       dispatchAppEvent('mineralbar:socket', { type: 'disconnect', reason: reason });
       dispatchAppEvent('mineralbar:socket-debug', { type: 'disconnect', reason: reason });
@@ -2113,15 +2204,18 @@
       socket: socket,
       promise: new Promise(function (resolve, reject) {
         var done = false;
+        var timeoutMs = options.timeoutMs || 12000;
         var t = setTimeout(function () {
           if (done) return;
           done = true;
+          socketTestLog('biz1:ready TIMEOUT', { timeoutMs: timeoutMs, status: realtimeState.status, connected: !!(socket && socket.connected) });
           reject(new Error('biz1:ready timeout'));
-        }, options.timeoutMs || 12000);
+        }, timeoutMs);
         var off = client.realtime.on('biz1:ready', function (payload) {
           if (done) return;
           done = true;
           clearTimeout(t);
+          socketTestLog('biz1:ready RESOLVED', { events: (payload && payload.events && payload.events.length) || 0 });
           try { off(); } catch (e) { /* ignore */ }
           resolve(payload);
         });
@@ -2129,6 +2223,7 @@
           if (done) return;
           done = true;
           clearTimeout(t);
+          socketTestLog('promise REJECT connect_error', (err && err.message) || err);
           reject(err);
         });
       })
@@ -2160,13 +2255,28 @@
   function ensureRealtimeConnected(reason) {
     try {
       var client = getClient();
-      if (!client || !client.getToken || !client.getToken()) return null;
-      if (isRealtimeConnected()) return realtimeConnectInFlight;
-      if (realtimeState.status === 'connecting' || realtimeState.status === 'loading_io') {
+      if (!client || !client.getToken || !client.getToken()) {
+        socketTestLog('ensureRealtimeConnected SKIP no token', reason);
+        return null;
+      }
+      if (isRealtimeConnected()) {
+        socketTestLog('ensureRealtimeConnected SKIP already connected', reason, realtimeState.status);
         return realtimeConnectInFlight;
       }
-      if (realtimeConnectInFlight) return realtimeConnectInFlight;
+      if (realtimeState.status === 'connecting' || realtimeState.status === 'loading_io') {
+        socketTestLog('ensureRealtimeConnected SKIP stuck/in-progress', {
+          reason: reason,
+          status: realtimeState.status,
+          inFlight: !!realtimeConnectInFlight
+        });
+        return realtimeConnectInFlight;
+      }
+      if (realtimeConnectInFlight) {
+        socketTestLog('ensureRealtimeConnected reuse inFlight', reason);
+        return realtimeConnectInFlight;
+      }
 
+      socketTestLog('ensureRealtimeConnected START', reason || 'ensure');
       dispatchAppEvent('mineralbar:socket-debug', {
         type: 'reconnect_attempt',
         reason: reason || 'ensure'
@@ -2179,6 +2289,7 @@
         .catch(function (err) {
           var msg = (err && err.message) || String(err || 'reconnect failed');
           console.warn('[Socket] ensureRealtimeConnected failed (' + (reason || 'ensure') + ')', msg);
+          socketTestLog('ensureRealtimeConnected FAILED', reason, msg);
           throw err;
         })
         .finally(function () {
@@ -2301,6 +2412,7 @@
       : [0];
     if (/socket\.nudge/i.test(key)) retryDelays = [0];
 
+    var matched = 0;
     liveReloaders.forEach(function (entry) {
       if (!entry || typeof entry.fn !== 'function') return;
       if (entry.keys) {
@@ -2311,22 +2423,32 @@
       if (entry.groups && entry.groups.length) {
         if (group && entry.groups.indexOf(group) === -1 && entry.groups.indexOf('other') === -1) return;
       }
+      matched += 1;
       clearTimeout(entry._timer);
       (entry._retries || []).forEach(clearTimeout);
       entry._retries = [];
       var baseDelay = entry.delay != null ? entry.delay : 400;
       entry._timer = setTimeout(function () {
+        socketTestLog('LiveReload RUN', { key: key, group: group, delay: baseDelay });
         try { entry.fn(detail); } catch (err) {
           console.warn('[LiveReload] handler failed', err);
         }
         retryDelays.slice(1).forEach(function (extraMs) {
           entry._retries.push(setTimeout(function () {
+            socketTestLog('LiveReload RETRY', { key: key, extraMs: extraMs });
             try { entry.fn(detail); } catch (err2) {
               console.warn('[LiveReload] retry failed', err2);
             }
           }, extraMs));
         });
       }, baseDelay);
+    });
+    socketTestLog('notifyLiveReload', {
+      key: key,
+      group: group,
+      handlers: liveReloaders.length,
+      matched: matched,
+      retries: retryDelays
     });
   }
 

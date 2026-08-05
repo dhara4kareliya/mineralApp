@@ -84,6 +84,7 @@
 
   function dbg(msg) {
     try {
+      console.log('[SocketTest] LIVE_SYNC', msg);
       global.dispatchEvent(new CustomEvent('mineralbar:socket-debug', {
         detail: { type: 'onAny', eventName: String(msg || '') }
       }));

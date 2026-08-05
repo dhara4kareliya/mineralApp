@@ -1453,4 +1453,33 @@
     }, { keys: /message|chat|whatsapp|inbox|customer|socket\.nudge/i, delay: 400 });
   }
 
+  // Safety net: inbound WhatsApp/chat often never hits this socket (server fan-out).
+  // Quiet poll keeps the open thread fresh while we wait for real events.
+  (function startChatThreadPoll() {
+    if (window.__mbChatPollStarted) return;
+    window.__mbChatPollStarted = true;
+    var lastCount = -1;
+    setInterval(function () {
+      try {
+        if (!document.getElementById('mb-live-chat')) return;
+        if (document.visibilityState && document.visibilityState !== 'visible') return;
+        if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
+        if (typeof shouldReloadThread === 'function' && !shouldReloadThread()) return;
+        var rt = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
+        console.log('[SocketTest] chat poll tick', {
+          socketStatus: rt && rt.status,
+          connected: !!(rt && rt.socket && rt.socket.connected),
+          msgs: currentMessages && currentMessages.length
+        });
+        loadThread('mb-live-chat', params(), { silent: true }).then(function () {
+          var n = (currentMessages && currentMessages.length) || 0;
+          if (lastCount >= 0 && n !== lastCount) {
+            console.log('[SocketTest] chat poll saw change', { from: lastCount, to: n, note: 'REST saw new msgs — socket did not push' });
+          }
+          lastCount = n;
+        }).catch(function () { /* ignore */ });
+      } catch (ePoll) { /* ignore */ }
+    }, 8000);
+  })();
+
 })();
