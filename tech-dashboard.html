@@ -468,46 +468,38 @@ class Component extends DCLogic {
   async loadDocuments(client, year, month, silent) {
     if (!silent) this.setState({ loadingDocs: true });
     var range = this.monthRange(year, month);
-    var dateRange = { from_date: range.from, to_date: range.to };
-    var countBase = Object.assign({ default_value_folder: 'all' }, dateRange);
+    var dateRange = {
+      from_date: range.from,
+      to_date: range.to,
+      default_value_folder: 'all',
+      customer_id: 0
+    };
     try {
-      // One Count (all) + one Sum (typed breakdown) — avoid 4× Documents.Count
+      // Documents.Count is org-wide (all users) when customer_id=0.
+      // Prefer typed Counts — Documents.Sum only returns one type reliably.
       var results = await Promise.all([
-        client.request('Documents.Count', Object.assign({}, countBase)).catch(function () { return null; }),
-        client.request('Documents.Sum', Object.assign({}, dateRange, { types: ['invoice', 'receipt_tax_invoice', 'credit_invoice'] })).catch(function () { return null; })
+        client.request('Documents.Count', Object.assign({}, dateRange)).catch(function () { return null; }),
+        client.request('Documents.Count', Object.assign({}, dateRange, {
+          type: 'invoice', document_type: 'invoice', doc_type: 'invoice'
+        })).catch(function () { return null; }),
+        client.request('Documents.Count', Object.assign({}, dateRange, {
+          type: 'receipt_tax_invoice', document_type: 'receipt_tax_invoice', doc_type: 'receipt_tax_invoice'
+        })).catch(function () { return null; }),
+        client.request('Documents.Count', Object.assign({}, dateRange, {
+          type: 'receipt', document_type: 'receipt', doc_type: 'receipt'
+        })).catch(function () { return null; }),
+        client.request('Documents.Count', Object.assign({}, dateRange, {
+          type: 'credit_invoice', document_type: 'credit_invoice', doc_type: 'credit_invoice'
+        })).catch(function () { return null; }),
+        client.request('Documents.Count', Object.assign({}, dateRange, {
+          type: 'credit', document_type: 'credit', doc_type: 'credit'
+        })).catch(function () { return null; })
       ]);
 
       var total = this.extractCount(results[0]);
-      var invoices = 0;
-      var receipts = 0;
-      var credits = 0;
-      var sumRes = results[1];
-
-      if (sumRes && sumRes.counts) {
-        if (sumRes.counts.invoice != null) invoices = Number(sumRes.counts.invoice) || invoices;
-        if (sumRes.counts.receipt != null) receipts = Number(sumRes.counts.receipt) || receipts;
-        if (sumRes.counts.receipt_tax_invoice != null && !receipts) {
-          receipts = Number(sumRes.counts.receipt_tax_invoice) || receipts;
-        }
-        if (sumRes.counts.credit_invoice != null) credits = Number(sumRes.counts.credit_invoice) || credits;
-      }
-      if (sumRes && sumRes.by_type) {
-        if (sumRes.by_type.invoice && sumRes.by_type.invoice.count != null) {
-          invoices = Number(sumRes.by_type.invoice.count) || invoices;
-        }
-        if (sumRes.by_type.receipt && sumRes.by_type.receipt.count != null) {
-          receipts = Number(sumRes.by_type.receipt.count) || receipts;
-        }
-        if (sumRes.by_type.receipt_tax_invoice && sumRes.by_type.receipt_tax_invoice.count != null && !receipts) {
-          receipts = Number(sumRes.by_type.receipt_tax_invoice.count) || receipts;
-        }
-        if (sumRes.by_type.credit_invoice && sumRes.by_type.credit_invoice.count != null) {
-          credits = Number(sumRes.by_type.credit_invoice.count) || credits;
-        }
-      }
-      if (!total && (invoices || receipts || credits)) {
-        total = invoices + receipts + credits;
-      }
+      var invoices = this.extractCount(results[1]);
+      var receipts = this.extractCount(results[2]) + this.extractCount(results[3]);
+      var credits = this.extractCount(results[4]) + this.extractCount(results[5]);
 
       this.setState({
         loadingDocs: false,
