@@ -112,15 +112,62 @@
     return now;
   }
 
+  function getTimeOffsetMs() {
+    var active = getActivePill('mb-time-pills');
+    var mode = active ? active.getAttribute('data-time') : '30min';
+    if (mode === '30min') return 30 * 60 * 1000;
+    if (mode === '1h') return 60 * 60 * 1000;
+    if (mode === '2h') return 2 * 60 * 60 * 1000;
+    if (mode === 'custom_hours') {
+      var hoursIn = document.getElementById('mb-time-hours');
+      var hours = Number(hoursIn && hoursIn.value ? hoursIn.value : 0);
+      return (hours > 0 ? hours : 0) * 60 * 60 * 1000;
+    }
+    if (mode === 'custom_days') {
+      var daysIn = document.getElementById('mb-time-days');
+      var days = Number(daysIn && daysIn.value ? daysIn.value : 0);
+      return (days > 0 ? days : 0) * 24 * 60 * 60 * 1000;
+    }
+    return 30 * 60 * 1000;
+  }
+
+  function resolveDueDateTime() {
+    var base = resolveDueDate();
+    var activeDur = getActivePill('mb-duration-pills');
+    var dayMode = activeDur ? activeDur.getAttribute('data-duration') : 'today';
+    var offsetMs = getTimeOffsetMs();
+
+    // Today: due = now + selected offset (makes the clock hour clear).
+    if (dayMode === 'today' || !dayMode) {
+      return new Date(Date.now() + offsetMs);
+    }
+
+    // Other days: keep that calendar day, use the clock from (now + offset).
+    var clock = new Date(Date.now() + offsetMs);
+    var due = new Date(base.getTime());
+    due.setHours(clock.getHours(), clock.getMinutes(), 0, 0);
+    return due;
+  }
+
   function updateDatePreview() {
+    var due = resolveDueDateTime();
+    var formatted = formatDisplayDate(due);
+    var clockOnly = pad(due.getHours()) + ':' + pad(due.getMinutes());
+
+    var timePreview = document.getElementById('mb-time-preview');
+    if (timePreview) {
+      timePreview.textContent = 'Task set for: ' + formatted + '  (at ' + clockOnly + ')';
+    }
+
     var preview = document.getElementById('mb-date-preview');
-    if (!preview) return;
-    preview.textContent = 'Date to do: ' + formatDisplayDate(resolveDueDate());
+    if (preview) {
+      preview.textContent = 'Date to do: ' + formatted;
+    }
   }
 
   function buildDateToDoPayload() {
-    // Always send the concrete preview date (e.g. 01-08-2026 10:25), never today/tomorrow keywords.
-    return formatDateToDoPayload(resolveDueDate());
+    // Always send the concrete preview date+time (e.g. 01-08-2026 10:25).
+    return formatDateToDoPayload(resolveDueDateTime());
   }
 
   function buildTimeMissionPayload() {
@@ -220,6 +267,7 @@
       var daysIn = document.getElementById('mb-time-days');
       if (daysIn) daysIn.value = String(extra);
     }
+    updateDatePreview();
   }
 
   function selectRepeatMode(mode) {
@@ -326,6 +374,7 @@
         });
         if (todo) select.value = 'to_do';
       }
+      select.setAttribute('data-last-value', String(select.value || ''));
     } catch (e) {
       console.error('[mission-create] Projects.ColumnsList failed', e);
       select.innerHTML = '';
@@ -445,6 +494,138 @@
       }
     }
     return null;
+  }
+
+  /** Return to the screen the user entered from (not always tasks). */
+  function getDefaultHomeUrl() {
+    try {
+      var role = window.MineralBarApp && MineralBarApp.getRole && MineralBarApp.getRole();
+      if (role === 'service') return 'service-all-calls.html';
+      if (role === 'tech') return 'tech-dashboard.html';
+    } catch (e) { /* ignore */ }
+    return 'sales-home.html';
+  }
+
+  function getBackUrlFromReferrer() {
+    try {
+      var ref = document.referrer;
+      if (!ref) return '';
+      var u = new URL(ref, window.location.href);
+      if (u.origin !== window.location.origin) return '';
+      var file = (u.pathname.split('/').pop() || '').trim();
+      if (!file || /^(service-create-task|login)(\.html)?$/i.test(file)) return '';
+      return file + (u.search || '');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function getBackUrl() {
+    var q = new URLSearchParams(window.location.search || '');
+    var from = String(q.get('from') || q.get('back') || '').trim().toLowerCase();
+
+    if (from === 'home' || from === 'sales-home' || from === 'sales-home.html' || from === 'main') {
+      return 'sales-home.html';
+    }
+    if (from === 'tasks' || from === 'sales-tasks' || from === 'sales-tasks.html') {
+      return 'sales-tasks.html';
+    }
+    if (from === 'leads' || from === 'leads-list' || from === 'leads-list.html') {
+      return 'leads-list.html';
+    }
+    if (from === 'customers' || from === 'customers.html') {
+      return 'customers.html';
+    }
+    if (from === 'calls' || from === 'calls-list' || from === 'calls-list.html') {
+      return 'calls-list.html';
+    }
+    if (from === 'service' || from === 'service-all-calls') {
+      return 'service-all-calls.html';
+    }
+
+    // Came from a specific chat — return to that conversation
+    var cid = q.get('customer_id') || q.get('cust_id');
+    var name = q.get('name');
+    var phone = q.get('phone');
+    if (cid || name || phone || from === 'messages' || from === 'chat' || from === 'chat-customer') {
+      var chatQ = new URLSearchParams();
+      if (cid) {
+        chatQ.set('customer_id', cid);
+        chatQ.set('cust_id', cid);
+      }
+      if (name) chatQ.set('name', name);
+      if (phone) chatQ.set('phone', phone);
+      var email = q.get('email');
+      if (email) chatQ.set('email', email);
+      var qs = chatQ.toString();
+      return qs ? ('chat-customer.html?' + qs) : 'calls-list.html';
+    }
+
+    // Explicit absolute/relative back page in query
+    if (from && /\.html/.test(from)) {
+      return from.split('?')[0].replace(/^\//, '');
+    }
+
+    var fromRef = getBackUrlFromReferrer();
+    if (fromRef) return fromRef;
+
+    return getDefaultHomeUrl();
+  }
+
+  function goBackToEntryScreen() {
+    var q = new URLSearchParams(window.location.search || '');
+    var from = String(q.get('from') || q.get('back') || '').trim();
+    // No explicit from → prefer browser history (home → task → back = home)
+    if (!from && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = getBackUrl();
+  }
+
+  function wireBackNavigation() {
+    var closeBtn = document.getElementById('mb-mission-close');
+    if (!closeBtn) return;
+    closeBtn.setAttribute('href', getBackUrl());
+    if (closeBtn.dataset.backWired === '1') return;
+    closeBtn.dataset.backWired = '1';
+    closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      goBackToEntryScreen();
+    });
+  }
+
+  /** Existing task: Status / Column change → Mission.Update immediately (no Save). */
+  function wireProjectColumnLiveUpdate() {
+    var select = document.getElementById('mb-project-column');
+    if (!select || select.dataset.liveWired === '1') return;
+    select.dataset.liveWired = '1';
+    select.addEventListener('change', async function () {
+      if (!editingMissionId) return;
+      var value = String(select.value || '').trim();
+      if (!value) return;
+      var prev = String(select.getAttribute('data-last-value') || '');
+      if (value === prev) return;
+      select.disabled = true;
+      showStatus('loading', isEn() ? 'Updating status…' : 'מעדכן סטטוס…');
+      try {
+        await MineralBarApp.updateMission({
+          id: editingMissionId,
+          mission_id: editingMissionId,
+          filed: 'project_column',
+          saveoutput: value
+        });
+        if (loadedMissionData) loadedMissionData.project_column = value;
+        select.setAttribute('data-last-value', value);
+        showStatus('ok', isEn() ? 'Status updated' : 'הסטטוס עודכן');
+      } catch (err) {
+        console.error('[mission-create] project_column live update failed', err);
+        if (prev) select.value = prev;
+        showStatus('error', (err && err.message) || (isEn() ? 'Status update failed' : 'עדכון סטטוס נכשל'));
+      } finally {
+        select.disabled = false;
+      }
+    });
   }
 
   var editingMissionId = getQueryParam('mission_id') || getQueryParam('id');
@@ -848,8 +1029,8 @@
 
         var isPrivate = privateCb && privateCb.checked ? 1 : 0;
         var memberId = assignSel ? assignSel.value : '';
-        var colorVal = (colorSel && colorSel.value) ? colorSel.value : 'yellow';
-        if (colorVal === 'default') colorVal = 'transparent';
+        var colorVal = (colorSel && colorSel.value) ? colorSel.value : 'transparent';
+        if (colorVal === 'default' || colorVal === 'yellow') colorVal = 'transparent';
 
         var projChoice = projectSel && projectSel.value ? projectSel.value : undefined;
         var stepChoice = stepSel && stepSel.value ? Number(stepSel.value) : 0;
@@ -862,9 +1043,7 @@
           private_mission: isPrivate,
           color: colorVal,
           appoinment_color1: colorVal,
-          project_id: projChoice ? Number(projChoice) : undefined,
           project_column: columnSel && columnSel.value ? columnSel.value : undefined,
-          missions_steps_id: stepChoice || undefined,
           organizations_user: memberId || undefined,
           customer_id: customerId || undefined,
           email_me_employee: emailMeCb && emailMeCb.checked ? 1 : 0,
@@ -872,6 +1051,8 @@
           notify_client: notifyCb && notifyCb.checked ? 1 : 0,
           use_as_template: templateCb && templateCb.checked ? 1 : 0
         };
+        if (projChoice) payload.project_id = Number(projChoice);
+        if (stepChoice) payload.missions_steps_id = stepChoice;
 
         Object.keys(timePayload).forEach(function (key) {
           payload[key] = timePayload[key];
@@ -924,7 +1105,7 @@
 
         saveSucceeded = true;
         setTimeout(function() {
-          location.href = 'sales-tasks.html';
+          goBackToEntryScreen();
         }, 600);
       } catch (err) {
         console.error('Task save failed', err);
@@ -961,7 +1142,9 @@
     // rebuild the dropdowns and wipe the values loadExistingMission() just selected.
     if (started) return;
     started = true;
+    wireBackNavigation();
     wireSchedulePills();
+    wireProjectColumnLiveUpdate();
     populateDropdowns().then(function() {
       loadExistingMission();
     });

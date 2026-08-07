@@ -30,6 +30,30 @@ mbCss('./common.css');
   html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
   button { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  /* Pipeline row must scroll horizontally — common.css .dc-scroll sets overflow-x:hidden */
+  #mb-sales-pipeline-scroll.dc-scroll,
+  .dc-scroll.mb-h-drag {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-x;
+  }
+  #mb-sales-pipeline-scroll.dc-scroll::-webkit-scrollbar,
+  .dc-scroll.mb-h-drag::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  #mb-sales-pipeline-scroll.is-dragging,
+  #mb-sales-pipeline-scroll.is-dragging * {
+    cursor: grabbing !important;
+    user-select: none !important;
+  }
 </style>
 </helmet>
 
@@ -99,18 +123,18 @@ mbCss('./common.css');
 
         <!-- Sales Pipeline -->
         <div style="font-size:17px; font-weight:800; color:#16223a; margin:0 2px 12px;">צינור המכירות שלי</div>
-        <div id="mb-sales-pipeline-scroll" class="dc-scroll" style="display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding:0 16px 8px; margin:0 -16px 16px; cursor:grab;">
-          <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#eaf2fb; color:#1d60a2; flex:none;">
+        <div id="mb-sales-pipeline-scroll" class="dc-scroll mb-h-drag" style="display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding:0 16px 8px; margin:0 -16px 16px; cursor:grab; user-select:none; touch-action:pan-x;">
+          <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#eaf2fb; color:#1d60a2; flex:none; user-select:none;">
             <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.4 2.7-5.5 6-5.5 1 0 1.9.2 2.7.5"></path><path d="M17 8v6M14 11h6"></path></svg>
             <span style="font-size:13.5px; font-weight:700;">ליד חדש</span>
             <span style="font-size:12.5px; font-weight:800; background:#cfe0f2; color:#1d60a2; border-radius:99px; padding:1px 8px;"><span id="mb-pipe-leads">…</span></span>
           </div>
-          <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#fdf1dd; color:#bd8324; flex:none;">
+          <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#fdf1dd; color:#bd8324; flex:none; user-select:none;">
             <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
             <span style="font-size:13.5px; font-weight:700;">פולואפ</span>
             <span style="font-size:12.5px; font-weight:800; background:#f0ddb3; color:#bd8324; border-radius:99px; padding:1px 8px;"><span id="mb-pipe-followup">…</span></span>
           </div>
-          <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#eef0fb; color:#50439d; flex:none; text-decoration:none;">
+          <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#eef0fb; color:#50439d; flex:none; text-decoration:none; user-select:none;">
             <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg>
             <span style="font-size:13.5px; font-weight:700;">נשלחה הצעה</span>
           </div>

@@ -182,7 +182,7 @@ mbCss('./common.css');
 </div>
 <div id="mb-chat-status" style="display:none; background:#fff; padding:6px 16px 0; font-size:12px; font-weight:700; color:#1d60a2;"></div>
 <!-- quick actions -->
-<!-- <div style="background:#fff; border-top:1px solid #eceef1; padding:11px 22px 9px; display:flex; justify-content:space-around; align-items:flex-start; flex:none;">
+ <!-- <div style="background:#fff; border-top:1px solid #eceef1; padding:11px 22px 9px; display:flex; justify-content:space-around; align-items:flex-start; flex:none;">
 <a id="mb-chat-quote-link" href="service-quote-form.html" style="background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; text-decoration:none;">
 <span style="width:42px; height:42px; border-radius:50%; background:#eaf2fb; display:flex; align-items:center; justify-content:center;">
 <svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="20"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5"></path><path d="M9 13h6M9 16.5h4"></path></svg>
@@ -207,7 +207,7 @@ mbCss('./common.css');
 </span>
 <span style="font-size:11.5px; color:#bd8324; font-weight:700;">Create an order</span>
 </a>
-</div> -->
+</div>  -->
 <!-- send via channel + input -->
 <div style="background:#fff; border-top:1px solid #eceef1; padding:10px 14px 8px; flex:none;">
 <div style="font-size:11.5px; font-weight:700; color:#9aa3b0; margin-bottom:7px;">Send via</div>
@@ -351,6 +351,50 @@ Internal notes
 </div>
 <svg fill="none" height="18" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none;" viewbox="0 0 24 24" width="18"><path d="M15 6l-6 6 6 6"></path></svg>
 </a>
+ <!-- Quotation -->
+<a href="{{ quoteUrl }}" style="display:flex; align-items:center; gap:13px; padding:14px 18px; border-top:1px solid #f0f2f5; cursor:pointer; text-decoration:none;">
+<span style="width:40px; height:40px; border-radius:11px; background:#eaf2fb; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 13h6M9 17h4"></path></svg>
+</span>
+<div style="flex:1; text-align:left;">
+<div style="font-size:15.5px; font-weight:700; color:#1f2a3a;">quotation</div>
+<div style="font-size:13px; color:#7b8595; margin-top:2px;">Send a price quote to the customer</div>
+</div>
+<svg fill="none" height="18" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none;" viewbox="0 0 24 24" width="18"><path d="M15 6l-6 6 6 6"></path></svg>
+</a>
+ <!-- Payment link -->
+<a href="{{ paymentUrl }}" style="display:flex; align-items:center; gap:13px; padding:14px 18px; border-top:1px solid #f0f2f5; cursor:pointer; text-decoration:none;">
+<span style="width:40px; height:40px; border-radius:11px; background:#e1f1e8; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="20" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="14" rx="2.5" width="20" x="2" y="5"></rect><path d="M2 10h20"></path></svg>
+</span>
+<div style="flex:1; text-align:left;">
+<div style="font-size:15.5px; font-weight:700; color:#1f2a3a;">Payment link</div>
+<div style="font-size:13px; color:#7b8595; margin-top:2px;">Send a payment request to the customer</div>
+</div>
+<svg fill="none" height="18" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none;" viewbox="0 0 24 24" width="18"><path d="M15 6l-6 6 6 6"></path></svg>
+</a>
+ <!-- Product media -->
+<button type="button" onclick="{{ openMediaFromActions }}" style="width:100%; display:flex; align-items:center; gap:13px; padding:14px 18px; border:none; border-top:1px solid #f0f2f5; background:#fff; cursor:pointer; text-align:left;">
+<span style="width:40px; height:40px; border-radius:11px; background:#eef0f3; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="20" stroke="#5a6473" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="2"></circle><path d="m4 18 5-4 4 3 3-2 4 3"></path></svg>
+</span>
+<div style="flex:1; text-align:left;">
+<div style="font-size:15.5px; font-weight:700; color:#1f2a3a;">Product media</div>
+<div style="font-size:13px; color:#7b8595; margin-top:2px;">Send product photos and videos</div>
+</div>
+<svg fill="none" height="18" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none;" viewbox="0 0 24 24" width="18"><path d="M15 6l-6 6 6 6"></path></svg>
+</button>
+ <!-- Create an order -->
+<a href="{{ orderUrl }}" style="display:flex; align-items:center; gap:13px; padding:14px 18px; border-top:1px solid #f0f2f5; cursor:pointer; text-decoration:none;">
+<span style="width:40px; height:40px; border-radius:11px; background:#fdf1dd; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="20" stroke="#bd8324" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect height="4" rx="1" width="6" x="9" y="3"></rect><path d="M12 11v6M9 14h6"></path></svg>
+</span>
+<div style="flex:1; text-align:left;">
+<div style="font-size:15.5px; font-weight:700; color:#1f2a3a;">Create an order</div>
+<div style="font-size:13px; color:#7b8595; margin-top:2px;">Create a new order for the customer</div>
+</div>
+<svg fill="none" height="18" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none;" viewbox="0 0 24 24" width="18"><path d="M15 6l-6 6 6 6"></path></svg>
+</a>
 </div>
 </div>
 </sc-if>
@@ -483,6 +527,7 @@ Internal notes
   openActions() { this.setState({ actionsOpen: true }); }
   closeActions() { this.setState({ actionsOpen: false }); }
   openMedia() { this.setState({ mediaOpen: true }); }
+  openMediaFromActions() { this.setState({ actionsOpen: false, mediaOpen: true }); }
   closeMedia() { this.setState({ mediaOpen: false }); }
   setTab(t) { this.setState({ mediaTab: t }); }
 
@@ -491,6 +536,7 @@ Internal notes
     const img = s.mediaTab === 'images';
     var q = new URLSearchParams(window.location.search);
     var paramsStr = q.toString();
+    var qs = paramsStr ? ('?' + paramsStr) : '';
 
     return {
       actionsOpen: s.actionsOpen,
@@ -498,6 +544,7 @@ Internal notes
       openActions: () => this.openActions(),
       closeActions: () => this.closeActions(),
       openMedia: () => this.openMedia(),
+      openMediaFromActions: () => this.openMediaFromActions(),
       closeMedia: () => this.closeMedia(),
       setImages: () => this.setTab('images'),
       setVideos: () => this.setTab('videos'),
@@ -509,9 +556,12 @@ Internal notes
       vidTabColor: img ? '#5a6473' : '#fff',
       ctaLabel: img ? 'שלח תמונה נבחרת' : 'שלח סרטון נבחר',
       reminderUrl: 'reminders.html?' + paramsStr,
-      createTaskUrl: 'service-create-task.html?' + paramsStr,
+      createTaskUrl: 'service-create-task.html?' + paramsStr + (paramsStr ? '&' : '') + 'from=messages',
       customerCardUrl: 'service-customer-card.html?' + paramsStr,
       leadsListUrl: 'leads-list.html?' + paramsStr,
+      quoteUrl: 'service-quote-form.html' + qs,
+      paymentUrl: 'collection-payment.html' + qs,
+      orderUrl: 'service-order-form.html' + qs,
     };
   }
 }</script>

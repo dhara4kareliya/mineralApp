@@ -117,16 +117,14 @@ mbCss('./common.css');
       </span>
     </div>
 
-    <label class="form-label">Description</label>
-    <textarea id="mb-reminder-desc" class="premium-input" style="height:110px; resize:none; margin-bottom:18px;" placeholder="Enter message body or note..." data-no-i18n-value="true" oninput="{{ onDescriptionChange }}"></textarea>
+    <label class="form-label">Message content</label>
+    <textarea id="mb-reminder-desc" class="premium-input" style="height:110px; resize:none; margin-bottom:18px;" placeholder="Enter message content..." data-no-i18n-value="true" oninput="{{ onDescriptionChange }}"></textarea>
 
     <label class="form-label">Type</label>
     <div style="position:relative; margin-bottom:10px;">
       <select class="premium-input" style="margin-bottom:0;" onchange="{{ onTypeChange }}">
-        <option value="Popup" selected="{{ isPopup }}">Popup</option>
         <option value="SMS" selected="{{ isSMS }}">SMS</option>
         <option value="WhatsApp" selected="{{ isWhatsApp }}">WhatsApp</option>
-        <option value="Email" selected="{{ isEmail }}">Email</option>
       </select>
       <span class="mb-field-icon mb-chevron">
         <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="15"><path d="m6 9 6 6 6-6"></path></svg>
@@ -160,7 +158,7 @@ class Component extends DCLogic {
     phone: '',
     dateTime: '',
     description: '',
-    type: 'Popup',
+    type: 'SMS',
     saving: false,
     saveError: '',
     saveOk: false
@@ -205,10 +203,8 @@ class Component extends DCLogic {
 
   mapReminderBy(type) {
     var t = String(type || '').toLowerCase();
-    if (t === 'sms') return 'sms';
     if (t === 'whatsapp') return 'whatsapp';
-    if (t === 'email') return 'email';
-    return 'popup';
+    return 'sms';
   }
 
   toUtcDateTime(localValue) {
@@ -302,10 +298,8 @@ class Component extends DCLogic {
       initials: this.initialsFromName(s.name),
       dateTime: s.dateTime,
       description: String(s.description || ''),
-      isPopup: s.type === 'Popup',
       isSMS: s.type === 'SMS',
       isWhatsApp: s.type === 'WhatsApp',
-      isEmail: s.type === 'Email',
       backUrl: backUrl,
       saving: s.saving,
       saveError: s.saveError,

@@ -72,6 +72,19 @@ mbCss('./common.css');
 </div>
 </div>
 </sc-if>
+<!-- search by customer name -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showSearch }}">
+<div style="position:relative; margin-bottom:14px;">
+<svg fill="none" height="18" stroke="#8a93a3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="position:absolute; inset-inline-start:13px; top:50%; transform:translateY(-50%); pointer-events:none; z-index:1;" viewbox="0 0 24 24" width="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<input class="mb-search" oninput="{{ onSearch }}" placeholder="{{ searchPlaceholder }}" style="width:100%; box-sizing:border-box; padding-block:12px; padding-inline-start:42px; padding-inline-end:{{ searchPadEnd }}; border:none; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:start; background:#fff; outline:none; box-shadow:0 1px 2px rgba(0,0,0,.06);" value="{{ searchQuery }}"/>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasSearchQuery }}">
+<button type="button" onclick="{{ clearSearch }}" aria-label="Clear search" style="position:absolute; inset-inline-end:9px; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:50%; border:none; background:#eef0f3; color:#8a93a3; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2;">✕</button>
+</sc-if>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showNoSearchResults }}">
+<div style="text-align:center; padding:28px 12px 18px; color:#8a93a3; font-size:13.5px; font-weight:600;">{{ noSearchResultsLabel }}</div>
+</sc-if>
 <!-- open calls list -->
 <sc-for as="c" hint-placeholder-count="0" list="{{ calls }}">
 <div style="background:#fff; border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.05); border-right:4px solid {{ c.accent }};">
@@ -165,8 +178,26 @@ class Component extends DCLogic {
     deferred: [],
     deferTarget: null,
     deferReason: null,
+    searchQuery: '',
     langTick: 0
   };
+
+  onSearch(e) {
+    var val = '';
+    if (e && e.target && e.target.value != null) val = e.target.value;
+    else if (typeof this.inputValue === 'function') val = this.inputValue(e) || '';
+    this.setState({ searchQuery: String(val) });
+  }
+
+  clearSearch() {
+    this.setState({ searchQuery: '' });
+  }
+
+  matchesCustomerSearch(call, query) {
+    if (!query) return true;
+    var name = String((call && call.custName) || '').toLowerCase();
+    return name.indexOf(query) !== -1;
+  }
 
   isEn() {
     return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
@@ -449,10 +480,16 @@ class Component extends DCLogic {
     void this.state.langTick;
     const st = this.state;
     const loading = !!st.loading;
+    const searchQuery = String(st.searchQuery || '');
+    const searchQ = searchQuery.trim().toLowerCase();
     const openOnly = (st.calls || []).filter(function (c) { return !c.isClosed && c.status !== 'closed'; });
     const openCount = openOnly.length;
     const hasOpen = openCount > 0;
     const allClosed = !loading && !hasOpen;
+    const self = this;
+    const filteredOpen = searchQ
+      ? openOnly.filter(function (c) { return self.matchesCustomerSearch(c, searchQ); })
+      : openOnly;
     const fallbackCall = this.t('Service call', 'קריאת שירות');
     const fallbackAddr = this.t('No address listed', 'לא צוינה כתובת');
     const fallbackCust = this.t('Customer', 'לקוח');
@@ -477,7 +514,7 @@ class Component extends DCLogic {
       closed: { accent: '#c0392b', badge: this.t('Closed', 'סגור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
     };
 
-    const calls = loading ? [] : openOnly.map(c => {
+    const calls = loading ? [] : filteredOpen.map(c => {
       const custName = c.custName || fallbackCust;
       const preview = this.cleanMessagePreview(c.lastMsg || c.customerDetail || '');
       const stMeta = ST[c.status] || ST.open;
@@ -499,7 +536,10 @@ class Component extends DCLogic {
       };
     });
 
-    const deferred = st.deferred.map(d => ({
+    const deferredSource = searchQ
+      ? (st.deferred || []).filter(function (d) { return self.matchesCustomerSearch(d, searchQ); })
+      : (st.deferred || []);
+    const deferred = deferredSource.map(d => ({
       name: d.name || fallbackCall,
       reason: d.reasonId ? this.reasonShortLabel(d.reasonId) : (d.reason || ''),
       restore: () => this.restore(d.id),
@@ -516,6 +556,8 @@ class Component extends DCLogic {
     });
 
     const canConfirm = !!st.deferReason;
+    const hasSearchQuery = searchQuery.trim().length > 0;
+    const showNoSearchResults = !loading && hasSearchQuery && calls.length === 0 && deferred.length === 0;
 
     return {
       userName,
@@ -531,6 +573,16 @@ class Component extends DCLogic {
       deferred, hasDeferred: !loading && deferred.length > 0,
       errorMsg: st.errorMsg || '',
       hasError: !!(st.errorMsg && !loading),
+
+      showSearch: !loading,
+      searchQuery,
+      hasSearchQuery,
+      searchPadEnd: hasSearchQuery ? '40px' : '14px',
+      searchPlaceholder: this.t('Search by customer name...', 'חיפוש לפי שם לקוח...'),
+      onSearch: (e) => this.onSearch(e),
+      clearSearch: () => this.clearSearch(),
+      showNoSearchResults,
+      noSearchResultsLabel: this.t('No tickets found for this customer', 'לא נמצאו טיקטים עבור לקוח זה'),
 
       deferOpen: st.deferTarget !== null,
       cancelDefer: () => this.cancelDefer(),

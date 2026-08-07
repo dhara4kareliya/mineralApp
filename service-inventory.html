@@ -217,7 +217,7 @@ mbCss('./common.css');
   <!-- Search input bar -->
   <div style="padding:0 16px 12px; flex:none;">
     <div style="position:relative;">
-      <input type="text" class="search-input mb-search" oninput="{{ onSearchChange }}" placeholder="Search by product name..." value="{{ searchQuery }}"/>
+      <input type="text" class="search-input mb-search" oninput="{{ onSearchChange }}" placeholder="Search by product name or SKU..." value="{{ searchQuery }}"/>
     </div>
   </div>
 
@@ -250,7 +250,7 @@ mbCss('./common.css');
             <div onclick="{{ it.click }}" style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid {{ it.border }}; cursor:pointer;">
               <div style="flex:1; text-align:start;">
                 <div style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ it.name }}</div>
-                <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }} · <span style="color:#2e8a63; font-weight:700;">{{ it.priceText }}</span></div>
+                <div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ it.sku }}</div>
               </div>
               <div style="display:inline-flex; align-items:center; gap:4px; background:{{ it.tagBg }}; color:{{ it.tagColor }}; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; flex:none;">
                 <span style="width:6px; height:6px; border-radius:50%; background:{{ it.tagColor }};"></span>{{ it.tag }}
@@ -1914,10 +1914,13 @@ class Component extends DCLogic {
       } else if (s.selectedCategory !== 'all' && p.cat_id !== s.selectedCategory) {
         return false;
       }
-      // Search filter
+      // Search filter (name or SKU)
       if (s.searchQuery) {
-        var query = s.searchQuery.toLowerCase();
-        if (p.name.toLowerCase().indexOf(query) === -1) {
+        var query = s.searchQuery.toLowerCase().trim();
+        var nameHit = String(p.name || '').toLowerCase().indexOf(query) !== -1;
+        var skuHit = String(p.sku || p.product_sku || '').toLowerCase().indexOf(query) !== -1;
+        var internalSkuHit = String(p.product_internal_sku || p.internal_sku || '').toLowerCase().indexOf(query) !== -1;
+        if (!nameHit && !skuHit && !internalSkuHit) {
           return false;
         }
       }
@@ -1963,7 +1966,6 @@ class Component extends DCLogic {
             name: it.name,
             sku: it.sku,
             qty: it.stock,
-            priceText: (it.price != null && it.price !== '' ? (String(it.price) + ' ₪') : ''),
             tag: tag,
             tagColor: tagColor,
             tagBg: tagBg,

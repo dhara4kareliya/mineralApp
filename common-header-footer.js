@@ -531,6 +531,13 @@
     }
 
     try { ensureCommonHeader(); } catch (e) {}
+    try {
+      var foot = document.getElementById('common-app-footer');
+      if (foot) {
+        foot.style.direction = dir;
+        foot.setAttribute('dir', dir);
+      }
+    } catch (eFoot) { /* ignore */ }
 
     var toggleBtns = document.querySelectorAll('.lang-translator-btn, #btn-lang-toggle');
     toggleBtns.forEach(function (btn) {
@@ -739,13 +746,21 @@
       existingFooter.style.flex = 'none';
       existingFooter.style.position = 'relative';
       existingFooter.style.zIndex = '40';
+      // Follow page language: Hebrew → RTL (Home/main on the right), English → LTR
+      try {
+        var footDir = (typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en') ? 'ltr' : 'rtl';
+        existingFooter.style.direction = footDir;
+        existingFooter.setAttribute('dir', footDir);
+      } catch (eDir) { /* ignore */ }
       return;
     }
 
     var footer = document.createElement('div');
     footer.id = 'common-app-footer';
     footer.className = 'common-bottom-nav';
-    footer.style.cssText = 'background:var(--bg-panel, #fff); border-top:1px solid var(--border-panel, #eceef1); padding:9px 6px 20px; display:flex; justify-content:space-around; align-items:flex-start; flex:none; margin-top:auto; position:relative; z-index:40; direction:ltr; width:100%; box-sizing:border-box;';
+    var navDir = (typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en') ? 'ltr' : 'rtl';
+    footer.setAttribute('dir', navDir);
+    footer.style.cssText = 'background:var(--bg-panel, #fff); border-top:1px solid var(--border-panel, #eceef1); padding:9px 6px 20px; display:flex; justify-content:space-around; align-items:flex-start; flex:none; margin-top:auto; position:relative; z-index:40; direction:' + navDir + '; width:100%; box-sizing:border-box;';
 
     function createTab(id, label, href, svgPath, colorClass, defaultColor, activeColor) {
       var isActive = (id === activeTab);
@@ -760,13 +775,14 @@
     var html = '';
     var defaultColor = '#9aa3b0';
 
+    // DOM order: primary/home FIRST so RTL puts it on the right, LTR on the left.
     if (role === 'sales') {
       var activeColor = '#1d60a2';
-      html += createTab('messages', 'messages', 'calls-list.html', '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>', 'text-gray', defaultColor, activeColor);
-      html += createTab('customers', 'customers', 'customers.html', '<rect x="3" y="5" width="18" height="14" rx="2.5"></rect><circle cx="8.5" cy="11" r="2.2"></circle><path d="M5.3 16c0-1.7 1.4-2.7 3.2-2.7s3.2 1 3.2 2.7"></path><path d="M14.5 10h4M14.5 13.5h3"></path>', 'text-gray', defaultColor, activeColor);
-      html += createTab('tasks', 'tasks', 'sales-tasks.html', '<rect x="4" y="3" width="16" height="18" rx="2.5"></rect><path d="m8 11 2.5 2.5L15 9M8 17h6"></path>', 'text-gray', defaultColor, activeColor);
-      html += createTab('leads', 'leads', 'leads-list.html', '<circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5"></path><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18.5 20c0-2.6-1-4.4-2.5-5.3"></path>', 'text-gray', defaultColor, activeColor);
       html += createTab('main', 'main', 'sales-home.html', '<path d="M3 11 12 3l9 8"></path><path d="M5 9.5V20h14V9.5"></path>', 'text-gray', defaultColor, activeColor);
+      html += createTab('leads', 'leads', 'leads-list.html', '<circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5"></path><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18.5 20c0-2.6-1-4.4-2.5-5.3"></path>', 'text-gray', defaultColor, activeColor);
+      html += createTab('tasks', 'tasks', 'sales-tasks.html', '<rect x="4" y="3" width="16" height="18" rx="2.5"></rect><path d="m8 11 2.5 2.5L15 9M8 17h6"></path>', 'text-gray', defaultColor, activeColor);
+      html += createTab('customers', 'customers', 'customers.html', '<rect x="3" y="5" width="18" height="14" rx="2.5"></rect><circle cx="8.5" cy="11" r="2.2"></circle><path d="M5.3 16c0-1.7 1.4-2.7 3.2-2.7s3.2 1 3.2 2.7"></path><path d="M14.5 10h4M14.5 13.5h3"></path>', 'text-gray', defaultColor, activeColor);
+      html += createTab('messages', 'messages', 'calls-list.html', '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>', 'text-gray', defaultColor, activeColor);
     } else if (role === 'service') {
       var activeColor = '#2e8a63';
       html += createTab('service', 'service', 'service-all-calls.html?status=open', '<path d="M4 13a8 8 0 0 1 16 0"></path><rect x="2.5" y="13" width="4" height="7" rx="1.6"></rect><rect x="17.5" y="13" width="4" height="7" rx="1.6"></rect>', 'text-gray', defaultColor, activeColor);
@@ -776,11 +792,11 @@
       html += createTab('tasks', 'tasks', 'sales-tasks.html', '<rect x="4" y="3" width="16" height="18" rx="2.5"></rect><path d="m8 11 2.5 2.5L15 9M8 17h6"></path>', 'text-gray', defaultColor, activeColor);
     } else if (role === 'tech') {
       var activeColor = '#2e8a63';
-      html += createTab('clock', 'time clock', 'tech-time-clock.html', '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.2 2"/>', 'text-gray', defaultColor, activeColor);
-      html += createTab('service', 'service', 'service-all-calls.html?status=open', '<path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4" height="7" rx="1.6"/><rect x="17.5" y="13" width="4" height="7" rx="1.6"/>', 'text-gray', defaultColor, activeColor);
-      html += createTab('open_calls', 'open tickets', 'tech-open-calls.html', '<path d="M14.6 6.3a3.6 3.6 0 0 0-4.9 4.9l-5.4 5.4a1.5 1.5 0 0 0 2.1 2.1l5.4-5.4a3.6 3.6 0 0 0 4.9-4.9l-2.2 2.2-1.9-.2-.2-1.9z"/>', 'text-gray', defaultColor, activeColor);
-      html += createTab('schedule', 'daily schedule', 'tech-daily-schedule.html', '<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v4M16 3v4"/><path d="M7.5 13h3.5M7.5 16.5h7"/>', 'text-gray', defaultColor, activeColor);
       html += createTab('main', 'main', 'tech-dashboard.html', '<path d="M3 11 12 3l9 8"/><path d="M5 9.5V20h14V9.5"/>', 'text-gray', defaultColor, activeColor);
+      html += createTab('schedule', 'daily schedule', 'tech-daily-schedule.html', '<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v4M16 3v4"/><path d="M7.5 13h3.5M7.5 16.5h7"/>', 'text-gray', defaultColor, activeColor);
+      html += createTab('open_calls', 'open tickets', 'tech-open-calls.html', '<path d="M14.6 6.3a3.6 3.6 0 0 0-4.9 4.9l-5.4 5.4a1.5 1.5 0 0 0 2.1 2.1l5.4-5.4a3.6 3.6 0 0 0 4.9-4.9l-2.2 2.2-1.9-.2-.2-1.9z"/>', 'text-gray', defaultColor, activeColor);
+      html += createTab('service', 'service', 'service-all-calls.html?status=open', '<path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4" height="7" rx="1.6"/><rect x="17.5" y="13" width="4" height="7" rx="1.6"/>', 'text-gray', defaultColor, activeColor);
+      html += createTab('clock', 'time clock', 'tech-time-clock.html', '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.2 2"/>', 'text-gray', defaultColor, activeColor);
     }
 
     footer.innerHTML = html;

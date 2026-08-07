@@ -94,7 +94,7 @@
     }
   </style>
     </head>
-<body data-active-tab="tasks">
+<body data-active-tab="messages">
   <div class="app-viewport">
     <div class="phone-container">
       <div class="screen-card">
@@ -106,7 +106,7 @@
           <!-- Title & Navigation Header -->
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
             <div style="display:flex; align-items:center; gap:10px;">
-              <a href="sales-tasks.html" id="mb-mission-close" style="width:34px; height:34px; border-radius:50%; background:var(--bg-panel); border:1px solid var(--border-panel); color:var(--text-title); display:flex; align-items:center; justify-content:center; text-decoration:none; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+              <a href="calls-list.html" id="mb-mission-close" style="width:34px; height:34px; border-radius:50%; background:var(--bg-panel); border:1px solid var(--border-panel); color:var(--text-title); display:flex; align-items:center; justify-content:center; text-decoration:none; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
                 <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
               </a>
               <div id="mb-form-header-title" style="font-size:20px; font-weight:800; color:var(--text-title);">Add a task</div>
@@ -152,7 +152,7 @@
           <div class="form-card">
             <div class="card-header-title">Association & Resources</div>
             
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
               <div>
                 <label class="field-label">Customer Name</label>
                 <select class="gv-in" id="mb-customer-name" style="width:100%; box-sizing:border-box;">
@@ -164,40 +164,12 @@
                 <select class="gv-in" id="mb-mission-assignee" style="width:100%; box-sizing:border-box;"></select>
               </div>
             </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-              <div>
-                <label class="field-label">Project</label>
-                <select class="gv-in" id="mb-project-name" style="width:100%; box-sizing:border-box;">
-                  <option value="">— Choose Project —</option>
-                </select>
-              </div>
-              <div>
-                <label class="field-label">Color</label>
-                <select class="gv-in" id="mb-choose-color" style="width:100%; box-sizing:border-box;">
-                  <option value="transparent">Default</option>
-                  <option value="red">Red</option>
-                  <option value="yellow" selected>Yellow</option>
-                  <option value="green">Green</option>
-                  <option value="blue">Blue</option>
-                </select>
-              </div>
-              <div>
-                <label class="field-label">Step</label>
-                <select class="gv-in" id="mb-mission-step" style="width:100%; box-sizing:border-box;">
-                  <option value="">— Choose —</option>
-                  <option value="1">Step 1</option>
-                  <option value="2">Step 2</option>
-                  <option value="3">Step 3</option>
-                </select>
-              </div>
-            </div>
           </div>
 
           <!-- Card 4: Schedule -->
           <div class="form-card">
             <div class="mb-adv-section">
-              <div class="mb-adv-label">Time</div>
+              <div class="mb-adv-label">Due in</div>
               <div class="mb-pill-row" id="mb-time-pills">
                 <button type="button" class="mb-pill active" data-time="30min"><span class="mb-pill-dot"></span>30 minutes</button>
                 <button type="button" class="mb-pill" data-time="1h"><span class="mb-pill-dot"></span>1 hour</button>
@@ -205,10 +177,11 @@
                 <button type="button" class="mb-pill" data-time="custom_hours"><span class="mb-pill-dot"></span>Hours <input class="mb-pill-input" id="mb-time-hours" type="number" min="1" inputmode="numeric" /></button>
                 <button type="button" class="mb-pill" data-time="custom_days"><span class="mb-pill-dot"></span>Days <input class="mb-pill-input" id="mb-time-days" type="number" min="1" inputmode="numeric" /></button>
               </div>
+              <div class="mb-date-preview" id="mb-time-preview" style="margin-top:10px; color:var(--color-primary);">Task set for: —</div>
             </div>
 
             <div class="mb-adv-section">
-              <div class="mb-adv-label">Duration</div>
+              <div class="mb-adv-label">On day</div>
               <div class="mb-pill-row" id="mb-duration-pills">
                 <button type="button" class="mb-pill active" data-duration="today"><span class="mb-pill-dot"></span>Today</button>
                 <button type="button" class="mb-pill" data-duration="tomorrow"><span class="mb-pill-dot"></span>Tomorrow</button>

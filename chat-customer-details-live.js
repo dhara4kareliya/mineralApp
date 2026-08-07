@@ -12,6 +12,9 @@
   var allFolders = [];
   var toastTimer = null;
   var hasStarted = false; // prevents double init / double render
+  var suppressLiveUntil = 0; // ignore socket echo right after our own Customer.Edit
+  var loadInFlight = null; // coalesce overlapping Customer.Get refreshes
+  var folderStatusCache = {}; // folderId → Statuses.List rows
 
   var FOLDER_COLORS = {
     '1': '#f87171',
@@ -186,6 +189,8 @@
   }
 
   async function fetchStatusesForFolder(folderId) {
+    var key = String(folderId || '');
+    if (folderStatusCache[key]) return folderStatusCache[key];
     var client = MineralBarApp.getClient();
     try {
       var res = await client.request('Statuses.List', {
@@ -194,7 +199,9 @@
         limit: 25
       });
       var rows = (res && res.data) || [];
-      return Array.isArray(rows) ? rows : [];
+      var list = Array.isArray(rows) ? rows : [];
+      folderStatusCache[key] = list;
+      return list;
     } catch (e) {
       console.error('[DetailsLive] Statuses.List failed for folder', folderId, e);
       return [];
@@ -430,6 +437,10 @@
         if (subStatusId) customerData.internal_sub_status_list = subStatusId;
       }
 
+      // Own write echoes on the socket as customer.* — suppress live reloads briefly
+      // so we don't re-fetch Customer.Get / Statuses.List / rebuild the card in a loop.
+      suppressLiveUntil = Date.now() + 2800;
+
       showToast(t('successToast'));
     } catch (err) {
       console.error('[DetailsLive] Save folder failed', folderId, err);
@@ -538,70 +549,90 @@
   async function loadCustomerDetails(opts) {
     opts = opts || {};
     var silent = !!opts.silent;
-    var loading = document.getElementById('details-loading');
-    var content = document.getElementById('details-content');
-    if (!currentCustomerId) {
-      if (loading && !silent) {
-        var miss = document.getElementById('ui-loading-text');
-        if (miss) miss.textContent = t('missingId');
-        else loading.textContent = t('missingId');
-      }
-      return;
+    // Coalesce: if a load is already running, reuse it (silent callers piggy-back)
+    if (loadInFlight) {
+      if (silent) return loadInFlight;
+      // Non-silent (first paint) waits for the in-flight call then continues below
+      try { await loadInFlight; } catch (e0) { /* ignore */ }
     }
 
-    // Soft refresh: keep card visible — never re-show the loading panel
-    if (!silent) {
-      if (loading) loading.style.display = 'flex';
-      if (content) content.style.display = 'none';
-    }
-
-    try {
-      var res = await MineralBarApp.getCustomer(currentCustomerId);
-      var c = res.customer || {};
-      if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) c = c.data;
-      customerData = c;
-
-      document.getElementById('cust-name').textContent = c.name || ('#' + currentCustomerId);
-      var phoneStr = formatPhone(c.mobile || c.phone || '');
-      var emailStr = c.email || '';
-      document.getElementById('cust-subtitle').textContent = [phoneStr, emailStr].filter(Boolean).join(' · ') || '';
-      document.getElementById('cust-avatar').textContent = initials(c.name || '?');
-      var noteText = (c.notes || c.note || '').trim();
-      var noteElement = document.getElementById('notes-display-box');
-      if (noteElement) {
-        noteElement.textContent = noteText !== "" ? noteText : "-";
-      }
-
-      await renderFolderBlocks(c);
-
-      try {
-        var missionRes = await MineralBarApp.listMissions({ customer_id: currentCustomerId });
-        var openCount = 0;
-        if (missionRes && missionRes.rows) {
-          openCount = missionRes.rows.filter(function (r) {
-            return !(r.is_done || Number(r.done) === 1);
-          }).length;
+    var run = (async function () {
+      var loading = document.getElementById('details-loading');
+      var content = document.getElementById('details-content');
+      if (!currentCustomerId) {
+        if (loading && !silent) {
+          var miss = document.getElementById('ui-loading-text');
+          if (miss) miss.textContent = t('missingId');
+          else loading.textContent = t('missingId');
         }
-        document.getElementById('details-open-missions').textContent = openCount;
-      } catch (me) {
-        document.getElementById('details-open-missions').textContent = '0';
-      }
-
-      if (loading) loading.style.display = 'none';
-      if (content) content.style.display = 'flex';
-
-    } catch (err) {
-      if (silent && content && content.style.display !== 'none') {
-        console.warn('[DetailsLive] silent refresh failed — keeping card', err);
         return;
       }
-      console.error('[DetailsLive] getCustomer failed', err);
-      if (loading) {
-        loading.style.display = 'flex';
-        var errEl = document.getElementById('ui-loading-text');
-        if (errEl) errEl.textContent = t('errorLoading') + err.message;
-        else loading.textContent = t('errorLoading') + err.message;
+
+      // Soft refresh: keep card visible — never re-show the loading panel
+      if (!silent) {
+        if (loading) loading.style.display = 'flex';
+        if (content) content.style.display = 'none';
       }
+
+      try {
+        var res = await MineralBarApp.getCustomer(currentCustomerId);
+        var c = res.customer || {};
+        if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) c = c.data;
+        customerData = c;
+
+        document.getElementById('cust-name').textContent = c.name || ('#' + currentCustomerId);
+        var phoneStr = formatPhone(c.mobile || c.phone || '');
+        var emailStr = c.email || '';
+        document.getElementById('cust-subtitle').textContent = [phoneStr, emailStr].filter(Boolean).join(' · ') || '';
+        document.getElementById('cust-avatar').textContent = initials(c.name || '?');
+        var noteText = (c.notes || c.note || '').trim();
+        var noteElement = document.getElementById('notes-display-box');
+        if (noteElement) {
+          noteElement.textContent = noteText !== "" ? noteText : "-";
+        }
+
+        // After our own save, skip folder rebuild (already reflects UI) — avoids flicker/API storm.
+        // Remote updates still rebuild folders once.
+        if (!silent || Date.now() >= suppressLiveUntil) {
+          await renderFolderBlocks(c);
+        }
+
+        try {
+          var missionRes = await MineralBarApp.listMissions({ customer_id: currentCustomerId });
+          var openCount = 0;
+          if (missionRes && missionRes.rows) {
+            openCount = missionRes.rows.filter(function (r) {
+              return !(r.is_done || Number(r.done) === 1);
+            }).length;
+          }
+          document.getElementById('details-open-missions').textContent = openCount;
+        } catch (me) {
+          document.getElementById('details-open-missions').textContent = '0';
+        }
+
+        if (loading) loading.style.display = 'none';
+        if (content) content.style.display = 'flex';
+
+      } catch (err) {
+        if (silent && content && content.style.display !== 'none') {
+          console.warn('[DetailsLive] silent refresh failed — keeping card', err);
+          return;
+        }
+        console.error('[DetailsLive] getCustomer failed', err);
+        if (loading) {
+          loading.style.display = 'flex';
+          var errEl = document.getElementById('ui-loading-text');
+          if (errEl) errEl.textContent = t('errorLoading') + err.message;
+          else loading.textContent = t('errorLoading') + err.message;
+        }
+      }
+    })();
+
+    loadInFlight = run;
+    try {
+      await run;
+    } finally {
+      if (loadInFlight === run) loadInFlight = null;
     }
   }
 
@@ -621,33 +652,16 @@
     await loadCustomerDetails();
   }
 
-  function onLiveRefresh(ev) {
-    var detail = (ev && ev.detail) || {};
-    var key = String(detail.key || '').toLowerCase();
-    var group = String(detail.group || '').toLowerCase();
-    var relevant =
-      !key ||
-      /customer|lead|crm|mission|ticket|message|chat|reminder|document/.test(key) ||
-      group === 'leads' ||
-      group === 'missions' ||
-      group === 'messages' ||
-      group === 'other' ||
-      group === 'unknown';
-    if (!relevant) return;
-    clearTimeout(window.__mbCustDetailsRtTimer);
-    window.__mbCustDetailsRtTimer = setTimeout(function () {
-      if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-      loadCustomerDetails({ silent: true });
-    }, 400);
+  function scheduleSilentRefresh() {
+    if (Date.now() < suppressLiveUntil) return;
+    if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
+    loadCustomerDetails({ silent: true });
   }
 
   window.addEventListener('mineralbar:ready', start);
-  window.addEventListener('mineralbar:page-refresh', onLiveRefresh);
-  window.addEventListener('mineralbar:realtime', onLiveRefresh);
-  window.addEventListener('mineralbar:leads', onLiveRefresh);
-  window.addEventListener('mineralbar:missions', onLiveRefresh);
-  window.addEventListener('mineralbar:messages', onLiveRefresh);
   // No pageshow re-fetch — resume uses socket only.
+  // Single live path only (LiveSync / bindLiveReload) — duplicate mineralbar:*
+  // listeners + retries were reloading the card 4–6× after every Save for folder.
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       setTimeout(start, 50);
@@ -658,18 +672,16 @@
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
     LiveSync.bind(function () {
-      if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-      loadCustomerDetails({ silent: true });
+      scheduleSilentRefresh();
     }, {
       keys: /customer|lead|crm|mission|ticket|message|chat|reminder|document|socket\.nudge/i,
-      delay: 300,
-      retries: true
+      delay: 450,
+      retries: false
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(function () {
-      if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-      loadCustomerDetails({ silent: true });
-    }, { keys: /customer|lead|crm|mission|ticket|message|chat|reminder|document|socket\.nudge/i, delay: 400 });
+      scheduleSilentRefresh();
+    }, { keys: /customer|lead|crm|mission|ticket|message|chat|reminder|document|socket\.nudge/i, delay: 450 });
   }
 
 })();

@@ -222,7 +222,7 @@
       '</div>' +
 
       '<div style="margin-top:24px; display:flex; gap:12px;">' +
-        '<a href="service-create-task.html?mission_id=' + encodeURIComponent(id) + '" style="flex:1; padding:13px; border-radius:12px; background:var(--color-primary); color:#fff; font-size:14px; font-weight:800; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; box-shadow:0 4px 12px rgba(29,96,162,0.25);">' +
+        '<a href="service-create-task.html?mission_id=' + encodeURIComponent(id) + '&from=tasks" style="flex:1; padding:13px; border-radius:12px; background:var(--color-primary); color:#fff; font-size:14px; font-weight:800; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; box-shadow:0 4px 12px rgba(29,96,162,0.25);">' +
           '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>' +
           '<span>Edit task</span>' +
         '</a>' +

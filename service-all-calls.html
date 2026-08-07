@@ -58,35 +58,36 @@
           style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
           <!-- header: search · title · filter -->
           <div
-            style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 12px; flex:none;">
+            style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 12px; flex:none; gap:8px;">
             <sc-if hint-placeholder-val="{{ false }}" value="{{ searchOpen }}">
-              <input class="mb-search" oninput="{{ onSearch }}" value="{{ search }}" type="text" placeholder="Search calls (Name, No.)..." style="flex:1; border:none; background:#fff; border-radius:99px; padding:10px 16px; font-family:Heebo; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06); text-align:start;" />
-              <button onclick="{{ toggleSearch }}" style="margin-right:10px; border:none; background:none; font-weight:700; color:#1d60a2; cursor:pointer; font-family:Heebo;">Cancel</button>
+              <input class="mb-search" oninput="{{ onSearch }}" value="{{ search }}" type="text" placeholder="{{ searchPlaceholder }}" style="flex:1; border:none; background:#fff; border-radius:99px; padding:10px 16px; font-family:Heebo; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06); text-align:start;" />
+              <button onclick="{{ toggleSearch }}" style="margin-inline-start:10px; border:none; background:none; font-weight:700; color:#1d60a2; cursor:pointer; font-family:Heebo; flex:none;">Cancel</button>
             </sc-if>
             <sc-if hint-placeholder-val="{{ true }}" value="{{ notSearchOpen }}">
-              <button onclick="{{ toggleSearch }}"
-                style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06);">
-                <svg fill="none" height="18" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round"
-                  stroke-width="2" viewbox="0 0 24 24" width="18">
-                  <circle cx="11" cy="11" r="7"></circle>
-                  <path d="m20 20-3.5-3.5"></path>
-                </svg>
-              </button>
-              <div style="font-size:20px; font-weight:800; color:#1f2a3a;">Service calls</div>
+              <div style="flex:1; display:grid; grid-template-columns:40px 1fr 40px; align-items:center; gap:8px; width:100%;">
+                <button onclick="{{ toggleSearch }}"
+                  style="width:40px; height:40px; border-radius:50%; border:none; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06);">
+                  <svg fill="none" height="18" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-width="2" viewbox="0 0 24 24" width="18">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-3.5-3.5"></path>
+                  </svg>
+                </button>
+                <div style="text-align:center; font-size:20px; font-weight:800; color:#1f2a3a; line-height:1.2;">Service calls</div>
+                <button onclick="{{ openFilters }}"
+                  style="width:40px; height:40px; border-radius:50%; border:none; background:{{ filterBtnBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.06); position:relative; justify-self:end;">
+                  <svg fill="none" height="18" stroke="{{ filterBtnIcon }}" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-width="2" viewbox="0 0 24 24" width="18">
+                    <path d="M3 5h18M6 12h12M10 19h4"></path>
+                  </svg>
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasActiveFilters }}">
+                    <span style="position:absolute; top:6px; inset-inline-end:6px; width:8px; height:8px; border-radius:50%; background:#c0392b; border:1.5px solid #fff;"></span>
+                  </sc-if>
+                </button>
+              </div>
             </sc-if>
           </div>
-          <!-- stat cards (also act as status tabs) -->
-          <!-- <div style="display:flex; gap:9px; padding:0 16px 12px; flex:none;">
-            <sc-for as="s" hint-placeholder-count="3" list="{{ stats }}">
-              <button onclick="{{ s.pick }}"
-                style="flex:1; background:{{ s.bg }}; border:1.6px solid {{ s.border }}; border-radius:15px; padding:13px 8px; cursor:pointer; text-align:center;">
-                <div style="font-size:24px; font-weight:800; color:{{ s.numColor }}; line-height:1;">{{ s.count }}</div>
-                <div style="font-size:11.5px; color:{{ s.labelColor }}; margin-top:5px; font-weight:700;">{{ s.label }}
-                </div>
-              </button>
-            </sc-for>
-          </div> -->
-          
+
           <div style="display:flex; gap:9px; padding:0 16px 12px; flex:none;">
             <button onclick="{{ setFilterOpen }}" style="display:flex; align-items:center; gap:6px; background:{{ pillOpenBg }}; border:1.6px solid {{ pillOpenBorder }}; border-radius:99px; padding:6px 12px; cursor:pointer;">
               <svg fill="none" height="14" stroke="{{ pillOpenIconColor }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -202,13 +203,6 @@
                       {{ c.department }}
                     </span>
                   </sc-if>
-                  <!-- Rating Pill -->
-                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.rating }}">
-                    <span
-                      style="display:inline-flex; align-items:center; gap:4px; background:#fff9e6; color:#b08000; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px; border:1px solid #ffe89e;">
-                      ⭐ {{ c.rating }}
-                    </span>
-                  </sc-if>
                 </div>
                 <!-- address -->
                 <div style="display:flex; align-items:center; gap:13px; margin-top:10px;">
@@ -223,16 +217,16 @@
                     </span>
                   </sc-if>
                 </div>
-                <!-- due date + customer number -->
+                <!-- scheduled date + customer number -->
                 <div style="display:flex; flex-wrap:wrap; align-items:center; gap:13px; margin-top:8px;">
                   <sc-if hint-placeholder-val="{{ false }}" value="{{ c.dueDate }}">
-                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:#7b8595;">
+                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:#7b8595;" title="{{ scheduledDateHint }}">
                       <svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round"
                         stroke-width="2" viewbox="0 0 24 24" width="13">
                         <rect height="16" rx="2.5" width="18" x="3" y="4.5"></rect>
                         <path d="M3 9h18M8 2.5v4M16 2.5v4"></path>
                       </svg>
-                      Due date: {{ c.dueDate }}
+                      Scheduled date: {{ c.dueDate }}
                     </span>
                   </sc-if>
                   <sc-if hint-placeholder-val="{{ false }}" value="{{ c.cust_id }}">
@@ -282,6 +276,65 @@
             </button>
           </div>
 
+          <!-- ============ FILTER SHEET ============ -->
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ filtersOpen }}">
+            <div style="position:absolute; inset:0; z-index:60;">
+              <div onclick="{{ closeFilters }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
+              <div
+                style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; max-height:88%; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -8px 28px rgba(15,24,40,.18);">
+                <div style="flex:none; padding:14px 18px 0;">
+                  <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 14px;"></div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
+                    <div style="font-size:19px; font-weight:800; color:#1f2a3a;">Filtering and sorting</div>
+                    <button onclick="{{ clearFilters }}"
+                      style="border:none; background:none; color:#c0392b; font-size:13.5px; font-weight:700; cursor:pointer;">Clear all</button>
+                  </div>
+                </div>
+
+                <div class="dc-scroll"
+                  style="flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; padding:0 18px 12px;">
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">Status</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                    <sc-for as="o" hint-placeholder-count="3" list="{{ statusOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">Priority</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                    <sc-for as="o" hint-placeholder-count="3" list="{{ prioOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
+                        <span style="width:7px; height:7px; border-radius:50%; background:{{ o.dot }};"></span>
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ dateFilterLabel }}</div>
+                  <div style="position:relative; margin-bottom:8px;">
+                    <input type="date" class="mb-search" oninput="{{ onFilterDate }}" value="{{ filterDate }}"
+                      style="width:100%; box-sizing:border-box; height:46px; padding:10px 14px; border:1.5px solid #e4e8ee; border-radius:12px; font-size:14px; color:#1f2a3a; background:#fff; font-family:Heebo,sans-serif;" />
+                    <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFilterDate }}">
+                      <button type="button" onclick="{{ clearFilterDate }}"
+                        style="margin-top:10px; border:none; background:none; color:#1d60a2; font-size:13px; font-weight:700; cursor:pointer; padding:0;">{{ clearDateLabel }}</button>
+                    </sc-if>
+                  </div>
+                </div>
+
+                <div style="flex:none; padding:12px 18px 22px; border-top:1px solid #eef0f3; background:#fff;">
+                  <button onclick="{{ closeFilters }}"
+                    style="width:100%; padding:14px; border:none; border-radius:13px; background:#1d60a2; color:#fff; font-size:15px; font-weight:800; cursor:pointer;">
+                    {{ showResultsLabel }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
          
         </div>
       </div>
@@ -291,12 +344,15 @@
 class Component extends DCLogic {
   state = {
     loading: true,
-    tab: 'toschedule',
-    sort: 'id',
+    tab: '',
     ticketStatus: 'open',
     search: '',
     searchOpen: false,
     filtersOpen: false,
+    filterPrio: '',
+    filterStatus: '',
+    filterDate: '',
+    langTick: 0,
   };
 
   BADGE = {
@@ -316,16 +372,16 @@ class Component extends DCLogic {
     { id: 'done', label: 'Completed' },
   ];
 
-  REGIONS = ['Center', 'North', 'South', 'Jerusalem'];
-  TYPES = ['Technical Service', 'Main filter installation', 'Water softener installation', 'Electric bidet installation', 'Filter replacement', 'Under sink system', 'Under sink + grinder', 'Garbage disposal installation', 'Water bar installation'];
-  PRIO = { urgent: { label: 'Urgent' }, normal: { label: 'Normal' }, low: { label: 'Low' } };
+  PRIO = {
+    urgent: { label: 'Urgent', color: '#a3302e', bg: '#fbeeed', border: '#f1c9c4', dot: '#c0392b' },
+    normal: { label: 'Regular', color: '#194f84', bg: '#eaf2fb', border: '#aecbe9', dot: '#1d60a2' },
+    low: { label: 'Low', color: '#5a6473', bg: '#f1f3f6', border: '#d3d9e0', dot: '#8a93a3' },
+  };
   PRIO_LIST = ['urgent', 'normal', 'low'];
-
-  SORTS = [
-    { id: 'id', label: 'Ticket ID' },
-    { id: 'wait', label: 'Waiting time' },
-    { id: 'date', label: 'Date' },
-    { id: 'name', label: 'Name' },
+  STATUS_LIST = [
+    { id: 'open', label: 'Open', labelHe: 'פתוח' },
+    { id: 'closed', label: 'Close', labelHe: 'סגור' },
+    { id: 'assign', label: 'Assign', labelHe: 'משויך' },
   ];
 
   STAT_TONE = {
@@ -334,23 +390,114 @@ class Component extends DCLogic {
     done: { num: '#2e8a63', activeBg: '#e6f4ec', activeBorder: '#2e8a63' },
   };
 
+  /** Oldest first: more waiting days → older open date → lower ticket id */
+  sortOldToNew(list) {
+    return [...list].sort((a, b) => {
+      var wa = Number(a.wait) || 0;
+      var wb = Number(b.wait) || 0;
+      if (wb !== wa) return wb - wa;
+      var ta = Number(a.ts) || 0;
+      var tb = Number(b.ts) || 0;
+      if (ta && tb && ta !== tb) return ta - tb;
+      if (ta && !tb) return -1;
+      if (!ta && tb) return 1;
+      return (Number(a.ticketIdNum) || 0) - (Number(b.ticketIdNum) || 0);
+    });
+  }
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
   waitTone(d) {
     if (d > 3) return { color: '#c0392b', bg: '#fbeeed' };
     if (d >= 1) return { color: '#bd8324', bg: '#fdf1dd' };
     return { color: '#2e8a63', bg: '#e6f4ec' };
   }
+
   waitLabel(d) {
-    if (d === 0) return 'Opened today';
-    return 'Waiting ' + d + (d === 1 ? ' day' : ' days');
+    var n = Number(d) || 0;
+    if (n <= 0) return this.t('Waiting 0 days', 'ממתין 0 ימים');
+    if (n === 1) return this.t('Waiting 1 day', 'ממתין 1 יום');
+    return this.t('Waiting ' + n + ' days', 'ממתין ' + n + ' ימים');
   }
 
-  setTab(id) { this.setState({ tab: id }); }
+  ageLabel(d) {
+    var n = Number(d) || 0;
+    if (n <= 0) return this.t('Opened today', 'נפתח היום');
+    if (n === 1) return this.t('1 day ago', 'לפני יום');
+    return this.t(n + ' days ago', 'לפני ' + n + ' ימים');
+  }
+
+  resolvePrio(t) {
+    var raw = String(
+      (t && (t.priority || t.prio || t.ticket_priority)) ||
+      (t && t.custom_fields && (t.custom_fields.priority || t.custom_fields.prio)) ||
+      ''
+    ).toLowerCase().trim();
+    if (raw === 'urgent' || raw === 'high' || raw === 'דחוף') return 'urgent';
+    if (raw === 'low' || raw === 'נמוך' || raw === 'נמוכה') return 'low';
+    if (raw === 'normal' || raw === 'regular' || raw === 'רגיל' || raw === 'רגילה') return 'normal';
+    // Do not map old star/rating values — default to Regular
+    return 'normal';
+  }
+
+  setTab(id) {
+    if (id === 'done') {
+      this.setState({ tab: id, ticketStatus: 'closed' });
+      try {
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', 'service-all-calls.html?status=closed');
+        }
+      } catch (e) { /* ignore */ }
+      return;
+    }
+    this.setState({ tab: id, ticketStatus: 'open' });
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', 'service-all-calls.html?status=open');
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   openFilters() { this.setState({ filtersOpen: true }); }
   closeFilters() { this.setState({ filtersOpen: false }); }
-  clearFilters() { this.setState({ ticketStatus: 'open', sort: 'id' }); }
-  setFilter(key, val) { this.setState(s => ({ [key]: s[key] === val ? 'open' : val })); }
-  setSort(id) { this.setState({ sort: id }); }
-  
+  clearFilters() {
+    this.setState({
+      filterPrio: '',
+      filterStatus: '',
+      filterDate: '',
+      tab: '',
+      ticketStatus: 'open',
+    });
+  }
+  setFilter(key, val) {
+    this.setState(s => ({ [key]: s[key] === val ? '' : val }));
+  }
+  setFilterStatus(id) {
+    var next = this.state.filterStatus === id ? '' : id;
+    var patch = { filterStatus: next };
+    if (next === 'closed') {
+      patch.ticketStatus = 'closed';
+      patch.tab = 'done';
+    } else if (next === 'open' || next === 'assign') {
+      patch.ticketStatus = 'open';
+      patch.tab = '';
+    }
+    this.setState(patch);
+  }
+  onFilterDate(e) {
+    var val = (e && e.target && e.target.value) || '';
+    this.setState({ filterDate: String(val) });
+  }
+  clearFilterDate() {
+    this.setState({ filterDate: '' });
+  }
+
   toggleSearch() { this.setState(s => ({ searchOpen: !s.searchOpen, search: '' })); }
   onSearch(e) { this.setState({ search: e.target.value }); }
 
@@ -363,13 +510,19 @@ class Component extends DCLogic {
       else status = 'open';
     } catch (e) { status = 'open'; }
     if (this.state.ticketStatus !== status) {
-      this.setState({ ticketStatus: status });
+      this.setState({
+        ticketStatus: status,
+        tab: status === 'closed' ? 'done' : '',
+      });
     }
   }
 
   setTicketStatusFilter(status) {
     var next = status === 'closed' ? 'closed' : 'open';
-    this.setState({ ticketStatus: next });
+    this.setState({
+      ticketStatus: next,
+      tab: next === 'closed' ? 'done' : '',
+    });
     try {
       if (window.history && window.history.replaceState) {
         window.history.replaceState(null, '', 'service-all-calls.html?status=' + next);
@@ -393,32 +546,77 @@ class Component extends DCLogic {
     return false;
   }
 
+  phoneDigits(raw) {
+    return String(raw || '').replace(/\D+/g, '');
+  }
+
+  toDateKey(raw) {
+    if (!raw) return '';
+    var d = raw instanceof Date ? raw : new Date(raw);
+    if (isNaN(d.getTime())) {
+      var s = String(raw);
+      var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return m[1] + '-' + m[2] + '-' + m[3];
+      var m2 = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      if (m2) return m2[3] + '-' + m2[2] + '-' + m2[1];
+      return '';
+    }
+    var y = d.getFullYear();
+    var mo = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + mo + '-' + day;
+  }
+
   filtered() {
     const st = this.state;
-    const q = st.search.toLowerCase();
+    const q = String(st.search || '').trim().toLowerCase();
+    const qDigits = this.phoneDigits(st.search);
     const statusFilter = st.ticketStatus;
+    const dateKey = String(st.filterDate || '').trim();
 
     let list = this.CALLS.filter(c => {
-      // Open / Close pills: show matching tickets across buckets
       if (statusFilter === 'open') {
         if (c.isDoneFlag) return false;
+        if (st.tab && st.tab !== 'done' && c.bucket !== st.tab) return false;
       } else if (statusFilter === 'closed') {
         if (!c.isDoneFlag) return false;
-      } else if (c.bucket !== st.tab) {
+      } else if (st.tab && c.bucket !== st.tab) {
         return false;
       }
 
+      if (st.filterPrio && c.prio !== st.filterPrio) return false;
+
+      if (st.filterStatus === 'open') {
+        // Open = open tickets that are NOT assigned yet
+        if (c.isDoneFlag || c.isAssigned) return false;
+      } else if (st.filterStatus === 'closed') {
+        if (!c.isDoneFlag) return false;
+      } else if (st.filterStatus === 'assign') {
+        // Assign = open tickets that already have a technician
+        if (c.isDoneFlag || !c.isAssigned) return false;
+      }
+
+      if (dateKey) {
+        var openKey = c.openDateKey || '';
+        var dueKey = c.dueDateKey || '';
+        if (openKey !== dateKey && dueKey !== dateKey) return false;
+      }
+
       if (q) {
-        if (!c.name.toLowerCase().includes(q) && !c.id.toLowerCase().includes(q)) {
-          return false;
-        }
+        var name = String(c.name || '').toLowerCase();
+        var id = String(c.id || '').toLowerCase();
+        var phone = this.phoneDigits(c.phone);
+        var custId = String(c.cust_id || '').toLowerCase();
+        var hitName = name.indexOf(q) !== -1;
+        var hitId = id.indexOf(q) !== -1 || custId.indexOf(q) !== -1;
+        var hitPhone = qDigits.length >= 2 && phone.indexOf(qDigits) !== -1;
+        if (!hitName && !hitId && !hitPhone) return false;
       }
       return true;
     });
-    if (st.sort === 'wait') list = [...list].sort((a, b) => b.wait - a.wait || b.ticketIdNum - a.ticketIdNum);
-    else if (st.sort === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'he') || b.ticketIdNum - a.ticketIdNum);
-    else if (st.sort === 'date') list = [...list].sort((a, b) => b.ts - a.ts || b.ticketIdNum - a.ticketIdNum);
-    else list = [...list].sort((a, b) => b.ticketIdNum - a.ticketIdNum || b.ts - a.ts);
+
+    // Always old → new
+    list = this.sortOldToNew(list);
     return list;
   }
 
@@ -438,7 +636,15 @@ class Component extends DCLogic {
     window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
     // No pageshow re-fetch — returning from another app stays socket-only.
     window.addEventListener('service-nav:open-tickets', () => {
-      this.setState({ ticketStatus: 'open' });
+      this.setState({ ticketStatus: 'open', tab: '' });
+    });
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+        }, 80);
+      }
     });
   }
 
@@ -502,27 +708,32 @@ class Component extends DCLogic {
             badge = 'toschedule';
             bucket = 'toschedule';
           }
+
+          // Assigned = technician/member linked (due_date alone is NOT assign)
+          var assignee =
+            t.assign_member_id ||
+            t.assigned_member_id ||
+            t.team_member_id ||
+            t.assigned_to ||
+            t.assign_to ||
+            t.member_id ||
+            (t.custom_fields && (t.custom_fields.assign_member_id || t.custom_fields.team_member_id));
+          var assigneeStr = assignee == null ? '' : String(assignee).trim();
+          var isAssigned = !closed && !!assigneeStr && assigneeStr !== '0' && assigneeStr.toLowerCase() !== 'null';
           
           let wait = 0;
-          let age = 'Opened today';
+          let age = this.ageLabel(0);
           if (t.open_date) {
             const open = new Date(t.open_date);
             const now = new Date();
             const diff = Math.floor((now - open) / (1000 * 60 * 60 * 24));
             if (diff > 0) {
               wait = diff;
-              if (diff === 1) age = '1 day ago';
-              else if (diff === 2) age = '2 days ago';
-              else age = diff + ' days ago';
             }
+            age = this.ageLabel(wait);
           }
-          
-          let prio = 'normal';
-          if (t.rating === '5' || t.rating === '4') {
-            prio = 'urgent';
-          } else if (t.rating === '1') {
-            prio = 'low';
-          }
+
+          let prio = this.resolvePrio(t);
           
           let descText = '';
           if (t.messages && t.messages.length) {
@@ -535,15 +746,18 @@ class Component extends DCLogic {
           }
           
           let dueDateStr = '';
+          let dueDateKey = '';
           if (t.due_date) {
             const d = new Date(t.due_date);
             const day = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const year = d.getFullYear();
             dueDateStr = day + '/' + month + '/' + year;
+            dueDateKey = this.toDateKey(t.due_date);
           }
 
           const ticketIdNum = Number(t.ticket_id) || Number(String(t.ticket_id || '').replace(/\D/g, '')) || 0;
+          const openDateKey = this.toDateKey(t.open_date);
 
           return {
             id: '#SRV-' + t.ticket_id,
@@ -556,11 +770,14 @@ class Component extends DCLogic {
             wait: wait,
             charge: t.approved_by_customer === 1 || sid === 3,
             isDoneFlag: closed,
+            isAssigned: isAssigned,
             address: t.address || '',
             region: t.city_id && t.city_id !== 'undefined' ? t.city_id : 'Center',
             prio: prio,
             desc: descText,
             ts: t.open_date ? new Date(t.open_date).getTime() / 1000 : 0,
+            openDateKey: openDateKey,
+            dueDateKey: dueDateKey,
             department: t.department === 341 ? 'Customer Service' : 'Technical Service',
             rating: t.rating || '0',
             dueDate: dueDateStr,
@@ -627,7 +844,9 @@ class Component extends DCLogic {
   }
 
   renderVals() {
+    void this.state.langTick;
     const st = this.state;
+    const loading = !!st.loading;
 
     const counts = {
       toschedule: this.CALLS.filter(c => c.bucket === 'toschedule').length,
@@ -636,7 +855,8 @@ class Component extends DCLogic {
     };
 
     const stats = this.TABS.map(t => {
-      const on = t.id === st.tab;
+      const on = (t.id === 'done' && st.ticketStatus === 'closed') ||
+        (t.id === st.tab && st.ticketStatus === 'open');
       const tone = this.STAT_TONE[t.id];
       return {
         label: t.label, count: counts[t.id], pick: () => this.setTab(t.id),
@@ -650,13 +870,12 @@ class Component extends DCLogic {
       const b = this.BADGE[c.badge] || { label: c.badge, color: '#1d60a2', bg: '#eaf2fb' };
       const wt = this.waitTone(c.wait);
       return {
-        id: c.id, name: c.name, age: c.age, type: c.type, address: c.address, desc: c.desc, charge: c.charge,
+        id: c.id, name: c.name, age: c.age || this.ageLabel(c.wait), type: c.type, address: c.address, desc: c.desc, charge: c.charge,
         badge: b.label, badgeColor: b.color, badgeBg: b.bg,
         showBadge: c.badge !== 'tocollect',
         isToSchedule: c.badge === 'toschedule', isScheduled: c.badge === 'scheduled', isNew: c.badge === 'new', isDone: c.badge === 'done', isToCollect: c.badge === 'tocollect',
         wait: this.waitLabel(c.wait), waitColor: wt.color, waitBg: wt.bg,
         department: c.department,
-        rating: c.rating,
         dueDate: c.dueDate,
         cust_id: c.cust_id,
         goCard: () => { window.location.href = 'service-call-details.html?ticket_id=' + c.id.replace('#SRV-', ''); },
@@ -665,27 +884,41 @@ class Component extends DCLogic {
       };
     });
 
-    const curTab = this.TABS.find(t => t.id === st.tab);
     const sectionTitle = { toschedule: 'Waiting for scheduling', tocollect: 'Waiting for collection', done: 'Recently completed' };
-    let sectionLabel = sectionTitle[st.tab];
+    let sectionLabel = 'Open tickets';
     if (st.ticketStatus === 'closed') sectionLabel = 'Recently completed';
-    else if (st.ticketStatus === 'open') sectionLabel = 'Open tickets';
+    else if (st.tab && sectionTitle[st.tab]) sectionLabel = sectionTitle[st.tab];
 
-    const sorts = this.SORTS.map(s => { const on = s.id === st.sort; return { label: s.label, pick: () => this.setSort(s.id), ...this.chip(on) }; });
-
-    const mkOpts = (arr, key, getLabel) => arr.map(v => {
-      const on = st[key] === v;
-      return { label: getLabel ? getLabel(v) : v, pick: () => this.setFilter(key, v), ...this.chip(on) };
+    const statusOpts = this.STATUS_LIST.map(s => {
+      const on = st.filterStatus === s.id;
+      return {
+        label: this.t(s.label, s.labelHe),
+        pick: () => this.setFilterStatus(s.id),
+        ...this.chip(on),
+      };
     });
-    const isEn = typeof window !== 'undefined' && typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    const prioOpts = this.PRIO_LIST.map(id => {
+      const meta = this.PRIO[id];
+      const on = st.filterPrio === id;
+      return {
+        label: this.t(meta.label, id === 'urgent' ? 'דחוף' : (id === 'low' ? 'נמוך' : 'רגיל')),
+        pick: () => this.setFilter('filterPrio', id),
+        dot: meta.dot,
+        ...this.chip(on),
+      };
+    });
 
     const isFiltOpen = st.ticketStatus === 'open';
     const isFiltClosed = st.ticketStatus === 'closed';
+    const hasFilterDate = !!(st.filterDate && String(st.filterDate).trim());
+    const hasActiveFilters = !!(st.filterPrio || st.filterStatus || hasFilterDate);
 
     return {
+      loading,
       searchOpen: st.searchOpen,
       notSearchOpen: !st.searchOpen,
       search: st.search,
+      searchPlaceholder: this.t('Search by name or phone...', 'חיפוש לפי שם או טלפון...'),
       onSearch: e => this.onSearch(e),
       toggleSearch: () => this.toggleSearch(),
       stats,
@@ -695,10 +928,20 @@ class Component extends DCLogic {
       closeFilters: () => this.closeFilters(),
       clearFilters: () => this.clearFilters(),
       filtersOpen: st.filtersOpen,
-      sorts,
+      statusOpts,
+      prioOpts,
+      filterDate: st.filterDate || '',
+      hasFilterDate,
+      dateFilterLabel: this.t('Filter by date', 'סינון לפי תאריך'),
+      clearDateLabel: this.t('Clear date', 'נקה תאריך'),
+      onFilterDate: (e) => this.onFilterDate(e),
+      clearFilterDate: () => this.clearFilterDate(),
       resultCount: list.length,
-      showResultsLabel: 'Show ' + list.length + ' results',
-      hasActiveFilters: false,
+      showResultsLabel: this.t('Show ' + list.length + ' results', 'הצג ' + list.length + ' תוצאות'),
+      hasActiveFilters,
+      filterBtnBg: hasActiveFilters ? '#eaf2fb' : '#fff',
+      filterBtnIcon: hasActiveFilters ? '#1d60a2' : '#1f2a3a',
+      scheduledDateHint: this.t('Date the technician visit is scheduled for', 'התאריך אליו תוזמן ביקור הטכנאי'),
       setFilterOpen: () => this.setTicketStatusFilter('open'),
       setFilterClosed: () => this.setTicketStatusFilter(isFiltClosed ? 'open' : 'closed'),
       pillOpenBg: isFiltOpen ? '#fdf1dd' : '#fff',

@@ -116,6 +116,13 @@
     );
   }
 
+  function isMissionDone(mission) {
+    if (!mission) return false;
+    if (mission.is_done || Number(mission.done) === 1) return true;
+    var col = String(mission.project_column || mission.status || '').toLowerCase();
+    return col === 'completed' || col === 'done' || col === 'col_done' || col === 'col_completed';
+  }
+
   function openTaskDetail(mission) {
     var panel = document.getElementById('task-detail-panel');
     var content = document.getElementById('task-detail-content');
@@ -129,6 +136,7 @@
     var createdAt = mission.date_created || '--';
     var assignee = mission.user_name || mission.assignee_name || mission.assigned_to_name || 'manoj';
     var statusName = mission.project_column || mission.status || 'col_to_do';
+    var alreadyDone = isMissionDone(mission);
 
     var today = todayKey();
     var pri = priorityFromMission(mission, today);
@@ -147,17 +155,23 @@
       priColor = '#2e8a63';
     }
 
-    var dotColor = mission.color || '#2563eb';
+    var doneLabel = uiT('Done', 'בוצע');
+    var titleRow =
+      '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px;">' +
+        '<div style="font-size:20px; font-weight:900; color:var(--text-title); line-height:1.35; flex:1; min-width:0;">' + esc(title) + '</div>' +
+        (alreadyDone
+          ? '<span style="flex:none; padding:8px 14px; border-radius:99px; background:#e6f4ec; color:#2e8a63; font-size:13px; font-weight:800;">' + esc(doneLabel) + '</span>'
+          : '<button type="button" id="mb-btn-mark-done" style="flex:none; padding:8px 16px; border:none; border-radius:99px; background:#2e8a63; color:#fff; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(46,138,99,0.28);">' + esc(doneLabel) + '</button>') +
+      '</div>';
 
     content.innerHTML =
-      '<div style="font-size:20px; font-weight:900; color:var(--text-title); line-height:1.35; margin-bottom:20px;">' + esc(title) + '</div>' +
+      titleRow +
 
       '<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">' +
         '<div style="background:var(--bg-form); border:1px solid var(--border-panel); border-radius:14px; padding:12px 14px;">' +
           '<div style="font-size:11px; font-weight:800; color:var(--text-sub); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px;">STATUS</div>' +
-          '<div style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:800; color:var(--text-title);">' +
-            '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:' + dotColor + '; flex:none;"></span>' +
-            '<span>' + esc(statusName) + '</span>' +
+          '<div style="font-size:13.5px; font-weight:800; color:var(--text-title);">' +
+            esc(alreadyDone ? doneLabel : statusName) +
           '</div>' +
         '</div>' +
 
@@ -198,7 +212,7 @@
       '</div>' +
 
       '<div style="margin-top:24px; display:flex; gap:12px;">' +
-        '<a href="service-create-task.html?mission_id=' + encodeURIComponent(id) + '" style="flex:1; padding:13px; border-radius:12px; background:var(--color-primary); color:#fff; font-size:14px; font-weight:800; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; box-shadow:0 4px 12px rgba(29,96,162,0.25);">' +
+        '<a href="service-create-task.html?mission_id=' + encodeURIComponent(id) + '&from=tasks" style="flex:1; padding:13px; border-radius:12px; background:var(--color-primary); color:#fff; font-size:14px; font-weight:800; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; box-shadow:0 4px 12px rgba(29,96,162,0.25);">' +
           '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>' +
           '<span>Edit task</span>' +
         '</a>' +
@@ -207,6 +221,37 @@
           '<span>Delete</span>' +
         '</button>' +
       '</div>';
+
+    var doneBtn = document.getElementById('mb-btn-mark-done');
+    if (doneBtn) {
+      doneBtn.addEventListener('click', async function () {
+        doneBtn.disabled = true;
+        doneBtn.textContent = uiT('Closing…', 'סוגר…');
+        try {
+          if (window.MineralBarApp && MineralBarApp.doneMission) {
+            await MineralBarApp.doneMission(id);
+          } else {
+            await MineralBarApp.getClient().request('Mission.Done', { id: id });
+          }
+          panel.style.display = 'none';
+          currentStart = 0;
+          if (typeof loadTasks === 'function') loadTasks(currentFilterType);
+          // Return to the screen we entered from (home/chat), not forced tasks stay
+          try {
+            var ref = document.referrer || '';
+            if (ref && /sales-home\.html|chat-customer\.html|calls-list\.html|service-all-calls\.html/i.test(ref) &&
+                window.history.length > 1) {
+              window.history.back();
+            }
+          } catch (eNav) { /* stay on tasks list */ }
+        } catch (err) {
+          console.error('[tasks-live] Mission.Done failed', err);
+          alert(uiT('Failed to close task', 'סגירת משימה נכשלה') + ': ' + ((err && err.message) || err));
+          doneBtn.disabled = false;
+          doneBtn.textContent = doneLabel;
+        }
+      });
+    }
 
     var delBtn = document.getElementById('mb-btn-delete-task');
     if (delBtn) {

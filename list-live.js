@@ -25,16 +25,187 @@
     return parts.join('\n') || String(err);
   }
 
+  function formatProductsPreview(val) {
+    if (val == null || val === '') return '';
+    if (Array.isArray(val)) {
+      return val.map(function (p) {
+        if (p == null) return '';
+        if (typeof p === 'string' || typeof p === 'number') return String(p);
+        return String(p.product_name || p.item_name || p.name || p.title || '').trim();
+      }).filter(Boolean).join(', ');
+    }
+    if (typeof val === 'object') {
+      return String(val.product_name || val.item_name || val.name || val.title || '').trim();
+    }
+    return String(val).trim();
+  }
+
+  var statusMapById = {};
+  var statusMapByName = {};
+  var statusMapsPromise = null;
+
+  function stripHtmlText(s) {
+    return String(s == null ? '' : s)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function statusRowLabel(row) {
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    return stripHtmlText(
+      isEn
+        ? (row.name_en || row.name || row.name_he || row.name_for || row.status_name || row.label)
+        : (row.name_he || row.name || row.name_en || row.name_for || row.status_name || row.label)
+    );
+  }
+
+  function ingestStatusRows(rows) {
+    (rows || []).forEach(function (row) {
+      if (!row) return;
+      var label = statusRowLabel(row);
+      if (!label) return;
+      var color = String(row.color || row.status_color || '').trim() || '#1d60a2';
+      var entry = { name: label, color: color };
+      var id = row.status_id != null ? row.status_id : (row.id != null ? row.id : row.data_id);
+      if (id != null && String(id).trim() !== '') {
+        statusMapById[String(id).trim()] = entry;
+      }
+      statusMapByName[label.toLowerCase()] = entry;
+      if (row.name_en) statusMapByName[String(row.name_en).toLowerCase()] = entry;
+      if (row.name_he) statusMapByName[String(row.name_he).toLowerCase()] = entry;
+    });
+  }
+
+  async function fetchStatusTypePages(client, type) {
+    var start = 0;
+    for (var page = 0; page < 12; page++) {
+      var res = await client.request('Statuses.List', {
+        type: type,
+        limit: 25,
+        length: 25,
+        start: start
+      });
+      var rows = (res && (res.data || res.rows || res.output)) || [];
+      if (!Array.isArray(rows) || !rows.length) break;
+      ingestStatusRows(rows);
+      if (rows.length < 25) break;
+      start += rows.length;
+    }
+  }
+
+  async function ensureStatusMaps() {
+    if (statusMapsPromise) return statusMapsPromise;
+    statusMapsPromise = (async function () {
+      try {
+        if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return statusMapById;
+        var client = MineralBarApp.getClient();
+        if (!client || !client.request) return statusMapById;
+        // Customer.List.status can be customer status, internal folder status, or a label string
+        var types = ['status', 'internal_status', 'customer_status'];
+        for (var i = 0; i < types.length; i++) {
+          try {
+            await fetchStatusTypePages(client, types[i]);
+          } catch (e) { /* try next */ }
+        }
+      } catch (e) {
+        console.warn('[ListLive] Statuses.List failed', e);
+      }
+      return statusMapById;
+    })();
+    return statusMapsPromise;
+  }
+
+  function pickCity(row) {
+    var city = stripHtmlText(
+      row.city || row.city_name || row.town || row.address_city || ''
+    );
+    if (city && city.toLowerCase() !== 'null' && city.toLowerCase() !== 'undefined') return city;
+    var address = stripHtmlText(row.address || row.full_address || '');
+    if (address && address.toLowerCase() !== 'null' && address.toLowerCase() !== 'undefined') return address;
+    return '';
+  }
+
+  function resolveStatus(row) {
+    row = row || {};
+
+    // Customer.List / Customer.Get expose the customer status in `status`
+    // (id like "10086" / "1399", OR already a label like "שולם" / "followup").
+    var rawStatus = stripHtmlText(row.status);
+    var named = stripHtmlText(
+      row.sub_list_data_name ||
+      row.internal_status_name ||
+      row.status_label ||
+      row.status_name ||
+      row.status_text ||
+      ''
+    );
+
+    // 1) Prefer an explicit non-numeric display name from the row
+    if (named && !/^\d+$/.test(named)) {
+      var byNamed = statusMapByName[named.toLowerCase()];
+      return {
+        label: named,
+        color: (byNamed && byNamed.color) || String(row.status_color || row.color || '#1d60a2').trim() || '#1d60a2'
+      };
+    }
+
+    // 2) If status is already a text label (not an id), show it as returned by the API
+    if (rawStatus && !/^\d+$/.test(rawStatus)) {
+      var byRaw = statusMapByName[rawStatus.toLowerCase()];
+      return {
+        label: rawStatus,
+        color: (byRaw && byRaw.color) || '#1d60a2'
+      };
+    }
+
+    // 3) Resolve numeric status id via Statuses.List maps
+    var idCand = [
+      rawStatus,
+      row.sub_list_data,
+      row.status_id,
+      row.internal_status_id
+    ];
+    for (var i = 0; i < idCand.length; i++) {
+      var sid = idCand[i] == null ? '' : String(idCand[i]).trim();
+      if (!sid || !/^\d+$/.test(sid)) continue;
+      if (statusMapById[sid]) {
+        return {
+          label: statusMapById[sid].name,
+          color: statusMapById[sid].color || '#1d60a2'
+        };
+      }
+    }
+
+    return { label: '', color: '#1d60a2' };
+  }
+
   function pick(row) {
     var id = row.customer_id || row.contactus_id || row.id || row.ID || '';
     var name = row.name || row.customer_name || row.full_name || row.cname || row.title || ('#' + id);
     var phone = row.phone || row.mobile || row.cellphone || row.tel || '';
-    var city = row.city || row.town || row.address_city || row.address || '';
+    var city = pickCity(row);
     var email = row.email || '';
-    var status = row.status_name || row.status_label || row.status || '';
+    var st = resolveStatus(row);
     var created = row.date_created || row.created_at || row.date || row.opendate || '';
-    var products = row.products || row.product || row.last_product || '';
-    return { id: id, name: name, phone: phone, city: city, email: email, status: status, created: created, products: products, raw: row };
+    var products = formatProductsPreview(row.products || row.product || row.last_product || row.product_name || '');
+    return {
+      id: id,
+      name: name,
+      phone: phone,
+      city: city,
+      email: email,
+      status: st.label,
+      statusColor: st.color,
+      created: created,
+      products: products,
+      raw: row
+    };
   }
 
   function initials(name) {
@@ -144,24 +315,221 @@
     );
   }
 
+  function productIconSvg(size, stroke) {
+    size = size || 16;
+    stroke = stroke || '#1d60a2';
+    return (
+      '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="' + stroke + '" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>' +
+      '<path d="M3.3 7 12 12l8.7-5M12 22V12"/>' +
+      '</svg>'
+    );
+  }
+
   function customerCard(c) {
     var detail = customerHref('service-customer-card.html', c.id);
-    var av = initials(c.name);
+    var statusLabel = String(c.status || '').trim();
+    var statusColor = String(c.statusColor || '#1d60a2').trim() || '#1d60a2';
+    var statusBg = statusColor.charAt(0) === '#' ? (statusColor + '22') : '#eaf2fb';
+    var productBtnLabel = t('Products', 'מוצרים');
+    var letter = String(c.name || '').trim().charAt(0).toUpperCase() || '?';
     return (
-      '<div data-customer-id="' + esc(c.id) + '" data-status="' + esc(c.status || 'active') + '" style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:9px;text-decoration:none;">' +
-      '<a href="' + detail + '" style="width:44px;height:44px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:15px;flex:none;display:flex;align-items:center;justify-content:center;text-decoration:none;">' + esc(av) + '</a>' +
-      '<div style="flex:1;min-width:0;">' +
-      '<a href="' + detail + '" style="font-size:15.5px;font-weight:800;color:#16223a;text-decoration:none;display:block;">' + esc(c.name) + '</a>' +
-      '<div style="display:flex;align-items:center;gap:11px;margin-top:3px;flex-wrap:wrap;">' +
-      (c.city ? '<span style="font-size:12px;color:#7b8595;">' + esc(c.city) + '</span>' : '') +
-      (c.phone ? '<span style="font-size:12px;color:#7b8595;direction:ltr;">' + esc(c.phone) + '</span>' : '') +
+      '<div data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-status="' + esc(c.status || '') + '" style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:9px;">' +
+      '<a href="' + detail + '" style="width:42px;height:42px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:16px;flex:none;display:flex;align-items:center;justify-content:center;text-decoration:none;text-transform:uppercase;">' + esc(letter) + '</a>' +
+      '<a href="' + detail + '" style="flex:1;min-width:0;text-decoration:none;">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+      '<span style="font-size:15.5px;font-weight:800;color:#16223a;">' + esc(c.name) + '</span>' +
+      (statusLabel
+        ? '<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:' + esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(statusLabel) + '</span>'
+        : '') +
       '</div>' +
-      (c.products ? '<div style="font-size:11.5px;color:#9aa3b0;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(c.products) + '</div>' : '') +
-      '</div>' +
-      (c.phone ? '<a href="https://wa.me/972' + esc(String(c.phone).replace(/\D/g,'').replace(/^0/,'')) + '" target="_blank" rel="noopener" style="padding:6px;border-radius:50%;background:#e6f4ec;color:#2e8a63;display:flex;align-items:center;justify-content:center;text-decoration:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg></a>' : '') +
-      '<a href="' + detail + '" style="text-decoration:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c2c9d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="m15 18-6-6 6-6"/></svg></a>' +
+      (c.city ? '<div style="font-size:12px;color:#7b8595;margin-top:3px;">' + esc(c.city) + '</div>' : '') +
+      '</a>' +
+      '<button type="button" class="mb-cust-products-btn" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" aria-label="' + esc(productBtnLabel) + '" title="' + esc(productBtnLabel) + '" style="width:36px;height:36px;border-radius:10px;border:1px solid #d7e4f4;background:#eaf2fb;color:#1d60a2;display:inline-flex;align-items:center;justify-content:center;flex:none;cursor:pointer;padding:0;">' +
+      productIconSvg(17, '#1d60a2') +
+      '</button>' +
       '</div>'
     );
+  }
+
+  function productsSheetHost() {
+    var list = document.getElementById('mb-live-list');
+    var screen = list && list.closest('div[style*="height:812"]');
+    if (!screen) screen = list && list.parentElement && list.parentElement.parentElement;
+    if (!screen) screen = document.body;
+    try {
+      var pos = window.getComputedStyle(screen).position;
+      if (!pos || pos === 'static') screen.style.position = 'relative';
+    } catch (e) { /* ignore */ }
+    return screen;
+  }
+
+  function closeCustomerProductsSheet() {
+    var sheet = document.getElementById('mb-cust-products-sheet');
+    if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
+  }
+
+  function normalizeProductRows(raw) {
+    var list = [];
+    if (!raw) return list;
+    if (Array.isArray(raw)) list = raw;
+    else if (Array.isArray(raw.data)) list = raw.data;
+    else if (Array.isArray(raw.rows)) list = raw.rows;
+    else if (Array.isArray(raw.products)) list = raw.products;
+    else if (Array.isArray(raw.output)) list = raw.output;
+    else if (raw.output && Array.isArray(raw.output.data)) list = raw.output.data;
+    else if (raw.data && Array.isArray(raw.data.products)) list = raw.data.products;
+
+    return list.map(function (p) {
+      if (!p) return null;
+      var name = String(p.product_name || p.item_name || p.name || p.title || '').trim();
+      if (!name) return null;
+      return {
+        name: name,
+        qty: p.item_qty != null ? String(p.item_qty) : '',
+        price: p.price || (p.coin && p.item_price ? (String(p.coin) + String(p.item_price)) : (p.item_price || p.item_total || '')),
+        date: p.date_display || p.date_created || '',
+        type: p.document_type_label || p.document_type || p.order_type || '',
+        doc: p.last_documents_id || p.document_id || ''
+      };
+    }).filter(Boolean);
+  }
+
+  async function fetchCustomerProducts(customerId) {
+    var cid = String(customerId || '').trim();
+    if (!cid) return [];
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
+      throw new Error('App not ready');
+    }
+    var client = MineralBarApp.getClient();
+    if (!client || !client.getToken || !client.getToken()) {
+      throw new Error('Not authenticated');
+    }
+    var attempts = [
+      { customer_id: cid, page_id: 1, limit: 25 },
+      { cust_id: cid, page_id: 1, limit: 25 },
+      { customer_id: cid, length: 25, start: 0 }
+    ];
+    var lastErr = null;
+    for (var i = 0; i < attempts.length; i++) {
+      try {
+        var res = await client.request('Documents.Products', attempts[i]);
+        if (res && String(res.success) === '0') {
+          lastErr = new Error(res.message || 'Documents.Products failed');
+          continue;
+        }
+        return normalizeProductRows(res);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (lastErr) throw lastErr;
+    return [];
+  }
+
+  function renderProductsSheetBody(products, err) {
+    if (err) {
+      return (
+        '<div style="background:#fbeeed;border:1px solid #f0c9c4;border-radius:12px;padding:12px;color:#7a2e28;font:600 12.5px/1.5 Heebo,sans-serif;">' +
+        esc(apiErrorText(err)) +
+        '</div>'
+      );
+    }
+    if (!products || !products.length) {
+      return (
+        '<div style="text-align:center;padding:28px 12px;">' +
+        '<div style="width:48px;height:48px;border-radius:50%;background:#eaf2fb;color:#1d60a2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">' +
+        productIconSvg(22, '#1d60a2') +
+        '</div>' +
+        '<div style="font-size:14.5px;font-weight:800;color:#5a6473;">' + esc(t('No products', 'אין מוצרים')) + '</div>' +
+        '<div style="font-size:12.5px;color:#9aa3b0;margin-top:6px;">' + esc(t('This customer has no purchased products', 'ללקוח זה אין מוצרים שנרכשו')) + '</div>' +
+        '</div>'
+      );
+    }
+    return products.map(function (p) {
+      var meta = [];
+      if (p.qty) meta.push(t('Qty', 'כמות') + ': ' + p.qty);
+      if (p.price) meta.push(String(p.price));
+      if (p.date) meta.push(String(p.date));
+      if (p.type) meta.push(String(p.type));
+      if (p.doc) meta.push('#' + p.doc);
+      return (
+        '<div style="display:flex;align-items:flex-start;gap:11px;padding:12px 0;border-bottom:1px solid #f0f2f5;">' +
+        '<span style="width:36px;height:36px;border-radius:10px;background:#eaf2fb;color:#1d60a2;display:flex;align-items:center;justify-content:center;flex:none;">' +
+        productIconSvg(16, '#1d60a2') +
+        '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:14px;font-weight:800;color:#1f2a3a;">' + esc(p.name) + '</div>' +
+        (meta.length
+          ? '<div style="font-size:12px;color:#7b8595;margin-top:4px;line-height:1.45;">' + esc(meta.join(' · ')) + '</div>'
+          : '') +
+        '</div></div>'
+      );
+    }).join('');
+  }
+
+  function openCustomerProductsSheet(customerId, customerName) {
+    closeCustomerProductsSheet();
+    var host = productsSheetHost();
+    var title = t('Products', 'מוצרים');
+    var subtitle = customerName
+      ? (customerName + (customerId ? ' · #' + customerId : ''))
+      : (customerId ? ('#' + customerId) : '');
+
+    var wrap = document.createElement('div');
+    wrap.id = 'mb-cust-products-sheet';
+    wrap.setAttribute('style', 'position:absolute;inset:0;z-index:70;display:flex;flex-direction:column;');
+    wrap.innerHTML =
+      '<div data-mb-backdrop="1" style="position:absolute;inset:0;background:#0f1828;opacity:0.4;"></div>' +
+      '<div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:16px 18px calc(22px + env(safe-area-inset-bottom, 0px));max-height:78%;display:flex;flex-direction:column;box-shadow:0 -8px 28px rgba(15,24,40,.12);z-index:71;">' +
+      '<div style="width:42px;height:5px;border-radius:99px;background:#dadfe6;margin:0 auto 12px;flex:none;"></div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex:none;">' +
+      '<button type="button" data-mb-close="1" aria-label="Close" style="width:34px;height:34px;border-radius:50%;border:none;background:#eef0f3;color:#7b8595;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;">' +
+      '<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="15"><path d="M18 6 6 18M6 6l12 12"></path></svg>' +
+      '</button>' +
+      '<div style="flex:1;min-width:0;text-align:center;">' +
+      '<div style="font-size:18px;font-weight:800;color:#1f2a3a;">' + esc(title) + '</div>' +
+      (subtitle ? '<div style="font-size:12px;color:#9aa3b0;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(subtitle) + '</div>' : '') +
+      '</div>' +
+      '<div style="width:34px;flex:none;"></div>' +
+      '</div>' +
+      '<div data-mb-body="1" class="dc-scroll" style="flex:1;overflow-y:auto;min-height:120px;">' +
+      (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function'
+        ? MineralBarLoader.inlineHtml(t('Loading products...', 'טוען מוצרים...'))
+        : '<div class="mb-inline-loader"><div class="mb-page-loader__spin" aria-hidden="true"></div><div class="mb-page-loader__label">' + esc(t('Loading products...', 'טוען מוצרים...')) + '</div></div>') +
+      '</div></div>';
+
+    host.appendChild(wrap);
+    wrap.querySelector('[data-mb-backdrop]').addEventListener('click', closeCustomerProductsSheet);
+    wrap.querySelector('[data-mb-close]').addEventListener('click', closeCustomerProductsSheet);
+
+    var bodyEl = wrap.querySelector('[data-mb-body]');
+    fetchCustomerProducts(customerId).then(function (products) {
+      if (!bodyEl.isConnected) return;
+      bodyEl.innerHTML = renderProductsSheetBody(products, null);
+    }).catch(function (err) {
+      if (!bodyEl.isConnected) return;
+      console.warn('[ListLive] Documents.Products failed', err);
+      bodyEl.innerHTML = renderProductsSheetBody([], err);
+    });
+  }
+
+  function bindProductButtons(listEl) {
+    listEl = document.getElementById('mb-live-list') || listEl;
+    if (!listEl) return;
+    var buttons = listEl.querySelectorAll('.mb-cust-products-btn');
+    buttons.forEach(function (btn) {
+      if (btn.dataset.wired === '1') return;
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var cid = btn.getAttribute('data-customer-id') || '';
+        var cname = btn.getAttribute('data-customer-name') || '';
+        if (!cid) return;
+        openCustomerProductsSheet(cid, cname);
+      });
+    });
   }
 
   function detectMount() {
@@ -310,6 +678,7 @@
     var lastErr = null;
     // SDK already retries transient failures — avoid stacking another 3× page loop.
     try {
+      await ensureStatusMaps();
       var listRes = await MineralBarApp.listCustomers(queryParams);
       if (mount._activeLoadId !== loadId) return;
 
@@ -343,6 +712,7 @@
       el.innerHTML = html;
       applyClientFilters(el);
       bindClientFilters(el);
+      bindProductButtons(el);
       syncChipActiveStyles(getActiveFolderId(mount));
       return;
     } catch (err) {
@@ -629,7 +999,12 @@
       name: row.name || row.customer_name || payload.name || ('#' + id),
       phone: row.phone || row.mobile || payload.mobile || payload.phone || '',
       email: row.email || payload.email || '',
-      city: row.city || row.address || payload.city || ''
+      city: row.city || row.address || payload.city || '',
+      status: row.status,
+      status_id: row.status_id || payload.status_id,
+      status_name: row.status_name || payload.status_name,
+      sub_list_data: row.sub_list_data || payload.sub_list_data,
+      sub_list_data_name: row.sub_list_data_name || payload.sub_list_data_name
     }));
   }
 
@@ -647,6 +1022,7 @@
       wrap.innerHTML = html;
       var next = wrap.firstElementChild;
       if (next) existing.replaceWith(next);
+      bindProductButtons(el);
       console.log('[ListLive] socket updated row', c.id, c.name);
       return true;
     }
@@ -657,6 +1033,7 @@
       el.insertAdjacentHTML('afterbegin', html);
     }
     bumpTotal(1);
+    bindProductButtons(el);
     console.log('[ListLive] socket inserted row', c.id, c.name);
     return true;
   }
@@ -741,6 +1118,9 @@
     start();
   });
   window.addEventListener('mineralbar:language-changed', function () {
+    statusMapsPromise = null;
+    statusMapById = {};
+    statusMapByName = {};
     var mount = detectMount();
     if (!mount) return;
     mount.el.removeAttribute('data-initial-loaded');

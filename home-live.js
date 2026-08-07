@@ -104,7 +104,7 @@
     var pri = priorityLabel(m, today);
     var dot = isOverdue(m, today) ? '#d0432f' : '#1d60a2';
     var href = id
-      ? 'service-create-task.html?mission_id=' + encodeURIComponent(id)
+      ? 'service-create-task.html?mission_id=' + encodeURIComponent(id) + '&from=home'
       : 'sales-tasks.html';
     return (
       '<a href="' + href + '" style="display:flex;align-items:center;gap:11px;padding:14px 2px;border-bottom:1px solid #f0f2f5;text-decoration:none;">' +
@@ -171,42 +171,63 @@
   }
 
   function enableDragScroll(slider) {
-    if (!slider) return;
+    if (!slider || slider.dataset.dragScrollWired === '1') return;
+    slider.dataset.dragScrollWired = '1';
     var isDown = false;
-    var startX;
-    var scrollLeft;
+    var startX = 0;
+    var scrollLeft = 0;
     var isDragging = false;
-    
-    slider.addEventListener('mousedown', function(e) {
+
+    function onDown(clientX) {
       isDown = true;
       isDragging = false;
+      slider.classList.add('is-dragging');
       slider.style.cursor = 'grabbing';
-      startX = e.pageX - slider.offsetLeft;
+      startX = clientX;
       scrollLeft = slider.scrollLeft;
-    });
-    slider.addEventListener('mouseleave', function() {
-      isDown = false;
-      slider.style.cursor = 'grab';
-    });
-    slider.addEventListener('mouseup', function() {
-      isDown = false;
-      slider.style.cursor = 'grab';
-    });
-    slider.addEventListener('mousemove', function(e) {
+    }
+
+    function onMove(clientX, e) {
       if (!isDown) return;
-      e.preventDefault();
-      isDragging = true;
-      var x = e.pageX - slider.offsetLeft;
-      var walk = (x - startX) * 1.5; 
-      slider.scrollLeft = scrollLeft - walk;
+      if (e && e.cancelable) e.preventDefault();
+      var dx = clientX - startX;
+      if (Math.abs(dx) > 4) isDragging = true;
+      slider.scrollLeft = scrollLeft - dx;
+    }
+
+    function onUp() {
+      isDown = false;
+      slider.classList.remove('is-dragging');
+      slider.style.cursor = 'grab';
+      setTimeout(function () { isDragging = false; }, 0);
+    }
+
+    slider.addEventListener('mousedown', function (e) {
+      onDown(e.pageX);
     });
-    slider.addEventListener('click', function(e) {
+    window.addEventListener('mousemove', function (e) {
+      onMove(e.pageX, e);
+    });
+    window.addEventListener('mouseup', onUp);
+
+    slider.addEventListener('touchstart', function (e) {
+      if (!e.touches || !e.touches.length) return;
+      onDown(e.touches[0].pageX);
+    }, { passive: true });
+    slider.addEventListener('touchmove', function (e) {
+      if (!e.touches || !e.touches.length) return;
+      onMove(e.touches[0].pageX, e);
+    }, { passive: false });
+    slider.addEventListener('touchend', onUp);
+    slider.addEventListener('touchcancel', onUp);
+
+    slider.addEventListener('click', function (e) {
       if (isDragging) {
         e.preventDefault();
         e.stopPropagation();
       }
     }, true);
-    slider.addEventListener('dragstart', function(e) {
+    slider.addEventListener('dragstart', function (e) {
       e.preventDefault();
     });
   }

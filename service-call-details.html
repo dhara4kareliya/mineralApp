@@ -420,9 +420,9 @@
     <script data-dc-script="" type="text/x-dc">
   class Component extends DCLogic {
     PRIO = {
-      high:   { label: 'גבוהה', color: '#c0392b', bg: '#fbeeed', border: '#f0c4bf' },
-      normal: { label: 'רגילה', color: '#1d60a2', bg: '#eaf2fb', border: '#aecbe9' },
-      low:    { label: 'נמוכה', color: '#5a6473', bg: '#f4f5f7', border: '#d8dde4' },
+      urgent: { label: 'Urgent', labelHe: 'דחוף', color: '#c0392b', bg: '#fbeeed', border: '#f0c4bf' },
+      normal: { label: 'Regular', labelHe: 'רגיל', color: '#1d60a2', bg: '#eaf2fb', border: '#aecbe9' },
+      low:    { label: 'Low', labelHe: 'נמוך', color: '#5a6473', bg: '#f4f5f7', border: '#d8dde4' },
     };
     STATUS = {
       toschedule: { label: 'לתיאום',  color: '#1d60a2', bg: '#eaf2fb' },
@@ -1008,12 +1008,21 @@
         : status.label;
 
       let prioKey = 'normal';
-      if (t.rating === '5' || t.rating === '4') {
-        prioKey = 'high';
-      } else if (t.rating === '1') {
-        prioKey = 'low';
-      }
-      const prio = this.PRIO[prioKey] || this.PRIO.normal;
+      var rawPrio = String(
+        t.priority || t.prio || t.ticket_priority ||
+        (t.custom_fields && (t.custom_fields.priority || t.custom_fields.prio)) ||
+        ''
+      ).toLowerCase().trim();
+      if (rawPrio === 'urgent' || rawPrio === 'high' || rawPrio === 'דחוף') prioKey = 'urgent';
+      else if (rawPrio === 'low' || rawPrio === 'נמוך' || rawPrio === 'נמוכה') prioKey = 'low';
+      else prioKey = 'normal';
+      const prioMeta = this.PRIO[prioKey] || this.PRIO.normal;
+      const prio = {
+        label: isEn ? prioMeta.label : prioMeta.labelHe,
+        color: prioMeta.color,
+        bg: prioMeta.bg,
+        border: prioMeta.border,
+      };
 
       const feeKey = (t.approved_by_customer === 1 || t.status === 3) ? 'collect' : 'none';
       const fee = this.FEE[feeKey] || this.FEE.none;

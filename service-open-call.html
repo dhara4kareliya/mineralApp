@@ -121,7 +121,6 @@ mbCss('./common.css');
   <div style="flex:1;">
     <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">URGENCY</label>
     <div style="display:flex; align-items:center; gap:6px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; background:#fff; height:46px;">
-      <!-- stars -->
       <sc-for as="s" hint-placeholder-count="5" list="{{ stars }}">
         <svg onclick="{{ s.pick }}" fill="currentColor" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20" style="color:{{ s.color }}; cursor:pointer;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
       </sc-for>
@@ -225,7 +224,7 @@ mbCss('./common.css');
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { callType: 'tech', priority: 'normal', charge: true, cust: null, email: '', phone: '', address: '', phone2: '', city: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '', products: [], productId: '', productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '' };
+  state = { callType: 'tech', charge: true, cust: null, email: '', phone: '', address: '', phone2: '', city: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '', products: [], productId: '', productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '' };
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
@@ -680,14 +679,7 @@ class Component extends DCLogic {
     { id: 'disposal', label: 'התקנת טוחן אשפה', icon: 'iTrash', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' }, full: true },
   ];
 
-  PRIOS = [
-    { id: 'normal', label: 'רגיל', dot: '#1d60a2', tone: { bg: '#eaf2fb', border: '#aecbe9', color: '#194f84' } },
-    { id: 'urgent', label: 'דחוף', dot: '#c0392b', tone: { bg: '#fbeeed', border: '#f1c9c4', color: '#a3302e' } },
-    { id: 'low', label: 'נמוכה', dot: '#8a93a3', tone: { bg: '#f1f3f6', border: '#d3d9e0', color: '#5a6473' } },
-  ];
-
   pickType(id) { this.setState({ callType: id }); }
-  pickPrio(id) { this.setState({ priority: id }); }
   toggleCharge() { this.setState(s => ({ charge: !s.charge })); }
 
   renderVals() {
@@ -701,15 +693,6 @@ class Component extends DCLogic {
         bg: on ? t.tone.bg : '#fff', border: on ? t.tone.border : '#e4e8ee',
         iconColor: on ? t.tone.icon : '#9aa3b0',
         textColor: on ? t.tone.text : '#5a6473',
-      };
-    });
-
-    const priorities = this.PRIOS.map(p => {
-      const on = p.id === this.state.priority;
-      return {
-        label: p.label, pick: () => this.pickPrio(p.id), dot: p.dot,
-        bg: on ? p.tone.bg : '#fff', border: on ? p.tone.border : '#e4e8ee',
-        color: on ? p.tone.color : '#5a6473',
       };
     });
 
@@ -768,7 +751,7 @@ class Component extends DCLogic {
       productPlaceholder,
       onProduct: e => this.setState({ productId: e.target.value }),
       stars,
-      callTypes, priorities,
+      callTypes,
       custName: cust.name,
       custInitials: this.initials(cust.name),
       custMeta,

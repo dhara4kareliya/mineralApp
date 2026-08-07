@@ -56,10 +56,16 @@ mbCss('./common.css');
     
     <div id="mb-status-msg" style="display:none; margin-bottom:14px;"></div>
 
-    <!-- Client Name -->
-    <div class="field-group">
-      <label class="field-label">Client name <span style="color:#e74c3c;">*</span></label>
-      <input id="mb-client-name" class="ds-input" placeholder="Client name" required style="font-weight:600;" />
+    <!-- Full name & optional ID -->
+    <div style="display:flex; gap:10px;" class="field-group">
+      <div style="flex:1.4;">
+        <label class="field-label">Full name <span style="color:#e74c3c;">*</span></label>
+        <input id="mb-client-name" class="ds-input" placeholder="Full name" required style="font-weight:600;" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">ID <span style="color:#9aa3b0; font-weight:500;">(optional)</span></label>
+        <input id="mb-customer-id" class="ds-input" inputmode="numeric" placeholder="Leave empty if none" />
+      </div>
     </div>
 
     <!-- Phone & Email -->
@@ -74,15 +80,39 @@ mbCss('./common.css');
       </div>
     </div>
 
-    <!-- City & Followup -->
+    <!-- City + address details (together on top) -->
+    <div class="field-group">
+      <label class="field-label">City</label>
+      <input id="mb-city" class="ds-input" placeholder="City" />
+    </div>
+
     <div style="display:flex; gap:10px;" class="field-group">
-      <div style="flex:1;">
-        <label class="field-label">City</label>
-        <input id="mb-city" class="ds-input" placeholder="City" />
+      <div style="flex:1.4;">
+        <label class="field-label">Street</label>
+        <input id="mb-street" class="ds-input" placeholder="Street" />
       </div>
       <div style="flex:1;">
-        <label class="field-label">Followup</label>
-        <input id="mb-followup" class="ds-input" type="date" />
+        <label class="field-label">Building number</label>
+        <input id="mb-building" class="ds-input" placeholder="Building number" />
+      </div>
+    </div>
+
+    <div style="display:flex; gap:9px;" class="field-group">
+      <div style="flex:1;">
+        <label class="field-label">Floor</label>
+        <input id="mb-floor" class="ds-input" placeholder="Floor" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Apartment</label>
+        <input id="mb-apartment" class="ds-input" placeholder="Apartment" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Entrance</label>
+        <input id="mb-entrance" class="ds-input" placeholder="Entrance" />
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Area</label>
+        <input id="mb-area" class="ds-input" placeholder="Area" />
       </div>
     </div>
 
@@ -122,15 +152,10 @@ mbCss('./common.css');
       </div>
     </div>
 
-    <!-- Source & Address -->
+    <!-- Source -->
     <div class="field-group">
       <label class="field-label">Source</label>
       <input id="mb-source" class="ds-input" placeholder="Source" />
-    </div>
-
-    <div class="field-group">
-      <label class="field-label">Address</label>
-      <textarea id="mb-address" class="ds-input" rows="2" placeholder="Address" style="resize:vertical;"></textarea>
     </div>
 
     <div class="field-group">
@@ -154,6 +179,12 @@ mbCss('./common.css');
           <option value="">Loading statuses...</option>
         </select>
       </div>
+    </div>
+
+    <!-- Followup (lower on form) -->
+    <div class="field-group">
+      <label class="field-label">Followup</label>
+      <input id="mb-followup" class="ds-input" type="date" />
     </div>
 
     <!-- Submit CTA Button -->
@@ -247,9 +278,16 @@ mbCss('./common.css');
       e.preventDefault();
       
       var nameIn = document.getElementById('mb-client-name');
+      var idIn = document.getElementById('mb-customer-id');
       var phoneIn = document.getElementById('mb-phone');
       var emailIn = document.getElementById('mb-email');
       var cityIn = document.getElementById('mb-city');
+      var streetIn = document.getElementById('mb-street');
+      var buildingIn = document.getElementById('mb-building');
+      var floorIn = document.getElementById('mb-floor');
+      var apartmentIn = document.getElementById('mb-apartment');
+      var entranceIn = document.getElementById('mb-entrance');
+      var areaIn = document.getElementById('mb-area');
       var followupIn = document.getElementById('mb-followup');
       var companyIn = document.getElementById('mb-company');
       var companyIdIn = document.getElementById('mb-company-id');
@@ -258,7 +296,6 @@ mbCss('./common.css');
       var phone2In = document.getElementById('mb-phone-2');
       var email2In = document.getElementById('mb-email-2');
       var sourceIn = document.getElementById('mb-source');
-      var addressIn = document.getElementById('mb-address');
       var noteIn = document.getElementById('mb-note');
       var folderSel = document.getElementById('mb-folders');
       var statusSel = document.getElementById('mb-status');
@@ -267,9 +304,25 @@ mbCss('./common.css');
       var phone = phoneIn ? phoneIn.value.trim() : '';
 
       if (!name || !phone) {
-        showMsg('error', 'Please enter Client name and Phone number.');
+        showMsg('error', 'Please enter Full name and Phone number.');
         return;
       }
+
+      var street = streetIn ? streetIn.value.trim() : '';
+      var building = buildingIn ? buildingIn.value.trim() : '';
+      var floor = floorIn ? floorIn.value.trim() : '';
+      var apartment = apartmentIn ? apartmentIn.value.trim() : '';
+      var entrance = entranceIn ? entranceIn.value.trim() : '';
+      var area = areaIn ? areaIn.value.trim() : '';
+      // Only include parts the user actually filled — empty fields stay out of address
+      var addressParts = [];
+      var streetLine = [street, building].filter(Boolean).join(' ');
+      if (streetLine) addressParts.push(streetLine);
+      if (entrance) addressParts.push('Entrance ' + entrance);
+      if (floor) addressParts.push('Floor ' + floor);
+      if (apartment) addressParts.push('Apt ' + apartment);
+      if (area) addressParts.push(area);
+      var address = addressParts.join(', ');
 
       var btn = document.getElementById('mb-create-client-btn');
       if (btn) { btn.disabled = true; btn.textContent = 'Creating Client…'; }
@@ -288,11 +341,15 @@ mbCss('./common.css');
           second_phone: phone2In ? phone2In.value.trim() : '',
           second_email: email2In ? email2In.value.trim() : '',
           source: sourceIn ? sourceIn.value.trim() : '',
-          address: addressIn ? addressIn.value.trim() : '',
+          address: address,
           note: noteIn ? noteIn.value.trim() : '',
           folder_id: folderSel ? folderSel.value : '2',
           status_id: statusSel ? statusSel.value : ''
         };
+
+        // ID is optional — only send csv_id when numeric; never block create
+        var csvId = idIn ? idIn.value.trim() : '';
+        if (csvId && /^\d+$/.test(csvId)) payload.csv_id = csvId;
 
         if (window.MineralBarApp && typeof MineralBarApp.createCustomer === 'function') {
           await MineralBarApp.createCustomer(payload);

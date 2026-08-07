@@ -98,20 +98,132 @@
     return 'https://wa.me/' + s;
   }
 
-  function statusMeta(c, kind) {
-    var st = String(c.status != null ? c.status : (c.c_status != null ? c.c_status : ''));
-    if (kind === 'customer') {
+  var statusMapById = {};
+  var statusMapByName = {};
+  var statusMapsPromise = null;
+
+  function stripHtmlText(s) {
+    return String(s == null ? '' : s)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function statusRowLabel(row) {
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    return stripHtmlText(
+      isEn
+        ? (row.name_en || row.name || row.name_he || row.name_for || row.status_name || row.label)
+        : (row.name_he || row.name || row.name_en || row.name_for || row.status_name || row.label)
+    );
+  }
+
+  function ingestStatusRows(rows) {
+    (rows || []).forEach(function (row) {
+      if (!row) return;
+      var label = statusRowLabel(row);
+      if (!label) return;
+      var color = String(row.color || row.status_color || '').trim() || '#1d60a2';
+      var entry = { name: label, color: color };
+      var id = row.status_id != null ? row.status_id : (row.id != null ? row.id : row.data_id);
+      if (id != null && String(id).trim() !== '') statusMapById[String(id).trim()] = entry;
+      statusMapByName[label.toLowerCase()] = entry;
+      if (row.name_en) statusMapByName[String(row.name_en).toLowerCase()] = entry;
+      if (row.name_he) statusMapByName[String(row.name_he).toLowerCase()] = entry;
+    });
+  }
+
+  async function fetchStatusTypePages(client, type) {
+    var start = 0;
+    for (var page = 0; page < 12; page++) {
+      var res = await client.request('Statuses.List', {
+        type: type,
+        limit: 25,
+        length: 25,
+        start: start
+      });
+      var rows = (res && (res.data || res.rows || res.output)) || [];
+      if (!Array.isArray(rows) || !rows.length) break;
+      ingestStatusRows(rows);
+      if (rows.length < 25) break;
+      start += rows.length;
+    }
+  }
+
+  async function ensureStatusMaps() {
+    if (statusMapsPromise) return statusMapsPromise;
+    statusMapsPromise = (async function () {
+      try {
+        if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return;
+        var client = MineralBarApp.getClient();
+        if (!client || !client.request) return;
+        var types = ['status', 'internal_status', 'customer_status'];
+        for (var i = 0; i < types.length; i++) {
+          try { await fetchStatusTypePages(client, types[i]); } catch (e) { /* next */ }
+        }
+      } catch (e) {
+        console.warn('[CustomerLive] Statuses.List failed', e);
+      }
+    })();
+    return statusMapsPromise;
+  }
+
+  /** Same resolution as customers list: Customer.Get/List `status` → Statuses.List name */
+  function resolveStatus(c) {
+    c = c || {};
+    var rawStatus = stripHtmlText(c.status);
+    var named = stripHtmlText(
+      c.sub_list_data_name ||
+      c.internal_status_name ||
+      c.status_label ||
+      c.status_name ||
+      c.status_text ||
+      ''
+    );
+
+    if (named && !/^\d+$/.test(named)) {
+      var byNamed = statusMapByName[named.toLowerCase()];
       return {
-        label: Number(st) === 1 || st === '1' ? t('Active', 'פעיל') : (t('Status', 'סטטוס') + ' ' + (st || '—')),
-        bg: '#e6f4ec',
-        color: '#2e8a63'
+        label: named,
+        color: (byNamed && byNamed.color) || String(c.status_color || c.color || '#1d60a2').trim() || '#1d60a2',
+        bg: ''
       };
     }
-    var map = {
-      '1': { label: t('New lead', 'ליד חדש'), bg: '#eaf2fb', color: '#1d60a2' },
-      '0': { label: t('Inactive', 'לא פעיל'), bg: '#f1f3f6', color: '#5a6473' }
-    };
-    return map[st] || { label: st ? (t('Status', 'סטטוס') + ' ' + st) : t('Lead', 'ליד'), bg: '#eaf2fb', color: '#1d60a2' };
+
+    if (rawStatus && !/^\d+$/.test(rawStatus)) {
+      var byRaw = statusMapByName[rawStatus.toLowerCase()];
+      return {
+        label: rawStatus,
+        color: (byRaw && byRaw.color) || '#1d60a2',
+        bg: ''
+      };
+    }
+
+    var idCand = [rawStatus, c.sub_list_data, c.status_id, c.internal_status_id];
+    for (var i = 0; i < idCand.length; i++) {
+      var sid = idCand[i] == null ? '' : String(idCand[i]).trim();
+      if (!sid || !/^\d+$/.test(sid)) continue;
+      if (statusMapById[sid]) {
+        return {
+          label: statusMapById[sid].name,
+          color: statusMapById[sid].color || '#1d60a2',
+          bg: ''
+        };
+      }
+    }
+
+    return { label: '', color: '#1d60a2', bg: '' };
+  }
+
+  function statusMeta(c) {
+    var resolved = resolveStatus(c);
+    if (!resolved.label) {
+      return { label: '', bg: '#f1f3f6', color: '#5a6473' };
+    }
+    var color = resolved.color || '#1d60a2';
+    var bg = color.charAt(0) === '#' ? (color + '22') : '#eaf2fb';
+    return { label: resolved.label, bg: bg, color: color };
   }
 
   function fmtDate(v) {
@@ -218,7 +330,7 @@
     var source = c.source || '';
     var notes = c.notes || '';
     var created = fmtDate(c.date_created);
-    var st = statusMeta(c, kind);
+    var st = statusMeta(c);
     var av = initials(name);
     var chatUrl = 'chat-customer.html?customer_id=' + encodeURIComponent(id) +
       '&name=' + encodeURIComponent(name) +
@@ -227,7 +339,8 @@
     var missionUrl = 'service-create-task.html?customer_id=' + encodeURIComponent(id) +
       '&name=' + encodeURIComponent(name) +
       (phone ? '&phone=' + encodeURIComponent(phone) : '') +
-      (city ? '&city=' + encodeURIComponent(city) : '');
+      (city ? '&city=' + encodeURIComponent(city) : '') +
+      '&from=messages';
 
     var rows = [];
     if (phone) rows.push({ label: t('Phone', 'טלפון'), value: phone, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"/></svg>' });
@@ -247,9 +360,12 @@
       '<div style="flex:1;text-align:right;">' +
       '<div style="display:flex;align-items:center;gap:8px;justify-content:flex-start;flex-wrap:wrap;">' +
       '<span style="font-size:20px;font-weight:800;color:#1f2a3a;">' + esc(name) + '</span>' +
-      '<span style="display:inline-flex;align-items:center;gap:5px;background:' + st.bg + ';color:' + st.color + ';font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:99px;">' +
-      '<span style="width:6px;height:6px;border-radius:50%;background:' + st.color + ';"></span>' + esc(st.label) +
-      '</span></div>' +
+      (st.label
+        ? '<span style="display:inline-flex;align-items:center;gap:5px;background:' + esc(st.bg) + ';color:' + esc(st.color) + ';font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:99px;">' +
+          '<span style="width:6px;height:6px;border-radius:50%;background:' + esc(st.color) + ';"></span>' + esc(st.label) +
+          '</span>'
+        : '') +
+      '</div>' +
       '<div style="font-size:12px;color:#9aa3b0;font-weight:600;margin-top:5px;">' +
       esc(kind === 'lead' ? t('Lead', 'ליד') : t('Customer', 'לקוח')) + ' · #' + esc(id) +
       '</div></div>' +
@@ -345,6 +461,8 @@
     rememberCustomerId(customerId);
 
     try {
+      await ensureStatusMaps();
+      if (mount._activeLoadId !== loadId) return;
       var res = await MineralBarApp.getCustomer(customerId);
       if (mount._activeLoadId !== loadId) return;
 
@@ -413,7 +531,12 @@
   }
 
   window.addEventListener('mineralbar:ready', start);
-  window.addEventListener('mineralbar:language-changed', start);
+  window.addEventListener('mineralbar:language-changed', function () {
+    statusMapsPromise = null;
+    statusMapById = {};
+    statusMapByName = {};
+    start();
+  });
   window.addEventListener('mineralbar:page-refresh', onLiveRefresh);
   window.addEventListener('mineralbar:realtime', onLiveRefresh);
   window.addEventListener('mineralbar:leads', onLiveRefresh);
