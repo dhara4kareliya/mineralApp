@@ -215,7 +215,7 @@ mbCss('./common.css');
     email: '',
     tz: '',
     address: '',
-    companyName: 'mineral bar',
+    companyName: 'mineral app',
     companyPhone: '',
     companyEmail: '',
     invoiceSettingId: '',
@@ -331,7 +331,7 @@ mbCss('./common.css');
       }
       
       var userName = q.get('userName') || q.get('username') || q.get('user_name') || '';
-      var companyName = 'mineral bar';
+      var companyName = 'mineral app';
       var companyPhone = '';
       var companyEmail = '';
       if (window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
@@ -346,13 +346,6 @@ mbCss('./common.css');
         } else if (emailUser) {
           companyEmail = emailUser;
         }
-        try {
-          var basic = typeof MineralBarApp.getUserBasic === 'function' ? MineralBarApp.getUserBasic() : null;
-          var org = (basic && basic.data && basic.data.org) || (basic && basic.org) || null;
-          if (org && (org.name || org.company_name)) {
-            companyName = org.name || org.company_name;
-          }
-        } catch (eOrg) { /* ignore */ }
       }
       if (!userName) {
         userName = 'Yossi Cohen';
@@ -390,12 +383,12 @@ mbCss('./common.css');
               co = coRows.find(function (r) { return r.is_default || Number(r.default_settings) === 1; }) || coRows[0];
             }
             if (co) {
-              companyName = co.company_name || co.name || companyName;
+              // Keep letterhead brand as mineral app
               companyEmail = co.email || companyEmail;
               companyPhone = co.phone || co.mobile || co.company_phone || co.telephone || companyPhone;
               var invoiceSettingId = String(co.id || co.invoice_setting_id || co.invoice_settings_id || '');
               this.setState({
-                companyName: companyName,
+                companyName: 'mineral app',
                 companyEmail: companyEmail,
                 companyPhone: companyPhone,
                 invoiceSettingId: invoiceSettingId
@@ -761,7 +754,7 @@ mbCss('./common.css');
       initials: initials,
       address: s.address,
       userName: s.userName,
-      companyName: s.companyName || 'mineral bar',
+      companyName: s.companyName || 'mineral app',
       companyPhone: s.companyPhone || '',
       companyEmail: s.companyEmail || '',
       backUrl: s.backUrl,

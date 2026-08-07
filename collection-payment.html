@@ -129,34 +129,34 @@ mbCss('./common.css');
               </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">card number</label>
-<input class="gv-input" placeholder="0000 0000 0000 0000" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; letter-spacing:2px;"/>
+<input class="gv-input" placeholder="0000 0000 0000 0000" value="{{ cardNumber }}" oninput="{{ onCardNumber }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; letter-spacing:2px;"/>
 </div>
 <div style="display:flex; gap:12px; margin-bottom:15px;">
 <div style="flex:1;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">validity</label>
-<input class="gv-input" placeholder="MM/YY" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
+<input class="gv-input" placeholder="MM/YY" value="{{ cardExpiry }}" oninput="{{ onCardExpiry }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
 </div>
 <div style="flex:1;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">CVV</label>
-<input class="gv-input" placeholder="•••" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
+<input class="gv-input" placeholder="•••" value="{{ cardCvv }}" oninput="{{ onCardCvv }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
 </div>
 </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Name of the cardholder</label>
-<input class="gv-input" placeholder="as shown on the card" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;"/>
+<input class="gv-input" placeholder="as shown on the card" value="{{ cardHolder }}" oninput="{{ onCardHolder }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;"/>
 </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">T.Z. the cardholder <span style="color:#c0392b;">*</span></label>
-<input class="gv-input" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#eaf7ef;" value="123456789"/>
+<input class="gv-input" value="{{ cardTz }}" oninput="{{ onCardTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#eaf7ef;"/>
 </div>
 <div style="margin-bottom:6px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">number of payments <span style="color:#c0392b;">*</span></label>
-<select style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
-<option>One payment</option>
-<option>2 payments</option>
-<option>3 payments</option>
-<option>6 payments</option>
-<option>12 payments</option>
+<select value="{{ installments }}" onchange="{{ onInstallments }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="1">One payment</option>
+<option value="2">2 payments</option>
+<option value="3">3 payments</option>
+<option value="6">6 payments</option>
+<option value="12">12 payments</option>
 </select>
 </div>
 <div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
@@ -503,7 +503,7 @@ mbCss('./common.css');
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 444, "height": 940}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { method: 'standing', entry: 'manual', checks: [{ id: 1 }], cashReceived: '', installments: '1', docs: [], selectedDocId: '', customerName: 'Customer', customerPhone: '', customerEmail: 'audit@example.com', customerAddress: '-', companyId: '#Company ID', amount: 118, currentDate: '', statusMsg: '', noteInternal: '', noteHeader: '', noteFooter: '', sendMail: false, sendWhatsapp: false, busy: false };
+  state = { method: 'standing', entry: 'manual', checks: [{ id: 1 }], cashReceived: '', installments: '1', cardNumber: '', cardExpiry: '', cardCvv: '', cardHolder: '', cardTz: '', docs: [], selectedDocId: '', customerName: 'Customer', customerPhone: '', customerEmail: '', customerAddress: '', companyId: '', amount: 0, currentDate: '', statusMsg: '', noteInternal: '', noteHeader: '', noteFooter: '', sendMail: false, sendWhatsapp: false, busy: false };
 
   componentDidMount() {
     this.loadData();
@@ -599,9 +599,9 @@ class Component extends DCLogic {
     try {
       var customerName = 'Customer';
       var customerPhone = '';
-      var customerEmail = 'audit@example.com';
-      var customerAddress = '-';
-      var companyId = '#Company ID';
+      var customerEmail = '';
+      var customerAddress = '';
+      var companyId = '';
       if (typeof MineralBarApp.getCustomer === 'function') {
         var cRes = await MineralBarApp.getCustomer(cid).catch(() => null);
         var c = cRes && cRes.customer;
@@ -613,6 +613,9 @@ class Component extends DCLogic {
         var city = (c && (c.city || c.city_name || '')) || '';
         customerAddress = [street, city].filter(Boolean).join(', ').trim() || customerAddress;
         companyId = (c && (c.company_id || c.id_number || c.vat_number || c.corporation || c.id || '')) ? ('#' + (c.company_id || c.id_number || c.vat_number || c.corporation || c.id)) : companyId;
+        if (c && (c.tz || c.id_number || c.identity) && !this.state.cardTz) {
+          this.setState({ cardTz: String(c.tz || c.id_number || c.identity || '') });
+        }
       }
 
       var dRes = await MineralBarApp.getClient().request('Documents.List', {
@@ -765,6 +768,32 @@ class Component extends DCLogic {
     window.location.href = cid ? ('chat-customer.html?customer_id=' + encodeURIComponent(cid)) : 'chat-customer.html';
   }
 
+  buildOrderDocumentUrl(customerId, amount, paymentSnap) {
+    var cur = new URLSearchParams(window.location.search || '');
+    var nextQs = new URLSearchParams();
+    if (customerId) nextQs.set('customer_id', customerId);
+    if (amount) nextQs.set('amount', String(amount));
+    ['product_ids', 'name', 'phone', 'address', 'tz', 'document_id', 'doc_id'].forEach(function (key) {
+      var val = cur.get(key);
+      if (val) nextQs.set(key, val);
+    });
+    if (paymentSnap) {
+      if (paymentSnap.method) nextQs.set('payment_method', paymentSnap.method);
+      if (paymentSnap.installments) nextQs.set('installments', String(paymentSnap.installments));
+      if (paymentSnap.cardLast4) nextQs.set('card_last4', paymentSnap.cardLast4);
+      if (paymentSnap.receiptId) nextQs.set('receipt_id', paymentSnap.receiptId);
+      if (paymentSnap.pdfUrl) nextQs.set('pdf_url', paymentSnap.pdfUrl);
+      if (paymentSnap.advance > 0) nextQs.set('advance', String(paymentSnap.advance));
+    }
+    try {
+      var productIds = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+      if (productIds && !nextQs.get('product_ids')) nextQs.set('product_ids', productIds);
+      var quoteDoc = sessionStorage.getItem('mb_quote_document_id') || '';
+      if (quoteDoc && !nextQs.get('document_id')) nextQs.set('document_id', quoteDoc);
+    } catch (e) { /* ignore */ }
+    return 'order-document.html' + (nextQs.toString() ? ('?' + nextQs.toString()) : '');
+  }
+
   sel(on) {
     return {
       bg: on ? '#eaf2fb' : '#fff',
@@ -874,6 +903,34 @@ class Component extends DCLogic {
           }
           var created = await MineralBarApp.getClient().request('Documents.Add', payload);
           var pdfUrl = this.findPdfUrl(created, 0) || '';
+          var createdId = '';
+          try {
+            var createdData = created && (created.data || created.output || created);
+            if (createdData && typeof createdData === 'object') {
+              createdId = String(createdData.document_id || createdData.inserted_documents_id || createdData.id || createdData.number || '');
+            }
+            if (!createdId && created && typeof created === 'object') {
+              createdId = String(created.document_id || created.inserted_documents_id || created.id || '');
+            }
+          } catch (idErr) { createdId = ''; }
+
+          var cardDigits = String(this.state.cardNumber || '').replace(/\D/g, '');
+          var cardLast4 = cardDigits.length >= 4 ? cardDigits.slice(-4) : '';
+          var paymentSnap = {
+            method: uiMethod,
+            installments: Number(this.state.installments || 1) || 1,
+            cardLast4: cardLast4,
+            amount: amount,
+            paidAt: new Date().toISOString(),
+            receiptId: createdId,
+            pdfUrl: pdfUrl || '',
+            advance: Number(new URLSearchParams(window.location.search).get('advance') || sessionStorage.getItem('mb_install_advance') || 0) || 0
+          };
+          try {
+            sessionStorage.setItem('mb_order_payment', JSON.stringify(paymentSnap));
+            if (createdId) sessionStorage.setItem('mb_receipt_document_id', createdId);
+            if (pdfUrl) sessionStorage.setItem('mb_quote_pdf_url', pdfUrl);
+          } catch (snapErr) { /* ignore */ }
 
           // Explicit Biz1 channel send when checkboxes are checked
           if (this.state.sendMail || this.state.sendWhatsapp) {
@@ -889,7 +946,7 @@ class Component extends DCLogic {
               var fromOrderSoft = false;
               try { fromOrderSoft = new URLSearchParams(window.location.search).get('from') === 'order'; } catch (eSoft) {}
               setTimeout(() => {
-                window.location.href = fromOrderSoft ? 'order-document.html' : 'document-issuance.html';
+                window.location.href = fromOrderSoft ? this.buildOrderDocumentUrl(customerId, amount, paymentSnap) : 'document-issuance.html';
               }, 1200);
               return;
             }
@@ -898,11 +955,8 @@ class Component extends DCLogic {
           this.setState({ statusMsg: 'Collection saved successfully' });
           var fromOrder = false;
           try { fromOrder = new URLSearchParams(window.location.search).get('from') === 'order'; } catch (e) {}
-          var nextQs = new URLSearchParams();
-          if (customerId) nextQs.set('customer_id', customerId);
-          if (amount) nextQs.set('amount', String(amount));
-          var nextBase = fromOrder ? 'order-document.html' : 'document-issuance.html';
-          setTimeout(() => { window.location.href = nextBase + (nextQs.toString() ? ('?' + nextQs.toString()) : ''); }, 350);
+          var nextBase = fromOrder ? this.buildOrderDocumentUrl(customerId, amount, paymentSnap) : 'document-issuance.html';
+          setTimeout(() => { window.location.href = nextBase; }, 350);
         } catch (err) {
           this.setState({ statusMsg: 'Failed to save collection: ' + ((err && err.message) || 'unknown error') });
         } finally {
@@ -936,6 +990,16 @@ class Component extends DCLogic {
       sendWhatsapp: !!this.state.sendWhatsapp,
       installments: this.state.installments,
       onInstallments: (e) => this.setState({ installments: e.target.value }),
+      cardNumber: this.state.cardNumber || '',
+      cardExpiry: this.state.cardExpiry || '',
+      cardCvv: this.state.cardCvv || '',
+      cardHolder: this.state.cardHolder || '',
+      cardTz: this.state.cardTz || '',
+      onCardNumber: (e) => this.setState({ cardNumber: this.noteValue(e).replace(/[^\d\s]/g, '') }),
+      onCardExpiry: (e) => this.setState({ cardExpiry: this.noteValue(e) }),
+      onCardCvv: (e) => this.setState({ cardCvv: this.noteValue(e).replace(/\D/g, '').slice(0, 4) }),
+      onCardHolder: (e) => this.setState({ cardHolder: this.noteValue(e) }),
+      onCardTz: (e) => this.setState({ cardTz: this.noteValue(e) }),
       documentOptions: (this.state.docs && this.state.docs.length ? this.state.docs : [{ id: '', label: 'No documents found' }]).map(d => ({ value: d.id, label: d.label })),
       selectedDocId: this.state.selectedDocId,
       customerName: this.state.customerName,
