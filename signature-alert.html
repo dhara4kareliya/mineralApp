@@ -115,10 +115,12 @@ class Component extends DCLogic {
     city: '',
     signedTime: '',
     quoteNum: '',
+    documentId: '',
     totalPayable: '',
     backUrl: '',
     orderFormUrl: '',
     customerCardUrl: 'service-customer-card.html',
+    collectionUrl: '',
     products: []
   };
 
@@ -163,8 +165,14 @@ class Component extends DCLogic {
       var phone = q.get('phone') || '';
       var address = q.get('address') || '';
       var tz = q.get('tz') || '';
-      var quoteNum = q.get('quote_num') || q.get('quoteNum') || 'QT-0041';
+      var documentId = q.get('document_id') || q.get('doc_id') || '';
+      var quoteNum = q.get('quote_num') || q.get('quoteNum') || (documentId ? ('QT-' + documentId) : 'QT-0041');
       var productIdsStr = q.get('product_ids') || '';
+      if (!productIdsStr) {
+        try {
+          productIdsStr = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+        } catch (eIds) { productIdsStr = ''; }
+      }
       var discount = Number(q.get('discount') || 0);
 
       // Current formatted time for "Signed at"
@@ -181,7 +189,8 @@ class Component extends DCLogic {
 
       var stateUpdate = {
         signedTime: formattedTime,
-        quoteNum: quoteNum
+        quoteNum: quoteNum,
+        documentId: documentId
       };
 
       if (name) stateUpdate.name = name;
@@ -190,25 +199,20 @@ class Component extends DCLogic {
         stateUpdate.city = address.split(',').pop().trim();
       }
 
-      var backUrl = 'final-quote.html';
-      var orderFormUrl = 'service-order-form.html';
-      var customerCardUrl = 'service-customer-card.html';
-
+      var params = new URLSearchParams(q.toString());
       if (customerId) {
-        backUrl += '?customer_id=' + customerId;
-        orderFormUrl += '?customer_id=' + customerId;
-        customerCardUrl += '?customer_id=' + customerId;
+        params.set('customer_id', customerId);
+        params.set('cust_id', customerId);
       }
-      var paramsStr = q.toString();
-      if (paramsStr) {
-        backUrl = 'final-quote.html?' + paramsStr;
-        orderFormUrl = 'service-order-form.html?' + paramsStr;
-        customerCardUrl = 'service-customer-card.html?' + paramsStr;
-      }
+      if (documentId) params.set('document_id', documentId);
+      if (productIdsStr) params.set('product_ids', productIdsStr);
+      if (quoteNum) params.set('quote_num', quoteNum);
+      var paramsStr = params.toString();
 
-      stateUpdate.backUrl = backUrl;
-      stateUpdate.orderFormUrl = orderFormUrl;
-      stateUpdate.customerCardUrl = customerCardUrl;
+      stateUpdate.backUrl = 'final-quote.html' + (paramsStr ? ('?' + paramsStr) : '');
+      stateUpdate.orderFormUrl = 'service-order-form.html' + (paramsStr ? ('?' + paramsStr) : '');
+      stateUpdate.customerCardUrl = 'service-customer-card.html' + (customerId ? ('?customer_id=' + encodeURIComponent(customerId)) : '');
+      stateUpdate.collectionUrl = 'collection-payment.html' + (paramsStr ? ('?' + paramsStr) : '');
 
       this.setState(stateUpdate);
 
@@ -223,13 +227,20 @@ class Component extends DCLogic {
             productsList = data.map(function(item) {
               var isDroplet = /filter|سائل|סנן|מים/i.test(item.product_name || item.name || '');
               var isShield = /insurance|coverage|ביטוח|אחריות/i.test(item.product_name || item.name || '');
-              var priceVal = Math.round(Number(item.price || item.cost || 89));
+              var rawPrice = item.product_price != null ? item.product_price
+                : (item.main_price != null ? item.main_price
+                  : (item.sale_price != null ? item.sale_price
+                    : (item.price != null ? item.price
+                      : (item.cost != null ? item.cost
+                        : (item.item_price != null ? item.item_price : null)))));
+              var priceVal = Math.round(Number(rawPrice));
+              if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
               var discountVal = Number(item.discount_price || item.discount || 0);
               var isPercent = Number(item.is_price_percent || 0) === 1;
               var discountAmt = isPercent ? Math.round(priceVal * (discountVal / 100)) : Math.round(discountVal);
 
               return {
-                id: String(item.id),
+                id: String(item.id || item.product_id || '').trim(),
                 name: item.product_name || item.name || 'מוצר',
                 priceNum: priceVal,
                 discountAmt: discountAmt,
@@ -246,9 +257,9 @@ class Component extends DCLogic {
 
       var finalProducts = [];
       if (productIdsStr) {
-        var ids = productIdsStr.split(',');
+        var ids = String(productIdsStr).split(',').map(function (id) { return String(id || '').trim(); }).filter(Boolean);
         ids.forEach(function(productId) {
-          var found = productsList.find(function(p) { return p.id === productId; });
+          var found = productsList.find(function(p) { return String(p.id).trim() === productId; });
           if (found) {
             finalProducts.push(JSON.parse(JSON.stringify(found)));
           }
@@ -258,7 +269,7 @@ class Component extends DCLogic {
 
       var subTotal = productsList.reduce((sum, p) => sum + (p.priceNum || 0), 0);
       var discountAmt = productsList.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
-      var beforeVat = subTotal - discountAmt;
+      var beforeVat = Math.max(0, subTotal - discountAmt - (Number(discount) || 0));
       var vatAmt = Math.round(beforeVat * 0.18);
       var totalPayableVal = beforeVat + vatAmt;
       var totalPayable = totalPayableVal + ' NIS/month';
@@ -306,6 +317,7 @@ class Component extends DCLogic {
       backUrl: s.backUrl,
       orderFormUrl: s.orderFormUrl,
       customerCardUrl: s.customerCardUrl,
+      collectionUrl: s.collectionUrl || s.orderFormUrl,
       products: s.products || []
     };
   }

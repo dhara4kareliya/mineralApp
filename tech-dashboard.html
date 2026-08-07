@@ -58,28 +58,28 @@ mbCss('./common.css');
 </sc-if>
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
-<!-- hero: documents -->
+<!-- hero: monthly sales -->
 <div style="background:linear-gradient(135deg,#1d60a2,#16487c); border-radius:20px; padding:19px; color:#fff; margin-bottom:13px; position:relative; overflow:hidden;">
 <div style="position:absolute; top:-30px; left:-20px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.07);"></div>
 <div style="position:relative;">
-<div style="font-size:13px; opacity:.8; font-weight:600;">Documents this month</div>
+<div style="font-size:13px; opacity:.8; font-weight:600;">Total sales for the month</div>
 <div style="display:flex; align-items:baseline; gap:9px; margin-top:6px;">
-<span style="font-size:34px; font-weight:800; line-height:1;">{{ docTotal }}</span>
+<span style="font-size:34px; font-weight:800; line-height:1;">{{ salesTotal }}</span>
 </div>
 <div style="display:flex; gap:12px; margin-top:16px;">
 <div style="min-width:0; flex:1;">
-<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ docInvoices }}</div>
-<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Invoices</div>
+<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ salesAvg }}</div>
+<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Average for sale</div>
 </div>
 <div style="width:1px; background:rgba(255,255,255,.2); flex:none;"></div>
 <div style="min-width:0; flex:1;">
-<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ docReceipts }}</div>
-<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Receipts</div>
+<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ closedTickets }}</div>
+<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Closed tickets</div>
 </div>
 <div style="width:1px; background:rgba(255,255,255,.2); flex:none;"></div>
 <div style="min-width:0; flex:1;">
-<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ docCredits }}</div>
-<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Credit notes</div>
+<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ docCount }}</div>
+<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Documents</div>
 </div>
 </div>
 </div>
@@ -169,10 +169,10 @@ class Component extends DCLogic {
     loadingWeeks: true,
     products: [],
     weekTickets: [0, 0, 0, 0],
-    docTotal: 0,
-    docInvoices: 0,
-    docReceipts: 0,
-    docCredits: 0,
+    salesTotal: 0,
+    salesAvg: 0,
+    closedTickets: 0,
+    docCount: 0,
     selectedYear: new Date().getFullYear(),
     selectedMonth: new Date().getMonth(),
     monthPickerOpen: false,
@@ -439,17 +439,35 @@ class Component extends DCLogic {
   async loadDocuments(client, year, month, silent) {
     if (!silent) this.setState({ loadingDocs: true });
     var range = this.monthRange(year, month);
-    // Documents.Sum is org-wide when customer_id=0. Default Sum returns
-    // invoice + receipt_tax_invoice - credit_invoice; plain receipt needs a second call.
     var dateRange = {
       from_date: range.from,
       to_date: range.to,
       customer_id: 0
     };
     try {
+      // Income from Documents.Sum; count from Documents.Count;
+      // closed tickets ≈ status 2/4/5 for this month.
       var results = await Promise.all([
         client.request('Documents.Sum', Object.assign({}, dateRange)).catch(function () { return null; }),
-        client.request('Documents.Sum', Object.assign({}, dateRange, { type: 'receipt' })).catch(function () { return null; })
+        client.request('Documents.Sum', Object.assign({}, dateRange, { type: 'receipt' })).catch(function () { return null; }),
+        client.request('Documents.Count', Object.assign({}, dateRange, {
+          default_value_folder: 'all'
+        })).catch(function () { return null; }),
+        client.request('Ticket.Count', {
+          from_date: range.from,
+          to_date: range.to,
+          status: 2
+        }).catch(function () { return null; }),
+        client.request('Ticket.Count', {
+          from_date: range.from,
+          to_date: range.to,
+          status: 4
+        }).catch(function () { return null; }),
+        client.request('Ticket.Count', {
+          from_date: range.from,
+          to_date: range.to,
+          status: 5
+        }).catch(function () { return null; })
       ]);
 
       var net = results[0];
@@ -457,19 +475,33 @@ class Component extends DCLogic {
       var invoices = this.extractTypeSum(net, 'invoice');
       var receipts = this.extractTypeSum(net, 'receipt_tax_invoice') + this.extractTypeSum(receiptOnly, 'receipt');
       var credits = this.extractTypeSum(net, 'credit_invoice') + this.extractTypeSum(net, 'credit');
-      // Net total: invoices + receipts − credit notes (same idea as API formula).
-      var total = invoices + receipts - credits;
+      var salesTotal = invoices + receipts - credits;
+      if ((!salesTotal || !isFinite(salesTotal)) && net && net.sum_final_amount != null) {
+        salesTotal = Number(net.sum_final_amount) || 0;
+      }
+      var docCount = this.extractTicketCount(results[2]);
+      var closedTickets =
+        this.extractTicketCount(results[3]) +
+        this.extractTicketCount(results[4]) +
+        this.extractTicketCount(results[5]);
+      var salesAvg = docCount > 0 ? (salesTotal / docCount) : 0;
 
       this.setState({
         loadingDocs: false,
-        docTotal: total,
-        docInvoices: invoices,
-        docReceipts: receipts,
-        docCredits: credits
+        salesTotal: salesTotal,
+        salesAvg: salesAvg,
+        closedTickets: closedTickets,
+        docCount: docCount
       });
     } catch (e) {
-      console.error('[TechDashboard] Documents load failed', e);
-      this.setState({ loadingDocs: false, docTotal: 0, docInvoices: 0, docReceipts: 0, docCredits: 0 });
+      console.error('[TechDashboard] Documents/sales load failed', e);
+      this.setState({
+        loadingDocs: false,
+        salesTotal: 0,
+        salesAvg: 0,
+        closedTickets: 0,
+        docCount: 0
+      });
     }
   }
 
@@ -656,10 +688,10 @@ class Component extends DCLogic {
       prodNextCursor: canNext ? 'pointer' : 'not-allowed',
       prodPrevOpacity: canPrev ? '1' : '0.7',
       prodNextOpacity: canNext ? '1' : '0.7',
-      docTotal: st.loadingDocs ? '…' : this.fmt(st.docTotal),
-      docInvoices: st.loadingDocs ? '…' : this.fmt(st.docInvoices),
-      docReceipts: st.loadingDocs ? '…' : this.fmt(st.docReceipts),
-      docCredits: st.loadingDocs ? '…' : this.fmt(st.docCredits),
+      salesTotal: st.loadingDocs ? '…' : this.fmt(st.salesTotal),
+      salesAvg: st.loadingDocs ? '…' : this.fmt(st.salesAvg),
+      closedTickets: st.loadingDocs ? '…' : String(st.closedTickets || 0),
+      docCount: st.loadingDocs ? '…' : String(st.docCount || 0),
       updatedLabel: this.t('Updated today · ', 'עודכן היום · ') + updated
     };
   }

@@ -128,9 +128,12 @@ mbCss('./common.css');
 <a href="{{ v.phoneHref }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
 <svg fill="currentColor" height="18" viewbox="0 0 24 24" width="18"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
 </a>
-<a href="{{ v.chatHref }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
-<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M3 11 21 3l-8 18-2-7z"></path></svg>
-</a>
+<button type="button" onclick="{{ v.openWhatsApp }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#e8f8ef; color:#25b35e; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="WhatsApp">
+<svg fill="#25b35e" height="20" viewBox="0 0 24 24" width="20"><path d="M20.5 3.5A11 11 0 0 0 3.2 17.7L2 22l4.4-1.15A11 11 0 1 0 20.5 3.5zm-8.5 17a9 9 0 0 1-4.6-1.3l-.3-.18-2.7.7.72-2.63-.2-.31A9 9 0 1 1 12 20.5zm4.9-6.7c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.61.14-.18.27-.7.88-.86 1.06-.16.18-.32.2-.59.07-.27-.14-1.14-.42-2.17-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.55.12-.12.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.47-.84-2.01-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29s.98 2.66 1.12 2.84c.14.18 1.93 2.95 4.68 4.13.65.28 1.16.45 1.56.57.65.21 1.25.18 1.72.11.53-.08 1.6-.65 1.83-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"></path></svg>
+</button>
+<button type="button" onclick="{{ v.openMap }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="Map">
+<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+</button>
 <button type="button" onclick="{{ v.openCard }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#1d60a2; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer;">
                   Customer card
                   <svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="m14 7-5 5 5 5"></path></svg>
@@ -143,12 +146,18 @@ mbCss('./common.css');
                 </button>
 </div>
 </sc-if>
-<!-- actions: completed tickets — View only -->
+<!-- actions: completed tickets — phone + WhatsApp + View -->
 <sc-if hint-placeholder-val="{{ true }}" value="{{ v.isDone }}">
 <div style="display:flex; gap:8px; margin-top:13px;">
 <a href="{{ v.phoneHref }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
 <svg fill="currentColor" height="18" viewbox="0 0 24 24" width="18"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
 </a>
+<button type="button" onclick="{{ v.openWhatsApp }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#e8f8ef; color:#25b35e; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="WhatsApp">
+<svg fill="#25b35e" height="20" viewBox="0 0 24 24" width="20"><path d="M20.5 3.5A11 11 0 0 0 3.2 17.7L2 22l4.4-1.15A11 11 0 1 0 20.5 3.5zm-8.5 17a9 9 0 0 1-4.6-1.3l-.3-.18-2.7.7.72-2.63-.2-.31A9 9 0 1 1 12 20.5zm4.9-6.7c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.61.14-.18.27-.7.88-.86 1.06-.16.18-.32.2-.59.07-.27-.14-1.14-.42-2.17-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.55.12-.12.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.47-.84-2.01-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29s.98 2.66 1.12 2.84c.14.18 1.93 2.95 4.68 4.13.65.28 1.16.45 1.56.57.65.21 1.25.18 1.72.11.53-.08 1.6-.65 1.83-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"></path></svg>
+</button>
+<button type="button" onclick="{{ v.openMap }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="Map">
+<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+</button>
 <button type="button" onclick="{{ v.viewCall }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#c0392b; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(192,57,43,.28);">
 <svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   {{ v.viewLabel }}
@@ -207,20 +216,18 @@ mbCss('./common.css');
 </div>
 </div>
 </sc-if>
-<!-- customer card sheet -->
+<!-- customer card overlay (bottom sheet) -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ cardOpen }}">
-<div style="position:absolute; inset:0; z-index:40; background:#eef0f3; display:flex; flex-direction:column;">
-<div style="background:#16223a; padding:13px 16px; flex:none;">
-<div style="display:flex; align-items:center; justify-content:space-between;">
-<button type="button" onclick="{{ closeCard }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
-</button>
+<div style="position:absolute; inset:0; z-index:40;">
+<div onclick="{{ closeCard }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
+<div style="position:absolute; bottom:0; left:0; right:0; background:#eef0f3; border-radius:24px 24px 0 0; max-height:90%; display:flex; flex-direction:column; overflow:hidden;">
+<div style="background:#16223a; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; flex:none;">
+<button type="button" onclick="{{ closeCard }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
 <div style="text-align:center;">
-<div style="font-size:17.5px; font-weight:800; color:#fff;">Customer card</div>
+<div style="font-size:17px; font-weight:800; color:#fff;">Customer card</div>
 <div style="font-size:11.5px; color:#9fb0c8; margin-top:1px;">{{ cardName }}</div>
 </div>
 <div style="width:34px;"></div>
-</div>
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px;">
 <!-- contact -->
@@ -231,14 +238,77 @@ mbCss('./common.css');
 <div style="font-size:16.5px; font-weight:800; color:#1f2a3a;">{{ cardName }}</div>
 <div style="font-size:12.5px; color:#9aa3b0; margin-top:1px;">{{ cardMeta }}</div>
 </div>
-<div style="display:inline-flex; align-items:center; gap:4px; background:#e6f4ec; color:#2e8a63; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px;">
-<span style="width:6px; height:6px; border-radius:50%; background:#2e8a63;"></span>active
-                  </div>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ cardHasStatus }}">
+<div style="display:inline-flex; align-items:center; gap:4px; background:{{ cardStatusBg }}; color:{{ cardStatusColor }}; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px;">
+<span style="width:6px; height:6px; border-radius:50%; background:{{ cardStatusColor }};"></span>{{ cardStatusLabel }}
 </div>
-<div style="margin-top:12px; font-size:13px; color:#5a6473; line-height:1.5;">{{ cardAddress }}</div>
-<div style="margin-top:10px; display:flex; gap:8px;">
-<a href="{{ cardPhoneHref }}" style="flex:1; text-align:center; padding:10px; border-radius:11px; background:#eaf7ef; color:#2e8a63; font-size:13px; font-weight:700; text-decoration:none;">dialing</a>
-<a href="{{ cardDetailsHref }}" style="flex:1; text-align:center; padding:10px; border-radius:11px; background:#eef3fd; color:#1d60a2; font-size:13px; font-weight:700; text-decoration:none;">Reading details</a>
+</sc-if>
+</div>
+</div>
+<!-- active plans -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:4px 2px 9px;">{{ cardPlansTitle }}</div>
+<div style="background:#fff; border-radius:16px; padding:6px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ cardPlansEmpty }}">
+<div style="text-align:center; padding:18px 8px; color:#9aa3b0; font-size:13px; font-weight:600;">{{ cardPlansEmptyLabel }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ cardPlansReady }}">
+<sc-for as="plan" hint-placeholder-count="2" list="{{ cardPlans }}">
+<div style="padding:11px 0; border-bottom:1px solid {{ plan.border }}; display:flex; align-items:flex-start; justify-content:space-between;">
+<div>
+<div style="font-size:15px; font-weight:800; color:#1f2a3a;">{{ plan.name }}</div>
+<div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#2e8a63; font-weight:700; margin-top:4px;">
+<svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="12"><circle cx="12" cy="12" r="9"></circle><path d="m9 12 2 2 4-4"></path></svg>
+{{ plan.validUntil }}
+</div>
+</div>
+<div style="text-align:left;">
+<div style="font-size:18px; font-weight:800; color:#2e8a63;">{{ plan.price }}</div>
+<div style="font-size:11px; color:#9aa3b0;">{{ plan.period }}</div>
+</div>
+</div>
+</sc-for>
+</sc-if>
+</div>
+<!-- products purchased -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:4px 2px 9px;">{{ cardProductsTitle }}</div>
+<div style="background:#fff; border-radius:16px; padding:6px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ cardProductsLoading }}">
+<div style="text-align:center; padding:18px 8px; color:#9aa3b0; font-size:13px; font-weight:600;">{{ cardProductsLoadingLabel }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ cardProductsEmpty }}">
+<div style="text-align:center; padding:18px 8px; color:#9aa3b0; font-size:13px; font-weight:600;">{{ cardProductsEmptyLabel }}</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ cardProductsReady }}">
+<sc-for as="p" hint-placeholder-count="3" list="{{ cardProducts }}">
+<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid {{ p.border }};">
+<div style="display:flex; align-items:center; gap:10px;">
+<div style="width:36px; height:36px; border-radius:10px; background:{{ p.iconBg }}; color:{{ p.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+<sc-if hint-placeholder-val="{{ true }}" value="{{ p.isFilter }}"><svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M3 4h18l-7 9v6l-4 2v-8z"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ p.isDrop }}"><svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M12 3c3 4 6 7 6 10a6 6 0 0 1-12 0c0-3 3-6 6-10z"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ p.isShield }}"><svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg></sc-if>
+</div>
+<div>
+<div style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ p.name }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:1px;">{{ p.soldLabel }}</div>
+</div>
+</div>
+<div style="font-size:14px; font-weight:800; color:#1f2a3a;">{{ p.amount }}</div>
+</div>
+</sc-for>
+</sc-if>
+</div>
+<!-- warranty -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:4px 2px 9px;">{{ cardWarrantyTitle }}</div>
+<div style="background:#eafaf0; border:1px solid #cdeeda; border-radius:16px; padding:15px; margin-bottom:14px;">
+<div style="display:flex; align-items:center; gap:11px;">
+<div style="width:40px; height:40px; border-radius:11px; background:#fff; color:#1f9d55; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path><path d="m9 11 2 2 4-4"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:14.5px; font-weight:800; color:#1f7a45;">{{ cardWarrantyMain }}</div>
+<div style="font-size:12px; color:#4f9b6f; margin-top:2px;">{{ cardWarrantySub }}</div>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -256,6 +326,11 @@ class Component extends DCLogic {
     tickets: [],
     cardOpen: false,
     cardTicket: null,
+    cardProducts: [],
+    cardProductsLoading: false,
+    cardStatusLabel: '',
+    cardStatusColor: '#2e8a63',
+    cardStatusBg: '#e6f4ec',
     langTick: 0,
     selectedDate: '',
     calendarOpen: false,
@@ -415,6 +490,125 @@ class Component extends DCLogic {
   t(en, he) {
     if (typeof window.mbT === 'function') return window.mbT(en, he);
     return this.isEn() ? en : he;
+  }
+
+  /** Open WhatsApp chat (wa.me) for a phone number — Israel 0… → 972… */
+  whatsAppHref(raw) {
+    var s = String(raw || '').replace(/\D/g, '');
+    if (!s) return '';
+    if (s.charAt(0) === '0') s = '972' + s.slice(1);
+    // Already international without +
+    if (s.length < 8) return '';
+    return 'https://wa.me/' + s;
+  }
+
+  pickPhone(ticket) {
+    if (!ticket) return '';
+    var cf = ticket.custom_fields;
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e) { cf = null; }
+    }
+    var candidates = [
+      ticket.mobile, ticket.phone, ticket.customer_phone, ticket.customer_mobile,
+      ticket.cellphone, ticket.tel, ticket.phone1, ticket.phone2,
+      cf && (cf.mobile || cf.phone || cf.second_phone)
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      var digits = String(candidates[i] || '').replace(/\D/g, '');
+      if (digits && digits.length >= 8) return digits;
+    }
+    return '';
+  }
+
+  buildBiz1WhatsAppChatHref(ticket) {
+    var t = ticket || {};
+    var customerId = t.customer_id || t.cust_id || t.contactus_id || '';
+    var ticketId = t.ticket_id || t.id || '';
+    var name = t.customer_name || t.joined_customer_name || t.cust_name || t.name || '';
+    var phone = this.pickPhone(t);
+    var q = new URLSearchParams();
+    if (customerId) {
+      q.set('customer_id', String(customerId));
+      q.set('cust_id', String(customerId));
+    }
+    if (name) q.set('name', String(name));
+    if (phone) q.set('phone', String(phone));
+    if (ticketId) q.set('ticket_id', String(ticketId));
+    q.set('back', 'tech-daily-schedule.html');
+    q.set('filter', 'whatsapp');
+    q.set('channel', 'whatsapp');
+    if (!customerId && !ticketId) return '';
+    return 'chat-customer.html?' + q.toString();
+  }
+
+  openBiz1WhatsAppChat(ticket, ev) {
+    try {
+      if (ev && ev.preventDefault) ev.preventDefault();
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+    } catch (e0) { /* ignore */ }
+    var href = this.buildBiz1WhatsAppChatHref(ticket);
+    if (!href) {
+      this.setState({
+        errorMsg: this.t('Missing customer_id', 'חסר מזהה לקוח')
+      });
+      return;
+    }
+    window.location.href = href;
+  }
+
+  async openWhatsApp(ticket, ev) {
+    // Legacy name — always open Biz1 in-app WhatsApp chat (never wa.me landing page)
+    this.openBiz1WhatsAppChat(ticket, ev);
+  }
+
+  buildCustomerAddress(ticket) {
+    var t = ticket || {};
+    var parts = [];
+    var street = t.address || t.full_address || t.street || t.street_name || '';
+    var house = t.house || t.house_number || t.building || '';
+    var city = t.city || t.city_name || t.town || '';
+    var streetLine = [String(street || '').trim(), String(house || '').trim()].filter(Boolean).join(' ');
+    if (streetLine) parts.push(streetLine);
+    if (city && String(city).trim() && String(city).trim() !== streetLine) parts.push(String(city).trim());
+    // Deduplicate while keeping order
+    var seen = {};
+    return parts.filter(function (p) {
+      var key = p.toLowerCase();
+      if (!p || seen[key]) return false;
+      seen[key] = true;
+      return true;
+    }).join(', ');
+  }
+
+  buildMapHref(ticket) {
+    var t = ticket || {};
+    var lat = t.lat || t.latitude || t.gps_lat || t.geo_lat;
+    var lng = t.lng || t.longitude || t.lon || t.gps_lng || t.geo_lng;
+    if (lat != null && lng != null && String(lat) !== '' && String(lng) !== '') {
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(String(lat) + ',' + String(lng));
+    }
+    var address = this.buildCustomerAddress(t);
+    if (!address) return '';
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
+  }
+
+  openMap(ticket, ev) {
+    try {
+      if (ev && ev.preventDefault) ev.preventDefault();
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+    } catch (e0) { /* ignore */ }
+    var href = this.buildMapHref(ticket);
+    if (!href) {
+      this.setState({
+        errorMsg: this.t('No address for map', 'אין כתובת למפה')
+      });
+      return;
+    }
+    try {
+      window.open(href, '_blank', 'noopener');
+    } catch (e2) {
+      window.location.href = href;
+    }
   }
 
   localizeError(err) {
@@ -704,27 +898,331 @@ class Component extends DCLogic {
   openCard(ticket) {
     var t = ticket || {};
     var customerId = t.customer_id || t.cust_id || t.contactus_id || '';
-    var ticketId = t.ticket_id || t.id || '';
-    var q = new URLSearchParams();
-    if (customerId) q.set('customer_id', customerId);
-    if (ticketId) q.set('ticket_id', ticketId);
     if (customerId) {
       try {
         sessionStorage.setItem('mb_customer_id', String(customerId));
         localStorage.setItem('mb_customer_id', String(customerId));
       } catch (e) { /* ignore */ }
-      window.location.href = 'service-customer-card.html?' + q.toString();
-      return;
     }
-    if (ticketId) {
-      window.location.href = 'service-call-details.html?ticket_id=' + encodeURIComponent(ticketId);
-      return;
+    this.setState({
+      cardOpen: true,
+      cardTicket: t,
+      cardProducts: [],
+      cardProductsLoading: !!customerId,
+      cardStatusLabel: '',
+      cardStatusColor: '#2e8a63',
+      cardStatusBg: '#e6f4ec'
+    });
+    if (customerId) {
+      this.loadCardProducts(customerId);
+      this.loadCardCustomerStatus(customerId, t);
     }
-    this.setState({ errorMsg: this.t('Missing customer_id', 'חסר מזהה לקוח') });
   }
 
   closeCard() {
-    this.setState({ cardOpen: false, cardTicket: null });
+    this.setState({
+      cardOpen: false,
+      cardTicket: null,
+      cardProducts: [],
+      cardProductsLoading: false,
+      cardStatusLabel: '',
+      cardStatusColor: '#2e8a63',
+      cardStatusBg: '#e6f4ec'
+    });
+  }
+
+  stripHtmlText(s) {
+    return String(s == null ? '' : s)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  statusRowLabel(row) {
+    return this.stripHtmlText(
+      this.isEn()
+        ? (row.name_en || row.name || row.name_he || row.name_for || row.status_name || row.label)
+        : (row.name_he || row.name || row.name_en || row.name_for || row.status_name || row.label)
+    );
+  }
+
+  async ensureStatusMaps() {
+    if (this._statusMapsPromise) return this._statusMapsPromise;
+    var self = this;
+    this._statusMapById = this._statusMapById || {};
+    this._statusMapByName = this._statusMapByName || {};
+    this._statusMapsPromise = (async function () {
+      try {
+        var client = self.getClient();
+        if (!client || !client.request) return;
+        var types = ['status', 'internal_status', 'customer_status'];
+        for (var t = 0; t < types.length; t++) {
+          var start = 0;
+          for (var page = 0; page < 12; page++) {
+            try {
+              var res = await client.request('Statuses.List', {
+                type: types[t],
+                limit: 25,
+                length: 25,
+                start: start
+              });
+              var rows = (res && (res.data || res.rows || res.output)) || [];
+              if (!Array.isArray(rows) || !rows.length) break;
+              rows.forEach(function (row) {
+                if (!row) return;
+                var label = self.statusRowLabel(row);
+                if (!label) return;
+                var color = String(row.color || row.status_color || '').trim() || '#1d60a2';
+                var entry = { name: label, color: color };
+                var id = row.status_id != null ? row.status_id : (row.id != null ? row.id : row.data_id);
+                if (id != null && String(id).trim() !== '') self._statusMapById[String(id).trim()] = entry;
+                self._statusMapByName[label.toLowerCase()] = entry;
+                if (row.name_en) self._statusMapByName[String(row.name_en).toLowerCase()] = entry;
+                if (row.name_he) self._statusMapByName[String(row.name_he).toLowerCase()] = entry;
+              });
+              if (rows.length < 25) break;
+              start += rows.length;
+            } catch (ePage) { break; }
+          }
+        }
+      } catch (e) {
+        console.warn('[DailySchedule] Statuses.List failed', e);
+      }
+    })();
+    return this._statusMapsPromise;
+  }
+
+  resolveCustomerStatus(c) {
+    c = c || {};
+    var byId = this._statusMapById || {};
+    var byName = this._statusMapByName || {};
+    var rawStatus = this.stripHtmlText(c.status);
+    var named = this.stripHtmlText(
+      c.sub_list_data_name ||
+      c.internal_status_name ||
+      c.status_label ||
+      c.status_name ||
+      c.status_text ||
+      c.customer_status_name ||
+      c.customer_status ||
+      ''
+    );
+
+    if (named && !/^\d+$/.test(named)) {
+      var byNamed = byName[named.toLowerCase()];
+      return {
+        label: named,
+        color: (byNamed && byNamed.color) || String(c.status_color || c.color || '#1d60a2').trim() || '#1d60a2'
+      };
+    }
+    if (rawStatus && !/^\d+$/.test(rawStatus)) {
+      var byRaw = byName[rawStatus.toLowerCase()];
+      return {
+        label: rawStatus,
+        color: (byRaw && byRaw.color) || '#1d60a2'
+      };
+    }
+
+    var idCand = [rawStatus, c.sub_list_data, c.status_id, c.internal_status_id, c.customer_status_id];
+    for (var i = 0; i < idCand.length; i++) {
+      var sid = idCand[i] == null ? '' : String(idCand[i]).trim();
+      if (!sid || !/^\d+$/.test(sid)) continue;
+      if (byId[sid]) {
+        return { label: byId[sid].name, color: byId[sid].color || '#1d60a2' };
+      }
+    }
+    return { label: '', color: '#1d60a2' };
+  }
+
+  statusBadgeStyle(color) {
+    var c = String(color || '#1d60a2').trim() || '#1d60a2';
+    var bg = c.charAt(0) === '#' ? (c + '22') : '#eaf2fb';
+    return { color: c, bg: bg };
+  }
+
+  async loadCardCustomerStatus(customerId, ticketHint) {
+    var cid = String(customerId || '').trim();
+    if (!cid) return;
+
+    // Quick hint from ticket row while Customer.Get loads
+    var hint = this.resolveCustomerStatus(ticketHint || {});
+    if (hint.label) {
+      var hintStyle = this.statusBadgeStyle(hint.color);
+      this.setState({
+        cardStatusLabel: hint.label,
+        cardStatusColor: hintStyle.color,
+        cardStatusBg: hintStyle.bg
+      });
+    }
+
+    try {
+      await this.ensureStatusMaps();
+      var client = this.getClient();
+      if (!client) return;
+
+      var cust = null;
+      try {
+        if (window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+          var got = await MineralBarApp.getCustomer(cid);
+          cust = (got && (got.customer || got.data || got.output)) || got || null;
+          if (Array.isArray(cust)) cust = cust[0] || null;
+        }
+      } catch (eGetApp) { /* fallback below */ }
+
+      if (!cust) {
+        var raw = await client.request('Customer.Get', { customer_id: cid, cust_id: cid, id: cid });
+        if (raw && String(raw.success) !== '0') {
+          cust = raw.output || raw.data || raw.customer || raw;
+          if (Array.isArray(cust)) cust = cust[0] || null;
+        }
+      }
+
+      var current = (this.state.cardTicket || {});
+      var currentId = String(current.customer_id || current.cust_id || current.contactus_id || '').trim();
+      if (!this.state.cardOpen || (currentId && currentId !== cid)) return;
+
+      var resolved = this.resolveCustomerStatus(cust || ticketHint || {});
+      if (!resolved.label) {
+        // Keep any prior hint; otherwise leave empty (no fake "Active")
+        return;
+      }
+      var style = this.statusBadgeStyle(resolved.color);
+      this.setState({
+        cardStatusLabel: resolved.label,
+        cardStatusColor: style.color,
+        cardStatusBg: style.bg
+      });
+    } catch (e) {
+      console.warn('[DailySchedule] customer status load failed', e);
+    }
+  }
+
+  normalizeProductRows(raw) {
+    var list = [];
+    if (!raw) return list;
+    if (Array.isArray(raw)) list = raw;
+    else if (Array.isArray(raw.data)) list = raw.data;
+    else if (Array.isArray(raw.rows)) list = raw.rows;
+    else if (Array.isArray(raw.products)) list = raw.products;
+    else if (Array.isArray(raw.output)) list = raw.output;
+    else if (raw.output && Array.isArray(raw.output.data)) list = raw.output.data;
+    else if (raw.data && Array.isArray(raw.data.products)) list = raw.data.products;
+
+    return list.map(function (p) {
+      if (!p) return null;
+      var name = String(p.product_name || p.item_name || p.name || p.title || p.label || p.product || '').trim();
+      if (!name) return null;
+      var priceRaw = p.item_total != null ? p.item_total
+        : (p.price != null ? p.price
+          : (p.item_price != null ? p.item_price
+            : (p.product_price != null ? p.product_price : '')));
+      var coin = p.coin || p.currency || '₪';
+      var price = '';
+      if (priceRaw !== '' && priceRaw != null) {
+        var num = Number(priceRaw);
+        if (isFinite(num)) {
+          price = Math.round(num).toLocaleString('en-US') + (String(coin).indexOf('₪') >= 0 || coin === 'ILS' ? '₪' : String(coin));
+        } else {
+          price = String(priceRaw);
+          if (coin && String(price).indexOf('₪') < 0 && String(price).indexOf(String(coin)) < 0) {
+            price = price + String(coin);
+          }
+        }
+      }
+      var date = p.date_display || p.date_created || p.created || p.sale_date || p.document_date || '';
+      if (date && String(date).length > 10) date = String(date).slice(0, 10);
+      return {
+        name: name,
+        price: price,
+        date: date ? String(date) : '',
+        kindHint: String(p.product_type || p.type || name || '').toLowerCase()
+      };
+    }).filter(Boolean);
+  }
+
+  async fetchCustomerProducts(customerId) {
+    var cid = String(customerId || '').trim();
+    if (!cid) return [];
+    var client = this.getClient();
+    if (!client || !client.getToken || !client.getToken()) return [];
+
+    var attempts = [
+      { customer_id: cid, page_id: 1, limit: 25 },
+      { cust_id: cid, page_id: 1, limit: 25 },
+      { customer_id: cid, length: 25, start: 0 }
+    ];
+    for (var i = 0; i < attempts.length; i++) {
+      try {
+        var res = await client.request('Documents.Products', attempts[i]);
+        if (res && String(res.success) === '0') continue;
+        var rows = this.normalizeProductRows(res);
+        if (rows.length) return rows;
+        if (res && String(res.success) !== '0' && !res.error) return rows;
+      } catch (e) { /* try next */ }
+    }
+    return [];
+  }
+
+  async loadCardProducts(customerId) {
+    var cid = String(customerId || '').trim();
+    if (!cid) {
+      this.setState({ cardProducts: [], cardProductsLoading: false });
+      return;
+    }
+    try {
+      var products = await this.fetchCustomerProducts(cid);
+      // Ignore stale response if card closed / customer changed
+      var current = (this.state.cardTicket || {});
+      var currentId = String(current.customer_id || current.cust_id || current.contactus_id || '').trim();
+      if (!this.state.cardOpen || (currentId && currentId !== cid)) return;
+      this.setState({ cardProducts: products, cardProductsLoading: false });
+    } catch (e) {
+      console.warn('[DailySchedule] Documents.Products failed', e);
+      if (!this.state.cardOpen) return;
+      this.setState({ cardProducts: [], cardProductsLoading: false });
+    }
+  }
+
+  guessProductKind(name, index) {
+    var s = String(name || '').toLowerCase();
+    if (/ביטוח|insur|shield|warranty|אחריות/.test(s)) return 'shield';
+    if (/בר מים|water.?bar|drop|מים|droplet/.test(s)) return 'drop';
+    if (/סנן|filter|filtration|סינון/.test(s)) return 'filter';
+    var kinds = ['filter', 'drop', 'shield'];
+    return kinds[index % kinds.length];
+  }
+
+  buildCardPlans() {
+    // No live plans API wired yet — show empty state
+    return [];
+  }
+
+  mapCardProducts(rawList) {
+    var sold = this.t('Sold', 'נמכר');
+    var colors = {
+      filter: { iconBg: '#eef3fd', iconColor: '#1d60a2' },
+      drop: { iconBg: '#eafaf0', iconColor: '#2e8a63' },
+      shield: { iconBg: '#eef0fb', iconColor: '#50439d' }
+    };
+    var self = this;
+    var items = Array.isArray(rawList) ? rawList : [];
+    return items.map(function (p, i) {
+      var kind = self.guessProductKind(p.kindHint || p.name, i);
+      var c = colors[kind] || colors.filter;
+      var soldLabel = p.date ? (sold + ' ' + p.date) : sold;
+      return {
+        name: p.name,
+        amount: p.price || '',
+        soldLabel: soldLabel,
+        iconBg: c.iconBg,
+        iconColor: c.iconColor,
+        isFilter: kind === 'filter',
+        isDrop: kind === 'drop',
+        isShield: kind === 'shield',
+        border: i === items.length - 1 ? 'transparent' : '#f0f2f5'
+      };
+    });
   }
 
   mapVisit(ticket, statusKey) {
@@ -751,7 +1249,7 @@ class Component extends DCLogic {
 
     var name = ticket.customer_name || ticket.joined_customer_name || ticket.cust_name || ticket.name || ticket.subject || this.t('Customer', 'לקוח');
     var address = ticket.address || ticket.city || ticket.city_name || this.t('No address', 'אין כתובת');
-    var phone = String(ticket.phone || ticket.mobile || ticket.customer_phone || '').replace(/\D+/g, '');
+    var phone = this.pickPhone(ticket);
     var ticketId = ticket.ticket_id || ticket.id;
     var customerId = ticket.customer_id || ticket.cust_id || ticket.contactus_id || '';
 
@@ -765,15 +1263,8 @@ class Component extends DCLogic {
     if (ticket.product_name) parts.push({ label: ticket.product_name });
     if (ticket.department_name) parts.push({ label: ticket.department_name });
 
-    var chatQ = new URLSearchParams();
-    if (customerId) chatQ.set('customer_id', customerId);
-    if (name) chatQ.set('name', name);
-    if (phone) chatQ.set('phone', phone);
-    if (ticketId) chatQ.set('ticket_id', ticketId);
-    chatQ.set('back', 'tech-daily-schedule.html');
-    var chatHref = customerId
-      ? ('chat-customer.html?' + chatQ.toString())
-      : '#';
+    // Biz1 in-app WhatsApp chat (not wa.me browser landing page)
+    var chatHref = this.buildBiz1WhatsAppChatHref(ticket) || '#';
 
     var self = this;
     return {
@@ -797,7 +1288,10 @@ class Component extends DCLogic {
       typeColor: tstyle.typeColor,
       phoneHref: phone ? ('tel:' + phone) : '#',
       chatHref: chatHref,
+      mapHref: this.buildMapHref(ticket) || '#',
       viewLabel: this.t('View', 'צפייה'),
+      openWhatsApp: function (e) { self.openBiz1WhatsAppChat(ticket, e); },
+      openMap: function (e) { self.openMap(ticket, e); },
       openCard: function () { self.openCard(ticket); },
       closeCall: function () {
         var q = new URLSearchParams();
@@ -889,12 +1383,17 @@ class Component extends DCLogic {
 
     var card = st.cardTicket || {};
     var cardName = card.customer_name || card.joined_customer_name || card.cust_name || card.name || card.subject || '';
-    var cardPhone = String(card.phone || card.mobile || card.customer_phone || '').replace(/\D+/g, '');
-    var cardTicketId = card.ticket_id || card.id || '';
-    var cardCustomerId = card.customer_id || card.cust_id || '';
-    var detailsQ = new URLSearchParams();
-    if (cardTicketId) detailsQ.set('ticket_id', cardTicketId);
-    if (cardCustomerId) detailsQ.set('customer_id', cardCustomerId);
+    var cardPhone = this.pickPhone(card) || '';
+    var cardSince = card.customer_since || card.since_year || card.created_year || '2021';
+    var cardMetaParts = [];
+    if (cardSince) {
+      cardMetaParts.push(
+        this.isEn()
+          ? ('Customer since ' + cardSince)
+          : ('לקוח מ-' + cardSince)
+      );
+    }
+    if (cardPhone) cardMetaParts.push(cardPhone);
 
     var emptyMsg = selectedKey === todayKey
       ? this.t('No assigned tickets today', 'אין קריאות משויכות להיום')
@@ -910,6 +1409,9 @@ class Component extends DCLogic {
     else if (hasOpen) outLabel = this.t('Close tickets to clock out', 'סגור טיקטים כדי להחתים יציאה');
     else if (st.shiftRunning) outLabel = this.t('Clock out · End of day', 'החתם יציאה · סיום יום');
     else outLabel = this.t('Open time clock', 'פתח שעון נוכחות');
+
+    var cardPlans = this.buildCardPlans();
+    var hasCardPlans = !!(cardPlans && cardPlans.length);
 
     return {
       loading: !!st.loading,
@@ -934,10 +1436,26 @@ class Component extends DCLogic {
       cardOpen: !!st.cardOpen,
       cardName: cardName || this.t('Customer', 'לקוח'),
       cardInitials: this.initials(cardName || 'C'),
-      cardMeta: (cardPhone ? cardPhone : '') + (cardTicketId ? ((cardPhone ? ' · ' : '') + '#' + cardTicketId) : ''),
-      cardAddress: card.address || card.city || '',
-      cardPhoneHref: cardPhone ? ('tel:' + cardPhone) : '#',
-      cardDetailsHref: 'service-call-details.html?' + detailsQ.toString(),
+      cardMeta: cardMetaParts.length ? cardMetaParts.join(' · ') : (cardPhone || ''),
+      cardStatusLabel: st.cardStatusLabel || '',
+      cardStatusColor: st.cardStatusColor || '#2e8a63',
+      cardStatusBg: st.cardStatusBg || '#e6f4ec',
+      cardHasStatus: !!(st.cardStatusLabel && String(st.cardStatusLabel).trim()),
+      cardPlansTitle: this.t('Active plans', 'מסלולים פעילים'),
+      cardProductsTitle: this.t('Purchased products', 'מוצרים שנרכשו'),
+      cardWarrantyTitle: this.t('Warranty', 'אחריות'),
+      cardWarrantyMain: this.t('Valid — Ofek main filter', 'בתוקף — סנן ראשי אופק'),
+      cardWarrantySub: this.t('8 months left · until 03/2027', 'נותרו 8 חודשים · עד 03/2027'),
+      cardPlans: cardPlans,
+      cardPlansEmpty: !hasCardPlans,
+      cardPlansReady: hasCardPlans,
+      cardPlansEmptyLabel: this.t('No active plans', 'אין מסלולים פעילים'),
+      cardProducts: this.mapCardProducts(st.cardProducts || []),
+      cardProductsLoading: !!st.cardProductsLoading,
+      cardProductsEmpty: !st.cardProductsLoading && !(st.cardProducts && st.cardProducts.length),
+      cardProductsReady: !st.cardProductsLoading && !!(st.cardProducts && st.cardProducts.length),
+      cardProductsLoadingLabel: this.t('Loading products...', 'טוען מוצרים...'),
+      cardProductsEmptyLabel: this.t('No purchased products', 'אין מוצרים שנרכשו'),
       closeCard: () => this.closeCard(),
 
       calendarOpen: !!st.calendarOpen,

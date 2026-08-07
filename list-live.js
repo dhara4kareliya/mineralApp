@@ -123,11 +123,51 @@
 
   function pickCity(row) {
     var city = stripHtmlText(
-      row.city || row.city_name || row.town || row.address_city || ''
+      row.city || row.city_name || row.town || row.address_city || row.region || ''
     );
     if (city && city.toLowerCase() !== 'null' && city.toLowerCase() !== 'undefined') return city;
-    var address = stripHtmlText(row.address || row.full_address || '');
-    if (address && address.toLowerCase() !== 'null' && address.toLowerCase() !== 'undefined') return address;
+    return '';
+  }
+
+  function pickFullAddress(row) {
+    row = row || {};
+    var address = stripHtmlText(
+      row.address || row.full_address || row.exact_address || row.street || row.street_name || ''
+    );
+    var entrance = stripHtmlText(row.entrance || row.entry || row.knisa || '');
+    var floor = stripHtmlText(row.floor || row.floor_number || row.koma || '');
+    var apt = stripHtmlText(row.apartment || row.apt || row.flat || row.dira || '');
+    var local = stripHtmlText(row.local || row.locality || row.neighborhood || '');
+    var city = pickCity(row);
+
+    // API often returns a composed address (street, Entrance…, Floor…, Apt…, city)
+    if (address && (/,/.test(address) || /entrance|floor|apt|כניסה|קומה|דירה/i.test(address))) {
+      return address;
+    }
+
+    var parts = [];
+    if (address) parts.push(address);
+    if (entrance) parts.push(t('Entrance', 'כניסה') + ' ' + entrance);
+    if (floor) parts.push(t('Floor', 'קומה') + ' ' + floor);
+    if (apt) parts.push(t('Apt', 'דירה') + ' ' + apt);
+    if (local) parts.push(local);
+    if (city && parts.indexOf(city) === -1) parts.push(city);
+    return parts.join(', ');
+  }
+
+  function pickProductPreview(row) {
+    var fromFields = formatProductsPreview(
+      row.products || row.product || row.last_product || row.product_name || row.item_name || ''
+    );
+    if (fromFields) return fromFields;
+    var plans = row.plans || row.routes || row.subscriptions || row.customer_plans || row.plans_list;
+    if (Array.isArray(plans) && plans.length) {
+      return plans.map(function (p) {
+        if (!p) return '';
+        if (typeof p === 'string' || typeof p === 'number') return String(p);
+        return stripHtmlText(p.name || p.title || p.plan_name || p.route_name || p.product_name || '');
+      }).filter(Boolean).join(', ');
+    }
     return '';
   }
 
@@ -190,15 +230,17 @@
     var name = row.name || row.customer_name || row.full_name || row.cname || row.title || ('#' + id);
     var phone = row.phone || row.mobile || row.cellphone || row.tel || '';
     var city = pickCity(row);
+    var address = pickFullAddress(row);
     var email = row.email || '';
     var st = resolveStatus(row);
     var created = row.date_created || row.created_at || row.date || row.opendate || '';
-    var products = formatProductsPreview(row.products || row.product || row.last_product || row.product_name || '');
+    var products = pickProductPreview(row);
     return {
       id: id,
       name: name,
       phone: phone,
       city: city,
+      address: address,
       email: email,
       status: st.label,
       statusColor: st.color,
@@ -328,28 +370,172 @@
 
   function customerCard(c) {
     var detail = customerHref('service-customer-card.html', c.id);
+    var av = initials(c.name);
+    var phone = String(c.phone || '').trim();
+    var city = String(c.city || '').trim();
+    var address = String(c.address || '').trim();
+    var products = String(c.products || '').trim();
     var statusLabel = String(c.status || '').trim();
     var statusColor = String(c.statusColor || '#1d60a2').trim() || '#1d60a2';
     var statusBg = statusColor.charAt(0) === '#' ? (statusColor + '22') : '#eaf2fb';
-    var productBtnLabel = t('Products', 'מוצרים');
-    var letter = String(c.name || '').trim().charAt(0).toUpperCase() || '?';
+    // Avoid repeating city when it is already at the end of the address line
+    var cityLine = city;
+    if (cityLine && address) {
+      var addrLower = address.toLowerCase();
+      var cityLower = cityLine.toLowerCase();
+      if (addrLower === cityLower || addrLower.slice(-(cityLower.length + 2)) === (', ' + cityLower) || addrLower.slice(-cityLower.length) === cityLower) {
+        cityLine = '';
+      }
+    }
+    var wa = '';
+    if (phone) {
+      var digits = phone.replace(/\D/g, '');
+      if (digits.charAt(0) === '0') digits = '972' + digits.slice(1);
+      if (digits) wa = 'https://wa.me/' + digits;
+    }
+    var metaBits = [];
+    if (cityLine) metaBits.push(esc(cityLine));
+    if (phone) metaBits.push(esc(phone));
     return (
-      '<div data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-status="' + esc(c.status || '') + '" style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:9px;">' +
-      '<a href="' + detail + '" style="width:42px;height:42px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:16px;flex:none;display:flex;align-items:center;justify-content:center;text-decoration:none;text-transform:uppercase;">' + esc(letter) + '</a>' +
+      '<div data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" style="display:flex;align-items:flex-start;gap:12px;background:#fff;border-radius:14px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:9px;">' +
+      '<a href="' + detail + '" style="width:42px;height:42px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:15px;flex:none;display:flex;align-items:center;justify-content:center;text-decoration:none;text-transform:uppercase;margin-top:1px;">' + esc(av) + '</a>' +
       '<a href="' + detail + '" style="flex:1;min-width:0;text-decoration:none;">' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+      '<div class="mb-cust-name-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
       '<span style="font-size:15.5px;font-weight:800;color:#16223a;">' + esc(c.name) + '</span>' +
       (statusLabel
-        ? '<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:' + esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(statusLabel) + '</span>'
+        ? '<span class="mb-cust-status" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:' + esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(statusLabel) + '</span>'
         : '') +
       '</div>' +
-      (c.city ? '<div style="font-size:12px;color:#7b8595;margin-top:3px;">' + esc(c.city) + '</div>' : '') +
+      '<div class="mb-cust-address" style="font-size:12px;color:#5a6473;margin-top:4px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:' + (address ? '-webkit-box' : 'none') + ';-webkit-line-clamp:2;-webkit-box-orient:vertical;">' +
+      (address ? esc(address) : '') +
+      '</div>' +
+      '<div class="mb-cust-meta" style="font-size:12px;color:#7b8595;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:' + (metaBits.length ? 'block' : 'none') + ';">' +
+      (metaBits.length ? metaBits.join(' · ') : '') +
+      '</div>' +
+      '<div class="mb-cust-product-line" data-customer-id="' + esc(c.id) + '" style="font-size:11.5px;font-weight:700;color:#1d60a2;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (products ? '' : 'display:none;') + '">' +
+      (products
+        ? ('<span style="display:inline-flex;align-items:center;gap:5px;">' + productIconSvg(12, '#1d60a2') + '<span>' + esc(products) + '</span></span>')
+        : '') +
+      '</div>' +
       '</a>' +
-      '<button type="button" class="mb-cust-products-btn" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" aria-label="' + esc(productBtnLabel) + '" title="' + esc(productBtnLabel) + '" style="width:36px;height:36px;border-radius:10px;border:1px solid #d7e4f4;background:#eaf2fb;color:#1d60a2;display:inline-flex;align-items:center;justify-content:center;flex:none;cursor:pointer;padding:0;">' +
-      productIconSvg(17, '#1d60a2') +
-      '</button>' +
+      (wa
+        ? '<a href="' + esc(wa) + '" target="_blank" rel="noopener" aria-label="WhatsApp" onclick="event.stopPropagation();" style="width:36px;height:36px;border-radius:50%;background:#25b35e;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none;text-decoration:none;margin-top:2px;">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg>' +
+          '</a>'
+        : '') +
+      '<a href="' + detail + '" aria-hidden="true" style="color:#c2c9d2;display:inline-flex;align-items:center;justify-content:center;flex:none;text-decoration:none;margin-top:8px;">' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
+      '</a>' +
       '</div>'
     );
+  }
+
+  function setProductLine(card, productsText) {
+    var line = card.querySelector('.mb-cust-product-line');
+    if (!line) return;
+    var text = String(productsText || '').trim();
+    if (!text) {
+      line.style.display = 'none';
+      line.innerHTML = '';
+      return;
+    }
+    line.style.display = '';
+    line.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px;">' +
+      productIconSvg(12, '#1d60a2') + '<span>' + esc(text) + '</span></span>';
+  }
+
+  function setAddressLines(card, address, city, phone) {
+    var addrEl = card.querySelector('.mb-cust-address');
+    var metaEl = card.querySelector('.mb-cust-meta');
+    address = String(address || '').trim();
+    city = String(city || '').trim();
+    phone = String(phone || '').trim();
+    if (addrEl) {
+      if (address) {
+        addrEl.textContent = address;
+        addrEl.style.display = '-webkit-box';
+      }
+    }
+    if (metaEl) {
+      var cityLine = city;
+      if (cityLine && address) {
+        var addrLower = address.toLowerCase();
+        var cityLower = cityLine.toLowerCase();
+        if (addrLower === cityLower || addrLower.slice(-(cityLower.length + 2)) === (', ' + cityLower) || addrLower.slice(-cityLower.length) === cityLower) {
+          cityLine = '';
+        }
+      }
+      var bits = [];
+      if (cityLine) bits.push(cityLine);
+      if (phone) bits.push(phone);
+      if (bits.length) {
+        metaEl.textContent = bits.join(' · ');
+        metaEl.style.display = '';
+      }
+    }
+  }
+
+  async function enrichOneCustomerCard(card) {
+    var cid = card.getAttribute('data-customer-id') || '';
+    if (!cid || card.dataset.enriched === '1') return;
+    card.dataset.enriched = '1';
+    var needsAddress = !((card.querySelector('.mb-cust-address') || {}).textContent || '').trim();
+    var needsProduct = !((card.querySelector('.mb-cust-product-line') || {}).textContent || '').trim();
+    var needsStatus = !card.querySelector('.mb-cust-status');
+
+    try {
+      if ((needsAddress || needsStatus) && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+        var cres = await MineralBarApp.getCustomer(cid).catch(function () { return null; });
+        var c = cres && cres.customer;
+        if (c && c.data && typeof c.data === 'object') c = c.data;
+        if (c) {
+          var picked = pick(c);
+          if (needsAddress) {
+            setAddressLines(card, picked.address, picked.city, picked.phone || card.getAttribute('data-phone') || '');
+          }
+          if (picked.products) {
+            setProductLine(card, picked.products);
+            needsProduct = false;
+          }
+          if (picked.status && needsStatus) {
+            var nameRow = card.querySelector('.mb-cust-name-row');
+            if (nameRow && !nameRow.querySelector('.mb-cust-status')) {
+              var statusColor = picked.statusColor || '#1d60a2';
+              var statusBg = statusColor.charAt(0) === '#' ? (statusColor + '22') : '#eaf2fb';
+              nameRow.insertAdjacentHTML(
+                'beforeend',
+                '<span class="mb-cust-status" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:' +
+                  esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(picked.status) + '</span>'
+              );
+            }
+          }
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    if (needsProduct) {
+      try {
+        var products = await fetchCustomerProducts(cid);
+        if (products && products.length) {
+          setProductLine(card, products.map(function (p) { return p.name; }).filter(Boolean).join(', '));
+        }
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  function enrichCustomerCards(listEl) {
+    listEl = document.getElementById('mb-live-list') || listEl;
+    if (!listEl) return;
+    var cards = Array.prototype.slice.call(listEl.querySelectorAll('[data-customer-id]'));
+    if (!cards.length) return;
+    var queue = cards.slice();
+    var workers = Math.min(3, queue.length);
+    function run() {
+      var card = queue.shift();
+      if (!card) return Promise.resolve();
+      return enrichOneCustomerCard(card).then(run, run);
+    }
+    for (var i = 0; i < workers; i++) run();
   }
 
   function productsSheetHost() {
@@ -713,6 +899,7 @@
       applyClientFilters(el);
       bindClientFilters(el);
       bindProductButtons(el);
+      enrichCustomerCards(el);
       syncChipActiveStyles(getActiveFolderId(mount));
       return;
     } catch (err) {
@@ -999,12 +1186,14 @@
       name: row.name || row.customer_name || payload.name || ('#' + id),
       phone: row.phone || row.mobile || payload.mobile || payload.phone || '',
       email: row.email || payload.email || '',
-      city: row.city || row.address || payload.city || '',
+      city: row.city || payload.city || '',
+      address: row.address || row.full_address || payload.address || '',
       status: row.status,
       status_id: row.status_id || payload.status_id,
       status_name: row.status_name || payload.status_name,
       sub_list_data: row.sub_list_data || payload.sub_list_data,
-      sub_list_data_name: row.sub_list_data_name || payload.sub_list_data_name
+      sub_list_data_name: row.sub_list_data_name || payload.sub_list_data_name,
+      products: row.products || row.product || payload.products || ''
     }));
   }
 
@@ -1023,6 +1212,7 @@
       var next = wrap.firstElementChild;
       if (next) existing.replaceWith(next);
       bindProductButtons(el);
+      if (kind !== 'leads') enrichOneCustomerCard(next || el.querySelector('[data-customer-id="' + cssAttrEscape(String(c.id)) + '"]'));
       console.log('[ListLive] socket updated row', c.id, c.name);
       return true;
     }
@@ -1034,6 +1224,9 @@
     }
     bumpTotal(1);
     bindProductButtons(el);
+    if (kind !== 'leads') {
+      enrichOneCustomerCard(el.querySelector('[data-customer-id="' + cssAttrEscape(String(c.id)) + '"]'));
+    }
     console.log('[ListLive] socket inserted row', c.id, c.name);
     return true;
   }

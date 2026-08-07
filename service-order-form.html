@@ -45,7 +45,7 @@ mbCss('./common.css');
 <div style="display:flex; align-items:center; justify-content:space-between;">
 <div style="width:38px;"></div>
 <div style="font-size:18px; font-weight:800; color:#fff;">order form</div>
-<a href="service-customer-card.html" style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.12); color:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<a href="{{ backToCustomerUrl }}" style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.12); color:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none;">
 <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M18 6 6 18M6 6l12 12"></path></svg>
 </a>
 </div>
@@ -78,14 +78,16 @@ mbCss('./common.css');
 <svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
             Exact address <span style="color:#c0392b;">*</span>
 </label>
-<input class="gv-in" style="background:#eafaf0; border-color:#bfe6cd;" type="text" value="{{ address }}"/>
+<input class="gv-in" oninput="{{ onAddressInput }}" placeholder="Street, apartment, city…" style="background:{{ addressBg }}; border-color:{{ addressBorder }};" type="text" value="{{ address }}"/>
 </div>
 <!-- products -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:0 2px 10px;">
 <div style="font-size:12.5px; font-weight:800; color:#5a6473;">products <span style="color:#c0392b;">*</span></div>
+<sc-if value="{{ hasProducts }}">
 <span style="display:inline-flex; align-items:center; gap:4px; background:#e6f4ec; color:#2e8a63; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px;">
 <span style="width:6px; height:6px; border-radius:50%; background:#2e8a63;"></span>Filled with an offer
           </span>
+</sc-if>
 </div>
 
 <sc-for as="p" list="{{ products }}">
@@ -161,10 +163,10 @@ mbCss('./common.css');
 class Component extends DCLogic {
   state = {
     customer_id: '',
-    name: 'Moshe Cohen',
-    phone: '050-1234567',
-    tz: '123456789',
-    address: '12 Herzl St., 3rd floor, apartment 8, Tel Aviv',
+    name: '',
+    phone: '',
+    tz: '',
+    address: '',
     products: []
   };
 
@@ -201,23 +203,65 @@ class Component extends DCLogic {
     return String(id || '').trim();
   }
 
+  formatPhone(raw) {
+    var s = String(raw || '').replace(/\D/g, '');
+    if (!s) return '';
+    if (s.indexOf('972') === 0 && s.length >= 11) return '0' + s.slice(3);
+    return String(raw || '');
+  }
+
   async initData() {
     try {
       var q = new URLSearchParams(window.location.search);
-      var customerId = this.getCustomerId() || '1';
+      var customerId = this.getCustomerId();
       var name = q.get('name') || '';
       var phone = q.get('phone') || '';
-      var tz = q.get('tz') || q.get('id') || '';
+      var tz = q.get('tz') || '';
       var address = q.get('address') || '';
       var productIdsStr = q.get('product_ids') || '';
+      if (!productIdsStr) {
+        try {
+          productIdsStr = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+        } catch (e) { productIdsStr = ''; }
+      }
 
-      var stateUpdate = { customer_id: customerId };
+      var stateUpdate = { customer_id: customerId || '' };
       if (name) stateUpdate.name = name;
       if (phone) stateUpdate.phone = phone;
       if (tz) stateUpdate.tz = tz;
       if (address) stateUpdate.address = address;
 
-      // Fetch products
+      // Load customer details — Exact address from customer card/API
+      if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+        try {
+          var custRes = await MineralBarApp.getCustomer(customerId);
+          var c = custRes && custRes.customer;
+          if (c) {
+            if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) {
+              c = c.data;
+            }
+            var fullAddress = String(c.address || '').trim();
+            if (c.city || c.city_name) {
+              var cityPart = String(c.city || c.city_name || '').trim();
+              if (cityPart && fullAddress.toLowerCase().indexOf(cityPart.toLowerCase()) === -1) {
+                fullAddress += (fullAddress ? ', ' : '') + cityPart;
+              }
+            }
+            stateUpdate.name = c.name || stateUpdate.name || ('#' + customerId);
+            stateUpdate.phone = this.formatPhone(c.mobile || c.phone) || stateUpdate.phone || phone;
+            if (!stateUpdate.tz) {
+              stateUpdate.tz = String(c.tz || c.id_number || c.identity || c.customer_id || c.id || customerId || '');
+            }
+            // Prefer live customer address; keep query address only if API has none
+            if (fullAddress) stateUpdate.address = fullAddress;
+            else if (!stateUpdate.address) stateUpdate.address = '';
+          }
+        } catch (custErr) {
+          console.warn('[MineralBar] failed to fetch customer for order form', custErr);
+        }
+      }
+
+      // Fetch catalog, then keep only selected product_ids for the form
       var productsList = [];
       if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
         try {
@@ -226,10 +270,17 @@ class Component extends DCLogic {
           var data = res && (res.data || res.output || res);
           if (Array.isArray(data) && data.length > 0) {
             productsList = data.map(function(item) {
-              var priceVal = Math.round(Number(item.price || item.cost || 89));
-              var desc = item.description || item.desc || 'מסלול';
+              var rawPrice = item.product_price != null ? item.product_price
+                : (item.main_price != null ? item.main_price
+                  : (item.sale_price != null ? item.sale_price
+                    : (item.price != null ? item.price
+                      : (item.cost != null ? item.cost
+                        : (item.item_price != null ? item.item_price : null)))));
+              var priceVal = Math.round(Number(rawPrice));
+              if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
+              var desc = item.description || item.discription || item.desc || '';
               var isDroplet = item.product_name && (item.product_name.indexOf('בר') !== -1 || item.product_name.indexOf('סנן') !== -1 || item.product_name.indexOf('horizon') !== -1 || item.product_name.indexOf('filter') !== -1);
-              
+
               var discountVal = Number(item.discount_price || item.discount || 0);
               var isPercent = Number(item.is_price_percent || 0) === 1;
               var discountAmt = isPercent ? Math.round(priceVal * (discountVal / 100)) : Math.round(discountVal);
@@ -239,7 +290,7 @@ class Component extends DCLogic {
                 id: String(item.id),
                 name: item.product_name || item.name || 'מוצר',
                 sub: desc,
-                price: priceVal + ' NIS/month',
+                price: priceVal + ' NIS',
                 priceNum: priceVal,
                 discountAmt: discountAmt,
                 discountText: discountText,
@@ -261,21 +312,24 @@ class Component extends DCLogic {
 
       var finalProducts = [];
       if (productIdsStr) {
-        var ids = productIdsStr.split(',');
+        var ids = productIdsStr.split(',').map(function (x) { return String(x || '').trim(); }).filter(Boolean);
         ids.forEach(function(productId) {
-          var found = productsList.find(function(p) { return p.id === productId; });
+          var found = productsList.find(function(p) { return String(p.id) === productId; });
           if (found) {
             finalProducts.push(JSON.parse(JSON.stringify(found)));
           }
         });
       }
-      productsList = finalProducts;
 
-      stateUpdate.products = productsList;
+      stateUpdate.products = finalProducts;
       this.setState(stateUpdate);
     } catch (e) {
       console.error(e);
     }
+  }
+
+  onAddressInput(val) {
+    this.setState({ address: val || '' });
   }
 
   onRemoveProduct(productId) {
@@ -322,25 +376,54 @@ class Component extends DCLogic {
     var totalPayableVal = beforeVat + vatAmt;
     var totalPayable = totalPayableVal + ' NIS/month';
 
-    var nextUrl = 'collection-payment.html' + (window.location.search || '');
+    var q = new URLSearchParams();
+    if (s.customer_id) {
+      q.set('customer_id', s.customer_id);
+      q.set('cust_id', s.customer_id);
+    }
+    if (s.name) q.set('name', s.name);
+    if (s.phone) q.set('phone', s.phone);
+    if (s.tz) q.set('tz', s.tz);
+    if (s.address) q.set('address', s.address);
+    var productIds = (s.products || []).map(function (p) { return p.id; }).join(',');
+    if (productIds) q.set('product_ids', productIds);
+    q.set('amount', String(totalPayableVal));
+    q.set('total', String(totalPayableVal));
+    q.set('from', 'order');
+    try {
+      sessionStorage.setItem('mb_collection_amount', String(totalPayableVal));
+      localStorage.setItem('mb_collection_amount', String(totalPayableVal));
+    } catch (eAmt) { /* ignore */ }
 
-    var selectProductQuery = new URLSearchParams(window.location.search);
+    var nextUrl = 'collection-payment.html?' + q.toString();
+
+    var selectProductQuery = new URLSearchParams(q.toString());
     selectProductQuery.set('from', 'order');
     var selectProductUrl = 'service-select-product.html?' + selectProductQuery.toString();
 
+    var hasAddress = !!(s.address && String(s.address).trim());
+    var backToCustomerUrl = s.customer_id
+      ? 'service-customer-card.html?customer_id=' + encodeURIComponent(s.customer_id) + '&cust_id=' + encodeURIComponent(s.customer_id)
+      : 'service-customer-card.html';
+
     return {
-      name: s.name,
-      phone: s.phone,
-      tz: s.tz,
+      name: s.name || '…',
+      phone: s.phone || '',
+      tz: s.tz || s.customer_id || '',
       initials: initials,
-      address: s.address,
+      address: s.address || '',
+      addressBg: hasAddress ? '#eafaf0' : '#fff',
+      addressBorder: hasAddress ? '#bfe6cd' : '#e4e8ee',
       products: productsWithIndex,
+      hasProducts: productsWithIndex.length > 0,
       totalDiscountAmt: totalDiscount,
       beforeVat: beforeVat,
       vatAmt: vatAmt,
       totalPayable: totalPayable,
       collectionPaymentUrl: nextUrl,
       selectProductUrl: selectProductUrl,
+      backToCustomerUrl: backToCustomerUrl,
+      onAddressInput: (e) => this.onAddressInput(e && e.target ? e.target.value : e),
       onRemoveProduct: (id) => this.onRemoveProduct(id),
       onDiscountInput: (id, val) => this.onDiscountInput(id, val)
     };

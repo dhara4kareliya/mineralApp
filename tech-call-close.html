@@ -40,6 +40,11 @@ mbCss('./common.css');
     direction: rtl !important;
     text-align: right !important;
   }
+  /* Cash amount is always LTR digits + ₪ on the right — avoid icon/text overlap */
+  #cash-amount-input.ds-input {
+    direction: ltr !important;
+    text-align: left !important;
+  }
   html[dir="ltr"] .page-back-icon { transform: none; }
   html[dir="rtl"] .page-back-icon { transform: scaleX(-1); }
   .photo-slot {
@@ -96,6 +101,14 @@ mbCss('./common.css');
 </div>
 <div style="width:34px;"></div>
 </div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showForm }}">
+<div style="display:flex; align-items:center; gap:6px; margin-top:14px;">
+<div style="flex:1; height:5px; border-radius:99px; background:{{ p1 }};"></div>
+<div style="flex:1; height:5px; border-radius:99px; background:{{ p2 }};"></div>
+<div style="flex:1; height:5px; border-radius:99px; background:{{ p3 }};"></div>
+<div style="flex:1; height:5px; border-radius:99px; background:{{ p4 }};"></div>
+</div>
+</sc-if>
 </div>
 
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 20px;">
@@ -110,36 +123,116 @@ mbCss('./common.css');
 </sc-if>
 
 <!-- ========== COMPLETE FORM ========== -->
-<sc-if hint-placeholder-val="{{ true }}" value="{{ showForm }}">
+<!-- hint false: initial state is loading=true so showForm starts false (avoids mount/teardown insertBefore) -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showForm }}">
 <div data-no-i18n="true">
-<!-- user / ticket details (subject stays here, not in work summary) -->
-<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
-<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelDetails }}</div>
-<div style="display:flex; flex-direction:column; gap:8px;">
-<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
-<div style="font-size:12px; color:#9aa3b0; font-weight:600; flex:none;">{{ labelCustomer }}</div>
-<div style="font-size:14px; font-weight:700; color:#1f2a3a; text-align:end; word-break:break-word;">{{ customerName }}</div>
+<!-- 1. closing status -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 10px;">{{ labelCloseStatus }} <span style="color:#c0392b;">*</span></div>
+<div style="display:flex; flex-direction:column; gap:9px; margin-bottom:14px;">
+<sc-for as="s" hint-placeholder-count="5" list="{{ statuses }}">
+<button type="button" onclick="{{ s.pick }}" style="display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:13px; cursor:pointer; text-align:inherit; background:{{ s.bg }}; border:1.6px solid {{ s.border }}; font-family:inherit;">
+<div style="width:36px; height:36px; border-radius:10px; background:{{ s.iconBg }}; color:{{ s.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="19" style="display:{{ s.showCheck }};"><path d="M20 6 9 17l-5-5"></path></svg>
+<svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1" viewBox="0 0 24 24" width="19" style="display:{{ s.showClock }};"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+<svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="19" style="display:{{ s.showPhone }};"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path><path d="m2 2 20 20"></path></svg>
+<svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="19" style="display:{{ s.showX }};"><circle cx="12" cy="12" r="9"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg>
+<svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="19" style="display:{{ s.showLab }};"><path d="M9 3h6M10 3v6l-5 8.5A2 2 0 0 0 7 21h10a2 2 0 0 0 1.7-3.5L14 9V3"></path><path d="M7.5 15h9"></path></svg>
 </div>
-<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
-<div style="font-size:12px; color:#9aa3b0; font-weight:600; flex:none;">{{ labelSubject }}</div>
-<div style="font-size:14px; font-weight:700; color:#1f2a3a; text-align:end; word-break:break-word;">{{ ticketSubject }}</div>
+<div style="flex:1;">
+<div style="font-size:14px; font-weight:700; color:{{ s.text }};">{{ s.label }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:1px; display:{{ s.hintDisplay }};">{{ s.hint }}</div>
 </div>
+<div style="width:20px; height:20px; border-radius:50%; border:2px solid {{ s.radioBorder }}; background:{{ s.radioBg }}; flex:none; display:flex; align-items:center; justify-content:center;">
+<span style="width:8px; height:8px; border-radius:50%; background:#fff; display:{{ s.dotDisplay }};"></span>
+</div>
+</button>
+</sc-for>
+</div>
+
+<!-- reason for follow-up (display toggle — no sc-if mount/unmount) -->
+<div style="margin-bottom:20px; display:{{ reasonDisplay }};">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:7px;">{{ labelFollowReason }} <span style="color:#c0392b;">*</span></label>
+<select id="close-reason-select" class="ds-input" onchange="{{ onReason }}" style="width:100%; padding:12px 13px; border:1.5px solid {{ reasonBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;">
+<option value="">{{ reasonPlaceholder }}</option>
+<sc-for as="r" hint-placeholder-count="5" list="{{ reasonOptions }}">
+<option value="{{ r.id }}">{{ r.label }}</option>
+</sc-for>
+</select>
+<div style="display:{{ otherDisplay }};">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin:9px 2px 6px;">{{ labelReasonOther }} <span style="color:#c0392b;">*</span></label>
+<input id="close-reason-other" class="ds-input" oninput="{{ onReasonOther }}" placeholder="{{ reasonOtherPh }}" style="width:100%; padding:11px 13px; border:1.5px solid {{ otherBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;" value="{{ reasonOther }}"/>
 </div>
 </div>
 
-<!-- work summary → saved as ticket note/messages -->
-<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
-<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:7px;">{{ labelSummary }} <span style="color:#c0392b;">*</span></div>
-<textarea id="work-summary-input" class="ds-input" oninput="{{ onSummary }}" placeholder="{{ summaryPh }}" style="width:100%; min-height:96px; padding:13px; border:1.5px solid {{ summaryBorder }}; border-radius:13px; font-size:14px; color:#1f2a3a; resize:none; background:#fff;"></textarea>
+<!-- 2. description + chips -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 9px;">{{ labelSummary }} <span style="color:#c0392b;">*</span></div>
+<textarea id="work-summary-input" class="ds-input" oninput="{{ onSummary }}" placeholder="{{ summaryPh }}" style="width:100%; min-height:96px; padding:13px; border:1.5px solid {{ summaryBorder }}; border-radius:13px; font-size:14px; color:#1f2a3a; resize:none; background:#fff; margin-bottom:6px;"></textarea>
+<div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:20px;">
+<sc-for as="c" hint-placeholder-count="4" list="{{ chips }}">
+<button type="button" onclick="{{ c.add }}" style="background:#fff; border:1px solid #dde2ea; color:#5a6473; font-size:12px; font-weight:600; padding:6px 12px; border-radius:99px; cursor:pointer; font-family:inherit;">+ {{ c.label }}</button>
+</sc-for>
 </div>
 
-<!-- spare parts -->
-<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px; overflow:hidden;">
-<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelSpares }} <span style="color:#9aa3b0; font-weight:600;">({{ optionalLabel }})</span></div>
+<!-- 3. photos -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 10px;">{{ labelPhotos }}</div>
+<div style="display:flex; gap:11px; margin-bottom:12px;">
+<label class="photo-slot {{ beforeClass }}" id="before-photo-label">
+<span id="before-photo-label-text">{{ beforePhoto }}</span>
+<input accept="image/*" id="before-photo-input" type="file"/>
+<img alt="Before" id="before-photo-preview" style="display:none;"/>
+</label>
+<label class="photo-slot {{ afterClass }}" id="after-photo-label">
+<span id="after-photo-label-text">{{ afterPhoto }}</span>
+<input accept="image/*" id="after-photo-input" type="file"/>
+<img alt="After" id="after-photo-preview" style="display:none;"/>
+</label>
+</div>
+<!-- extra / another picture — all added thumbs + keep adding -->
+<div style="display:flex; flex-wrap:wrap; gap:11px; margin-bottom:20px;" id="extra-photos-row">
+<div id="extra-photos-list" style="display:contents;"></div>
+<label class="photo-slot" style="flex:0 0 calc(50% - 6px); max-width:calc(50% - 6px); min-height:88px; height:auto; aspect-ratio:1.15;" for="extra-photo-input">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22" style="margin-bottom:4px;"><path d="M12 5v14M5 12h14"></path></svg>
+<span style="font-size:12.5px; font-weight:700; text-align:center; line-height:1.3; padding:0 6px;">{{ extraPhotoLine1 }}<br/>{{ extraPhotoLine2 }}</span>
+<input accept="image/*" id="extra-photo-input" type="file"/>
+</label>
+</div>
+
+<!-- 4. digital service / customer details -->
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 10px;">{{ labelDigitalForm }} <span style="color:#c0392b;">*</span></div>
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+<div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:11px; border-bottom:1px solid #f0f2f5; gap:10px;">
+<span style="font-size:13px; color:#7b8595; flex:none;">{{ labelCustomer }}</span>
+<span style="font-size:14px; font-weight:700; color:#1f2a3a; text-align:end; word-break:break-word;">{{ customerName }}</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid #f0f2f5; gap:10px;">
+<span style="font-size:13px; color:#7b8595; flex:none;">{{ labelAddress }}</span>
+<span style="font-size:13.5px; font-weight:600; color:#1f2a3a; text-align:end; word-break:break-word;">{{ customerAddress }}</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid #f0f2f5; gap:10px;">
+<span style="font-size:13px; color:#7b8595; flex:none;">{{ labelPhone }}</span>
+<span style="font-size:13.5px; font-weight:600; color:#1f2a3a; text-align:end; word-break:break-word;">{{ customerPhone }}</span>
+</div>
+<div style="display:flex; align-items:flex-start; justify-content:space-between; padding:11px 0; border-bottom:1px solid #f0f2f5; gap:10px;">
+<span style="font-size:13px; color:#7b8595; flex:none;">{{ labelSubject }}</span>
+<span style="font-size:13.5px; font-weight:600; color:#1f2a3a; text-align:end; word-break:break-word;">{{ ticketSubject }}</span>
+</div>
+<!-- customer id (auto, read-only) -->
+<div style="padding:13px 0 0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">
+{{ labelCustomerId }} <span style="color:#c0392b;">*</span>
+<span style="font-size:11px; color:#aeb6c2; font-weight:600;">{{ customerIdHint }}</span>
+</label>
+<input class="ds-input" readonly="" value="{{ customerId }}" placeholder="{{ customerIdPlaceholder }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#f6f8fa; cursor:default;"/>
+</div>
+</div>
+
+<!-- spare parts / work detail -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; overflow:hidden;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelSpares }} <span style="font-size:11.5px; color:#9aa3b0; font-weight:600;">({{ optionalLabel }})</span></div>
 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px; min-width:0;">
 <select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff;">
 <option value="">{{ selectProduct }}</option>
-<sc-for as="p" hint-placeholder-count="4" list="{{ products }}">
+<sc-for as="p" hint-placeholder-count="0" list="{{ products }}">
 <option value="{{ p.id }}">{{ p.name }}</option>
 </sc-for>
 </select>
@@ -154,27 +247,41 @@ mbCss('./common.css');
 <button type="button" onclick="{{ s.remove }}" style="border:none; background:none; color:#c0392b; font-size:12.5px; font-weight:700; cursor:pointer; flex:none;">{{ removePart }}</button>
 </div>
 </sc-for>
+<!-- cash collected -->
+<div style="display:flex; align-items:center; justify-content:space-between; background:#f7f9fc; border-radius:12px; padding:11px 13px; margin-top:13px; gap:10px;">
+<span style="font-size:13.5px; color:#5a6473; font-weight:600;">{{ labelCashQ }}</span>
+<div style="display:flex; gap:0; background:#fff; border-radius:9px; padding:3px; border:1px solid #e4e8ee; flex:none;">
+<button type="button" onclick="{{ setCashYes }}" style="padding:6px 16px; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; background:{{ cashYesBg }}; color:{{ cashYesColor }}; font-family:inherit;">{{ labelYes }}</button>
+<button type="button" onclick="{{ setCashNo }}" style="padding:6px 16px; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; background:{{ cashNoBg }}; color:{{ cashNoColor }}; font-family:inherit;">{{ labelNo }}</button>
+</div>
+</div>
+<div style="margin-top:11px; display:{{ cashYesDisplay }};">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelCashAmount }} <span style="color:#c0392b;">*</span></label>
+<div style="position:relative;">
+<input id="cash-amount-input" class="ds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" oninput="{{ onCashAmount }}" placeholder="0" style="width:100%; box-sizing:border-box; direction:ltr; text-align:left; padding:11px 40px 11px 14px; border:1.5px solid {{ cashAmountBorder }}; border-radius:11px; font-size:14px; font-weight:700; color:#2e8a63; background:#eaf7ef;"/>
+<span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-size:14px; font-weight:700; pointer-events:none; line-height:1; z-index:1;">₪</span>
+</div>
+<div style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#bd8324; margin-top:8px;">
+<svg fill="none" height="13" stroke="#bd8324" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="13" style="flex:none;"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+<span>{{ cashReminder }}</span>
+</div>
+</div>
 </div>
 
-<!-- photos -->
-<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
-<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelPhotos }}</div>
-<div style="display:flex; gap:11px;">
-<label class="photo-slot {{ beforeClass }}" id="before-photo-label">
-<span id="before-photo-label-text">{{ beforePhoto }}</span>
-<input accept="image/*" id="before-photo-input" type="file"/>
-<img alt="Before" id="before-photo-preview" style="display:none;"/>
-</label>
-<label class="photo-slot {{ afterClass }}" id="after-photo-label">
-<span id="after-photo-label-text">{{ afterPhoto }}</span>
-<input accept="image/*" id="after-photo-input" type="file"/>
-<img alt="After" id="after-photo-preview" style="display:none;"/>
-</label>
+<!-- terms acknowledgment -->
+<button type="button" onclick="{{ toggleTerms }}" style="width:100%; display:flex; align-items:flex-start; gap:11px; background:#fff; border:1.5px solid {{ termsBorder }}; border-radius:14px; padding:14px; cursor:pointer; margin-bottom:14px; text-align:inherit; font-family:inherit;">
+<div style="width:22px; height:22px; border-radius:6px; border:1.7px solid {{ termsCheckBorder }}; background:{{ termsCheckBg }}; flex:none; display:flex; align-items:center; justify-content:center; margin-top:1px;">
+<svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewBox="0 0 24 24" width="13" style="display:{{ termsCheckIcon }};"><path d="M20 6 9 17l-5-5"></path></svg>
 </div>
+<div style="flex:1;">
+<div style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ labelTerms }} <span style="color:#c0392b;">*</span></div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:2px; line-height:1.5;">{{ termsSub }}</div>
+<span style="font-size:11.5px; color:#1d60a2; font-weight:700; display:inline-block; margin-top:5px;">{{ termsLink }}</span>
 </div>
+</button>
 
 <!-- signature -->
-<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px;">
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
 <div style="font-size:14px; font-weight:800; color:#16223a;">{{ labelSignature }} <span style="color:#c0392b;">*</span></div>
 <button type="button" onclick="{{ clearSig }}" style="padding:6px 10px; border:none; border-radius:9px; background:#f4f5f7; color:#5a6473; font-size:12px; font-weight:700; cursor:pointer;">{{ clearSigLabel }}</button>
@@ -184,6 +291,24 @@ mbCss('./common.css');
 </div>
 <div style="font-size:11.5px; color:#9aa3b0; font-weight:600; text-align:center; margin-top:6px;">{{ tapSign }}</div>
 </div>
+
+<!-- service hotline note -->
+<div style="display:flex; align-items:flex-start; gap:9px; background:#f4f8fd; border:1px solid #dbe7f5; border-radius:13px; padding:13px 14px; margin-bottom:14px;">
+<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="18" style="flex:none; margin-top:1px;"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
+<div style="font-size:12.5px; color:#194f84; line-height:1.55; font-weight:600;">{{ hotlineText }}</div>
+</div>
+
+<!-- send copy to customer (WhatsApp) — optional; only sends on close when checked -->
+<button type="button" onclick="{{ toggleSend }}" style="width:100%; display:flex; align-items:center; gap:11px; background:{{ sendBg }}; border:1.5px solid {{ sendBorder }}; border-radius:14px; padding:14px; cursor:pointer; margin-bottom:12px; text-align:inherit; font-family:inherit;">
+<div style="width:22px; height:22px; border-radius:6px; border:1.7px solid {{ sendCheckBorder }}; background:{{ sendCheckBg }}; flex:none; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewBox="0 0 24 24" width="13" style="display:{{ sendCheckIcon }};"><path d="M20 6 9 17l-5-5"></path></svg>
+</div>
+<div style="flex:1;">
+<div style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ labelSendCopy }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:1px;">{{ sendCopySub }}</div>
+</div>
+<svg fill="#25b35e" height="22" viewBox="0 0 24 24" width="22" style="flex:none;"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg>
+</button>
 
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showFormError }}">
 <div style="margin-bottom:12px; color:#c0392b; font-size:13px; font-weight:700; text-align:center;">{{ formError }}</div>
@@ -212,9 +337,21 @@ mbCss('./common.css');
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ ticketSubject }}</div>
 </div>
 
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasCloseStatus }}">
+<div style="margin-bottom:14px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelCloseStatus }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewCloseStatus }}</div>
+</div>
+</sc-if>
+
 <div style="margin-bottom:14px;">
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelSummary }}</div>
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45; white-space:pre-wrap;">{{ viewSummary }}</div>
+</div>
+
+<div style="margin-bottom:14px; display:{{ viewCashDisplay }};">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelViewCash }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewCash }}</div>
 </div>
 
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasViewSpares }}">
@@ -229,19 +366,25 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasViewPhotos }}">
 <div style="margin-bottom:14px;">
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:8px;">{{ labelPhotos }}</div>
-<div style="display:flex; gap:11px;">
+<div style="display:flex; flex-wrap:wrap; gap:11px;">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasBefore }}">
-<figure class="completed-media" onclick="{{ openBefore }}">
+<figure class="completed-media" onclick="{{ openBefore }}" style="flex:1 1 calc(50% - 6px); min-width:140px;">
 <img alt="Before" src="{{ beforeUrl }}"/>
 <figcaption>{{ beforePhoto }}</figcaption>
 </figure>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasAfter }}">
-<figure class="completed-media" onclick="{{ openAfter }}">
+<figure class="completed-media" onclick="{{ openAfter }}" style="flex:1 1 calc(50% - 6px); min-width:140px;">
 <img alt="After" src="{{ afterUrl }}"/>
 <figcaption>{{ afterPhoto }}</figcaption>
 </figure>
 </sc-if>
+<sc-for as="ex" hint-placeholder-count="0" list="{{ viewExtraPhotos }}">
+<figure class="completed-media" onclick="{{ ex.open }}" style="flex:1 1 calc(50% - 6px); min-width:140px;">
+<img alt="Extra" src="{{ ex.src }}"/>
+<figcaption>{{ ex.caption }}</figcaption>
+</figure>
+</sc-for>
 </div>
 </div>
 </sc-if>
@@ -255,9 +398,36 @@ mbCss('./common.css');
 </div>
 </sc-if>
 </div>
+
+<!-- linked product -->
+<div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">Linked product</div>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ hasLinkedProduct }}">
+<div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:12px; border-right:4px solid #1d60a2;">
+<sc-for as="prod" hint-placeholder-count="1" list="{{ linkedProducts }}">
+<div style="display:flex; align-items:center; gap:12px; {{ prod.rowStyle }}">
+<div style="width:42px; height:42px; border-radius:12px; background:#eef3fd; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22">
+<path d="M3 4h18l-7 9v6l-4 2v-8z"></path>
+</svg>
+</div>
+<div style="flex:1; min-width:0;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">{{ prod.name }}</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:2px;">{{ prod.meta }}</div>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ noLinkedProduct }}">
+<div style="display:flex; align-items:center; gap:9px; background:#fff; border:1.4px dashed #d7dde6; border-radius:14px; padding:15px; margin-bottom:12px; color:#9aa3b0;">
+<svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="20">
+<path d="M3 4h18l-7 9v6l-4 2v-8z"></path>
+</svg>
+<span style="font-size:13px; font-weight:600;">{{ noLinkedProductLabel }}</span>
 </div>
 </sc-if>
 </div>
+</sc-if>
 
 <!-- photo lightbox -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showLightbox }}">
@@ -270,10 +440,9 @@ mbCss('./common.css');
 
 <!-- bottom action -->
 <div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px;" data-no-i18n="true">
-<sc-if hint-placeholder-val="{{ true }}" value="{{ showForm }}">
-<button type="button" id="submit-close-btn" onclick="{{ submit }}" disabled="{{ busy }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
-<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 15l2 2 4-4"></path></svg>
-          {{ submitLabel }}
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showForm }}">
+<button type="button" id="submit-close-btn" onclick="{{ submit }}" disabled="{{ submitDisabled }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
+<span id="submit-close-label">{{ submitLabel }}</span>
         </button>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showView }}">
@@ -297,14 +466,31 @@ class Component extends DCLogic {
     ticketName: '',
     ticketSubject: '',
     customerName: '',
+    customerPhone: '',
+    customerAddress: '',
+    customerId: '',
     mode: 'form', // form | view
     summary: '',
+    closeStatus: '',
+    closeStatusLabel: '',
+    reason: '',
+    reasonOther: '',
     products: [],
     productId: '',
     qty: '1',
     spares: [],
+    linkedProducts: [],
     beforeDataUrl: '',
     afterDataUrl: '',
+    extraPhotos: [],
+    extraUrls: [],
+    cash: null,
+    cashAmount: '',
+    viewCashLabel: '',
+    terms: false,
+    sendCopy: true,
+    waSent: false,
+    waError: '',
     beforeUrl: '',
     afterUrl: '',
     signatureUrl: '',
@@ -328,6 +514,380 @@ class Component extends DCLogic {
 
   t(en, he) {
     return this.isEn() ? en : he;
+  }
+
+  pickPhone(ticket) {
+    var t = ticket || {};
+    var candidates = [
+      t.mobile, t.phone, t.customer_phone, t.customer_mobile,
+      t.cellphone, t.tel, t.phone1, t.phone2
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      var digits = String(candidates[i] || '').replace(/\D/g, '');
+      if (digits && digits.length >= 8) return String(candidates[i]);
+    }
+    return '';
+  }
+
+  pickAddress(ticket) {
+    var t = ticket || {};
+    var parts = [t.address, t.street, t.city || t.city_name].filter(function (x) {
+      return x != null && String(x).trim() && String(x).toLowerCase() !== 'null';
+    });
+    return parts.map(function (x) { return String(x).trim(); }).join(' · ');
+  }
+
+  pickCustomerId(ticket) {
+    var t = ticket || {};
+    var id = t.customer_id || t.cust_id || t.contactus_id || t.customerId || '';
+    id = String(id || '').trim();
+    if (!id || id === '0' || id === 'null' || id === 'undefined') return '';
+    return id;
+  }
+
+  statusDefs() {
+    return [
+      { id: 'done', label: this.t('Successfully completed', 'הושלם בהצלחה'), icon: 'check', tone: 'green' },
+      {
+        id: 'followup',
+        label: this.t('Follow-up required', 'דרוש המשך טיפול'),
+        hint: this.t('Saturday unit / wrong model / additional sale', 'יחידת שבת / דגם שגוי / מכירה נוספת'),
+        icon: 'clock',
+        tone: 'amber',
+        reason: true
+      },
+      { id: 'noanswer', label: this.t('No answer', 'אין מענה'), icon: 'phone', tone: 'gray' },
+      { id: 'notdone', label: this.t('Not performed', 'לא בוצע'), icon: 'x', tone: 'red' },
+      { id: 'lab', label: this.t('Sent to lab', 'נשלח למעבדה'), icon: 'lab', tone: 'purple' }
+    ];
+  }
+
+  statusTone(tone, on) {
+    var TONE = {
+      green:  { bg: '#eafaf0', border: '#9bd9b4', iconBg: '#25b35e', iconColor: '#fff', text: '#1f7a45' },
+      amber:  { bg: '#fdf6e8', border: '#ecd7a4', iconBg: '#e0a13c', iconColor: '#fff', text: '#9a7320' },
+      gray:   { bg: '#f4f5f7', border: '#d3d8e0', iconBg: '#8a93a3', iconColor: '#fff', text: '#5a6473' },
+      red:    { bg: '#fbeeed', border: '#f0c4bf', iconBg: '#c0392b', iconColor: '#fff', text: '#a3302e' },
+      purple: { bg: '#eef0fb', border: '#cdd0ee', iconBg: '#50439d', iconColor: '#fff', text: '#403487' }
+    };
+    var IDLE = { bg: '#fff', border: '#e4e8ee', iconBg: '#f1f3f6', iconColor: '#9aa3b0', text: '#5a6473' };
+    return on ? (TONE[tone] || IDLE) : IDLE;
+  }
+
+  needsReason() {
+    var id = this.state.closeStatus;
+    var s = this.statusDefs().find(function (x) { return x.id === id; });
+    return !!(s && s.reason);
+  }
+
+  closeStatusLabelOf(id) {
+    var s = this.statusDefs().find(function (x) { return x.id === id; });
+    return (s && s.label) || '';
+  }
+
+  reasonOptionsList() {
+    return [
+      { id: 'a', label: this.t('No Saturday unit in stock — return with unit', 'אין יחידת שבת במלאי — חזרה עם יחידה') },
+      { id: 'b', label: this.t('Wrong model / color — return for exchange', 'דגם / צבע שגוי — חזרה להחלפה') },
+      { id: 'c', label: this.t('Sold main filter / softener — additional install', 'נמכר סנן ראשי / מרכך — התקנה נוספת') },
+      { id: 'd', label: this.t('Missing part / accessory — order from supplier', 'חסר חלק / אביזר — הזמנה מהספק') },
+      { id: 'e', label: this.t('Other', 'אחר') }
+    ];
+  }
+
+  pickStatus(id) {
+    var label = this.closeStatusLabelOf(id);
+    this.setState({
+      closeStatus: id,
+      closeStatusLabel: label,
+      reason: id === 'followup' ? this.state.reason : '',
+      reasonOther: id === 'followup' ? this.state.reasonOther : '',
+      formError: ''
+    });
+    var self = this;
+    setTimeout(function () {
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+      self.updateSubmitEnabled();
+    }, 50);
+  }
+
+  onReason(e) {
+    var val = String((e && e.target && e.target.value) || '');
+    this.state.reason = val;
+    this.setState({ reason: val, formError: '' });
+    var self = this;
+    setTimeout(function () {
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+      self.updateSubmitEnabled();
+    }, 40);
+  }
+
+  onReasonOther(e) {
+    var val = String((e && e.target && e.target.value) || '');
+    this._reasonOtherValue = val;
+    this.state.reasonOther = val;
+    this.updateSubmitEnabled();
+  }
+
+  addChip(label) {
+    var el = document.getElementById('work-summary-input');
+    var cur = String((el && el.value) || this.state.summary || '').trim();
+    var next = cur ? (cur + ', ' + label) : label;
+    this._summaryDirty = true;
+    this._summaryValue = next;
+    this.state.summary = next;
+    if (el) el.value = next;
+    this.updateSubmitEnabled();
+  }
+
+  formMissing() {
+    var st = this.state;
+    var summaryEl = document.getElementById('work-summary-input');
+    var summary = String((summaryEl && summaryEl.value) || st.summary || '').trim();
+    var hasSig = !!(this._hasStroke || st.hasStroke || this._sigDataUrl);
+    var cashEl = document.getElementById('cash-amount-input');
+    if (cashEl) this.state.cashAmount = String(cashEl.value || '').replace(/[^0-9]/g, '');
+    var m = [];
+    if (!st.closeStatus) m.push(this.t('Closing status', 'סטטוס סיום'));
+    if (this.needsReason() && !st.reason) m.push(this.t('Follow-up reason', 'סיבת המשך טיפול'));
+    if (this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) {
+      m.push(this.t('Reason details', 'פירוט הסיבה'));
+    }
+    if (summary.length < 2) m.push(this.t('Work description', 'תיאור הביצוע'));
+    if (st.cash === 'yes' && !(parseInt(st.cashAmount, 10) > 0)) {
+      m.push(this.t('Cash amount', 'סכום המזומן'));
+    }
+    if (!st.terms) m.push(this.t('Customer approval', 'אישור תנאים'));
+    if (!hasSig) m.push(this.t('Digital Signature', 'חתימת הלקוח'));
+    return m;
+  }
+
+  restoreAfterUi() {
+    var self = this;
+    setTimeout(function () {
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+      self.syncReasonInputs();
+      self.updateSubmitEnabled();
+    }, 40);
+  }
+
+  setCash(v) {
+    var amount = v === 'yes' ? (this._cashAmountValue != null ? this._cashAmountValue : (this.state.cashAmount || '')) : '';
+    if (v !== 'yes') this._cashAmountValue = '';
+    this.setState({ cash: v, cashAmount: amount, formError: '' });
+    this.restoreAfterUi();
+  }
+
+  onCashAmount(e) {
+    var el = e && e.target;
+    var val = String((el && el.value) || '').replace(/[^0-9]/g, '');
+    if (el && el.value !== val) el.value = val;
+    this.state.cashAmount = val;
+    this._cashAmountValue = val;
+    // Do not setState here — it re-renders and kills typing / caret
+    this.updateSubmitEnabled();
+  }
+
+  toggleTerms() {
+    this.setState({ terms: !this.state.terms, formError: '' });
+    this.restoreAfterUi();
+  }
+
+  toggleSend() {
+    this.setState({ sendCopy: !this.state.sendCopy });
+    this.restoreAfterUi();
+  }
+
+  canFormSubmit() {
+    // Close stays inactive until required fields (incl. customer terms approval) are complete
+    return this.formMissing().length === 0 && !this.state.busy;
+  }
+
+  buildServiceFormDocumentText(st, summary, statusLabel, media) {
+    var s = st || this.state || {};
+    var tid = String(s.ticketId || '').replace(/^#/, '');
+    var cust = s.customerName || '';
+    var phone = s.customerPhone || '';
+    var address = s.customerAddress || '';
+    var subject = s.ticketSubject || s.ticketName || '';
+    var m = media || {};
+    var lines = [];
+    var en = this.isEn();
+    lines.push(en ? 'DIGITAL SERVICE FORM' : 'טופס שירות דיגיטלי');
+    lines.push('====================');
+    lines.push((en ? 'Ticket #' : 'קריאה #') + tid);
+    if (cust) lines.push((en ? 'Customer: ' : 'לקוח: ') + cust);
+    if (phone) lines.push((en ? 'Phone: ' : 'טלפון: ') + phone);
+    if (address) lines.push((en ? 'Address: ' : 'כתובת: ') + address);
+    if (subject) lines.push((en ? 'Subject: ' : 'נושא: ') + subject);
+    if (statusLabel) lines.push((en ? 'Closing status: ' : 'סטטוס סיום: ') + statusLabel);
+    if (summary) {
+      lines.push('');
+      lines.push(en ? 'Work summary:' : 'סיכום ביצוע:');
+      lines.push(String(summary));
+    }
+    (s.spares || []).forEach(function (sp) {
+      lines.push('- ' + (sp.name || ('#' + sp.id)) + ' x' + (sp.qty || 1));
+    });
+    if (s.cash === 'yes') {
+      lines.push((en ? 'Cash collected: ' : 'מזומן שנגבה: ') + (s.cashAmount || '0') + ' ₪');
+    }
+    if (s.terms) {
+      lines.push(en
+        ? 'Customer approved warranty terms and sales agreement.'
+        : 'הלקוח אישר את תנאי האחריות והסכם המכר.');
+    }
+    lines.push('');
+    if (m.before) lines.push((en ? 'Before photo: ' : 'תמונה לפני: ') + m.before);
+    if (m.after) lines.push((en ? 'After photo: ' : 'תמונה אחרי: ') + m.after);
+    if (m.signature) lines.push((en ? 'Signature: ' : 'חתימה: ') + m.signature);
+    if (m.extras && m.extras.length) {
+      m.extras.forEach(function (u, i) {
+        lines.push((en ? 'Extra photo ' : 'תמונה נוספת ') + (i + 1) + ': ' + u);
+      });
+    }
+    lines.push('');
+    lines.push(en
+      ? 'Thank you. You can rate us on Google ⭐'
+      : 'תודה. אפשר לדרג אותנו בגוגל ⭐');
+    return lines.join('\n');
+  }
+
+  buildTicketViewLink(ticketId) {
+    var tid = String(ticketId || '').replace(/^#/, '');
+    if (!tid) return '';
+    var base = '';
+    try {
+      if (typeof location !== 'undefined' && /^https?:$/i.test(location.protocol)) {
+        base = location.origin + String(location.pathname || '').replace(/[^/]*$/, '');
+      }
+    } catch (e0) { /* ignore */ }
+    if (!base && window.MineralBarApp && MineralBarApp.DOMAIN) {
+      base = String(MineralBarApp.DOMAIN).replace(/\/+$/, '') + '/';
+    }
+    return base + 'tech-call-close.html?ticket_id=' + encodeURIComponent(tid) + '&view=1';
+  }
+
+  buildTicketWhatsAppMessage(st, summary, statusLabel, links) {
+    var s = st || this.state || {};
+    var tid = String(s.ticketId || '').replace(/^#/, '');
+    var L = links || {};
+    var formUrl = typeof links === 'string' ? links : L.formUrl;
+    var ticketUrl = L.ticketUrl || '';
+    var lines = [];
+    if (this.isEn()) {
+      lines.push('Hi' + (s.customerName ? (' ' + s.customerName) : '') + ',');
+      lines.push('Your service ticket #' + tid + ' was completed.');
+      if (statusLabel) lines.push('Status: ' + statusLabel);
+      if (summary) lines.push('Summary: ' + summary);
+      lines.push('');
+      lines.push('Tap the link to view the ticket / service form:');
+    } else {
+      lines.push('שלום' + (s.customerName ? (' ' + s.customerName) : '') + ',');
+      lines.push('קריאת השירות #' + tid + ' הושלמה.');
+      if (statusLabel) lines.push('סטטוס: ' + statusLabel);
+      if (summary) lines.push('סיכום: ' + summary);
+      lines.push('');
+      lines.push('לצפייה בטיקט / טופס השירות לחצו על הקישור:');
+    }
+    if (formUrl) lines.push(String(formUrl));
+    if (ticketUrl && ticketUrl !== formUrl) lines.push(String(ticketUrl));
+    return lines.filter(Boolean).join('\n');
+  }
+
+  async resolveMessengerMetaId(customerId) {
+    var cid = String(customerId || '').trim();
+    if (!cid || cid === '0') return '';
+    if (!window.MineralBarApp || typeof MineralBarApp.listChatConversations !== 'function') return '';
+    try {
+      var convs = await MineralBarApp.listChatConversations({ limit: 100 });
+      var rows = (convs && convs.rows) || [];
+      var matched = rows.find(function (r) {
+        return String(r.customer_id || r.cust_id || '') === cid;
+      });
+      return (matched && matched.messenger_meta_id) ? String(matched.messenger_meta_id) : '';
+    } catch (e) {
+      console.warn('[tech-call-close] resolve messenger_meta_id failed', e);
+      return '';
+    }
+  }
+
+  /**
+   * Send short WhatsApp text + clickable ticket/form link via Chat.SendCustomer.
+   */
+  async sendTicketCopyWhatsApp(st, summary, statusLabel, media) {
+    var s = st || this.state || {};
+    if (!s.sendCopy) return false;
+    var customerId = String(s.customerId || '').trim();
+    if (!customerId || customerId === '0') {
+      throw new Error(this.t('Missing customer_id', 'חסר מזהה לקוח'));
+    }
+    if (!window.MineralBarApp || typeof MineralBarApp.sendCustomerMessage !== 'function') {
+      throw new Error(this.t('SDK not ready', 'המערכת עדיין לא מוכנה'));
+    }
+
+    var tid = String(s.ticketId || '').replace(/^#/, '');
+    var ticketUrl = this.buildTicketViewLink(tid);
+    var formUrl = '';
+
+    // Upload text service form → https link customer can tap (html upload is blocked by API)
+    try {
+      var docText = this.buildServiceFormDocumentText(s, summary, statusLabel, media);
+      if (ticketUrl) docText = docText + '\n\nOpen ticket: ' + ticketUrl;
+      var fileName = 'service-form-ticket-' + tid + '.txt';
+      var blob = new Blob([docText], { type: 'text/plain;charset=utf-8' });
+      var file = new File([blob], fileName, { type: 'text/plain' });
+      if (typeof MineralBarApp.uploadCustomerFile === 'function') {
+        var uploaded = await MineralBarApp.uploadCustomerFile(customerId, file, {
+          file_name: fileName
+        });
+        formUrl = (uploaded && (uploaded.url || uploaded.path)) || '';
+        if (formUrl && !/^https?:\/\//i.test(formUrl) && MineralBarApp.resolveFileUrl) {
+          formUrl = MineralBarApp.resolveFileUrl(formUrl);
+        }
+      }
+    } catch (eUp) {
+      console.warn('[tech-call-close] service form upload failed', eUp);
+    }
+
+    var msg = this.buildTicketWhatsAppMessage(s, summary, statusLabel, {
+      formUrl: formUrl,
+      ticketUrl: ticketUrl
+    });
+    if (!formUrl && !ticketUrl) {
+      msg = msg + '\n\n' + this.buildServiceFormDocumentText(s, summary, statusLabel, media);
+    }
+
+    var payload = {
+      customer_id: customerId,
+      cust_id: customerId,
+      msg: msg,
+      message: msg,
+      from: 'send_whatsapp'
+    };
+    if (s.customerPhone) {
+      payload.phone = s.customerPhone;
+      payload.chart_selected_phone_no = s.customerPhone;
+    }
+
+    try {
+      await MineralBarApp.sendCustomerMessage(payload);
+      return true;
+    } catch (eWa) {
+      // WhatsApp 24h window / template required — still drop text+link into Biz1 customer chat
+      var errText = String((eWa && eWa.message) || '');
+      if (/24\s*שעות|מתבנית|template|לא שלח/i.test(errText)) {
+        try {
+          await MineralBarApp.sendCustomerMessage(Object.assign({}, payload, { from: 'send_notes' }));
+        } catch (eNotes) {
+          console.warn('[tech-call-close] notes fallback failed', eNotes);
+        }
+      }
+      throw eWa;
+    }
   }
 
   componentDidMount() {
@@ -365,8 +925,7 @@ class Component extends DCLogic {
         delay: 400
       });
     }
-    this.scheduleBind(150);
-    this.scheduleBind(600);
+    this.scheduleBind(400);
   }
 
   onRealtimeRefresh(ev) {
@@ -413,14 +972,153 @@ class Component extends DCLogic {
   }
 
   parseWorkNoteFromMessages(ticket) {
-    var msgs = ticket && (ticket.messages || ticket.message || ticket.notes) || '';
-    if (Array.isArray(msgs)) {
-      msgs = msgs.map(function (m) { return m.message || m.msg || m.text || m.note || ''; }).join('\n');
-    }
-    var text = String(msgs || '');
+    var text = this.ticketNotesText(ticket);
     var m = text.match(/Work summary:\s*([^\n]+)/i);
     if (m && m[1]) return String(m[1]).trim();
     return '';
+  }
+
+  parseCustomFields(ticket) {
+    var cf = ticket && ticket.custom_fields;
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e) { cf = null; }
+    }
+    if (Array.isArray(cf)) {
+      // Some APIs return [{key,value}] — normalize to object
+      var obj = {};
+      cf.forEach(function (row) {
+        if (!row || typeof row !== 'object') return;
+        var k = row.key || row.name || row.field || row.id;
+        var v = row.value != null ? row.value : row.val;
+        if (k != null) obj[String(k)] = v;
+      });
+      return obj;
+    }
+    if (cf && typeof cf === 'object') return cf;
+    return {};
+  }
+
+  /** Reads custom_fields.closing_status, falls back to note text "Closing status: …" */
+  parseClosingStatus(ticket) {
+    var cf = this.parseCustomFields(ticket);
+    var raw = cf.closing_status != null ? cf.closing_status : cf.close_status;
+    raw = String(raw != null ? raw : '').trim();
+    if (!raw) {
+      var m = this.ticketNotesText(ticket).match(/Closing status:\s*([^\n]+)/i);
+      if (m && m[1]) raw = String(m[1]).trim();
+    }
+    if (!raw) return { id: '', label: '' };
+    var id = '';
+    var lower = raw.toLowerCase();
+    var defs = this.statusDefs();
+    var hit = defs.find(function (s) {
+      return s.id === lower || String(s.label).toLowerCase() === lower;
+    });
+    if (hit) {
+      id = hit.id;
+      return { id: id, label: hit.label };
+    }
+    // Known English labels / ids
+    if (/success|completed|הושלם|done/.test(lower)) id = 'done';
+    else if (/follow|המשך|followup/.test(lower)) id = 'followup';
+    else if (/no.?answer|אין מענה|noanswer/.test(lower)) id = 'noanswer';
+    else if (/not.?perform|לא בוצע|notdone/.test(lower)) id = 'notdone';
+    else if (/lab|מעבד/.test(lower)) id = 'lab';
+    var label = id ? this.closeStatusLabelOf(id) : raw;
+    return { id: id || raw, label: label || raw };
+  }
+
+  ticketNotesText(ticket) {
+    if (!ticket || typeof ticket !== 'object') return '';
+    var parts = [];
+    function push(v) {
+      if (v == null || v === '') return;
+      if (Array.isArray(v)) {
+        v.forEach(function (row) {
+          if (row == null) return;
+          if (typeof row === 'object') {
+            push(row.message || row.msg || row.text || row.note || row.content || row.body || row.description);
+          } else {
+            push(row);
+          }
+        });
+        return;
+      }
+      if (typeof v === 'object') {
+        push(v.message || v.msg || v.text || v.note || v.content || v.body);
+        return;
+      }
+      parts.push(String(v));
+    }
+    push(ticket.messages);
+    push(ticket.message);
+    push(ticket.notes);
+    push(ticket.note);
+    push(ticket.description);
+    push(ticket.last_message);
+    push(ticket.last_note);
+    return parts.join('\n');
+  }
+
+  parseCashFromTicket(ticket) {
+    var cf = this.parseCustomFields(ticket);
+    var collected = String(
+      cf.cash_collected != null ? cf.cash_collected
+        : (cf.cashCollected != null ? cf.cashCollected : '')
+    ).trim().toLowerCase();
+    var amount = String(
+      cf.cash_amount != null ? cf.cash_amount
+        : (cf.cashAmount != null ? cf.cashAmount : '')
+    ).replace(/[^0-9]/g, '');
+
+    var text = this.ticketNotesText(ticket);
+    if (text) {
+      var meta = text.match(/CASH_META:(\{[\s\S]*?\})/);
+      if (meta) {
+        try {
+          var j = JSON.parse(meta[1]);
+          if (j && (j.collected === 'yes' || j.collected === 'no')) collected = j.collected;
+          if (j && j.amount != null && String(j.amount).replace(/[^0-9]/g, '')) {
+            amount = String(j.amount).replace(/[^0-9]/g, '');
+          }
+        } catch (eMeta) { /* ignore */ }
+      }
+      if (!collected) {
+        if (/Cash collected:\s*no\b/i.test(text) || /מזומן[^:\n]*:\s*לא/i.test(text)) {
+          collected = 'no';
+        } else if (/Cash collected:\s*yes\b/i.test(text)) {
+          collected = 'yes';
+        } else {
+          var mAmt = text.match(/Cash collected:\s*(\d+)/i)
+            || text.match(/Cash amount:\s*(\d+)/i)
+            || text.match(/מזומן שנגבה:\s*(\d+)/i)
+            || text.match(/סכום שנגבה במזומן:\s*(\d+)/i);
+          if (mAmt) {
+            collected = 'yes';
+            amount = mAmt[1];
+          }
+        }
+      } else if (collected === 'yes' && !amount) {
+        var mOnly = text.match(/Cash collected:\s*(\d+)/i)
+          || text.match(/Cash amount:\s*(\d+)/i)
+          || text.match(/מזומן שנגבה:\s*(\d+)/i);
+        if (mOnly) amount = mOnly[1];
+      }
+    }
+
+    if (collected === '1' || collected === 'true') collected = 'yes';
+    if (collected === '0' || collected === 'false') collected = 'no';
+    if (collected !== 'yes' && collected !== 'no') return { cash: '', amount: '', label: '' };
+    if (collected === 'no') {
+      return { cash: 'no', amount: '', label: this.t('No', 'לא') };
+    }
+    return {
+      cash: 'yes',
+      amount: amount,
+      label: amount
+        ? (this.t('Yes', 'כן') + ' · ' + amount + ' ₪')
+        : this.t('Yes', 'כן')
+    };
   }
 
   unwrapTicket(raw) {
@@ -446,7 +1144,9 @@ class Component extends DCLogic {
     var q = this.getQuery();
     var tid = String(q.get('ticket_id') || q.get('id') || '').trim();
     var name = String(q.get('name') || q.get('subject') || '').trim();
-    var customer = String(q.get('customer') || '').trim();
+    var customer = String(q.get('customer') || q.get('name') || '').trim();
+    var phoneQ = String(q.get('phone') || '').trim();
+    var customerIdQ = String(q.get('customer_id') || q.get('cust_id') || '').trim();
     var forceView = q.get('view') === '1';
     var hasUi = !this.state.loading && !!this.state.ticketId;
 
@@ -460,6 +1160,8 @@ class Component extends DCLogic {
           var subject0 = this.pickSubject(liveTicket, name || this.state.ticketSubject);
           var workNote0 = this.parseWorkNoteFromMessages(liveTicket);
           var spares0 = this.parseSparesFromMessages(liveTicket);
+          var linked0 = await this.resolveLinkedProducts(liveTicket);
+          var close0 = this.parseClosingStatus(liveTicket);
           this.setState({
             loading: false,
             mode: 'view',
@@ -468,11 +1170,19 @@ class Component extends DCLogic {
             beforeUrl: media0.before || this.state.beforeUrl || this.state.beforeDataUrl || '',
             afterUrl: media0.after || this.state.afterUrl || this.state.afterDataUrl || '',
             signatureUrl: media0.signature || this.state.signatureUrl || '',
+            extraUrls: (media0.extras && media0.extras.length) ? media0.extras : (this.state.extraUrls || []),
             beforeDataUrl: media0.before || this.state.beforeDataUrl || '',
             afterDataUrl: media0.after || this.state.afterDataUrl || '',
             customerName: liveTicket.customer_name || liveTicket.joined_customer_name || liveTicket.name || this.state.customerName,
+            customerPhone: this.pickPhone(liveTicket) || this.state.customerPhone,
+            customerAddress: this.pickAddress(liveTicket) || this.state.customerAddress,
+            customerId: this.pickCustomerId(liveTicket) || this.state.customerId,
             ticketName: name || subject0 || this.state.ticketName,
-            spares: (spares0 && spares0.length) ? spares0 : (this.state.spares || [])
+            spares: (spares0 && spares0.length) ? spares0 : (this.state.spares || []),
+            linkedProducts: linked0,
+            closeStatus: close0.id || this.state.closeStatus || '',
+            closeStatusLabel: close0.label || this.state.closeStatusLabel || '',
+            viewCashLabel: this.parseCashFromTicket(liveTicket).label || this.state.viewCashLabel || ''
           });
         }
       } catch (eSoft) {
@@ -493,6 +1203,21 @@ class Component extends DCLogic {
         ticketName: name,
         ticketSubject: name || '',
         customerName: customer,
+        customerPhone: phoneQ,
+        customerAddress: '',
+        customerId: customerIdQ,
+        closeStatus: '',
+        closeStatusLabel: '',
+        reason: '',
+        reasonOther: '',
+        extraPhotos: [],
+        cash: null,
+        cashAmount: '',
+        viewCashLabel: '',
+        terms: false,
+        sendCopy: true,
+        waSent: false,
+        waError: '',
         summary: ''
       });
     } else if (tid && tid !== this.state.ticketId) {
@@ -515,6 +1240,8 @@ class Component extends DCLogic {
         var workNote = this.parseWorkNoteFromMessages(ticket);
         var cust = ticket.customer_name || ticket.joined_customer_name || ticket.name || customer;
         if (closed || forceView) {
+          var linkedProducts = await this.resolveLinkedProducts(ticket);
+          var closeInfo = this.parseClosingStatus(ticket);
           this.setState({
             loading: false,
             mode: 'view',
@@ -524,24 +1251,37 @@ class Component extends DCLogic {
             beforeUrl: media.before || this.state.beforeUrl || '',
             afterUrl: media.after || this.state.afterUrl || '',
             signatureUrl: media.signature || this.state.signatureUrl || '',
+            extraUrls: (media.extras && media.extras.length) ? media.extras : (this.state.extraUrls || []),
             beforeDataUrl: media.before || this.state.beforeDataUrl || '',
             afterDataUrl: media.after || this.state.afterDataUrl || '',
             customerName: cust || customer,
+            customerPhone: this.pickPhone(ticket) || phoneQ || this.state.customerPhone,
+            customerAddress: this.pickAddress(ticket) || this.state.customerAddress,
+            customerId: this.pickCustomerId(ticket) || customerIdQ || this.state.customerId,
             ticketName: name || subject || ('#' + tid),
-            spares: this.parseSparesFromMessages(ticket)
+            spares: this.parseSparesFromMessages(ticket),
+            linkedProducts: linkedProducts,
+            closeStatus: closeInfo.id || '',
+            closeStatusLabel: closeInfo.label || '',
+            viewCashLabel: this.parseCashFromTicket(ticket).label || ''
           });
         } else {
+          var linkedForm = await this.resolveLinkedProducts(ticket);
           this.setState({
             loading: false,
             mode: 'form',
             summary: silent ? (this.state.summary || '') : '',
             ticketSubject: subject || name || ('#' + tid),
             customerName: cust || customer,
-            ticketName: name || subject || ('#' + tid)
+            customerPhone: this.pickPhone(ticket) || phoneQ || this.state.customerPhone,
+            customerAddress: this.pickAddress(ticket) || this.state.customerAddress,
+            customerId: this.pickCustomerId(ticket) || customerIdQ || this.state.customerId,
+            ticketName: name || subject || ('#' + tid),
+            linkedProducts: linkedForm
           });
           if (!silent) {
-            this.scheduleBind(80);
-            this.scheduleBind(300);
+            this.scheduleBind(200);
+            this.scheduleBind(500);
           }
         }
       } else {
@@ -553,8 +1293,8 @@ class Component extends DCLogic {
           ticketName: name || ('#' + tid)
         });
         if (!silent) {
-          this.scheduleBind(80);
-          this.scheduleBind(300);
+          this.scheduleBind(200);
+          this.scheduleBind(500);
         }
       }
     } catch (e) {
@@ -570,7 +1310,7 @@ class Component extends DCLogic {
         ticketSubject: name || '',
         errorMsg: (e && e.message) || this.t('Failed to load ticket', 'טעינת הטיקט נכשלה')
       });
-      this.scheduleBind(80);
+      this.scheduleBind(200);
     }
   }
 
@@ -596,6 +1336,232 @@ class Component extends DCLogic {
       console.warn('[tech-call-close] Ticket.Get failed', e);
       return null;
     }
+  }
+
+  extractProductIds(ticket) {
+    if (!ticket) return [];
+    var ids = [];
+    function addId(v) {
+      if (v == null || v === '') return;
+      if (Array.isArray(v)) { v.forEach(addId); return; }
+      if (typeof v === 'object') {
+        var oid = v.id != null ? v.id : v.product_id;
+        if (oid != null) addId(oid);
+        return;
+      }
+      String(v).split(/[,|;]+/).forEach(function (part) {
+        part = String(part || '').replace(/[\[\]"']/g, '').trim();
+        if (!part || part === '0' || /^null$/i.test(part) || /^undefined$/i.test(part)) return;
+        ids.push(part);
+      });
+    }
+    addId(ticket.product_id);
+    addId(ticket.product_ids);
+    addId(ticket.products);
+    addId(ticket.product);
+    var cf = ticket.custom_fields;
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e) { cf = null; }
+    }
+    if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
+      Object.keys(cf).forEach(function (k) {
+        if (!/product/i.test(k)) return;
+        if (/name|title|label|choose/i.test(k)) return;
+        addId(cf[k]);
+      });
+    }
+    Object.keys(ticket).forEach(function (k) {
+      if (/^a-.*product/i.test(k) || k === 'a-product_id') addId(ticket[k]);
+    });
+    var seen = {};
+    return ids.filter(function (id) {
+      if (!id || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
+
+  collectNamedProducts(ticket) {
+    var out = [];
+    if (!ticket) return out;
+    function push(name, id, extra) {
+      name = String(name || '').trim();
+      if (!name || name === 'undefined' || name === 'null') return;
+      if (ticket.subject && name === String(ticket.subject).trim()) return;
+      out.push(Object.assign({
+        id: id ? String(id) : '',
+        name: name,
+        sku: '',
+        type: '',
+        price: ''
+      }, extra || {}));
+    }
+    var lists = [ticket.products, ticket.product_list, ticket.linked_products];
+    lists.forEach(function (list) {
+      if (!Array.isArray(list)) return;
+      list.forEach(function (item) {
+        if (!item) return;
+        if (typeof item === 'object') {
+          push(
+            item.product_name || item.name || item.title || item.label,
+            item.id || item.product_id,
+            {
+              sku: item.product_sku || item.sku || '',
+              type: item.type || '',
+              price: item.price != null ? String(item.price) : ''
+            }
+          );
+        }
+      });
+    });
+    if (ticket.product && typeof ticket.product === 'object' && !Array.isArray(ticket.product)) {
+      push(
+        ticket.product.product_name || ticket.product.name,
+        ticket.product.id || ticket.product.product_id,
+        {
+          sku: ticket.product.product_sku || ticket.product.sku || '',
+          type: ticket.product.type || '',
+          price: ticket.product.price != null ? String(ticket.product.price) : ''
+        }
+      );
+    }
+
+    var cf = ticket.custom_fields;
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e) { cf = null; }
+    }
+    if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
+      Object.keys(cf).forEach(function (k) {
+        if (!/product/i.test(k)) return;
+        var v = cf[k];
+        if (v == null) return;
+        if (typeof v === 'object') {
+          push(v.product_name || v.name, v.id || v.product_id);
+        } else {
+          var s = String(v).trim();
+          if (s && !/^\d+$/.test(s) && s.length < 120) push(s, '');
+        }
+      });
+    }
+
+    [
+      ticket.product_name,
+      ticket.joined_product_name,
+      ticket.product_title
+    ].forEach(function (n) { push(n, ''); });
+    var seen = {};
+    return out.filter(function (p) {
+      var key = (p.id || '') + '::' + p.name.toLowerCase();
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+  }
+
+  findCachedProduct(id) {
+    var list = this.state.products || [];
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === String(id)) {
+        return {
+          id: String(list[i].id),
+          name: list[i].name || ('#' + id),
+          sku: list[i].sku || '',
+          type: list[i].type || '',
+          price: list[i].price != null ? String(list[i].price) : ''
+        };
+      }
+    }
+    return null;
+  }
+
+  async fetchProductById(id) {
+    if (!id) return null;
+    var cached = this.findCachedProduct(id);
+    if (cached) return cached;
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return null;
+    try {
+      var client = MineralBarApp.getClient();
+      var raw = await client.request('Products.Get', { id: id, product_id: id });
+      var row = raw && (raw.data || raw.output || raw.product || raw);
+      if (Array.isArray(row)) row = row[0];
+      if (row && row.data && typeof row.data === 'object' && !Array.isArray(row.data)) row = row.data;
+      if (!row || typeof row !== 'object') return null;
+      var name = row.product_name || row.name || row.title || '';
+      if (!name) return null;
+      return {
+        id: String(row.id || row.product_id || id),
+        name: name,
+        sku: row.product_sku || row.sku || '',
+        type: row.type || '',
+        price: row.price != null ? String(row.price) : ''
+      };
+    } catch (e) {
+      console.warn('[tech-call-close] Products.Get failed for', id, e);
+      return null;
+    }
+  }
+
+  async resolveLinkedProducts(ticket) {
+    var named = this.collectNamedProducts(ticket);
+    var ids = this.extractProductIds(ticket);
+    var products = [];
+    var seenName = {};
+    var seenId = {};
+
+    function normName(n) {
+      return String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    function add(p) {
+      if (!p || !p.name) return;
+      var nameKey = normName(p.name);
+      var idKey = String(p.id || '').trim();
+      if (idKey === '0' || (idKey && normName(idKey) === nameKey)) {
+        p = Object.assign({}, p, { id: '' });
+        idKey = '';
+      }
+      if (idKey && seenId[idKey]) return;
+      if (nameKey && seenName[nameKey]) {
+        if (idKey) {
+          for (var i = 0; i < products.length; i++) {
+            if (normName(products[i].name) === nameKey && !products[i].id) {
+              products[i] = Object.assign({}, products[i], p);
+              seenId[idKey] = true;
+              return;
+            }
+          }
+        }
+        return;
+      }
+      if (idKey) seenId[idKey] = true;
+      if (nameKey) seenName[nameKey] = true;
+      products.push(p);
+    }
+
+    named.forEach(add);
+
+    for (var i = 0; i < ids.length; i++) {
+      var pid = String(ids[i] || '').trim();
+      if (!pid || pid === '0') continue;
+      if (seenName[normName(pid)]) continue;
+      var already = products.some(function (p) { return String(p.id) === pid; });
+      if (already) continue;
+      var fetched = await this.fetchProductById(pid);
+      if (fetched) {
+        add(fetched);
+      } else if (!/^\d+$/.test(pid)) {
+        add({ id: '', name: pid, sku: '', type: '', price: '' });
+      } else {
+        add({ id: pid, name: '#' + pid, sku: '', type: '', price: '' });
+      }
+    }
+
+    if (!products.length && (this.state.spares || []).length) {
+      (this.state.spares || []).forEach(function (s) {
+        add({ id: String(s.id || ''), name: s.name || ('#' + s.id), sku: '', type: '', price: '' });
+      });
+    }
+    return products;
   }
 
   async loadProducts() {
@@ -643,7 +1609,7 @@ class Component extends DCLogic {
   }
 
   extractMedia(ticket) {
-    var out = { before: '', after: '', signature: '' };
+    var out = { before: '', after: '', extras: [], signature: '' };
     if (!ticket) return out;
     var msgs = ticket.messages || ticket.message || ticket.notes || '';
     if (Array.isArray(msgs)) {
@@ -657,6 +1623,9 @@ class Component extends DCLogic {
         out.before = json.before || '';
         out.after = json.after || '';
         out.signature = json.signature || '';
+        if (Array.isArray(json.extras)) {
+          out.extras = json.extras.filter(Boolean);
+        }
       } catch (e) { /* ignore */ }
     }
     var files = ticket.files || ticket.attachments || [];
@@ -669,6 +1638,9 @@ class Component extends DCLogic {
       if (name.indexOf('before') >= 0 || name.indexOf('ticket-' + tid + '-before') >= 0) out.before = out.before || url;
       else if (name.indexOf('after') >= 0 || name.indexOf('ticket-' + tid + '-after') >= 0) out.after = out.after || url;
       else if (name.indexOf('signature') >= 0 || name.indexOf('ticket-' + tid + '-signature') >= 0) out.signature = out.signature || url;
+      else if (name.indexOf('extra') >= 0 || name.indexOf('ticket-' + tid + '-extra') >= 0) {
+        if (out.extras.indexOf(url) < 0) out.extras.push(url);
+      }
     });
     return out;
   }
@@ -689,7 +1661,10 @@ class Component extends DCLogic {
     this.bindPhotos();
     this.bindSignature();
     this.syncPhotoPreviews();
+    this.syncExtraPhotos();
     this.syncSummaryInput();
+    this.syncReasonInputs();
+    this.updateSubmitEnabled();
   }
 
   syncSummaryInput() {
@@ -703,17 +1678,42 @@ class Component extends DCLogic {
     if (el.value !== desired) el.value = desired;
   }
 
+  syncReasonInputs() {
+    var sel = document.getElementById('close-reason-select');
+    if (sel && document.activeElement !== sel) {
+      var want = String(this.state.reason || '');
+      if (sel.value !== want) sel.value = want;
+    }
+    var other = document.getElementById('close-reason-other');
+    if (other && document.activeElement !== other) {
+      var ov = this._reasonOtherValue != null ? this._reasonOtherValue : (this.state.reasonOther || '');
+      if (other.value !== String(ov)) other.value = String(ov);
+    }
+    var cashEl = document.getElementById('cash-amount-input');
+    if (cashEl && document.activeElement !== cashEl) {
+      var cv = this._cashAmountValue != null ? this._cashAmountValue : (this.state.cashAmount || '');
+      if (cashEl.value !== String(cv)) cashEl.value = String(cv);
+    }
+  }
+
   updateSubmitEnabled() {
     var btn = document.getElementById('submit-close-btn');
     if (!btn) return;
     var st = this.state;
-    var hasSig = !!(st.hasStroke || this._hasStroke || this._sigDataUrl);
-    var canSubmit = String(st.summary || '').trim().length >= 2 && hasSig && !st.busy;
+    var canSubmit = this.canFormSubmit();
+    // Only style/label text — never replace button.innerHTML (breaks DC insertBefore)
+    btn.disabled = !canSubmit || !!st.busy;
     btn.style.background = canSubmit ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0';
     btn.style.color = canSubmit ? '#fff' : '#9aa3b0';
     btn.style.cursor = canSubmit ? 'pointer' : 'not-allowed';
     btn.style.boxShadow = canSubmit ? '0 6px 16px rgba(44,138,96,.32)' : 'none';
     btn.style.opacity = st.busy ? '0.75' : '1';
+    var label = document.getElementById('submit-close-label');
+    if (label && !st.busy) {
+      label.textContent = canSubmit
+        ? this.t('Confirm & close ticket', 'אשר וסגור קריאה')
+        : this.t('Complete required fields to close', 'השלם שדות חובה לסגירה');
+    }
   }
 
   bindPhotos() {
@@ -729,11 +1729,84 @@ class Component extends DCLogic {
         self.compressImage(file).then(function (dataUrl) {
           if (kind === 'before') self.setState({ beforeDataUrl: dataUrl });
           else self.setState({ afterDataUrl: dataUrl });
-          setTimeout(function () { self.syncPhotoPreviews(); }, 40);
+          setTimeout(function () {
+            self.syncPhotoPreviews();
+            self.bindDom();
+            if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+          }, 40);
         }).catch(function (e) {
           console.warn('[tech-call-close] compress failed', e);
         });
       });
+    });
+
+    var extraInput = document.getElementById('extra-photo-input');
+    if (extraInput && extraInput.getAttribute('data-bound') !== '1') {
+      extraInput.setAttribute('data-bound', '1');
+      extraInput.addEventListener('change', function () {
+        var file = extraInput.files && extraInput.files[0];
+        if (!file) return;
+        self.compressImage(file).then(function (dataUrl) {
+          var list = (self.state.extraPhotos || []).slice();
+          list.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 8), dataUrl: dataUrl });
+          self.setState({ extraPhotos: list });
+          try { extraInput.value = ''; } catch (eClear) { /* ignore */ }
+          setTimeout(function () {
+            self.syncExtraPhotos();
+            self.bindDom();
+            if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+          }, 40);
+        }).catch(function (e) {
+          console.warn('[tech-call-close] extra photo compress failed', e);
+        });
+      });
+    }
+  }
+
+  removeExtraPhoto(id) {
+    this.setState({
+      extraPhotos: (this.state.extraPhotos || []).filter(function (x) {
+        return String(x.id) !== String(id);
+      })
+    });
+    var self = this;
+    setTimeout(function () {
+      self.syncExtraPhotos();
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+    }, 40);
+  }
+
+  /** Paint every "Another picture" thumbnail into #extra-photos-list (all of them). */
+  syncExtraPhotos() {
+    var host = document.getElementById('extra-photos-list');
+    if (!host) return;
+    var list = this.state.extraPhotos || [];
+    var self = this;
+    host.innerHTML = '';
+    list.forEach(function (x, idx) {
+      if (!x || !x.dataUrl) return;
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'flex:0 0 calc(50% - 6px); max-width:calc(50% - 6px); aspect-ratio:1.15; border-radius:13px; overflow:hidden; position:relative; border:1.5px solid #c7d0dc; background:#f4f5f7;';
+      var img = document.createElement('img');
+      img.alt = 'Extra ' + (idx + 1);
+      img.src = x.dataUrl;
+      img.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block; cursor:pointer;';
+      img.addEventListener('click', function () {
+        self.openPhoto(x.dataUrl, self.t('Another picture', 'תמונה נוספת') + ' ' + (idx + 1));
+      });
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '\u2715';
+      btn.setAttribute('aria-label', 'Remove');
+      btn.style.cssText = 'position:absolute; top:6px; inset-inline-start:6px; width:24px; height:24px; border-radius:50%; border:none; background:rgba(15,24,40,.65); color:#fff; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2;';
+      btn.addEventListener('click', function (ev) {
+        try { ev.preventDefault(); ev.stopPropagation(); } catch (e0) { /* ignore */ }
+        self.removeExtraPhoto(x.id);
+      });
+      wrap.appendChild(img);
+      wrap.appendChild(btn);
+      host.appendChild(wrap);
     });
   }
 
@@ -971,15 +2044,14 @@ class Component extends DCLogic {
     var st = this.state;
     var summaryEl = document.getElementById('work-summary-input');
     var summary = String((summaryEl && summaryEl.value) || st.summary || '').trim();
-    var hasSig = !!(this._hasStroke || st.hasStroke || this._sigDataUrl);
-    var errs = [];
-    if (summary.length < 2) errs.push(this.t('Work summary', 'סיכום העבודה'));
-    if (!hasSig) errs.push(this.t('Digital Signature', 'חתימה דיגיטלית'));
-    if (errs.length) {
+    var reasonOtherEl = document.getElementById('close-reason-other');
+    if (reasonOtherEl) this.state.reasonOther = String(reasonOtherEl.value || '');
+    var missing = this.formMissing();
+    if (missing.length) {
       this.setState({
         attempted: true,
         summary: summary,
-        formError: this.t('Missing:', 'חסר:') + ' ' + errs.join(' · ')
+        formError: this.t('Missing:', 'חסר:') + ' ' + missing.join(' · ')
       });
       return;
     }
@@ -995,7 +2067,7 @@ class Component extends DCLogic {
     this.setState({ busy: true, formError: '', summary: summary });
     try {
       var tid = st.ticketId;
-      var media = { before: '', after: '', signature: '' };
+      var media = { before: '', after: '', extras: [], signature: '' };
 
       if (st.beforeDataUrl && String(st.beforeDataUrl).indexOf('data:') === 0) {
         media.before = await this.uploadOne(tid, st.beforeDataUrl, 'ticket-' + tid + '-before-1.jpg');
@@ -1011,18 +2083,54 @@ class Component extends DCLogic {
         media.after = st.afterDataUrl;
       }
 
+      var extras = st.extraPhotos || [];
+      for (var ei = 0; ei < extras.length; ei++) {
+        var ex = extras[ei];
+        var exUrl = '';
+        if (ex && ex.dataUrl && String(ex.dataUrl).indexOf('data:') === 0) {
+          exUrl = await this.uploadOne(tid, ex.dataUrl, 'ticket-' + tid + '-extra-' + (ei + 1) + '.jpg');
+        } else if (ex && ex.dataUrl) {
+          exUrl = ex.dataUrl;
+        }
+        if (exUrl) media.extras.push(exUrl);
+      }
+
       var canvas = document.getElementById('sig-canvas');
       var sigData = this._sigDataUrl || (canvas ? canvas.toDataURL('image/png') : '');
       if (!sigData) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
       media.signature = await this.uploadOne(tid, sigData, 'ticket-' + tid + '-signature.png');
       if (!media.signature) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
 
-      var lines = ['Work summary: ' + summary];
+      var statusLabel = st.closeStatusLabel || this.closeStatusLabelOf(st.closeStatus) || st.closeStatus;
+      var lines = ['Closing status: ' + statusLabel];
+      if (st.customerId) lines.push('Customer ID: ' + st.customerId);
+      if (st.cash === 'yes') lines.push('Cash collected: ' + (st.cashAmount || '0') + ' ILS');
+      else if (st.cash === 'no') lines.push('Cash collected: no');
+      if (st.cash === 'yes' || st.cash === 'no') {
+        lines.push('CASH_META:' + JSON.stringify({
+          collected: st.cash,
+          amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9]/g, '') : ''
+        }));
+      }
+      if (st.terms) lines.push('Customer approved terms.');
+      if (st.sendCopy) lines.push('Send copy to customer: yes');
+      else lines.push('Send copy to customer: no');
+      if (this.needsReason()) {
+        var reasonOpts = this.reasonOptionsList();
+        var reasonRow = reasonOpts.find(function (r) { return r.id === st.reason; });
+        var reasonText = (reasonRow && reasonRow.label) || st.reason || '';
+        if (st.reason === 'e' && String(st.reasonOther || '').trim()) {
+          reasonText = String(st.reasonOther).trim();
+        }
+        if (reasonText) lines.push('Follow-up reason: ' + reasonText);
+      }
+      lines.push('Work summary: ' + summary);
       (st.spares || []).forEach(function (s) {
         lines.push('- ' + s.name + ' x' + s.qty);
       });
       if (media.before) lines.push('Before photo attached.');
       if (media.after) lines.push('After photo attached.');
+      if (media.extras && media.extras.length) lines.push('Extra photos: ' + media.extras.length);
       lines.push('Client signature saved.');
       lines.push('BIZ1_MEDIA:' + JSON.stringify(media));
       var messages = lines.join('\n');
@@ -1034,8 +2142,20 @@ class Component extends DCLogic {
         id: tid,
         status: '2',
         messages: messages,
-        message: messages
+        message: messages,
+        custom_fields: {
+          closing_status: st.closeStatus || statusLabel,
+          cash_collected: st.cash === 'yes' ? 'yes' : (st.cash === 'no' ? 'no' : ''),
+          cash_amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9]/g, '') : ''
+        }
       };
+      // Only keep cash fields when user selected Yes/No
+      if (!st.cash) {
+        delete payload.custom_fields.cash_collected;
+        delete payload.custom_fields.cash_amount;
+      } else if (st.cash === 'no') {
+        delete payload.custom_fields.cash_amount;
+      }
       if ((st.spares || []).length) {
         payload.product_id = st.spares.map(function (s) { return s.id; }).join(',');
       }
@@ -1046,15 +2166,44 @@ class Component extends DCLogic {
         throw new Error(raw.message || this.t('Failed to close ticket', 'סגירת הטיקט נכשלה'));
       }
 
+      // If "Send a copy to the customer" is checked → build service-form document
+      // and send via Chat.SendCustomer (WhatsApp). Chat.SingleConversations is read-only.
+      // Unchecked → send nothing.
+      var wantWhatsApp = !!st.sendCopy;
+      var waSent = false;
+      var waError = '';
+      if (wantWhatsApp) {
+        try {
+          await this.sendTicketCopyWhatsApp(st, summary, statusLabel, media);
+          waSent = true;
+        } catch (eWa) {
+          console.warn('[tech-call-close] WhatsApp copy failed', eWa);
+          waError = (eWa && eWa.message) || this.t('WhatsApp send failed', 'שליחת וואטסאפ נכשלה');
+        }
+      }
+
       this.setState({
         busy: false,
         mode: 'view',
         viewSummary: summary,
+        closeStatusLabel: statusLabel,
+        viewCashLabel: st.cash === 'yes'
+          ? (this.t('Yes', 'כן') + (st.cashAmount ? (' · ' + st.cashAmount + ' ₪') : ''))
+          : (st.cash === 'no' ? this.t('No', 'לא') : ''),
         beforeUrl: media.before,
         afterUrl: media.after,
         signatureUrl: media.signature,
+        extraUrls: media.extras || [],
         beforeDataUrl: media.before,
-        afterDataUrl: media.after
+        afterDataUrl: media.after,
+        sendCopy: wantWhatsApp,
+        waSent: waSent,
+        waError: wantWhatsApp && !waSent ? waError : '',
+        linkedProducts: (st.spares && st.spares.length)
+          ? st.spares.map(function (s) {
+            return { id: String(s.id || ''), name: s.name || ('#' + s.id), sku: '', type: '', price: '' };
+          })
+          : (st.linkedProducts || [])
       });
       // Ignore socket re-boots briefly after successful close (avoids Loading flicker)
       this._ignoreRtUntil = Date.now() + 4000;
@@ -1102,16 +2251,50 @@ class Component extends DCLogic {
   renderVals() {
     void this.state.langTick;
     var st = this.state;
+    var self = this;
     var showForm = !st.loading && st.mode === 'form';
     var showView = !st.loading && st.mode === 'view';
     var hasSig = !!(st.hasStroke || this._hasStroke || this._sigDataUrl);
-    var canSubmit = String(st.summary || '').trim().length >= 2 && hasSig && !st.busy;
+    var summaryOk = String(st.summary || '').trim().length >= 2;
+    var statusOk = !!st.closeStatus;
+    var reasonOk = !this.needsReason() || (!!st.reason && (st.reason !== 'e' || String(st.reasonOther || '').trim().length >= 2));
+    var p3Ok = hasSig && !!st.terms;
+    var canSubmit = this.canFormSubmit();
+    var segOn = '#1d60a2';
+    var segOff = 'rgba(255,255,255,.18)';
 
-    if (showForm) {
-      var active = typeof document !== 'undefined' ? document.activeElement : null;
-      var typing = active && (active.id === 'work-summary-input' || active.id === 'spare-qty-input');
-      if (!typing) this.scheduleBind(50);
-    }
+    // Never mutate DOM from renderVals (bindDom / scheduleBind) — races DC patch → insertBefore errors
+
+    var statuses = this.statusDefs().map(function (s) {
+      var on = s.id === st.closeStatus;
+      var t = self.statusTone(s.tone, on);
+      return {
+        label: s.label,
+        hint: s.hint || '',
+        hintDisplay: s.hint ? 'block' : 'none',
+        pick: function () { self.pickStatus(s.id); },
+        bg: t.bg,
+        border: t.border,
+        iconBg: t.iconBg,
+        iconColor: t.iconColor,
+        text: t.text,
+        radioBorder: on ? t.iconBg : '#cbd3de',
+        radioBg: on ? t.iconBg : '#fff',
+        showCheck: s.icon === 'check' ? 'block' : 'none',
+        showClock: s.icon === 'clock' ? 'block' : 'none',
+        showPhone: s.icon === 'phone' ? 'block' : 'none',
+        showX: s.icon === 'x' ? 'block' : 'none',
+        showLab: s.icon === 'lab' ? 'block' : 'none',
+        dotDisplay: on ? 'block' : 'none'
+      };
+    });
+
+    var chipLabels = [
+      this.t('Filters replaced', 'הוחלפו סננים'),
+      this.t('Installation performed', 'בוצעה התקנה'),
+      this.t('Pressure test performed', 'בוצעה בדיקת לחץ'),
+      this.t('System cleaned', 'נוקתה המערכת')
+    ];
 
     return {
       loading: !!st.loading,
@@ -1122,22 +2305,57 @@ class Component extends DCLogic {
       showView: showView,
       pageTitle: showView
         ? this.t('View ticket', 'צפייה בטיקט')
-        : this.t('Complete & Sign-Off', 'סיום וחתימה'),
+        : this.t('Close Call', 'סגירת קריאה'),
       headerSub: '#' + String(st.ticketId || '').replace(/^#/, '') +
         (st.customerName ? (' · ' + st.customerName) : (st.ticketName && String(st.ticketName).indexOf('#') !== 0 ? (' · ' + st.ticketName) : '')),
 
-      labelDetails: this.t('User details', 'פרטי לקוח'),
-      labelCustomer: this.t('Customer', 'לקוח'),
+      p1: statusOk ? segOn : segOff,
+      p2: (summaryOk && reasonOk) ? segOn : segOff,
+      p3: p3Ok ? segOn : segOff,
+      p4: canSubmit ? segOn : segOff,
+
+      labelCloseStatus: this.t('Closing status', 'סטטוס סיום'),
+      statuses: statuses,
+      showReason: this.needsReason(),
+      reasonDisplay: this.needsReason() ? 'block' : 'none',
+      labelFollowReason: this.t('Follow-up reason', 'סיבת המשך הטיפול'),
+      reasonPlaceholder: this.t('Select a reason', 'בחר סיבה'),
+      reasonOptions: this.reasonOptionsList().map(function (r) {
+        return { id: r.id, label: r.label, selected: st.reason === r.id };
+      }),
+      onReason: (e) => this.onReason(e),
+      reasonBorder: (st.attempted && this.needsReason() && !st.reason) ? '#e8a9a4' : '#dde2ea',
+      showOther: this.needsReason() && st.reason === 'e',
+      otherDisplay: (this.needsReason() && st.reason === 'e') ? 'block' : 'none',
+      labelReasonOther: this.t('Specify the reason', 'פרט את הסיבה'),
+      reasonOtherPh: this.t('Specify the reason', 'פרט את הסיבה'),
+      reasonOther: st.reasonOther || '',
+      onReasonOther: (e) => this.onReasonOther(e),
+      otherBorder: (st.attempted && this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
+
+      labelDigitalForm: this.t('Digital service form', 'טופס שירות דיגיטלי'),
+      labelCustomer: this.t('Customer name', 'שם הלקוח'),
+      labelAddress: this.t('Address', 'כתובת'),
+      labelPhone: this.t('Phone', 'טלפון'),
       labelSubject: this.t('Subject', 'נושא'),
+      labelCustomerId: this.t('Customer ID', 'מזהה לקוח'),
+      customerIdHint: this.t('(auto-filled)', '(אוטומטי)'),
+      customerIdPlaceholder: this.t('No customer ID', 'אין מזהה לקוח'),
       customerName: st.customerName || '—',
+      customerAddress: st.customerAddress || '—',
+      customerPhone: st.customerPhone || '—',
+      customerId: st.customerId || '',
       ticketSubject: st.ticketSubject || st.ticketName || '—',
 
-      labelSummary: this.t('Work summary', 'סיכום העבודה'),
-      summaryPh: this.t('Write a note about the work performed…', 'כתוב הערה על העבודה שבוצעה…'),
+      labelSummary: this.t('Work description', 'תיאור הביצוע'),
+      summaryPh: this.t('Detail what was done — parts replaced, tests performed, recommendations…', 'פרט מה בוצע בקריאה — חלקים שהוחלפו, בדיקות שנערכו, המלצות...'),
       onSummary: (e) => this.onSummary(e),
-      summaryBorder: (st.attempted && String(st.summary || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
+      summaryBorder: (st.attempted && !summaryOk) ? '#e8a9a4' : '#dde2ea',
+      chips: chipLabels.map(function (label) {
+        return { label: label, add: function () { self.addChip(label); } };
+      }),
 
-      labelSpares: this.t('Spare parts', 'חלקים שנוצלו'),
+      labelSpares: this.t('Work detail / spare parts', 'פירוט עבודה'),
       optionalLabel: this.t('optional', 'אופציונלי'),
       selectProduct: this.t('Select product…', 'בחר מוצר…'),
       addPart: this.t('Add', 'הוסף'),
@@ -1156,26 +2374,70 @@ class Component extends DCLogic {
         remove: () => this.removeSpare(s.id)
       })),
 
-      labelPhotos: this.t('Photos', 'תמונות'),
-      beforePhoto: this.t('Before photo', 'תמונה לפני'),
-      afterPhoto: this.t('After photo', 'תמונה אחרי'),
+      labelPhotos: this.t('Device photos', 'תמונות המכשיר'),
+      beforePhoto: this.t('Under sink', 'מתחת לכיור'),
+      afterPhoto: this.t('The device', 'המכשיר'),
       beforeClass: st.beforeDataUrl ? 'has-img' : '',
       afterClass: st.afterDataUrl ? 'has-img' : '',
+      extraPhotoLine1: this.t('Another', 'תמונה'),
+      extraPhotoLine2: this.t('picture', 'נוספת'),
 
-      labelSignature: this.t('Digital Signature', 'חתימה דיגיטלית'),
+      labelSignature: this.t('Customer signature', 'חתימת הלקוח'),
       clearSigLabel: this.t('Clear', 'נקה'),
-      tapSign: this.t('Sign here', 'חתום כאן'),
+      tapSign: this.t('Tap to sign', 'הקש לחתימה'),
       clearSig: () => this.clearSig(),
       sigBorder: (st.attempted && !hasSig) ? '#e8a9a4' : '#dde2ea',
+
+      labelCashQ: this.t('Cash collected?', 'נגבה מזומן?'),
+      labelViewCash: this.t('Cash collected', 'מזומן שנגבה'),
+      labelYes: this.t('Yes', 'כן'),
+      labelNo: this.t('No', 'לא'),
+      setCashYes: () => this.setCash('yes'),
+      setCashNo: () => this.setCash('no'),
+      cashYes: st.cash === 'yes',
+      cashYesDisplay: st.cash === 'yes' ? 'block' : 'none',
+      cashYesBg: st.cash === 'yes' ? '#2e8a63' : 'transparent',
+      cashYesColor: st.cash === 'yes' ? '#fff' : '#1f2a3a',
+      cashNoBg: st.cash === 'no' ? '#5a6473' : 'transparent',
+      cashNoColor: st.cash === 'no' ? '#fff' : '#1f2a3a',
+      labelCashAmount: this.t('Amount collected in cash', 'סכום שנגבה במזומן'),
+      onCashAmount: (e) => this.onCashAmount(e),
+      cashAmountBorder: (st.attempted && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) ? '#e8a9a4' : '#cdeeda',
+      cashReminder: this.t('A reminder will be sent to the service representative to collect the cash.', 'תישלח תזכורת לנציגת השירות לאיסוף המזומן'),
+
+      labelTerms: this.t('The customer has read and approved', 'הלקוח קרא ואישר'),
+      termsSub: this.t('Warranty terms and sales agreement · I received training on how to operate the product', 'תנאי האחריות והסכם המכר · קיבלתי הדרכה על תפעול המוצר'),
+      termsLink: this.t('Read the full terms ›', 'קרא את התנאים המלאים ›'),
+      toggleTerms: () => this.toggleTerms(),
+      termsOk: !!st.terms,
+      termsBorder: (st.attempted && !st.terms) ? '#e8a9a4' : '#e4e8ee',
+      termsCheckBorder: st.terms ? '#2e8a63' : '#cbd3de',
+      termsCheckBg: st.terms ? '#2e8a63' : '#fff',
+      termsCheckIcon: st.terms ? 'block' : 'none',
+
+      hotlineText: this.t('For any questions or problems, call the service center *3908 ext. 2 · Do not call the agent', 'לכל שאלה ובעיה, יש להתקשר למוקד השירות *3908 שלוחה 2 · אין להתקשר לסוכן'),
+      labelSendCopy: this.t('Send a copy to the customer', 'שליחת עותק ללקוח'),
+      sendCopySub: this.t('Service form + link to Google ranking ⭐', 'טופס השירות + לינק לדירוג בגוגל ⭐'),
+      toggleSend: () => this.toggleSend(),
+      sendCopy: !!st.sendCopy,
+      sendBg: st.sendCopy ? '#eaf7ef' : '#fff',
+      sendBorder: st.sendCopy ? '#b9e2cb' : '#e4e8ee',
+      sendCheckBorder: st.sendCopy ? '#25b35e' : '#cbd3de',
+      sendCheckBg: st.sendCopy ? '#25b35e' : '#fff',
+      sendCheckIcon: st.sendCopy ? 'block' : 'none',
 
       showFormError: !!st.formError,
       formError: st.formError || '',
 
       busy: !!st.busy,
+      canSubmit: canSubmit,
+      submitDisabled: !canSubmit || !!st.busy,
       submit: () => this.submit(),
       submitLabel: st.busy
         ? this.t('Saving…', 'שומר…')
-        : this.t('Complete Ticket & Sign Off', 'סגור טיקט וחתום'),
+        : (canSubmit
+          ? this.t('Confirm & close ticket', 'אשר וסגור קריאה')
+          : this.t('Complete required fields to close', 'השלם שדות חובה לסגירה')),
       submitBg: canSubmit ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0',
       submitColor: canSubmit ? '#fff' : '#9aa3b0',
       submitCursor: canSubmit ? 'pointer' : 'not-allowed',
@@ -1183,21 +2445,59 @@ class Component extends DCLogic {
       submitShadow: canSubmit ? '0 6px 16px rgba(44,138,96,.32)' : 'none',
 
       successTitle: this.t('Ticket completed', 'הטיקט הושלם'),
-      successBody: this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.'),
+      successBody: st.waError
+        ? (this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.') +
+          ' ' + String(st.waError))
+        : (st.waSent
+          ? this.t(
+            'Work signed off. Service form was sent to the customer on WhatsApp.',
+            'העבודה נחתמה. טופס השירות נשלח ללקוח בוואטסאפ.'
+          )
+          : this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.')),
       labelCompleted: this.t('Completed work', 'עבודה שהושלמה'),
       viewSummary: st.viewSummary || st.summary || '—',
+      hasCloseStatus: !!(st.closeStatusLabel || st.closeStatus),
+      viewCloseStatus: st.closeStatusLabel || this.closeStatusLabelOf(st.closeStatus) || '',
+      hasViewCash: !!st.viewCashLabel,
+      viewCashDisplay: st.viewCashLabel ? 'block' : 'none',
+      viewCash: st.viewCashLabel || '',
       hasViewSpares: !!(st.spares && st.spares.length),
       viewSpares: (st.spares || []).map(s => ({ label: s.name + ' × ' + s.qty })),
-      hasViewPhotos: !!(st.beforeUrl || st.afterUrl),
+      hasLinkedProduct: !!(st.linkedProducts && st.linkedProducts.length),
+      noLinkedProduct: !(st.linkedProducts && st.linkedProducts.length),
+      noLinkedProductLabel: this.t('No product linked to this ticket', 'לא משויך מוצר לטיקט זה'),
+      linkedProducts: (st.linkedProducts || []).map(function (p, idx, arr) {
+        var bits = [];
+        var en = this.isEn();
+        if (p.sku) bits.push((en ? 'SKU · ' : 'מק״ט · ') + p.sku);
+        if (p.type) bits.push(p.type);
+        if (p.price) bits.push(String(p.price));
+        if (p.id) bits.push('#' + p.id);
+        return {
+          name: p.name || (en ? 'Product' : 'מוצר'),
+          meta: bits.length ? bits.join(' · ') : (en ? 'Linked product' : 'מוצר משויך'),
+          rowStyle: idx < arr.length - 1 ? 'margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #f0f2f5;' : ''
+        };
+      }.bind(this)),
+      hasViewPhotos: !!(st.beforeUrl || st.afterUrl || (st.extraUrls && st.extraUrls.length)),
       hasBefore: !!st.beforeUrl,
       hasAfter: !!st.afterUrl,
       beforeUrl: st.beforeUrl || '',
       afterUrl: st.afterUrl || '',
-      openBefore: () => this.openPhoto(st.beforeUrl, this.t('Before photo', 'תמונה לפני')),
-      openAfter: () => this.openPhoto(st.afterUrl, this.t('After photo', 'תמונה אחרי')),
+      openBefore: () => this.openPhoto(st.beforeUrl, this.t('Under sink', 'מתחת לכיור')),
+      openAfter: () => this.openPhoto(st.afterUrl, this.t('The device', 'המכשיר')),
+      viewExtraPhotos: (st.extraUrls || []).map(function (url, i) {
+        return {
+          src: url,
+          caption: self.t('Another picture', 'תמונה נוספת') + ' ' + (i + 1),
+          open: function () {
+            self.openPhoto(url, self.t('Another picture', 'תמונה נוספת') + ' ' + (i + 1));
+          }
+        };
+      }),
       hasSignature: !!st.signatureUrl,
       signatureUrl: st.signatureUrl || '',
-      openSignature: () => this.openPhoto(st.signatureUrl, this.t('Digital Signature', 'חתימה דיגיטלית')),
+      openSignature: () => this.openPhoto(st.signatureUrl, this.t('Customer signature', 'חתימת הלקוח')),
       showLightbox: !!st.lightboxUrl,
       lightboxUrl: st.lightboxUrl || '',
       lightboxCaption: st.lightboxCaption || '',

@@ -217,7 +217,7 @@
                     </span>
                   </sc-if>
                 </div>
-                <!-- scheduled date + customer number -->
+                <!-- scheduled date + time gap + customer number -->
                 <div style="display:flex; flex-wrap:wrap; align-items:center; gap:13px; margin-top:8px;">
                   <sc-if hint-placeholder-val="{{ false }}" value="{{ c.dueDate }}">
                     <span style="display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:#7b8595;" title="{{ scheduledDateHint }}">
@@ -227,6 +227,16 @@
                         <path d="M3 9h18M8 2.5v4M16 2.5v4"></path>
                       </svg>
                       Scheduled date: {{ c.dueDate }}
+                    </span>
+                  </sc-if>
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.hasTimeGap }}">
+                    <span style="display:inline-flex; align-items:center; gap:4px; background:#eef3fd; color:#1d60a2; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">
+                      <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2.2" viewbox="0 0 24 24" width="12">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 7v5l3 2"></path>
+                      </svg>
+                      {{ c.timeGap }}
                     </span>
                   </sc-if>
                   <sc-if hint-placeholder-val="{{ false }}" value="{{ c.cust_id }}">
@@ -424,6 +434,24 @@ class Component extends DCLogic {
     if (n <= 0) return this.t('Waiting 0 days', 'ממתין 0 ימים');
     if (n === 1) return this.t('Waiting 1 day', 'ממתין 1 יום');
     return this.t('Waiting ' + n + ' days', 'ממתין ' + n + ' ימים');
+  }
+
+  /** Days between created (open_date) and due_date */
+  daysBetweenDates(openRaw, dueRaw) {
+    var openKey = this.toDateKey(openRaw);
+    var dueKey = this.toDateKey(dueRaw);
+    if (!openKey || !dueKey) return null;
+    var open = new Date(openKey + 'T12:00:00');
+    var due = new Date(dueKey + 'T12:00:00');
+    if (isNaN(open.getTime()) || isNaN(due.getTime())) return null;
+    return Math.round(Math.abs(due.getTime() - open.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  timeGapLabel(days) {
+    if (days == null || isNaN(Number(days))) return '';
+    var n = Math.max(0, Math.round(Number(days)));
+    if (n === 1) return this.t('time : 1 day', 'זמן : 1 יום');
+    return this.t('time : ' + n + ' day', 'זמן : ' + n + ' ימים');
   }
 
   ageLabel(d) {
@@ -758,6 +786,8 @@ class Component extends DCLogic {
 
           const ticketIdNum = Number(t.ticket_id) || Number(String(t.ticket_id || '').replace(/\D/g, '')) || 0;
           const openDateKey = this.toDateKey(t.open_date);
+          const timeGapDays = this.daysBetweenDates(t.open_date, t.due_date);
+          const timeGap = timeGapDays == null ? '' : this.timeGapLabel(timeGapDays);
 
           return {
             id: '#SRV-' + t.ticket_id,
@@ -781,6 +811,8 @@ class Component extends DCLogic {
             department: t.department === 341 ? 'Customer Service' : 'Technical Service',
             rating: t.rating || '0',
             dueDate: dueDateStr,
+            timeGap: timeGap,
+            hasTimeGap: !!timeGap,
             cust_id: t.cust_id || t.customer_id || '',
             phone: t.mobile || t.phone || t.cust_phone || t.customer_phone || ''
           };
@@ -877,6 +909,8 @@ class Component extends DCLogic {
         wait: this.waitLabel(c.wait), waitColor: wt.color, waitBg: wt.bg,
         department: c.department,
         dueDate: c.dueDate,
+        timeGap: c.timeGap || '',
+        hasTimeGap: !!c.hasTimeGap,
         cust_id: c.cust_id,
         goCard: () => { window.location.href = 'service-call-details.html?ticket_id=' + c.id.replace('#SRV-', ''); },
         goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id; },

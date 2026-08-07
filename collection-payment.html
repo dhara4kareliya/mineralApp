@@ -243,7 +243,7 @@ mbCss('./common.css');
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount received <span style="color:#c0392b;">*</span></label>
 <div style="position:relative;">
 <input class="gv-input" inputmode="numeric" oninput="{{ onCash }}" placeholder="0" style="width:100%; padding:12px 13px; padding-inline-end:36px; border:1.5px solid #dde2ea; border-radius:11px; font-size:16px; font-weight:700; color:#1f2a3a; text-align:start;" value="{{ cashReceived }}"/>
-<span style="position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">?</span>
+<span style="position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
 </div>
 </div>
 <sc-if hint-placeholder-val="{{ true }}" value="{{ changeShow }}">
@@ -254,19 +254,19 @@ mbCss('./common.css');
 </sc-if>
 <div style="margin-bottom:14px;">
 <div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Internal payment notes</div>
-<textarea placeholder="Note" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
+<textarea oninput="{{ onNoteInternal }}" placeholder="Note" value="{{ noteInternal }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
 </div>
 <div style="margin-bottom:14px;">
 <div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Notes For Header</div>
-<textarea placeholder="Note" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
+<textarea oninput="{{ onNoteHeader }}" placeholder="Note" value="{{ noteHeader }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
 </div>
 <div style="margin-bottom:12px;">
 <div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Notes For Footer</div>
-<textarea placeholder="Note" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
+<textarea oninput="{{ onNoteFooter }}" placeholder="Note" value="{{ noteFooter }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
 </div>
 <div style="display:flex; gap:12px; align-items:center; margin-bottom:14px; font-size:12.5px; color:#5f6978;">
-<label style="display:flex; align-items:center; gap:5px;"><input type="checkbox"/>Send by mail</label>
-<label style="display:flex; align-items:center; gap:5px;"><input type="checkbox"/>Send by whatsapp</label>
+<label style="display:flex; align-items:center; gap:5px;"><input onchange="{{ onSendMail }}" type="checkbox" checked="{{ sendMail }}"/>Send by mail</label>
+<label style="display:flex; align-items:center; gap:5px;"><input onchange="{{ onSendWhatsapp }}" type="checkbox" checked="{{ sendWhatsapp }}"/>Send by whatsapp</label>
 </div>
 <div style="background:#f8fafc; border:1px solid #e6ebf1; border-radius:12px; padding:12px;">
 <div style="font-size:16px; font-weight:800; color:#2f5ea4; margin-bottom:9px;">Receipt Details</div>
@@ -330,7 +330,7 @@ mbCss('./common.css');
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount</label>
 <div style="position:relative;">
 <input class="gv-input" inputmode="numeric" placeholder="0" style="width:100%; padding:11px 13px; padding-inline-end:34px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:start;"/>
-<span style="position:absolute; inset-inline-end:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">?</span>
+<span style="position:absolute; inset-inline-end:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
 </div>
 </div>
 </div>
@@ -487,7 +487,7 @@ mbCss('./common.css');
 <!-- submit -->
 <sc-if hint-placeholder-val="{{ true }}" value="{{ showSubmit }}">
 <div style="position:sticky; bottom:0; background:linear-gradient(to top, #fff 72%, rgba(255,255,255,0)); padding:14px 18px 20px;">
-<button onclick="{{ onSubmit }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:linear-gradient(#33a571,#2c8a60); color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(44,138,96,.32);">
+<button onclick="{{ onSubmit }}" disabled="{{ busy }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:linear-gradient(#33a571,#2c8a60); color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(44,138,96,.32); opacity:{{ submitOpacity }};">
 <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
               {{ submitLabel }}
             </button>
@@ -503,7 +503,7 @@ mbCss('./common.css');
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 444, "height": 940}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { method: 'standing', entry: 'manual', checks: [{ id: 1 }], cashReceived: '', installments: '1', docs: [], selectedDocId: '', customerName: 'Customer', customerPhone: '', customerEmail: 'audit@example.com', customerAddress: '-', companyId: '#Company ID', amount: 118, currentDate: '', statusMsg: '' };
+  state = { method: 'standing', entry: 'manual', checks: [{ id: 1 }], cashReceived: '', installments: '1', docs: [], selectedDocId: '', customerName: 'Customer', customerPhone: '', customerEmail: 'audit@example.com', customerAddress: '-', companyId: '#Company ID', amount: 118, currentDate: '', statusMsg: '', noteInternal: '', noteHeader: '', noteFooter: '', sendMail: false, sendWhatsapp: false, busy: false };
 
   componentDidMount() {
     this.loadData();
@@ -531,8 +531,22 @@ class Component extends DCLogic {
     var n = Number(v);
     if (Number.isNaN(n)) n = 0;
     var rounded = Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100;
-    if (Math.abs(rounded - Math.round(rounded)) < 0.001) return Math.round(rounded) + ' ?';
-    return rounded.toFixed(2) + ' ?';
+    if (Math.abs(rounded - Math.round(rounded)) < 0.001) return Math.round(rounded) + '₪';
+    return rounded.toFixed(2) + '₪';
+  }
+
+  getQueryAmount() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var raw = p.get('amount') || p.get('total') || p.get('final_amount') || p.get('totalPayable') || '';
+      var n = Number(raw);
+      if (isFinite(n) && n > 0) return n;
+      var stored = sessionStorage.getItem('mb_collection_amount') || localStorage.getItem('mb_collection_amount') || '';
+      n = Number(stored);
+      return (isFinite(n) && n > 0) ? n : 0;
+    } catch (e) {
+      return 0;
+    }
   }
 
   moneyDiff(a, b) {
@@ -561,7 +575,27 @@ class Component extends DCLogic {
     this.setState({ currentDate: this.todayText() });
     if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) return;
     var cid = this.getCustomerId();
-    if (!cid) return;
+    var queryAmount = this.getQueryAmount();
+    if (queryAmount > 0) {
+      this.setState({
+        amount: queryAmount,
+        cashReceived: this.state.cashReceived || String(Math.round(queryAmount))
+      });
+    }
+    if (!cid) {
+      if (queryAmount > 0) {
+        this.setState({
+          docs: [{
+            id: 'from-order',
+            amount: queryAmount,
+            label: 'Order total — ' + this.fmtAmount(queryAmount)
+          }],
+          selectedDocId: 'from-order',
+          amount: queryAmount
+        });
+      }
+      return;
+    }
     try {
       var customerName = 'Customer';
       var customerPhone = '';
@@ -575,32 +609,45 @@ class Component extends DCLogic {
         customerName = (c && c.name) || customerName;
         customerPhone = (c && (c.mobile || c.phone)) || '';
         customerEmail = (c && c.email) || customerEmail;
-        customerAddress = (c && ((c.address || '') + ((c.city || c.city_name) ? (', ' + (c.city || c.city_name)) : '')).trim()) || customerAddress;
-        companyId = (c && (c.company_id || c.id_number || c.vat_number || c.id || '')) ? ('#' + (c.company_id || c.id_number || c.vat_number || c.id)) : companyId;
+        var street = (c && (c.exact_address || c.street || c.address || c.full_address || '')) || '';
+        var city = (c && (c.city || c.city_name || '')) || '';
+        customerAddress = [street, city].filter(Boolean).join(', ').trim() || customerAddress;
+        companyId = (c && (c.company_id || c.id_number || c.vat_number || c.corporation || c.id || '')) ? ('#' + (c.company_id || c.id_number || c.vat_number || c.corporation || c.id)) : companyId;
       }
 
       var dRes = await MineralBarApp.getClient().request('Documents.List', {
         customer_id: cid,
         length: 25,
         start: 0,
-        draw: 1,
-        filters: [{ key: 'document_type', value: 'invoice' }]
+        draw: 1
       }).catch(() => null);
       var rows = (dRes && (dRes.rows || dRes.data || dRes.output)) || [];
       var docs = rows.filter((r) => {
         var pv = r && r.paid;
-        return (pv === 0 || pv === '0' || pv === false);
+        return (pv === 0 || pv === '0' || pv === false || pv == null);
       }).map((r) => {
-        var amount = Number(r.final_amount || r.amount || r.price || 0) || 0;
+        var amount = Number(r.final_amount != null ? r.final_amount : (r.amount != null ? r.amount : (r.price || 0))) || 0;
         return {
           id: String(r.id || r.number || r.doc_no || Math.random()),
           amount: amount,
           label: '#' + (r.number || r.doc_no || r.id || '-') + ' — ' + (r.type || r.doc_type || 'Document') + ' — ' + this.fmtAmount(amount)
         };
       });
+
+      // Prefer amount coming from the order form (Continue collection)
+      if (queryAmount > 0) {
+        docs.unshift({
+          id: 'from-order',
+          amount: queryAmount,
+          label: 'Order total — ' + this.fmtAmount(queryAmount)
+        });
+      }
+
       var selectedDocId = docs[0] ? docs[0].id : '';
-      var amount = docs[0] ? docs[0].amount : 0;
-      this.setState({ docs, selectedDocId, amount, customerName, customerPhone, customerEmail, customerAddress, companyId });
+      var amount = queryAmount > 0 ? queryAmount : (docs[0] ? docs[0].amount : 0);
+      var cashReceived = this.state.cashReceived;
+      if ((!cashReceived || cashReceived === '0') && amount > 0) cashReceived = String(Math.round(amount));
+      this.setState({ docs, selectedDocId, amount, cashReceived, customerName, customerPhone, customerEmail, customerAddress, companyId });
     } catch (e) {
       this.setState({ statusMsg: 'Unable to load customer payment data' });
     }
@@ -616,7 +663,94 @@ class Component extends DCLogic {
     this.setState(s => ({ checks: s.checks.length > 1 ? s.checks.filter(c => c.id !== id) : s.checks }));
   }
 
-  onCash(e) { this.setState({ cashReceived: e.target.value.replace(/[^0-9]/g, '') }); }
+  onCash(e) {
+    var raw = (e && e.target && e.target.value != null) ? e.target.value : e;
+    this.setState({ cashReceived: String(raw == null ? '' : raw).replace(/[^0-9.]/g, '') });
+  }
+
+  noteValue(e) {
+    if (e == null) return '';
+    if (typeof e === 'string' || typeof e === 'number') return String(e);
+    if (e.target && e.target.value != null) return String(e.target.value);
+    if (e.value != null) return String(e.value);
+    return '';
+  }
+
+  findPdfUrl(value, depth) {
+    if (!value || depth > 5) return '';
+    if (typeof value === 'string') {
+      var text = value.trim();
+      if (/^(https?:)?\/\//i.test(text) || /^\//.test(text) || /\.pdf(?:$|[?#])/i.test(text)) return text;
+      return '';
+    }
+    if (Array.isArray(value)) {
+      for (var i = 0; i < value.length; i++) {
+        var u = this.findPdfUrl(value[i], depth + 1);
+        if (u) return u;
+      }
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+    var preferred = ['pdf_url', 'pdfUrl', 'document_link', 'download_url', 'downloadUrl', 'file_url', 'url'];
+    for (var p = 0; p < preferred.length; p++) {
+      if (value[preferred[p]] != null) {
+        var found = this.findPdfUrl(value[preferred[p]], depth + 1);
+        if (found) return found;
+      }
+    }
+    return '';
+  }
+
+  buildReceiptMessage(amount, pdfUrl) {
+    var lines = [];
+    lines.push('Receipt for ' + (this.state.customerName || 'customer'));
+    lines.push('Amount: ' + this.fmtAmount(amount));
+    if (this.state.noteHeader) lines.push(String(this.state.noteHeader));
+    if (this.state.noteInternal) lines.push(String(this.state.noteInternal));
+    if (this.state.noteFooter) lines.push(String(this.state.noteFooter));
+    if (pdfUrl) lines.push(String(pdfUrl));
+    return lines.filter(Boolean).join('\n');
+  }
+
+  async sendReceiptMessages(amount, pdfUrl) {
+    if (!window.MineralBarApp || typeof MineralBarApp.sendCustomerMessage !== 'function') return;
+    var customerId = this.getCustomerId();
+    if (!customerId) return;
+    var message = this.buildReceiptMessage(amount, pdfUrl);
+    var email = this.state.customerEmail || '';
+    var phone = this.state.customerPhone || '';
+    var jobs = [];
+    if (this.state.sendMail) {
+      jobs.push(MineralBarApp.sendCustomerMessage({
+        customer_id: customerId,
+        cust_id: customerId,
+        message: message,
+        msg: message,
+        from: 'send_email_quick',
+        email: email,
+        chart_selected_email: email
+      }));
+    }
+    if (this.state.sendWhatsapp) {
+      jobs.push(MineralBarApp.sendCustomerMessage({
+        customer_id: customerId,
+        cust_id: customerId,
+        message: message,
+        msg: message,
+        from: 'send_whatsapp',
+        phone: phone,
+        mobile: phone,
+        chart_selected_phone_no: phone
+      }));
+    }
+    if (!jobs.length) return;
+    var results = await Promise.allSettled(jobs);
+    var failed = results.filter(function (r) { return r.status === 'rejected'; });
+    if (failed.length) {
+      var msg = (failed[0].reason && failed[0].reason.message) || 'Message send failed';
+      throw new Error(msg);
+    }
+  }
 
   goBack() {
     try {
@@ -679,32 +813,100 @@ class Component extends DCLogic {
     }));
 
     let submitLabel = 'Confirm collection and send order';
-    if (isCash) submitLabel = 'Confirm cash receipt';
+    if (this.state.busy) submitLabel = 'Saving…';
+    else if (isCash) submitLabel = 'Confirm cash receipt';
     else if (isCheck) submitLabel = 'Confirm collection and deposit checks';
     else if (isTransfer) submitLabel = 'Confirm collection and send account details';
     else if (isBit) submitLabel = 'Confirm collection and send Bit request';
 
     return {
+      busy: !!this.state.busy,
+      submitOpacity: this.state.busy ? '0.7' : '1',
       onClose: () => this.goBack(),
       onSubmit: async () => {
-        this.setState({ statusMsg: 'Saving collection...' });
+        if (this.state.busy) return;
+        this.setState({ busy: true, statusMsg: 'Saving collection...' });
         try {
+          var methodMap = {
+            cash: 'cash',
+            card: 'cc',
+            check: 'check',
+            transfer: 'transference',
+            masav: 'masav',
+            bit: 'others',
+            standing: 'cc'
+          };
+          var uiMethod = this.state.method || 'cash';
+          var amount = Number(this.state.amount || 0);
+          if (!(amount > 0) && uiMethod === 'cash') {
+            amount = Number(this.state.cashReceived || 0);
+          }
+          if (!(amount > 0)) throw new Error('Amount is required');
+          var customerId = this.getCustomerId();
+          if (!customerId) throw new Error('Customer is required');
+          var docId = this.state.selectedDocId || '';
+          if (docId === 'from-order') docId = '';
+          var noteInternal = this.noteValue(this.state.noteInternal);
+          var noteHeader = this.noteValue(this.state.noteHeader);
+          var noteFooter = this.noteValue(this.state.noteFooter);
           var payload = {
-            customer_id: this.getCustomerId(),
-            method: this.state.method,
-            amount: Number(this.state.amount || 0),
-            installments: Number(this.state.installments || 1),
-            cash_received: Number(this.state.cashReceived || 0),
-            document_id: this.state.selectedDocId || '',
+            customer_id: customerId,
+            name: this.state.customerName || '',
+            email: this.state.customerEmail || '',
+            mobile: this.state.customerPhone || '',
+            phone: this.state.customerPhone || '',
+            address: this.state.customerAddress && this.state.customerAddress !== '-' ? this.state.customerAddress : '',
+            document_type: 'receipt',
+            final_amount: amount,
+            payment_method: methodMap[uiMethod] || 'cash',
+            payment_date: new Date(),
+            number_of_payments: Number(this.state.installments || 1) || 1,
+            c_type_pay: uiMethod === 'standing' ? 'standing_order' : (Number(this.state.installments || 1) > 1 ? 'installments' : 'regular'),
+            note: [noteInternal, noteFooter].filter(Boolean).join('\n'),
+            note_header: noteHeader,
+            send_email: this.state.sendMail ? 1 : 0,
+            send_whatsapp: this.state.sendWhatsapp ? 1 : 0,
             source: 'collection-payment-ui'
           };
-          await MineralBarApp.getClient().request('Settings.SaveCard', payload);
+          if (docId) {
+            payload.document_to_pay = docId;
+            payload.related_document_id = docId;
+          }
+          var created = await MineralBarApp.getClient().request('Documents.Add', payload);
+          var pdfUrl = this.findPdfUrl(created, 0) || '';
+
+          // Explicit Biz1 channel send when checkboxes are checked
+          if (this.state.sendMail || this.state.sendWhatsapp) {
+            this.setState({ statusMsg: 'Sending receipt message...' });
+            try {
+              await this.sendReceiptMessages(amount, pdfUrl);
+            } catch (sendErr) {
+              console.warn('[collection] Biz1 message send failed', sendErr);
+              this.setState({
+                statusMsg: 'Receipt saved, but message failed: ' + ((sendErr && sendErr.message) || 'unknown error')
+              });
+              // Still continue to next screen after a short delay
+              var fromOrderSoft = false;
+              try { fromOrderSoft = new URLSearchParams(window.location.search).get('from') === 'order'; } catch (eSoft) {}
+              setTimeout(() => {
+                window.location.href = fromOrderSoft ? 'order-document.html' : 'document-issuance.html';
+              }, 1200);
+              return;
+            }
+          }
+
           this.setState({ statusMsg: 'Collection saved successfully' });
           var fromOrder = false;
           try { fromOrder = new URLSearchParams(window.location.search).get('from') === 'order'; } catch (e) {}
-          setTimeout(() => { window.location.href = fromOrder ? 'order-document.html' : 'document-issuance.html'; }, 350);
+          var nextQs = new URLSearchParams();
+          if (customerId) nextQs.set('customer_id', customerId);
+          if (amount) nextQs.set('amount', String(amount));
+          var nextBase = fromOrder ? 'order-document.html' : 'document-issuance.html';
+          setTimeout(() => { window.location.href = nextBase + (nextQs.toString() ? ('?' + nextQs.toString()) : ''); }, 350);
         } catch (err) {
           this.setState({ statusMsg: 'Failed to save collection: ' + ((err && err.message) || 'unknown error') });
+        } finally {
+          this.setState({ busy: false });
         }
       },
       onDocChange: (e) => {
@@ -722,6 +924,16 @@ class Component extends DCLogic {
       setLink: () => this.setEntry('link'),
       addCheck: () => this.addCheck(),
       onCash: (e) => this.onCash(e),
+      onNoteInternal: (e) => this.setState({ noteInternal: this.noteValue(e) }),
+      onNoteHeader: (e) => this.setState({ noteHeader: this.noteValue(e) }),
+      onNoteFooter: (e) => this.setState({ noteFooter: this.noteValue(e) }),
+      onSendMail: (e) => this.setState({ sendMail: !!(e && e.target ? e.target.checked : e) }),
+      onSendWhatsapp: (e) => this.setState({ sendWhatsapp: !!(e && e.target ? e.target.checked : e) }),
+      noteInternal: this.noteValue(this.state.noteInternal),
+      noteHeader: this.noteValue(this.state.noteHeader),
+      noteFooter: this.noteValue(this.state.noteFooter),
+      sendMail: !!this.state.sendMail,
+      sendWhatsapp: !!this.state.sendWhatsapp,
       installments: this.state.installments,
       onInstallments: (e) => this.setState({ installments: e.target.value }),
       documentOptions: (this.state.docs && this.state.docs.length ? this.state.docs : [{ id: '', label: 'No documents found' }]).map(d => ({ value: d.id, label: d.label })),

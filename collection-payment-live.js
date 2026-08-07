@@ -153,25 +153,48 @@
     );
   }
 
+  function mapPaymentMethod(method) {
+    var map = {
+      cash: 'cash',
+      card: 'cc',
+      check: 'check',
+      transfer: 'transference',
+      masav: 'masav',
+      bit: 'others',
+      standing: 'cc'
+    };
+    return map[method] || 'cash';
+  }
+
   function gatherPayload(state) {
     var amountEl = document.getElementById('mb-amount');
     var amount = num(amountEl && amountEl.value);
+    var noteInternal = (document.getElementById('mb-note-internal') || {}).value || '';
+    var noteHeader = (document.getElementById('mb-note-header') || {}).value || '';
+    var noteFooter = (document.getElementById('mb-note-footer') || {}).value || '';
+    var note = [noteInternal, noteFooter].filter(Boolean).join('\n');
     var payload = {
-      route_source: 'collection-payment-live',
-      method: state.method,
-      amount: amount,
       customer_id: state.customerId,
-      note_internal: (document.getElementById('mb-note-internal') || {}).value || '',
-      note_header: (document.getElementById('mb-note-header') || {}).value || '',
-      note_footer: (document.getElementById('mb-note-footer') || {}).value || '',
-      send_mail: (document.getElementById('mb-send-mail') || {}).checked ? 1 : 0,
-      send_whatsapp: (document.getElementById('mb-send-wa') || {}).checked ? 1 : 0
+      name: state.customerName || '',
+      email: state.email || '',
+      mobile: state.mobile || '',
+      phone: state.mobile || '',
+      address: state.address && state.address !== '-' ? state.address : '',
+      document_type: 'receipt',
+      final_amount: amount,
+      payment_method: mapPaymentMethod(state.method),
+      payment_date: new Date(),
+      note: note,
+      note_header: noteHeader,
+      send_email: (document.getElementById('mb-send-mail') || {}).checked ? 1 : 0,
+      send_whatsapp: (document.getElementById('mb-send-wa') || {}).checked ? 1 : 0,
+      source: 'collection-payment-live'
     };
     if (state.method === 'card') {
-      payload.card_holder = (document.getElementById('mb-pay-card-holder') || {}).value || '';
-      payload.card_number = (document.getElementById('mb-pay-card-number') || {}).value || '';
-      payload.card_exp = (document.getElementById('mb-pay-card-exp') || {}).value || '';
-      payload.card_cvv = (document.getElementById('mb-pay-card-cvv') || {}).value || '';
+      payload.card_name = (document.getElementById('mb-pay-card-holder') || {}).value || '';
+      payload.card_no = (document.getElementById('mb-pay-card-number') || {}).value || '';
+      payload.month_year = (document.getElementById('mb-pay-card-exp') || {}).value || '';
+      payload.cvc = (document.getElementById('mb-pay-card-cvv') || {}).value || '';
     }
     if (state.method === 'check') {
       payload.check_bank = (document.getElementById('mb-check-bank') || {}).value || '';
@@ -185,6 +208,10 @@
     }
     if (state.method === 'bit') {
       payload.bit_phone = (document.getElementById('mb-bit-phone') || {}).value || '';
+    }
+    if (state.selectedDocId) {
+      payload.document_to_pay = state.selectedDocId;
+      payload.related_document_id = state.selectedDocId;
     }
     return payload;
   }
@@ -224,7 +251,9 @@
         if (msg) msg.textContent = 'Submitting...';
         try {
           var payload = gatherPayload(state);
-          var res = await MineralBarApp.getClient().request('Settings.SaveCard', payload);
+          if (!(Number(payload.final_amount) > 0)) throw new Error('Amount is required');
+          if (!payload.customer_id) throw new Error('Customer is required');
+          var res = await MineralBarApp.getClient().request('Documents.Add', payload);
           if (msg) msg.textContent = (res && (res.message || res.status_text)) || 'Receipt created successfully.';
         } catch (err) {
           if (msg) msg.textContent = 'Submit failed: ' + ((err && err.message) || 'unknown error');
@@ -260,10 +289,16 @@
       customerName: (customer && customer.name) || 'Client',
       email: (customer && customer.email) || 'audit@example.com',
       mobile: (customer && (customer.mobile || customer.phone)) || '',
-      address: (customer && ((customer.address || '') + ((customer.city || customer.city_name) ? (' ' + (customer.city || customer.city_name)) : '')).trim()) || '',
+      address: (function () {
+        if (!customer) return '';
+        var street = customer.exact_address || customer.street || customer.address || customer.full_address || '';
+        var city = customer.city || customer.city_name || '';
+        return [street, city].filter(Boolean).join(', ').trim();
+      })(),
       company: 'demo company',
       method: 'card',
-      amount: String(num((docs[0] && (docs[0].total || docs[0].amount || docs[0].price)) || 0))
+      amount: String(num((docs[0] && (docs[0].total || docs[0].amount || docs[0].price)) || 0)),
+      selectedDocId: docs[0] ? String(docs[0].id || docs[0].number || '') : ''
     };
 
     root.innerHTML = buildHtml(state);
@@ -284,6 +319,7 @@
           var d = docs[i];
           if (!d) return;
           state.amount = String(num(d.total || d.amount || d.price || 0));
+          state.selectedDocId = String(d.id || d.number || '');
           var amountEl = document.getElementById('mb-amount');
           if (amountEl) amountEl.value = state.amount;
         });

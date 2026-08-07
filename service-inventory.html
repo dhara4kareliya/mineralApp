@@ -1214,8 +1214,18 @@ class Component extends DCLogic {
             var sku = item.product_sku || item.sku || ('SKU-' + String(item.id || Math.random()).slice(-5).toUpperCase());
             var itemCatId = (item.cat_id || item.category_id) ? String(item.cat_id || item.category_id) : '';
             var desc = item.description || item.discription || item.desc || '';
-            var priceVal = Math.round(Number(item.price || item.cost || 0));
-            var stock = item.stock !== undefined ? Number(item.stock) : (item.qty !== undefined ? Number(item.qty) : Math.floor(Math.random() * 20));
+            var priceVal = Math.round(Number(
+              item.product_price != null ? item.product_price
+                : (item.main_price != null ? item.main_price
+                  : (item.sale_price != null ? item.sale_price
+                    : (item.price != null ? item.price
+                      : (item.cost != null ? item.cost : 0))))
+            ));
+            if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
+            var stock = item.left_stock !== undefined ? Number(item.left_stock)
+              : (item.stock !== undefined ? Number(item.stock)
+                : (item.qty !== undefined ? Number(item.qty) : 0));
+            if (!isFinite(stock)) stock = 0;
             var rawStatus = item.status;
             var status = (rawStatus === 0 || rawStatus === '0' || rawStatus === false || rawStatus === 'inactive') ? 0 : 1;
             var typeVal = String(item.type || item.product_type || 'product').toLowerCase();

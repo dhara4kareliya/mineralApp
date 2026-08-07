@@ -402,118 +402,108 @@ Internal notes
 <sc-if hint-placeholder-val="{{ false }}" value="{{ mediaOpen }}">
 <div style="position:absolute; inset:0; z-index:50;">
 <div onclick="{{ closeMedia }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
-<div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; padding:16px 18px calc(28px + env(safe-area-inset-bottom, 0px)); max-height:90%; overflow-y:auto; display:flex; flex-direction:column; box-shadow:0 -8px 28px rgba(15,24,40,.12);">
+<div style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; max-height:90%; display:flex; flex-direction:column; box-shadow:0 -8px 28px rgba(15,24,40,.12); overflow:hidden;">
+<div style="flex:none; padding:16px 18px 0;">
 <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 12px;"></div>
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-<button onclick="{{ closeMedia }}" style="width:34px; height:34px; border-radius:50%; border:none; background:#eef0f3; color:#7b8595; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none;">
-<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="15"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+<button type="button" onclick="{{ mediaHeaderAction }}" style="width:34px; height:34px; border-radius:50%; border:none; background:#eef0f3; color:#7b8595; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="15"><path d="{{ mediaHeaderIcon }}"></path></svg>
 </button>
-<div style="font-size:19px; font-weight:800; color:#1f2a3a;">Product media</div>
+<div style="text-align:center; flex:1; min-width:0; padding:0 8px;">
+<div style="font-size:18px; font-weight:800; color:#1f2a3a;">{{ mediaTitle }}</div>
+<div style="font-size:12px; color:#9aa3b0; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ mediaSubtitle }}</div>
 </div>
- segmented photos/videos 
-<div style="display:flex; gap:6px; background:#eef0f3; border-radius:13px; padding:5px; margin-bottom:14px;">
-<button onclick="{{ setImages }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:10px; border:none; border-radius:9px; cursor:pointer; background:{{ imgTabBg }}; color:{{ imgTabColor }}; font-size:14px; font-weight:700;">
+<div style="width:34px; flex:none;"></div>
+</div>
+</div>
+
+<!-- ===== folders list (ready to send) ===== -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showFolders }}">
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:0 18px calc(24px + env(safe-area-inset-bottom, 0px));">
+<div style="font-size:12.5px; font-weight:700; color:#9aa3b0; margin:0 2px 10px;">Ready to send folders</div>
+<sc-if value="{{ mediaLoading }}">
+<div style="text-align:center; padding:36px 12px; color:#9aa3b0; font-size:13.5px; font-weight:600;">Loading products…</div>
+</sc-if>
+<sc-if value="{{ mediaEmpty }}">
+<div style="text-align:center; padding:36px 12px;">
+<div style="width:52px; height:52px; border-radius:50%; background:#eef0f3; color:#9aa3b0; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+</div>
+<div style="font-size:15px; font-weight:800; color:#5a6473;">{{ noProductLabel }}</div>
+<div style="font-size:12.5px; color:#9aa3b0; margin-top:6px;">{{ noProductSub }}</div>
+</div>
+</sc-if>
+<sc-for as="f" list="{{ mediaFolders }}">
+<button type="button" onclick="{{ f.open }}" style="width:100%; display:flex; align-items:center; gap:13px; padding:13px 12px; margin-bottom:9px; border:1.5px solid #e8eaee; border-radius:14px; background:#fff; cursor:pointer; text-align:left; box-shadow:0 1px 2px rgba(0,0,0,.03);">
+<span style="width:46px; height:46px; border-radius:12px; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+</span>
+<div style="flex:1; min-width:0;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.name }}</div>
+<div style="font-size:12px; color:#7b8595; margin-top:3px;">{{ f.meta }}</div>
+</div>
+<svg fill="none" height="18" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none;" viewbox="0 0 24 24" width="18"><path d="M9 6l6 6-6 6"></path></svg>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- ===== inside a product folder ===== -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showFolderContent }}">
+<div style="flex:none; padding:0 18px 12px;">
+<div style="display:flex; gap:6px; background:#eef0f3; border-radius:13px; padding:5px;">
+<button type="button" onclick="{{ setImages }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:10px; border:none; border-radius:9px; cursor:pointer; background:{{ imgTabBg }}; color:{{ imgTabColor }}; font-size:14px; font-weight:700;">
 <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="2"></circle><path d="m4 18 5-4 4 3 3-2 4 3"></path></svg>
                 pictures
               </button>
-<button onclick="{{ setVideos }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:10px; border:none; border-radius:9px; cursor:pointer; background:{{ vidTabBg }}; color:{{ vidTabColor }}; font-size:14px; font-weight:700;">
+<button type="button" onclick="{{ setVideos }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:10px; border:none; border-radius:9px; cursor:pointer; background:{{ vidTabBg }}; color:{{ vidTabColor }}; font-size:14px; font-weight:700;">
 <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="12" rx="2.5" width="14" x="2.5" y="6"></rect><path d="m16.5 10 5-3v10l-5-3z"></path></svg>
                 Videos
               </button>
 </div>
-<!-- product chips -->
-<div class="dc-scroll" style="display:flex; gap:8px; overflow-x:auto; margin-bottom:15px; padding-bottom:2px;">
-<span style="flex:none; padding:8px 15px; border-radius:99px; background:#eaf2fb; border:1.4px solid #aecbe9; color:#1d60a2; font-size:13px; font-weight:700; white-space:nowrap;">Filter main horizon</span>
-<span style="flex:none; padding:8px 15px; border-radius:99px; background:#fff; border:1.4px solid #e4e8ee; color:#5a6473; font-size:13px; font-weight:600; white-space:nowrap;">water bar</span>
-<span style="flex:none; padding:8px 15px; border-radius:99px; background:#fff; border:1.4px solid #e4e8ee; color:#5a6473; font-size:13px; font-weight:600; white-space:nowrap;">water softener</span>
-<span style="flex:none; padding:8px 15px; border-radius:99px; background:#fff; border:1.4px solid #e4e8ee; color:#5a6473; font-size:13px; font-weight:600; white-space:nowrap;">Under sinks</span>
 </div>
-<!-- ===== images grid ===== -->
-<sc-if hint-placeholder-val="{{ true }}" value="{{ isImages }}">
+<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:0 18px 12px;">
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
- white — front (selected) 
-<div style="border:2px solid #1d60a2; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="position:relative; height:104px; background:linear-gradient(150deg,#cfe0f5,#9bbce4); display:flex; align-items:center; justify-content:center;">
-<svg fill="none" height="34" stroke="#5b7da6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24" width="34"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
+<sc-for as="m" list="{{ mediaItems }}">
+<button type="button" onclick="{{ m.toggle }}" style="border:{{ m.border }}; border-radius:13px; overflow:hidden; background:#fff; padding:0; cursor:pointer; text-align:left;">
+<div style="position:relative; height:104px; background:{{ m.bg }}; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+<sc-if value="{{ m.hasImage }}">
+<img src="{{ m.src }}" alt="" style="width:100%; height:100%; object-fit:cover;"/>
+</sc-if>
+<sc-if value="{{ m.noImage }}">
+<svg fill="none" height="34" stroke="{{ m.iconStroke }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24" width="34"><path d="{{ m.iconPath }}"></path></svg>
+</sc-if>
+<sc-if value="{{ m.isVideo }}">
+<span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+<span style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center;"><svg fill="#fff" height="18" viewbox="0 0 24 24" width="18"><path d="M8 5v14l11-7z"></path></svg></span>
+</span>
+<span style="position:absolute; bottom:8px; right:8px; background:rgba(15,24,40,.72); color:#fff; font-size:11px; font-weight:600; padding:2px 7px; border-radius:6px;">{{ m.duration }}</span>
+</sc-if>
+<sc-if value="{{ m.selected }}">
 <span style="position:absolute; top:8px; left:8px; width:22px; height:22px; border-radius:50%; background:#1d60a2; display:flex; align-items:center; justify-content:center;">
 <svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" viewbox="0 0 24 24" width="13"><path d="M20 6 9 17l-5-5"></path></svg>
 </span>
+</sc-if>
 </div>
-<div style="padding:9px 11px; font-size:13px; font-weight:700; color:#1f2a3a;">White - front</div>
+<div style="padding:9px 11px; font-size:13px; font-weight:{{ m.nameWeight }}; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ m.label }}</div>
+</button>
+</sc-for>
 </div>
- White - side 
-<div style="border:1.5px solid #e7eaef; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="height:104px; background:linear-gradient(150deg,#dbe8f7,#bcd2ee); display:flex; align-items:center; justify-content:center;">
-<svg fill="none" height="34" stroke="#6e8db0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24" width="34"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
-</div>
-<div style="padding:9px 11px; font-size:13px; font-weight:600; color:#1f2a3a;">White - side</div>
-</div>
- Black - front 
-<div style="border:1.5px solid #e7eaef; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="height:104px; background:linear-gradient(150deg,#2c4a72,#16223a); display:flex; align-items:center; justify-content:center;">
-<svg fill="none" height="34" stroke="#cdddf0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24" width="34"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
-</div>
-<div style="padding:9px 11px; font-size:13px; font-weight:600; color:#1f2a3a;">Black - front</div>
-</div>
- Black - side 
-<div style="border:1.5px solid #e7eaef; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="height:104px; background:linear-gradient(150deg,#34537d,#1d3252); display:flex; align-items:center; justify-content:center;">
-<svg fill="none" height="34" stroke="#cdddf0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24" width="34"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
-</div>
-<div style="padding:9px 11px; font-size:13px; font-weight:600; color:#1f2a3a;">Black - side</div>
-</div>
-</div>
-<div style="display:flex; align-items:center; gap:8px; margin-top:14px;">
-<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="2"></circle><path d="m4 18 5-4 4 3 3-2 4 3"></path></svg>
-<span style="font-size:14px; font-weight:700; color:#1d60a2;">Choose from my gallery</span>
+<sc-if value="{{ mediaItemsEmpty }}">
+<div style="text-align:center; padding:28px 12px;">
+<div style="font-size:14.5px; font-weight:800; color:#5a6473;">{{ noMediaLabel }}</div>
+<div style="font-size:12.5px; color:#9aa3b0; margin-top:6px;">0 {{ mediaCountUnit }}</div>
 </div>
 </sc-if>
-<!-- ===== videos grid ===== -->
-<sc-if hint-placeholder-val="{{ false }}" value="{{ isVideos }}">
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
- Product demo (selected) 
-<div style="border:2px solid #1d60a2; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="position:relative; height:104px; background:linear-gradient(150deg,#2c4a72,#16223a); display:flex; align-items:center; justify-content:center;">
-<span style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;"><svg fill="#fff" height="18" viewbox="0 0 24 24" width="18"><path d="M8 5v14l11-7z"></path></svg></span>
-<span style="position:absolute; top:8px; left:8px; width:22px; height:22px; border-radius:50%; background:#1d60a2; display:flex; align-items:center; justify-content:center;"><svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" viewbox="0 0 24 24" width="13"><path d="M20 6 9 17l-5-5"></path></svg></span>
-<span style="position:absolute; bottom:8px; right:8px; display:inline-flex; align-items:center; gap:3px; direction:ltr; background:rgba(15,24,40,.72); color:#fff; font-size:11px; font-weight:600; padding:2px 7px; border-radius:6px;">1:32 <svg fill="#fff" height="8" viewbox="0 0 24 24" width="8"><path d="M8 5v14l11-7z"></path></svg></span>
 </div>
-<div style="padding:9px 11px; font-size:13px; font-weight:700; color:#1f2a3a;">Product demonstration</div>
-</div>
- Installation video 
-<div style="border:1.5px solid #e7eaef; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="position:relative; height:104px; background:linear-gradient(150deg,#34537d,#1d3252); display:flex; align-items:center; justify-content:center;">
-<span style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;"><svg fill="#fff" height="18" viewbox="0 0 24 24" width="18"><path d="M8 5v14l11-7z"></path></svg></span>
-<span style="position:absolute; bottom:8px; right:8px; display:inline-flex; align-items:center; gap:3px; direction:ltr; background:rgba(15,24,40,.72); color:#fff; font-size:11px; font-weight:600; padding:2px 7px; border-radius:6px;">3:15 <svg fill="#fff" height="8" viewbox="0 0 24 24" width="8"><path d="M8 5v14l11-7z"></path></svg></span>
-</div>
-<div style="padding:9px 11px; font-size:13px; font-weight:600; color:#1f2a3a;">Installation video</div>
-</div>
- Customers recommend 
-<div style="border:1.5px solid #e7eaef; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="position:relative; height:104px; background:linear-gradient(150deg,#2c4a72,#16223a); display:flex; align-items:center; justify-content:center;">
-<span style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;"><svg fill="#fff" height="18" viewbox="0 0 24 24" width="18"><path d="M8 5v14l11-7z"></path></svg></span>
-<span style="position:absolute; bottom:8px; right:8px; display:inline-flex; align-items:center; gap:3px; direction:ltr; background:rgba(15,24,40,.72); color:#fff; font-size:11px; font-weight:600; padding:2px 7px; border-radius:6px;">0:58 <svg fill="#fff" height="8" viewbox="0 0 24 24" width="8"><path d="M8 5v14l11-7z"></path></svg></span>
-</div>
-<div style="padding:9px 11px; font-size:13px; font-weight:600; color:#1f2a3a;">Customers recommend</div>
-</div>
- Comparing models 
-<div style="border:1.5px solid #e7eaef; border-radius:13px; overflow:hidden; background:#fff;">
-<div style="position:relative; height:104px; background:linear-gradient(150deg,#34537d,#1d3252); display:flex; align-items:center; justify-content:center;">
-<span style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center;"><svg fill="#fff" height="18" viewbox="0 0 24 24" width="18"><path d="M8 5v14l11-7z"></path></svg></span>
-<span style="position:absolute; bottom:8px; right:8px; display:inline-flex; align-items:center; gap:3px; direction:ltr; background:rgba(15,24,40,.72); color:#fff; font-size:11px; font-weight:600; padding:2px 7px; border-radius:6px;">2:10 <svg fill="#fff" height="8" viewbox="0 0 24 24" width="8"><path d="M8 5v14l11-7z"></path></svg></span>
-</div>
-<div style="padding:9px 11px; font-size:13px; font-weight:600; color:#1f2a3a;">Comparing models</div>
-</div>
-</div>
-<div style="display:flex; align-items:center; gap:8px; margin-top:14px;">
-<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><rect height="12" rx="2.5" width="14" x="2.5" y="6"></rect><path d="m16.5 10 5-3v10l-5-3z"></path></svg>
-<span style="font-size:14px; font-weight:700; color:#1d60a2;">Choose from my gallery</span>
-</div>
-</sc-if>
-<button style="width:100%; margin-top:18px; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26);">
+<div style="flex:none; padding:12px 18px calc(20px + env(safe-area-inset-bottom, 0px)); border-top:1px solid #f0f2f5;">
+<button type="button" onclick="{{ sendSelectedMedia }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ sendBtnBg }}; color:#fff; font-size:15.5px; font-weight:800; cursor:{{ sendBtnCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ sendBtnShadow }}; opacity:{{ sendBtnOpacity }};">
 <svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg>
               {{ ctaLabel }}
             </button>
+</div>
+</sc-if>
+
 </div>
 </div>
 </sc-if>
@@ -522,21 +512,309 @@ Internal notes
 </div>
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">class Component extends DCLogic {
-  state = { actionsOpen: false, mediaOpen: false, mediaTab: 'images' };
+  state = {
+    actionsOpen: false,
+    mediaOpen: false,
+    mediaTab: 'images',
+    mediaView: 'folders',
+    mediaLoading: false,
+    mediaProducts: [],
+    activeFolderId: '',
+    selectedMediaIds: []
+  };
+
+  t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
+    return lang === 'en' ? en : he;
+  }
 
   openActions() { this.setState({ actionsOpen: true }); }
   closeActions() { this.setState({ actionsOpen: false }); }
-  openMedia() { this.setState({ mediaOpen: true }); }
-  openMediaFromActions() { this.setState({ actionsOpen: false, mediaOpen: true }); }
-  closeMedia() { this.setState({ mediaOpen: false }); }
-  setTab(t) { this.setState({ mediaTab: t }); }
+
+  openMedia() {
+    this.setState({
+      mediaOpen: true,
+      mediaView: 'folders',
+      activeFolderId: '',
+      selectedMediaIds: [],
+      mediaTab: 'images'
+    });
+    this.loadMediaProducts();
+  }
+
+  openMediaFromActions() {
+    this.setState({
+      actionsOpen: false,
+      mediaOpen: true,
+      mediaView: 'folders',
+      activeFolderId: '',
+      selectedMediaIds: [],
+      mediaTab: 'images'
+    });
+    this.loadMediaProducts();
+  }
+
+  closeMedia() {
+    this.setState({
+      mediaOpen: false,
+      mediaView: 'folders',
+      activeFolderId: '',
+      selectedMediaIds: []
+    });
+  }
+
+  backToFolders() {
+    this.setState({
+      mediaView: 'folders',
+      activeFolderId: '',
+      selectedMediaIds: [],
+      mediaTab: 'images'
+    });
+  }
+
+  openFolder(id) {
+    this.setState({
+      mediaView: 'folder',
+      activeFolderId: String(id || ''),
+      selectedMediaIds: [],
+      mediaTab: 'images'
+    });
+  }
+
+  setTab(t) {
+    this.setState({ mediaTab: t, selectedMediaIds: [] });
+  }
+
+  resolveImageUrl(path) {
+    if (!path) return '';
+    if (window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
+      return MineralBarApp.resolveFileUrl(path) || String(path);
+    }
+    return String(path);
+  }
+
+  isVideoPath(path) {
+    return /\.(mp4|webm|mov|m4v|avi|mkv)(\?|$)/i.test(String(path || ''));
+  }
+
+  collectMediaList(raw, asVideo) {
+    var list = [];
+    if (!raw) return list;
+    if (typeof raw === 'string') {
+      raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (p) {
+        list.push(p);
+      });
+      return list;
+    }
+    if (Array.isArray(raw)) {
+      raw.forEach(function (item) {
+        if (!item) return;
+        if (typeof item === 'string') list.push(item);
+        else list.push(item.url || item.src || item.path || item.file || item.image || item.video || '');
+      });
+      return list.filter(Boolean);
+    }
+    if (typeof raw === 'object') {
+      Object.keys(raw).forEach(function (k) {
+        var v = raw[k];
+        if (typeof v === 'string' && v) list.push(v);
+        else if (v && (v.url || v.src || v.path)) list.push(v.url || v.src || v.path);
+      });
+    }
+    return list.filter(Boolean);
+  }
+
+  buildFolderFromProduct(item, idx) {
+    var id = String(item.id || item.product_id || ('p-' + idx));
+    var name = item.product_name || item.name || ('#' + id);
+    var photos = [];
+    var videos = [];
+
+    // Single main image fields
+    var mainImage = item.image || item.product_image || item.file || item.main_image || item.thumb || item.thumbnail || '';
+    if (mainImage) {
+      var mainUrl = this.resolveImageUrl(mainImage);
+      if (mainUrl) {
+        if (this.isVideoPath(mainImage)) {
+          videos.push({
+            id: id + '-main-video',
+            label: this.t('Product video', 'סרטון מוצר'),
+            src: mainUrl,
+            duration: '',
+            bg: '#16223a'
+          });
+        } else {
+          photos.push({
+            id: id + '-main',
+            label: this.t('Product photo', 'תמונת מוצר'),
+            src: mainUrl,
+            bg: '#eaf2fb'
+          });
+        }
+      }
+    }
+
+    // Gallery / multi image fields from API only
+    var photoSources = []
+      .concat(this.collectMediaList(item.images))
+      .concat(this.collectMediaList(item.gallery))
+      .concat(this.collectMediaList(item.photos))
+      .concat(this.collectMediaList(item.product_images))
+      .concat(this.collectMediaList(item.media_images));
+    photoSources.forEach((path, i) => {
+      if (this.isVideoPath(path)) return;
+      var url = this.resolveImageUrl(path);
+      if (!url) return;
+      // skip duplicate of main image
+      if (photos.some(function (p) { return p.src === url; })) return;
+      photos.push({
+        id: id + '-img-' + i,
+        label: this.t('Photo', 'תמונה') + ' ' + (photos.length + 1),
+        src: url,
+        bg: '#eaf2fb'
+      });
+    });
+
+    var videoSources = []
+      .concat(this.collectMediaList(item.videos))
+      .concat(this.collectMediaList(item.product_videos))
+      .concat(this.collectMediaList(item.media_videos))
+      .concat(this.collectMediaList(item.gallery_videos));
+    // Also pick video paths mixed into media/gallery arrays
+    ;[]
+      .concat(this.collectMediaList(item.media))
+      .concat(this.collectMediaList(item.files))
+      .forEach(function (path) {
+        if (/\.(mp4|webm|mov|m4v|avi|mkv)(\?|$)/i.test(path)) videoSources.push(path);
+      });
+
+    videoSources.forEach((path, i) => {
+      var url = this.resolveImageUrl(path);
+      if (!url) return;
+      if (videos.some(function (v) { return v.src === url; })) return;
+      videos.push({
+        id: id + '-vid-' + i,
+        label: this.t('Video', 'סרטון') + ' ' + (videos.length + 1),
+        src: url,
+        duration: '',
+        bg: '#16223a'
+      });
+    });
+
+    return { id: id, name: name, image: photos[0] ? photos[0].src : '', photos: photos, videos: videos };
+  }
+
+  async loadMediaProducts() {
+    this.setState({ mediaLoading: true });
+    var folders = [];
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        var client = MineralBarApp.getClient();
+        if (client && client.request) {
+          var res = await client.request('Products.List', { limit: 40, start: 0, length: 40 });
+          var data = res && (res.data || res.output || res.rows || res);
+          if (Array.isArray(data) && data.length) {
+            folders = data.slice(0, 40).map((item, idx) => this.buildFolderFromProduct(item, idx));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Chat] Products.List for media failed', err);
+    }
+    // No static fallback — empty list shows "No product"
+    this.setState({ mediaProducts: folders, mediaLoading: false });
+  }
+
+  toggleMedia(id) {
+    var selected = this.state.selectedMediaIds || [];
+    var sid = String(id);
+    if (selected.indexOf(sid) !== -1) {
+      selected = selected.filter(function (x) { return x !== sid; });
+    } else {
+      selected = selected.concat([sid]);
+    }
+    this.setState({ selectedMediaIds: selected });
+  }
+
+  sendSelectedMedia() {
+    var selected = this.state.selectedMediaIds || [];
+    if (!selected.length) return;
+    var folder = (this.state.mediaProducts || []).find(p => String(p.id) === String(this.state.activeFolderId));
+    var count = selected.length;
+    var label = folder ? folder.name : this.t('Product media', 'מדיה למוצר');
+    var msg = this.t('Ready to send', 'מוכן לשליחה') + ': ' + label + ' (' + count + ')';
+    try {
+      var input = document.getElementById('mb-chat-input');
+      if (input) {
+        input.value = (input.value ? (input.value + '\n') : '') + msg;
+        input.focus();
+      }
+    } catch (e) { /* ignore */ }
+    this.closeMedia();
+  }
+
+  getActiveFolder() {
+    var id = this.state.activeFolderId;
+    return (this.state.mediaProducts || []).find(p => String(p.id) === String(id)) || null;
+  }
 
   renderVals() {
     const s = this.state;
     const img = s.mediaTab === 'images';
+    const inFolder = s.mediaView === 'folder' && !!s.activeFolderId;
     var q = new URLSearchParams(window.location.search);
     var paramsStr = q.toString();
     var qs = paramsStr ? ('?' + paramsStr) : '';
+
+    var folders = (s.mediaProducts || []).map(f => {
+      var photoCount = (f.photos || []).length;
+      var videoCount = (f.videos || []).length;
+      return {
+        id: f.id,
+        name: f.name,
+        meta: photoCount + ' ' + this.t('photos', 'תמונות') + ' · ' + videoCount + ' ' + this.t('videos', 'סרטונים'),
+        open: () => this.openFolder(f.id)
+      };
+    });
+
+    var active = this.getActiveFolder();
+    var rawItems = active
+      ? (img ? (active.photos || []) : (active.videos || []))
+      : [];
+    var selected = s.selectedMediaIds || [];
+    var mediaItems = rawItems.map(m => {
+      var isSel = selected.indexOf(String(m.id)) !== -1;
+      var hasImage = !!(m.src) && !this.isVideoPath(m.src);
+      var hasVideoSrc = !!(m.src) && this.isVideoPath(m.src);
+      var isVideo = !img;
+      return {
+        id: m.id,
+        label: m.label,
+        bg: m.bg || (isVideo ? '#16223a' : '#eaf2fb'),
+        src: m.src || '',
+        hasImage: !isVideo && hasImage,
+        noImage: isVideo ? !hasVideoSrc : !hasImage,
+        isVideo: isVideo,
+        duration: m.duration || '',
+        selected: isSel,
+        border: isSel ? '2px solid #1d60a2' : '1.5px solid #e7eaef',
+        nameWeight: isSel ? '700' : '600',
+        iconStroke: img ? '#5b7da6' : '#cdddf0',
+        iconPath: img
+          ? 'M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z'
+          : 'M8 5v14l11-7z',
+        toggle: () => this.toggleMedia(m.id)
+      };
+    });
+
+    var selCount = selected.length;
+    var hasSel = selCount > 0;
+    var ctaLabel = hasSel
+      ? (img
+        ? this.t('Send selected photo', 'שלח תמונה נבחרת') + (selCount > 1 ? ' (' + selCount + ')' : '')
+        : this.t('Send selected video', 'שלח סרטון נבחר') + (selCount > 1 ? ' (' + selCount + ')' : ''))
+      : this.t('Select media to send', 'בחר מדיה לשליחה');
 
     return {
       actionsOpen: s.actionsOpen,
@@ -546,6 +824,19 @@ Internal notes
       openMedia: () => this.openMedia(),
       openMediaFromActions: () => this.openMediaFromActions(),
       closeMedia: () => this.closeMedia(),
+      mediaHeaderAction: inFolder ? (() => this.backToFolders()) : (() => this.closeMedia()),
+      mediaHeaderIcon: inFolder ? 'm15 18-6-6 6-6' : 'M18 6 6 18M6 6l12 12',
+      mediaTitle: inFolder && active ? active.name : this.t('Product media', 'מדיה למוצר'),
+      mediaSubtitle: inFolder
+        ? this.t('Photos and videos ready to send', 'תמונות וסרטונים מוכנים לשליחה')
+        : this.t('Folders by product name', 'תיקיות לפי שם מוצר'),
+      showFolders: !inFolder,
+      showFolderContent: inFolder,
+      mediaLoading: !!s.mediaLoading,
+      mediaEmpty: !s.mediaLoading && folders.length === 0,
+      noProductLabel: this.t('No product', 'אין מוצר'),
+      noProductSub: this.t('No products available to show', 'אין מוצרים להצגה'),
+      mediaFolders: folders,
       setImages: () => this.setTab('images'),
       setVideos: () => this.setTab('videos'),
       isImages: img,
@@ -554,7 +845,18 @@ Internal notes
       imgTabColor: img ? '#fff' : '#5a6473',
       vidTabBg: img ? 'transparent' : '#1d60a2',
       vidTabColor: img ? '#5a6473' : '#fff',
-      ctaLabel: img ? 'שלח תמונה נבחרת' : 'שלח סרטון נבחר',
+      mediaItems: mediaItems,
+      mediaItemsEmpty: inFolder && mediaItems.length === 0,
+      noMediaLabel: img
+        ? this.t('No photos', 'אין תמונות')
+        : this.t('No videos', 'אין סרטונים'),
+      mediaCountUnit: img ? this.t('photos', 'תמונות') : this.t('videos', 'סרטונים'),
+      ctaLabel: ctaLabel,
+      sendSelectedMedia: () => this.sendSelectedMedia(),
+      sendBtnBg: hasSel ? '#1d60a2' : '#aeb6c2',
+      sendBtnCursor: hasSel ? 'pointer' : 'not-allowed',
+      sendBtnShadow: hasSel ? '0 6px 16px rgba(29,96,162,.26)' : 'none',
+      sendBtnOpacity: hasSel ? '1' : '0.8',
       reminderUrl: 'reminders.html?' + paramsStr,
       createTaskUrl: 'service-create-task.html?' + paramsStr + (paramsStr ? '&' : '') + 'from=messages',
       customerCardUrl: 'service-customer-card.html?' + paramsStr,

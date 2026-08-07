@@ -532,7 +532,10 @@
       }
       if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
         Object.keys(cf).forEach(function (k) {
-          if (/product/i.test(k)) addId(cf[k]);
+          if (!/product/i.test(k)) return;
+          // product_name / labels are names, not catalog ids
+          if (/name|title|label|choose/i.test(k)) return;
+          addId(cf[k]);
         });
       }
       // a-* top-level keys from dashboard
@@ -700,27 +703,58 @@
       var named = this.collectNamedProducts(ticket);
       var ids = this.extractProductIds(ticket);
       var products = [];
-      var seen = {};
+      var seenName = {};
+      var seenId = {};
+
+      function normName(n) {
+        return String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      }
 
       function add(p) {
         if (!p || !p.name) return;
-        var key = (p.id || '') + '::' + String(p.name).toLowerCase();
-        if (seen[key]) return;
-        seen[key] = true;
+        var nameKey = normName(p.name);
+        var idKey = String(p.id || '').trim();
+        // Skip bogus ids that are just the product name (or "0")
+        if (idKey === '0' || (idKey && normName(idKey) === nameKey)) {
+          p = Object.assign({}, p, { id: '' });
+          idKey = '';
+        }
+        if (idKey && seenId[idKey]) return;
+        if (nameKey && seenName[nameKey]) {
+          // Upgrade existing nameless row if we now have a better id/meta
+          if (idKey) {
+            for (var i = 0; i < products.length; i++) {
+              if (normName(products[i].name) === nameKey && !products[i].id) {
+                products[i] = Object.assign({}, products[i], p);
+                seenId[idKey] = true;
+                return;
+              }
+            }
+          }
+          return;
+        }
+        if (idKey) seenId[idKey] = true;
+        if (nameKey) seenName[nameKey] = true;
         products.push(p);
       }
 
       named.forEach(add);
 
       for (var i = 0; i < ids.length; i++) {
-        var already = products.some(function (p) { return String(p.id) === String(ids[i]); });
+        var pid = String(ids[i] || '').trim();
+        if (!pid || pid === '0') continue;
+        // Skip name-as-id when we already have that product by name
+        if (seenName[normName(pid)]) continue;
+        var already = products.some(function (p) { return String(p.id) === pid; });
         if (already) continue;
-        var fetched = await this.fetchProductById(ids[i]);
+        var fetched = await this.fetchProductById(pid);
         if (fetched) {
           add(fetched);
+        } else if (!/^\d+$/.test(pid)) {
+          // Non-numeric id is likely a product name stored in product_id
+          add({ id: '', name: pid, sku: '', type: '', price: '' });
         } else {
-          // Show whatever product_id came from Ticket.Get even if Products.Get has no match
-          add({ id: String(ids[i]), name: String(ids[i]), sku: '', type: '', price: '' });
+          add({ id: pid, name: '#' + pid, sku: '', type: '', price: '' });
         }
       }
 

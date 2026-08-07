@@ -57,6 +57,17 @@
     return 'none';
   }
 
+  function formatColumnStatus(m) {
+    if (isMissionDone(m)) return uiT('Completed', 'הושלם');
+    var col = String((m && (m.project_column_name || m.project_column || m.status_name || m.status)) || '').trim();
+    var low = col.toLowerCase();
+    if (!col || low === 'col_to_do' || low === 'to_do' || low === 'todo') return uiT('To do', 'לביצוע');
+    if (/quer|progress|doing|testing|in_progress|col_queries|col_testing/.test(low)) return uiT('In progress', 'בתהליך');
+    if (/done|completed|col_done/.test(low)) return uiT('Completed', 'הושלם');
+    if (/^col_/.test(low)) return col.replace(/^col_/i, '').replace(/_/g, ' ');
+    return col;
+  }
+
   function missionRow(m, today) {
     var id = m.mission_id || m.id || '';
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
@@ -64,6 +75,8 @@
     var customer = m.customer_name || m.client_name || '';
     var when = formatWhen(m, today);
     var desc = m.note || m.description || '';
+    var columnStatus = formatColumnStatus(m);
+    var overdue = isOverdue(m, today);
     
     var color = String(m.color || '').toLowerCase();
     var pri = priorityFromMission(m, today);
@@ -71,7 +84,7 @@
     var priLabel = '--';
     var priBg = 'var(--bg-panel)';
     var priColor = 'var(--text-sub)';
-    var dotColor = m.color || (isOverdue(m, today) ? '#c0392b' : '#1d60a2');
+    var dotColor = m.color || (overdue ? '#c0392b' : '#1d60a2');
 
     if (color === '#f59e0b' || color === '#eab308' || color === '#f1c40f' || color === 'yellow') {
       dotColor = m.color || '#f59e0b';
@@ -95,22 +108,29 @@
       dotColor = m.color || '#1d60a2';
     }
 
-    var groupColor = m.color || (isOverdue(m, today) ? '#c0392b' : dotColor);
-    var badgeBg = isOverdue(m, today) ? '#fbeeed' : '#eaf2fb';
-    var badgeColor = isOverdue(m, today) ? '#c0392b' : '#1d60a2';
+    var groupColor = m.color || (overdue ? '#c0392b' : dotColor);
+    var dueBg = overdue ? '#fbeeed' : '#eaf2fb';
+    var dueColor = overdue ? '#c0392b' : '#1d60a2';
+    var statusBg = isMissionDone(m) ? '#e6f4ec' : '#f1f3f6';
+    var statusColor = isMissionDone(m) ? '#2e8a63' : '#5a6473';
 
     return (
       '<div class="task-row-card" data-mission="' + esc(JSON.stringify(m)) + '" style="border-right:4px solid ' + groupColor + '; overflow:hidden; width:100%; max-width:100%; box-sizing:border-box;">' +
       '<div style="flex:1; min-width:0; overflow:hidden;">' +
       '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">' +
       '<div class="task-row-title" style="display:flex; align-items:center; gap:6px; flex:1; min-width:0; overflow:hidden;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:' + dotColor + '; flex:none;"></span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(title) + '</span></div>' +
-      '<span style="background:' + priBg + ';color:' + priColor + ';font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;flex:none;">' + esc(priLabel) + '</span>' +
+      (priLabel !== '--'
+        ? '<span style="background:' + priBg + ';color:' + priColor + ';font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;flex:none;">' + esc(priLabel) + '</span>'
+        : '') +
       '</div>' +
       (customer ? '<div style="font-size:12.5px; font-weight:700; color:var(--text-sub); margin-top:3px; display:flex; align-items:center; gap:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(customer) + '</span></div>' : '') +
       (desc ? '<div class="task-row-desc" style="margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">' + esc(desc) + '</div>' : '') +
+      '<div class="task-row-badge-container" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">' +
+      '<span class="task-row-badge" style="background:' + statusBg + ';color:' + statusColor + ';">' + esc(uiT('Status', 'סטטוס') + ': ' + columnStatus) + '</span>' +
       (when
-        ? '<div class="task-row-badge-container"><span class="task-row-badge" style="background:' + badgeBg + ';color:' + badgeColor + ';">' + esc(when) + '</span></div>'
+        ? '<span class="task-row-badge" style="background:' + dueBg + ';color:' + dueColor + ';">' + esc(when) + '</span>'
         : '') +
+      '</div>' +
       '</div>' +
       '</div>'
     );
@@ -135,7 +155,7 @@
     var customer = mission.customer_name || mission.client_name || '--';
     var createdAt = mission.date_created || '--';
     var assignee = mission.user_name || mission.assignee_name || mission.assigned_to_name || 'manoj';
-    var statusName = mission.project_column || mission.status || 'col_to_do';
+    var statusName = formatColumnStatus(mission);
     var alreadyDone = isMissionDone(mission);
 
     var today = todayKey();
@@ -346,6 +366,198 @@
   }
 
   var currentFilterType = 'show_all_together_tasks';
+  var advancedFilters = {
+    status: 'everything',   // today | late | everything | completed
+    association: 'my',      // my | all | <userId>
+    sortBy: 'date_to_do',   // date_to_do | priority | date_created
+    sortDir: 'asc'          // asc | desc
+  };
+  var draftFilters = null;
+
+  function statusToType(status) {
+    if (status === 'today') return 'today_tasks';
+    if (status === 'late') return 'priority_tasks';
+    if (status === 'completed') return 'done_tasks';
+    return 'show_all_together_tasks';
+  }
+
+  function typeToStatus(type) {
+    if (type === 'today_tasks') return 'today';
+    if (type === 'priority_tasks') return 'late';
+    if (type === 'done_tasks') return 'completed';
+    if (type === 'upcoming_tasks' || type === 'private_tasks') return 'everything';
+    return 'everything';
+  }
+
+  function chipStyle(on) {
+    return on
+      ? 'display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:99px;border:1.5px solid #9ec0e8;background:#eaf2fb;color:#1d60a2;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;'
+      : 'display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:99px;border:1px solid #dde2ea;background:#fff;color:#5a6473;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;';
+  }
+
+  function filterSection(title, chipsHtml) {
+    return (
+      '<div style="margin-bottom:16px;">' +
+      '<div style="font-size:12px;font-weight:800;color:#8a93a3;margin-bottom:8px;text-align:start;">' + esc(title) + '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + chipsHtml + '</div>' +
+      '</div>'
+    );
+  }
+
+  function filterChip(group, value, label, selected, icon) {
+    return (
+      '<button type="button" class="mb-adv-filter-chip" data-group="' + esc(group) + '" data-value="' + esc(value) + '" style="' + chipStyle(selected) + '">' +
+      (icon || '') + esc(label) +
+      '</button>'
+    );
+  }
+
+  function sortRow(key, label, leftVal, leftLabel, rightVal, rightLabel, selectedKey, selectedDir) {
+    var on = selectedKey === key;
+    var leftOn = on && selectedDir === leftVal;
+    var rightOn = on && selectedDir === rightVal;
+    var radio = on
+      ? '<span style="width:16px;height:16px;border-radius:50%;border:5px solid #1d60a2;box-sizing:border-box;flex:none;"></span>'
+      : '<span style="width:16px;height:16px;border-radius:50%;border:2px solid #c2c9d2;box-sizing:border-box;flex:none;"></span>';
+    var tog = function (val, lab, active) {
+      return (
+        '<button type="button" class="mb-adv-sort-dir" data-sort-by="' + esc(key) + '" data-sort-dir="' + esc(val) + '" style="' +
+        (active
+          ? 'padding:5px 10px;border-radius:8px;border:none;background:#1d60a2;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;'
+          : 'padding:5px 10px;border-radius:8px;border:1px solid #dde2ea;background:#fff;color:#7b8595;font-size:11.5px;font-weight:700;cursor:pointer;') +
+        '">' + esc(lab) + '</button>'
+      );
+    };
+    return (
+      '<div class="mb-adv-sort-row" data-sort-by="' + esc(key) + '" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5;cursor:pointer;">' +
+      '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' + radio +
+      '<span style="font-size:13.5px;font-weight:700;color:#1f2a3a;">' + esc(label) + '</span></div>' +
+      '<div style="display:flex;gap:6px;flex:none;">' +
+      tog(leftVal, leftLabel, leftOn) + tog(rightVal, rightLabel, rightOn) +
+      '</div></div>'
+    );
+  }
+
+  function renderAdvancedFilterPanel() {
+    var host = document.getElementById('task-filter-options');
+    if (!host) return;
+    var f = draftFilters || Object.assign({}, advancedFilters);
+    draftFilters = f;
+
+    var team = (window.MineralBarApp && MineralBarApp.getTeamMembers && MineralBarApp.getTeamMembers()) || [];
+    var assocChips = filterChip('association', 'my', uiT('my', 'שלי'), f.association === 'my') +
+      filterChip('association', 'all', uiT('everything', 'הכל'), f.association === 'all');
+    team.slice(0, 8).forEach(function (t) {
+      var id = String(t.id || '');
+      if (!id) return;
+      assocChips += filterChip('association', id, t.name || t.email || ('#' + id), String(f.association) === id);
+    });
+
+    host.innerHTML =
+      filterSection(uiT('status', 'סטטוס'),
+        filterChip('status', 'today', uiT('today', 'היום'), f.status === 'today') +
+        filterChip('status', 'late', uiT('Late', 'באיחור'), f.status === 'late') +
+        filterChip('status', 'everything', uiT('everything', 'הכל'), f.status === 'everything') +
+        filterChip('status', 'completed', uiT('Completed', 'הושלם'), f.status === 'completed')
+      ) +
+      filterSection(uiT('Association', 'שיוך'), assocChips) +
+      '<div style="margin-bottom:8px;">' +
+      '<div style="font-size:12px;font-weight:800;color:#8a93a3;margin-bottom:4px;">' + esc(uiT('Sort by', 'מיון לפי')) + '</div>' +
+      sortRow('date_to_do', uiT('Execution date', 'תאריך ביצוע'), 'desc', uiT('far', 'רחוק'), 'asc', uiT('close', 'קרוב'), f.sortBy, f.sortDir) +
+      sortRow('priority', uiT('priority', 'עדיפות'), 'asc', uiT('low', 'נמוך'), 'desc', uiT('high', 'גבוה'), f.sortBy, f.sortDir) +
+      sortRow('date_created', uiT('Creation date', 'תאריך יצירה'), 'desc', uiT('new', 'חדש'), 'asc', uiT('old', 'ישן'), f.sortBy, f.sortDir) +
+      '</div>';
+
+    var applyLabel = document.getElementById('apply-task-filters-label');
+    if (applyLabel) applyLabel.textContent = uiT('Show results', 'הצג תוצאות');
+
+    host.querySelectorAll('.mb-adv-filter-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var group = btn.getAttribute('data-group');
+        var value = btn.getAttribute('data-value');
+        if (!group) return;
+        draftFilters[group] = value;
+        renderAdvancedFilterPanel();
+      });
+    });
+    host.querySelectorAll('.mb-adv-sort-row').forEach(function (row) {
+      row.addEventListener('click', function (e) {
+        if (e.target && e.target.closest && e.target.closest('.mb-adv-sort-dir')) return;
+        draftFilters.sortBy = row.getAttribute('data-sort-by') || 'date_to_do';
+        renderAdvancedFilterPanel();
+      });
+    });
+    host.querySelectorAll('.mb-adv-sort-dir').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        draftFilters.sortBy = btn.getAttribute('data-sort-by') || 'date_to_do';
+        draftFilters.sortDir = btn.getAttribute('data-sort-dir') || 'asc';
+        renderAdvancedFilterPanel();
+      });
+    });
+  }
+
+  function openFilterPanel() {
+    draftFilters = Object.assign({}, advancedFilters);
+    draftFilters.status = typeToStatus(currentFilterType);
+    var p = document.getElementById('task-filter-panel');
+    if (p) p.style.display = 'flex';
+    renderAdvancedFilterPanel();
+  }
+
+  function closeFilterPanel() {
+    var p = document.getElementById('task-filter-panel');
+    if (p) p.style.display = 'none';
+    draftFilters = null;
+  }
+
+  function syncTopChips(type) {
+    var chips = document.querySelectorAll('.mb-filter-chip');
+    chips.forEach(function (c) {
+      var on = (c.getAttribute('data-type') || '') === type;
+      c.style.background = on ? 'var(--color-primary)' : 'var(--bg-panel)';
+      c.style.color = on ? '#fff' : 'var(--text-sub)';
+      c.style.border = on ? 'none' : '1px solid var(--border-panel)';
+    });
+  }
+
+  function buildListParams(filterType) {
+    var params = {
+      type: filterType || currentFilterType || 'show_all_together_tasks',
+      length: PAGE_SIZE,
+      start: currentStart,
+      draw: 1,
+      include_counts: 1
+    };
+    var f = advancedFilters;
+    if (f.association === 'my') params.create_by = 'my_task';
+    else if (f.association === 'all') params.create_by = 'all_my_team_task';
+    else if (f.association) {
+      params.create_by = 'all_my_team_task';
+      params.filter_mission_by_organization_user = f.association;
+    }
+    if (f.sortBy) {
+      params.order_by = f.sortBy;
+      params.order_dir = f.sortDir || 'asc';
+      params.sort = f.sortBy + '_' + (f.sortDir || 'asc');
+    }
+    return params;
+  }
+
+  function applyAdvancedFilters() {
+    if (draftFilters) advancedFilters = Object.assign({}, draftFilters);
+    currentFilterType = statusToType(advancedFilters.status);
+    // Keep quick chips in sync for today/late/completed/everything; leave Upcoming/Private if user used chips
+    if (advancedFilters.status === 'everything' &&
+        (currentFilterType === 'upcoming_tasks' || currentFilterType === 'private_tasks')) {
+      /* keep */
+    }
+    syncTopChips(currentFilterType);
+    currentStart = 0;
+    closeFilterPanel();
+    loadTasks(currentFilterType);
+  }
+
   var PAGE_SIZE = 25;
   var currentStart = 0;
   var currentTotal = 0;
@@ -553,14 +765,8 @@
       chip.addEventListener('click', function() {
         var type = this.getAttribute('data-type') || 'show_all_together_tasks';
         currentFilterType = type;
-
-        chips.forEach(function(c) {
-          var on = c === chip;
-          c.style.background = on ? 'var(--color-primary)' : 'var(--bg-panel)';
-          c.style.color = on ? '#fff' : 'var(--text-sub)';
-          c.style.border = on ? 'none' : '1px solid var(--border-panel)';
-        });
-
+        advancedFilters.status = typeToStatus(type);
+        syncTopChips(type);
         currentStart = 0;
         loadTasks(currentFilterType);
       });
@@ -597,15 +803,40 @@
 
     var run = (async function () {
     try {
-      var result = await MineralBarApp.listMissions({
-        type: filterType,
-        length: PAGE_SIZE,
-        start: currentStart,
-        draw: 1
-      });
+      var result = await MineralBarApp.listMissions(buildListParams(filterType));
       var today = todayKey();
       var groups = result.groups || [];
       var flatRows = result.rows || [];
+
+      // Client-side sort fallback
+      function sortRows(rows) {
+        var key = advancedFilters.sortBy || 'date_to_do';
+        var dir = advancedFilters.sortDir === 'desc' ? -1 : 1;
+        return rows.slice().sort(function (a, b) {
+          var av = '';
+          var bv = '';
+          if (key === 'date_created') {
+            av = String(a.date_created || a.created_at || '');
+            bv = String(b.date_created || b.created_at || '');
+          } else if (key === 'priority') {
+            var rank = { urgent: 3, normal: 2, none: 1, low: 0 };
+            av = rank[priorityFromMission(a, today)] || 0;
+            bv = rank[priorityFromMission(b, today)] || 0;
+            return (av - bv) * dir;
+          } else {
+            av = (a.date_to_do_format ? String(a.date_to_do_format).split('T')[0] : (a.date_to_do || '')) || '9999-99-99';
+            bv = (b.date_to_do_format ? String(b.date_to_do_format).split('T')[0] : (b.date_to_do || '')) || '9999-99-99';
+          }
+          if (av < bv) return -1 * dir;
+          if (av > bv) return 1 * dir;
+          return 0;
+        });
+      }
+      flatRows = sortRows(flatRows);
+      groups = groups.map(function (g) {
+        return Object.assign({}, g, { rows: sortRows(g.rows || []) });
+      });
+
       var total = Number(result.total) || flatRows.length || 0;
       currentTotal = total;
 
@@ -755,19 +986,27 @@
     var filterBtn = document.getElementById('task-filter-btn');
     if (filterBtn && !filterBtn.dataset.mbWired) {
       filterBtn.dataset.mbWired = '1';
-      filterBtn.addEventListener('click', function() {
-        var p = document.getElementById('task-filter-panel');
-        if (p) p.style.display = 'flex';
-      });
+      filterBtn.addEventListener('click', openFilterPanel);
     }
     
     var closeFilterBtn = document.getElementById('close-filter-panel');
     if (closeFilterBtn && !closeFilterBtn.dataset.mbWired) {
       closeFilterBtn.dataset.mbWired = '1';
-      closeFilterBtn.addEventListener('click', function() {
-        var p = document.getElementById('task-filter-panel');
-        if (p) p.style.display = 'none';
+      closeFilterBtn.addEventListener('click', closeFilterPanel);
+    }
+
+    var filterPanel = document.getElementById('task-filter-panel');
+    if (filterPanel && !filterPanel.dataset.mbWired) {
+      filterPanel.dataset.mbWired = '1';
+      filterPanel.addEventListener('click', function (e) {
+        if (e.target === filterPanel) closeFilterPanel();
       });
+    }
+
+    var applyBtn = document.getElementById('apply-task-filters');
+    if (applyBtn && !applyBtn.dataset.mbWired) {
+      applyBtn.dataset.mbWired = '1';
+      applyBtn.addEventListener('click', applyAdvancedFilters);
     }
   }
 

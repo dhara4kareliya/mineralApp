@@ -1395,7 +1395,27 @@
     var p = params();
     currentParams = p;
     fillHeader(p);
-    // Quotation navigation is handled via document click event delegation
+
+    // Deep-link from schedule: ?filter=whatsapp&channel=whatsapp
+    try {
+      var q = new URLSearchParams(location.search || '');
+      var filter = String(q.get('filter') || q.get('tab') || '').toLowerCase();
+      var channel = String(q.get('channel') || '').toLowerCase();
+      if (filter && typeof window.filterChatType === 'function') {
+        window.filterChatType(filter);
+      }
+      if (channel === 'whatsapp' || filter === 'whatsapp') {
+        setSendChannel('whatsapp', 'send_whatsapp');
+      } else if (channel === 'email' || filter === 'email') {
+        setSendChannel('email', 'send_email');
+      } else if (channel === 'quick_email' || filter === 'quick_email') {
+        setSendChannel('quick_email', 'send_email_quick');
+      } else if (channel === 'biz1' || filter === 'biz1') {
+        setSendChannel('biz1', 'send_chat_channel');
+      } else if (channel === 'notes' || filter === 'notes') {
+        setSendChannel('notes', 'send_notes');
+      }
+    } catch (eDeep) { /* ignore */ }
 
     // Prefetch phone so call button works even when URL/list omitted cust_phone
     resolveCustomerPhone(p);

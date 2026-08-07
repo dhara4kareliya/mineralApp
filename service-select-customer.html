@@ -236,14 +236,15 @@ class Component extends DCLogic {
       if (res && res.data) {
         this.CUSTOMERS = res.data.map((c, i) => {
           var phone = String(c.mobile || c.phone || c.cellular || '').trim();
-          var city = String(c.city || c.address || '').trim();
+          // Never fall back to address — that put "Rothschild Blvd 45" into City/Area
+          var city = String(c.city || c.city_name || '').trim();
           var name = String(c.company || c.name || '').trim();
           return {
             id: String(c.customer_id || c.id || ''),
             name: name || '--',
             phone: phone || '--',
             email: c.email || c.e_mail || '',
-            city: city || '--',
+            city: city || '',
             address: c.address || '',
             open: 0 // Optional: Could be matched with tickets if needed
           };
@@ -295,7 +296,15 @@ class Component extends DCLogic {
     const s = this.state;
     if (!s.nName.trim() || !s.nPhone.trim() || !s.nCity.trim() || !s.nStreet.trim()) return;
     this.proceed({
-      name: s.nName.trim(), phone: s.nPhone.trim(), city: s.nCity.trim(),
+      name: s.nName.trim(), phone: s.nPhone.trim(),
+      city: s.nCity.trim(),
+      area: '',
+      street: s.nStreet.trim(),
+      building: s.nHouse.trim(),
+      house: s.nHouse.trim(),
+      entrance: s.nEntrance.trim(),
+      floor: s.nFloor.trim(),
+      apartment: s.nApt.trim(),
       address: this.fullAddress(), isNew: true, customer_id: '', id: '',
     });
   }
@@ -307,8 +316,15 @@ class Component extends DCLogic {
       name: c.name,
       phone: c.phone,
       email: c.email,
-      city: c.city,
-      address: c.address,
+      // Do not copy free-text address into city/area
+      city: '',
+      area: '',
+      street: '',
+      building: '',
+      floor: '',
+      apartment: '',
+      entrance: '',
+      address: '',
       isNew: false,
       customer_id: c.id,
       id: c.id,

@@ -63,7 +63,7 @@
     'שעון נוכחות': { routes: ['TeamHours.Get', 'TeamHours.StartStop', 'TeamHours.List', 'TeamHours.WhenStop'], status: 'ready' },
     'מלאי': { routes: ['Products.List', 'Products.Count'], status: 'live' },
     'מסמכים / הצעות / הזמנות': { routes: ['Documents.List', 'Documents.Count', 'Forms.*', 'PaymentForms.*'], status: 'partial' },
-    'גבייה': { routes: ['PaymentForms.*', 'Settings.SaveCard'], status: 'unknown' }
+    'גבייה': { routes: ['Documents.Add', 'Documents.List'], status: 'live' }
   };
 
   function getClient() {

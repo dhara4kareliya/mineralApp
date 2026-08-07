@@ -94,22 +94,56 @@ mbCss('./common.css');
   </div>
 </div>
 
-<!-- Row 2: Address, phone 2 -->
-<div style="display:flex; gap:11px; margin-bottom:13px;">
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Address</label>
-    <input oninput="{{ onAddress }}" value="{{ address }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Address" />
-  </div>
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">phone 2</label>
-    <input oninput="{{ onPhone2 }}" value="{{ phone2 }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="0505555555" />
-  </div>
+<!-- Row 2: phone 2 -->
+<div style="margin-bottom:13px;">
+  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">phone 2</label>
+  <input oninput="{{ onPhone2 }}" value="{{ phone2 }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="0505555555" />
 </div>
 
-<!-- Row 3: City -->
+<!-- Address details -->
+<div style="font-size:13px; color:#7b8595; font-weight:800; margin:0 0 10px;">Address details</div>
+<div style="display:flex; gap:11px; margin-bottom:11px;">
+  <div style="flex:1.4;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Street</label>
+    <input oninput="{{ onStreet }}" value="{{ street }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Street name" />
+  </div>
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Building number</label>
+    <input oninput="{{ onBuilding }}" value="{{ building }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="45" />
+  </div>
+</div>
+<div style="display:flex; gap:9px; margin-bottom:11px;">
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Floor</label>
+    <input oninput="{{ onFloor }}" value="{{ floor }}" class="ds-input" style="width:100%; padding:12px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" placeholder="3" />
+  </div>
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Apartment</label>
+    <input oninput="{{ onApartment }}" value="{{ apartment }}" class="ds-input" style="width:100%; padding:12px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" placeholder="9" />
+  </div>
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Entrance</label>
+    <input oninput="{{ onEntrance }}" value="{{ entrance }}" class="ds-input" style="width:100%; padding:12px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" placeholder="A" />
+  </div>
+</div>
+<div style="display:flex; gap:11px; margin-bottom:11px;">
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Area</label>
+    <input oninput="{{ onArea }}" value="{{ area }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Neighborhood / area" />
+  </div>
+  <div style="flex:1;">
+    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">City</label>
+    <input oninput="{{ onCity }}" value="{{ city }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="City" />
+  </div>
+</div>
 <div style="margin-bottom:13px;">
-  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">City</label>
-  <input oninput="{{ onCity }}" value="{{ city }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Enter City Name" />
+  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Full address</label>
+  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFullAddress }}">
+    <input readonly value="{{ fullAddress }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#f6f8fa;" />
+  </sc-if>
+  <sc-if hint-placeholder-val="{{ true }}" value="{{ noFullAddress }}">
+    <div style="width:100%; padding:12px 13px; border:1.5px dashed #dde2ea; border-radius:11px; font-size:13.5px; color:#9aa3b0; background:#fafbfc;">Filled fields will appear here</div>
+  </sc-if>
 </div>
 
 <!-- Row 4: Topic, URGENCY -->
@@ -132,7 +166,7 @@ mbCss('./common.css');
 <div style="display:flex; gap:11px; margin-bottom:13px;">
   <div style="flex:1; min-width:0;">
     <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Due date</label>
-    <input type="date" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select due date" />
+    <input type="date" min="{{ dueDateMin }}" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select due date" />
   </div>
   <div style="flex:1; min-width:0;">
     <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Team member</label>
@@ -224,7 +258,7 @@ mbCss('./common.css');
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { callType: 'tech', charge: true, cust: null, email: '', phone: '', address: '', phone2: '', city: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '', products: [], productId: '', productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '' };
+  state = { callType: 'tech', charge: true, cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '', products: [], productId: '', productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '' };
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
@@ -235,12 +269,20 @@ class Component extends DCLogic {
       const raw = localStorage.getItem('mineral_new_call_customer');
       if (raw) {
         const cust = JSON.parse(raw);
-        this.setState({ 
+        // Do not prefill address boxes from customer.address/city free-text
+        // (e.g. "Rothschild Blvd 45") — user enters Street/Area/City fresh.
+        this.setState({
           cust: cust,
           email: cust.email || '',
           phone: cust.phone || '',
-          address: cust.address || '',
-          city: cust.city || ''
+          street: '',
+          building: '',
+          floor: '',
+          apartment: '',
+          entrance: '',
+          area: '',
+          city: '',
+          phone2: cust.phone2 || cust.second_phone || ''
         });
       }
     } catch (e) {}
@@ -258,6 +300,55 @@ class Component extends DCLogic {
         this.loadPaidProducts();
       }, { keys: /ticket|product|customer|department|socket\.nudge/i, delay: 400 });
     }
+  }
+
+  /** Only use real structured parts. Never prefill from free-text cust.address. */
+  parseAddressParts(cust) {
+    var c = cust || {};
+    return {
+      street: String(c.street || c.street_name || '').trim(),
+      building: String(c.building || c.house || c.house_number || c.building_number || '').trim(),
+      floor: String(c.floor || '').trim(),
+      apartment: String(c.apartment || c.apt || c.flat || '').trim(),
+      entrance: String(c.entrance || c.entry || '').trim(),
+      area: String(c.area || '').trim(),
+      city: String(c.city || '').trim()
+    };
+  }
+
+  buildFullAddress(st) {
+    var s = st || this.state || {};
+    function part(v) {
+      var t = String(v == null ? '' : v).trim();
+      if (!t || t === 'undefined' || t === 'null') return '';
+      return t;
+    }
+    var parts = [];
+    var street = part(s.street);
+    var building = part(s.building);
+    var streetLine = [street, building].filter(Boolean).join(' ');
+    if (streetLine) parts.push(streetLine);
+
+    var entrance = part(s.entrance);
+    var floor = part(s.floor);
+    var apartment = part(s.apartment);
+    var he = typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'he';
+    if (entrance) parts.push(he ? ('כניסה ' + entrance) : ('Entrance ' + entrance));
+    if (floor) parts.push(he ? ('קומה ' + floor) : ('Floor ' + floor));
+    if (apartment) parts.push(he ? ('דירה ' + apartment) : ('Apt ' + apartment));
+
+    var area = part(s.area);
+    var city = part(s.city);
+    if (area) parts.push(area);
+    if (city && city.toLowerCase() !== area.toLowerCase()) parts.push(city);
+
+    return parts.join(', ');
+  }
+
+  setAddressPart(key, value) {
+    var patch = {};
+    patch[key] = value;
+    this.setState(patch);
   }
 
   /**
@@ -391,12 +482,18 @@ class Component extends DCLogic {
         p.product_name || p.item_name || p.name || p.title || p.label || p.product || ''
       ).trim();
       if (!productName) return null;
+      var rawId = String(p.product_id != null ? p.product_id : (p.id != null ? p.id : '')).trim();
+      // Documents.Products often returns product_id "0" for line items without a catalog id
+      if (!rawId || rawId === '0') rawId = '';
+      var documentId = String(p.document_id || p.doc_id || '').trim();
+      // Unique select key: prefer real catalog id, else name+document (many products share product_id 0)
+      var selectKey = rawId || (productName + '::' + (documentId || 'nodoc'));
       return {
-        id: productName,
+        id: selectKey,
         name: productName,
         product_name: productName,
-        product_id: String(p.product_id || p.id || ''),
-        document_id: String(p.document_id || p.doc_id || ''),
+        product_id: rawId,
+        document_id: documentId,
         raw: p
       };
     }).filter(Boolean);
@@ -474,7 +571,10 @@ class Component extends DCLogic {
           if (requirePaidDoc) {
             if (!docId || !paidIdSet[docId]) return;
           }
-          var key = String(p.product_name || p.id).toLowerCase();
+          // Prefer unique catalog id; otherwise name+document so different products don't collapse
+          var key = p.product_id
+            ? ('id:' + p.product_id)
+            : ('name:' + String(p.product_name || p.name || '').toLowerCase() + '::' + docId);
           if (!key || productSeen[key]) return;
           productSeen[key] = true;
           allProducts.push(p);
@@ -502,7 +602,7 @@ class Component extends DCLogic {
       this.setState({
         products: allProducts,
         productsLoading: false,
-        productId: allProducts.some(p => String(p.product_id || p.id || p.product_name) === String(this.state.productId))
+        productId: allProducts.some(p => String(p.id) === String(this.state.productId))
           ? this.state.productId
           : ''
       });
@@ -557,10 +657,34 @@ class Component extends DCLogic {
     return localDate;
   }
 
+  todayDateKey() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  onDueDate(e) {
+    var val = String((e && e.target && e.target.value) || '').trim();
+    if (!val) {
+      this.setState({ dueDate: '', errorMsg: '' });
+      return;
+    }
+    var min = this.todayDateKey();
+    if (val < min) {
+      this.setState({
+        dueDate: '',
+        errorMsg: 'Due date cannot be before today. Please select today or a future date.'
+      });
+      return;
+    }
+    this.setState({ dueDate: val, errorMsg: '' });
+  }
+
   selectedProduct() {
     return (this.state.products || []).find((p) => {
-      var id = String(p.product_id || p.id || p.product_name || '');
-      return id === String(this.state.productId);
+      return String(p.id) === String(this.state.productId);
     }) || null;
   }
 
@@ -570,6 +694,13 @@ class Component extends DCLogic {
     var problem = String(this.state.problem || '').trim();
     if (!topic || !problem) {
       this.setState({ errorMsg: 'Topic and problem are required.', successMsg: '' });
+      return;
+    }
+    if (this.state.dueDate && this.state.dueDate < this.todayDateKey()) {
+      this.setState({
+        errorMsg: 'Due date cannot be before today. Please select today or a future date.',
+        successMsg: ''
+      });
       return;
     }
 
@@ -586,7 +717,16 @@ class Component extends DCLogic {
       var customer = this.state.cust || {};
       var product = this.selectedProduct();
       var customFields = {};
-      if (this.state.city) customFields.city = this.state.city;
+      var fullAddress = this.buildFullAddress(this.state);
+      var area = String(this.state.area || '').trim();
+      var city = String(this.state.city || '').trim();
+      if (area) customFields.area = area;
+      if (city) customFields.city = city;
+      if (this.state.street) customFields.street = String(this.state.street).trim();
+      if (this.state.building) customFields.building = String(this.state.building).trim();
+      if (this.state.floor) customFields.floor = String(this.state.floor).trim();
+      if (this.state.apartment) customFields.apartment = String(this.state.apartment).trim();
+      if (this.state.entrance) customFields.entrance = String(this.state.entrance).trim();
       if (this.state.phone2) customFields.second_phone = this.state.phone2;
       if (this.state.urgency) customFields.urgency = this.state.urgency;
       if (product && product.product_name) customFields.product_name = product.product_name;
@@ -598,7 +738,7 @@ class Component extends DCLogic {
         email: String(this.state.email || '').trim(),
         phone: String(this.state.phone || '').trim(),
         mobile: String(this.state.phone2 || '').trim(),
-        address: String(this.state.address || '').trim()
+        address: fullAddress
       };
       if (customerId) {
         payload.cust_id = customerId;
@@ -606,7 +746,11 @@ class Component extends DCLogic {
       }
       if (this.state.teamMemberId) payload.assign_member_id = String(this.state.teamMemberId);
       if (this.state.departmentId) payload.department = String(this.state.departmentId);
-      if (product && product.product_id) payload.product_id = String(product.product_id);
+      // Only send real catalog ids — never "0" or a product name string
+      var realProductId = product && String(product.product_id || '').trim();
+      if (realProductId && realProductId !== '0' && /^\d+$/.test(realProductId)) {
+        payload.product_id = realProductId;
+      }
       if (this.state.dueDate) payload.due_date = this.dueDateUtc();
       if (this.state.fromTime) payload.ticket_from_time = this.state.fromTime + ':00';
       if (this.state.toTime) payload.ticket_to_time = this.state.toTime + ':00';
@@ -698,7 +842,8 @@ class Component extends DCLogic {
 
     const charge = this.state.charge;
     const cust = this.state.cust || { name: 'משה כהן', phone: '050-1234567', city: 'תל אביב', isNew: false };
-    const custMeta = [cust.phone, cust.city].filter(Boolean).join(' · ');
+    const custMeta = [cust.phone, this.state.city || this.state.area || cust.city].filter(Boolean).join(' · ');
+    const fullAddress = this.buildFullAddress(this.state);
     const stars = [1, 2, 3, 4, 5].map(v => {
       const active = v <= this.state.urgency;
       return {
@@ -720,13 +865,13 @@ class Component extends DCLogic {
     }));
 
     const productsList = (this.state.products || []).map(p => {
-      var productName = p.product_name || p.name || p.id;
-      var productId = p.product_id || p.id || productName;
+      var productName = p.product_name || p.name || '';
+      var selectKey = String(p.id || '');
       return {
-        id: productId,
+        id: selectKey,
         product_name: productName,
-        name: p.name || productName,
-        selected: String(this.state.productId) === String(productId)
+        name: productName,
+        selected: String(this.state.productId) === selectKey
       };
     });
 
@@ -737,12 +882,22 @@ class Component extends DCLogic {
     return {
       email: this.state.email, onEmail: e => this.setState({ email: e.target.value }),
       phone: this.state.phone, onPhone: e => this.setState({ phone: e.target.value }),
-      address: this.state.address, onAddress: e => this.setState({ address: e.target.value }),
       phone2: this.state.phone2, onPhone2: e => this.setState({ phone2: e.target.value }),
-      city: this.state.city, onCity: e => this.setState({ city: e.target.value }),
+      street: this.state.street, onStreet: e => this.setAddressPart('street', e.target.value),
+      building: this.state.building, onBuilding: e => this.setAddressPart('building', e.target.value),
+      floor: this.state.floor, onFloor: e => this.setAddressPart('floor', e.target.value),
+      apartment: this.state.apartment, onApartment: e => this.setAddressPart('apartment', e.target.value),
+      entrance: this.state.entrance, onEntrance: e => this.setAddressPart('entrance', e.target.value),
+      area: this.state.area, onArea: e => this.setAddressPart('area', e.target.value),
+      city: this.state.city, onCity: e => this.setAddressPart('city', e.target.value),
+      fullAddress: fullAddress,
+      hasFullAddress: !!fullAddress,
+      noFullAddress: !fullAddress,
       topic: this.state.topic, onTopic: e => this.setState({ topic: e.target.value }),
       problem: this.state.problem, onProblem: e => this.setState({ problem: e.target.value }),
-      dueDate: this.state.dueDate, onDueDate: e => this.setState({ dueDate: e.target.value }),
+      dueDate: this.state.dueDate,
+      dueDateMin: this.todayDateKey(),
+      onDueDate: e => this.onDueDate(e),
       fromTime: this.state.fromTime, onFromTime: e => this.setState({ fromTime: e.target.value }),
       toTime: this.state.toTime, onToTime: e => this.setState({ toTime: e.target.value }),
       teamMembers: teamMembersList, onTeamMember: e => this.setState({ teamMemberId: e.target.value }),
@@ -756,7 +911,7 @@ class Component extends DCLogic {
       custInitials: this.initials(cust.name),
       custMeta,
       custIsNew: !!cust.isNew,
-      custAddress: cust.address || 'הרצל 12, דירה 4, תל אביב',
+      custAddress: fullAddress || '',
       charge,
       toggleCharge: () => this.toggleCharge(),
       createTicket: () => this.createTicket(),

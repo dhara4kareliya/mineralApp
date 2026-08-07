@@ -30,6 +30,7 @@ mbCss('./common.css');
   html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
   button, a { font-family: 'Heebo', sans-serif; }
   .qd-scroll::-webkit-scrollbar { width: 0; }
+  @keyframes qd-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
@@ -38,15 +39,15 @@ mbCss('./common.css');
 
 <!-- header -->
 <div style="background:#fff; padding:4px 14px 12px; flex:none; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 0 #edeff2;">
-<button style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><circle cx="12" cy="13" r="3"></circle><path d="M12 10V3M9 5l3-3 3 3"></path><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path></svg>
+<button type="button" id="fq-download-pdf" onclick="{{ onDownloadPdf }}" aria-label="Download PDF" style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
 </button>
 <div style="font-size:18px; font-weight:800; color:#1f2a3a; white-space:nowrap;">quotation</div>
-<a href="price-quotes.html" style="width:38px; height:38px; border-radius:50%; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<a href="{{ backUrl }}" style="width:38px; height:38px; border-radius:50%; background:#f1f3f6; color:#5a6473; display:flex; align-items:center; justify-content:center; text-decoration:none;">
 <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m9 6 6 6-6 6"></path></svg>
 </a>
 </div>
-<div class="qd-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 120px;">
+<div class="qd-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 24px; min-height:0;">
 <!-- ===== letterhead ===== -->
 <div style="background:linear-gradient(135deg,#16223a 0%,#1d3a5f 100%); border-radius:20px 20px 0 0; padding:20px 18px 18px; color:#fff; position:relative; overflow:hidden;">
 <div style="position:absolute; top:-30px; left:-20px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.05);"></div>
@@ -55,12 +56,12 @@ mbCss('./common.css');
 <svg fill="none" height="24" stroke="#9cc3ec" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="24"><path d="M12 3s6.5 6.8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 9.8 12 3 12 3z"></path></svg>
 </div>
 <div style="flex:1;">
-<div style="font-size:19px; font-weight:900; letter-spacing:-.3px;">mineral bar</div>
+<div style="font-size:19px; font-weight:900; letter-spacing:-.3px;">{{ companyName }}</div>
 <div style="font-size:11.5px; color:#9fb6d4; margin-top:1px;">clean water healthy life</div>
 </div>
 <div style="text-align:left; flex:none; font-size:10.5px; color:#9fb6d4; line-height:1.7;">
-<div>03-555-1234</div>
-<div>service@mineralbar.co.il</div>
+<div>{{ companyPhone }}</div>
+<div>{{ companyEmail }}</div>
 </div>
 </div>
 </div>
@@ -68,7 +69,7 @@ mbCss('./common.css');
 <div style="background:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f0f2f5;">
 <div style="text-align:left;">
 <div style="font-size:11.5px; color:#9aa3b0; font-weight:600;">Offer number</div>
-<div style="font-size:17px; font-weight:800; color:#1f2a3a; margin-top:1px; white-space:nowrap; direction:ltr; text-align:left;">#QT-0041</div>
+<div style="font-size:17px; font-weight:800; color:#1f2a3a; margin-top:1px; white-space:nowrap; direction:ltr; text-align:left;">#{{ quoteNum }}</div>
 </div>
 <div style="display:inline-flex; align-items:center; gap:5px; background:#fdf1dd; color:#bd8324; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:99px;">
 <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="12"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
@@ -181,18 +182,26 @@ mbCss('./common.css');
           The prices do not include VAT (18%). VAT is calculated separately and added to the final amount. The offer is subject to credit approval and the full contract terms. Cancellation during the commitment period may involve an exit fee. Valid until the specified date.
         </div>
 </div>
-<!-- sticky footer -->
-<div style="position:absolute; bottom:0; left:0; right:0; background:#fff; box-shadow:0 -2px 14px rgba(15,24,40,.08); padding:11px 16px 22px;">
+<!-- action bar: pinned above bottom nav -->
+<div id="final-quote-actions" style="flex:none; background:#fff; box-shadow:0 -2px 14px rgba(15,24,40,.08); padding:11px 16px 12px; border-top:1px solid #edeff2; position:relative; z-index:45;">
 <div style="display:flex; gap:9px;">
-<button style="width:48px; height:50px; border-radius:14px; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;">
+<button type="button" id="fq-download-pdf-footer" onclick="{{ onDownloadPdf }}" aria-label="Download PDF" style="width:48px; height:50px; border-radius:14px; border:1.5px solid #e4e8ee; background:#fff; color:#5a6473; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;">
 <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="20"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
 </button>
-<a href="{{ signatureAlertUrl }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:9px; padding:14px; border-radius:14px; background:linear-gradient(135deg,#2e8a63,#23734f); color:#fff; font-size:15.5px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(46,138,99,.28);">
+<button type="button" id="fq-confirm-sign" onclick="{{ onConfirmSign }}" disabled="{{ busy }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:9px; padding:14px; border:none; border-radius:14px; background:linear-gradient(135deg,#2e8a63,#23734f); color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; box-shadow:0 6px 16px rgba(46,138,99,.28); opacity:{{ busyOpacity }};">
 <svg fill="none" height="19" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="19"><path d="M3 17c3-1 5-5 9-5s4 3 9 1"></path><path d="M3 12c3-1 5-5 9-5s4 3 9 1"></path></svg>
-            Confirm and sign the offer
-          </a>
+            {{ confirmLabel }}
+          </button>
 </div>
 </div>
+<sc-if value="{{ downloading }}">
+<div style="position:absolute; inset:0; z-index:50; background:rgba(15,24,40,.35); display:flex; align-items:flex-end; justify-content:center; padding:0 16px 160px;">
+<div style="background:#16223a; color:#fff; padding:12px 18px; border-radius:14px; display:flex; align-items:center; gap:10px; box-shadow:0 10px 28px rgba(15,24,40,.28);">
+<div style="width:18px; height:18px; border:2.5px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:qd-spin .8s linear infinite; flex:none;"></div>
+<span style="font-size:13.5px; font-weight:700;">Preparing PDF…</span>
+</div>
+</div>
+</sc-if>
 </div>
 </div>
 </div>
@@ -203,8 +212,19 @@ mbCss('./common.css');
     customer_id: '',
     name: '',
     phone: '',
+    email: '',
     tz: '',
     address: '',
+    companyName: 'mineral bar',
+    companyPhone: '',
+    companyEmail: '',
+    invoiceSettingId: '',
+    documentId: '',
+    pdfUrl: '',
+    quoteNum: 'QT-0041',
+    products: [],
+    busy: false,
+    downloading: false,
     backUrl: 'service-quote-form.html'
   };
 
@@ -214,10 +234,55 @@ mbCss('./common.css');
     }
 
     this.initData();
-    window.addEventListener('mineralbar:ready', () => this.initData());
+    this.pinActionBar();
+    this.bindActionClicks();
+    window.addEventListener('mineralbar:ready', () => {
+      this.initData();
+      this.pinActionBar();
+      this.bindActionClicks();
+    });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.initData(), { keys: /product|customer|document|socket\.nudge/i, delay: 400 });
     }
+    var self = this;
+    setTimeout(function () { self.pinActionBar(); self.bindActionClicks(); }, 250);
+    setTimeout(function () { self.pinActionBar(); self.bindActionClicks(); }, 800);
+  }
+
+  pinActionBar() {
+    try {
+      var actions = document.getElementById('final-quote-actions');
+      var footer = document.getElementById('common-app-footer');
+      var screen = actions && actions.parentElement;
+      if (!screen) return;
+      if (actions && screen.contains(actions)) screen.appendChild(actions);
+      if (footer && screen.contains(footer)) screen.appendChild(footer);
+      else if (typeof ensureCommonFooter === 'function') {
+        ensureCommonFooter();
+        footer = document.getElementById('common-app-footer');
+        if (footer && screen.contains(footer)) screen.appendChild(footer);
+      }
+      // Keep order: scroll content → action bar → bottom nav
+      if (actions && footer && actions.parentElement === footer.parentElement) {
+        footer.parentElement.insertBefore(actions, footer);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  bindActionClicks() {
+    var self = this;
+    function wire(id, handler) {
+      var el = document.getElementById(id);
+      if (!el || el.getAttribute('data-fq-bound') === '1') return;
+      el.setAttribute('data-fq-bound', '1');
+      el.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        handler.call(self);
+      });
+    }
+    wire('fq-download-pdf', this.onDownloadPdf);
+    wire('fq-download-pdf-footer', this.onDownloadPdf);
+    wire('fq-confirm-sign', this.onConfirmSign);
   }
 
   getCustomerId() {
@@ -244,29 +309,50 @@ mbCss('./common.css');
   async initData() {
     try {
       var q = new URLSearchParams(window.location.search);
-      var customerId = this.getCustomerId() || '1';
+      var customerId = this.getCustomerId();
       var name = q.get('name') || '';
       var phone = q.get('phone') || '';
-      var tz = q.get('tz') || q.get('id') || '025896317';
+      var tz = q.get('tz') || q.get('id') || '';
       var address = q.get('address') || '';
       var discount = Number(q.get('discount') || 0);
       var productIdsStr = q.get('product_ids') || '';
+      if (!productIdsStr) {
+        try {
+          productIdsStr = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+        } catch (eIds) { productIdsStr = ''; }
+      }
       
       var backUrl = 'service-quote-form.html';
-      if (customerId && customerId !== '1') {
-        backUrl = 'service-quote-form.html?customer_id=' + customerId;
+      if (customerId) {
+        backUrl = 'service-quote-form.html?customer_id=' + encodeURIComponent(customerId);
       } else {
         var paramsStr = q.toString();
         if (paramsStr) backUrl += '?' + paramsStr;
       }
       
       var userName = q.get('userName') || q.get('username') || q.get('user_name') || '';
-      if (!userName && window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
+      var companyName = 'mineral bar';
+      var companyPhone = '';
+      var companyEmail = '';
+      if (window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
         var user = MineralBarApp.getUser();
         var emailUser = MineralBarApp.getEmail() || (user && user.email) || '';
         if (user) {
-          userName = user.name || (emailUser ? emailUser.split('@')[0] : '') || user.username || '';
+          if (!userName) {
+            userName = user.name || (emailUser ? emailUser.split('@')[0] : '') || user.username || '';
+          }
+          companyPhone = user.phone || user.mobile || user.second_phone || '';
+          companyEmail = emailUser || user.email || '';
+        } else if (emailUser) {
+          companyEmail = emailUser;
         }
+        try {
+          var basic = typeof MineralBarApp.getUserBasic === 'function' ? MineralBarApp.getUserBasic() : null;
+          var org = (basic && basic.data && basic.data.org) || (basic && basic.org) || null;
+          if (org && (org.name || org.company_name)) {
+            companyName = org.name || org.company_name;
+          }
+        } catch (eOrg) { /* ignore */ }
       }
       if (!userName) {
         userName = 'Yossi Cohen';
@@ -276,6 +362,12 @@ mbCss('./common.css');
         discount: discount,
         userName: userName,
         customer_id: customerId,
+        companyName: companyName,
+        companyPhone: companyPhone,
+        companyEmail: companyEmail,
+        documentId: q.get('document_id') || q.get('doc_id') || '',
+        pdfUrl: q.get('pdf_url') || '',
+        quoteNum: q.get('quote_num') || q.get('quoteNum') || 'QT-0041',
         backUrl: backUrl
       };
       if (name) stateUpdate.name = name;
@@ -284,18 +376,49 @@ mbCss('./common.css');
       if (address) stateUpdate.address = address;
       this.setState(stateUpdate);
 
-      // Load products
+      // Load products + company letterhead from invoice settings
       var productsList = [];
       if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
         try {
           var client = MineralBarApp.getClient();
+          try {
+            var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
+            var coData = coRes && (coRes.data || coRes.output || coRes);
+            var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+            var co = null;
+            if (coRows && coRows.length) {
+              co = coRows.find(function (r) { return r.is_default || Number(r.default_settings) === 1; }) || coRows[0];
+            }
+            if (co) {
+              companyName = co.company_name || co.name || companyName;
+              companyEmail = co.email || companyEmail;
+              companyPhone = co.phone || co.mobile || co.company_phone || co.telephone || companyPhone;
+              var invoiceSettingId = String(co.id || co.invoice_setting_id || co.invoice_settings_id || '');
+              this.setState({
+                companyName: companyName,
+                companyEmail: companyEmail,
+                companyPhone: companyPhone,
+                invoiceSettingId: invoiceSettingId
+              });
+            }
+          } catch (coErr) {
+            console.warn('[MineralBar] failed to fetch invoice settings', coErr);
+          }
+
           var res = await client.request('Products.List', { limit: 25 });
           var data = res && (res.data || res.output || res);
           if (Array.isArray(data) && data.length > 0) {
             productsList = data.map(function(item) {
-              var name = item.product_name || item.name || 'מוצר';
-              var priceVal = Math.round(Number(item.price || item.cost || 89));
-              var desc = item.description || item.desc || 'מסלול';
+              var pname = item.product_name || item.name || 'מוצר';
+              var rawPrice = item.product_price != null ? item.product_price
+                : (item.main_price != null ? item.main_price
+                  : (item.sale_price != null ? item.sale_price
+                    : (item.price != null ? item.price
+                      : (item.cost != null ? item.cost
+                        : (item.item_price != null ? item.item_price : null)))));
+              var priceVal = Math.round(Number(rawPrice));
+              if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
+              var desc = item.description || item.discription || item.desc || 'מסלול';
               
               var discountVal = Number(item.discount_price || item.discount || 0);
               var isPercent = Number(item.is_price_percent || 0) === 1;
@@ -306,8 +429,8 @@ mbCss('./common.css');
               }
 
               return {
-                id: String(item.id),
-                name: name,
+                id: String(item.id || item.product_id || '').trim(),
+                name: pname,
                 sub: desc,
                 price: priceVal + '₪/month',
                 priceNum: priceVal,
@@ -329,9 +452,9 @@ mbCss('./common.css');
 
       var finalProducts = [];
       if (productIdsStr) {
-        var ids = productIdsStr.split(',');
+        var ids = String(productIdsStr).split(',').map(function (id) { return String(id || '').trim(); }).filter(Boolean);
         ids.forEach(function(productId) {
-          var found = productsList.find(function(p) { return p.id === productId; });
+          var found = productsList.find(function(p) { return String(p.id).trim() === productId; });
           if (found) {
             finalProducts.push(JSON.parse(JSON.stringify(found)));
           }
@@ -340,16 +463,6 @@ mbCss('./common.css');
       productsList = finalProducts;
 
       this.setState({ products: productsList });
-
-      if (window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
-        var user = MineralBarApp.getUser();
-        var email = MineralBarApp.getEmail() || (user && user.email) || '';
-        if (user) {
-          this.setState({
-            userName: user.name || (email ? email.split('@')[0] : '') || user.username || 'יוסי כהן'
-          });
-        }
-      }
 
       if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
         try {
@@ -366,6 +479,7 @@ mbCss('./common.css');
             this.setState({
               name: c.name || this.state.name || name || ('#' + customerId),
               phone: c.phone || c.mobile || this.state.phone || phone,
+              email: c.email || c.email_address || this.state.email || '',
               address: fullAddress || this.state.address
             });
           }
@@ -385,31 +499,287 @@ mbCss('./common.css');
     return ((p[0][0] || '') + (p[1][0] || '')).toUpperCase();
   }
 
+  calcTotals() {
+    var products = this.state.products || [];
+    var subTotal = products.reduce(function (sum, p) { return sum + (p.priceNum || 0); }, 0);
+    var discountAmt = products.reduce(function (sum, p) { return sum + (p.discountAmt || 0); }, 0);
+    var beforeVat = subTotal - discountAmt;
+    var vatAmt = Math.round(beforeVat * 0.18);
+    return {
+      subTotal: subTotal,
+      discountAmt: discountAmt,
+      beforeVat: beforeVat,
+      vatAmt: vatAmt,
+      totalPayable: beforeVat + vatAmt
+    };
+  }
+
+  findPdfUrl(value, depth) {
+    if (!value || depth > 5) return '';
+    if (typeof value === 'string') {
+      var text = value.trim();
+      if (/^(https?:)?\/\//i.test(text) || /^\//.test(text) || /\.pdf(?:$|[?#])/i.test(text)) return text;
+      return '';
+    }
+    if (Array.isArray(value)) {
+      for (var a = 0; a < value.length; a++) {
+        var u = this.findPdfUrl(value[a], depth + 1);
+        if (u) return u;
+      }
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+    var preferred = ['pdf_url', 'pdfUrl', 'document_link', 'download_url', 'downloadUrl', 'document_url', 'documentUrl', 'file_url', 'fileUrl', 'pdf', 'file', 'url', 'path'];
+    for (var i = 0; i < preferred.length; i++) {
+      if (value[preferred[i]] != null) {
+        var preferredUrl = this.findPdfUrl(value[preferred[i]], depth + 1);
+        if (preferredUrl) return preferredUrl;
+      }
+    }
+    var keys = Object.keys(value);
+    for (var k = 0; k < keys.length; k++) {
+      if (/pdf|file|download|document|link/i.test(keys[k])) {
+        var nestedUrl = this.findPdfUrl(value[keys[k]], depth + 1);
+        if (nestedUrl) return nestedUrl;
+      }
+    }
+    return '';
+  }
+
+  absoluteUrl(url) {
+    if (!url) return '';
+    try { return new URL(url, window.location.href).href; } catch (e) { return String(url); }
+  }
+
+  showFeedback(message, isError) {
+    var old = document.getElementById('final-quote-feedback');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.id = 'final-quote-feedback';
+    box.textContent = message;
+    box.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;padding:10px 16px;border-radius:10px;color:#fff;background:' +
+      (isError ? '#c0392b' : '#1f2a3a') + ';font:600 13px Heebo,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.2);';
+    document.body.appendChild(box);
+    setTimeout(function () { if (box.parentNode) box.remove(); }, 2800);
+  }
+
+  buildQuotePayload() {
+    var s = this.state;
+    var totals = this.calcTotals();
+    var items = (s.products || []).map(function (p) {
+      var price = Number(p.priceNum) || 0;
+      return {
+        item_name: p.name || 'Product',
+        item_qty: 1,
+        item_price: price,
+        item_total: Math.max(0, price - (Number(p.discountAmt) || 0)),
+        iteeeem_id: Number(p.id) || 0,
+        item_discount_type: 'price',
+        item_discount: Number(p.discountAmt) || 0
+      };
+    });
+    if (!items.length) {
+      items = [{
+        item_name: 'Quotation',
+        item_qty: 1,
+        item_price: totals.totalPayable || 0,
+        item_total: totals.totalPayable || 0,
+        iteeeem_id: 0,
+        item_discount_type: 'price',
+        item_discount: 0
+      }];
+    }
+    var payload = {
+      name: s.name || '',
+      email: s.email || '',
+      mobile: s.phone || '',
+      phone: s.phone || '',
+      address: s.address || '',
+      document_type: 'proforma_invoice',
+      final_amount: totals.totalPayable || 0,
+      items: items,
+      note: 'Quotation from MineralBar app',
+      source: 'final-quote'
+    };
+    if (s.customer_id) payload.customer_id = s.customer_id;
+    if (s.invoiceSettingId) payload.invoice_setting_id = s.invoiceSettingId;
+    return payload;
+  }
+
+  async ensureQuoteDocument() {
+    var s = this.state;
+    if (s.pdfUrl) {
+      return { documentId: s.documentId || '', pdfUrl: s.pdfUrl };
+    }
+    if (s.documentId && window.MineralBarApp && MineralBarApp.getClient) {
+      try {
+        var client = MineralBarApp.getClient();
+        var payload = {
+          document_id: s.documentId,
+          doc_id: s.documentId,
+          id: s.documentId,
+          customer_id: s.customer_id
+        };
+        var response = null;
+        try {
+          response = await client.request('Documents.View', payload);
+        } catch (viewErr) {
+          response = await client.request('Documents.Get', payload);
+        }
+        var existingUrl = this.absoluteUrl(this.findPdfUrl(response, 0));
+        if (existingUrl) {
+          this.setState({ pdfUrl: existingUrl });
+          return { documentId: s.documentId, pdfUrl: existingUrl };
+        }
+      } catch (e) {
+        console.warn('[MineralBar] existing quote PDF lookup failed', e);
+      }
+    }
+
+    if (!window.MineralBarApp || !MineralBarApp.getClient) {
+      throw new Error('Not connected');
+    }
+    var client2 = MineralBarApp.getClient();
+    var created = await client2.request('Documents.Add', this.buildQuotePayload());
+    var documentId = String(
+      (created && (created.document_id || created.inserted_documents_id || created.id)) || ''
+    );
+    var pdfUrl = this.absoluteUrl(this.findPdfUrl(created, 0));
+    if (!pdfUrl && documentId) {
+      try {
+        var viewPayload = {
+          document_id: documentId,
+          doc_id: documentId,
+          id: documentId,
+          customer_id: s.customer_id
+        };
+        var viewRes = null;
+        try {
+          viewRes = await client2.request('Documents.View', viewPayload);
+        } catch (e2) {
+          viewRes = await client2.request('Documents.Get', viewPayload);
+        }
+        pdfUrl = this.absoluteUrl(this.findPdfUrl(viewRes, 0));
+      } catch (e3) {
+        console.warn('[MineralBar] quote PDF fetch after create failed', e3);
+      }
+    }
+    if (!pdfUrl) throw new Error((created && created.message) || 'No PDF returned');
+    var quoteNum = documentId ? ('QT-' + documentId) : (s.quoteNum || 'QT-0041');
+    this.setState({ documentId: documentId, pdfUrl: pdfUrl, quoteNum: quoteNum });
+    try {
+      if (documentId) sessionStorage.setItem('mb_quote_document_id', documentId);
+      if (pdfUrl) sessionStorage.setItem('mb_quote_pdf_url', pdfUrl);
+    } catch (e4) { /* ignore */ }
+    return { documentId: documentId, pdfUrl: pdfUrl };
+  }
+
+  triggerDownload(url, filename) {
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'quotation.pdf';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  async onDownloadPdf() {
+    if (this.state.downloading || this.state.busy) return;
+    this.setState({ downloading: true });
+    try {
+      var doc = await this.ensureQuoteDocument();
+      this.triggerDownload(doc.pdfUrl, 'quotation-' + (doc.documentId || 'offer') + '.pdf');
+      this.showFeedback('PDF downloaded', false);
+    } catch (e) {
+      console.warn('[MineralBar] PDF download failed, falling back to print', e);
+      this.showFeedback((e && e.message) || 'PDF download failed — opening print', true);
+      try { window.print(); } catch (pe) { /* ignore */ }
+    } finally {
+      this.setState({ downloading: false });
+    }
+  }
+
+  buildNextQuery(extra) {
+    var s = this.state;
+    var q = new URLSearchParams(window.location.search || '');
+    if (s.customer_id) {
+      q.set('customer_id', s.customer_id);
+      q.set('cust_id', s.customer_id);
+    }
+    if (s.name) q.set('name', s.name);
+    if (s.phone) q.set('phone', s.phone);
+    if (s.email) q.set('email', s.email);
+    if (s.tz) q.set('tz', s.tz);
+    if (s.address) q.set('address', s.address);
+    if (s.userName) q.set('userName', s.userName);
+    var productIds = (s.products || []).map(function (p) { return p.id; }).filter(Boolean).join(',');
+    if (productIds) q.set('product_ids', productIds);
+    if (s.documentId) q.set('document_id', s.documentId);
+    if (s.pdfUrl) q.set('pdf_url', s.pdfUrl);
+    if (s.quoteNum) q.set('quote_num', s.quoteNum);
+    if (extra && typeof extra === 'object') {
+      Object.keys(extra).forEach(function (k) {
+        if (extra[k] != null && extra[k] !== '') q.set(k, String(extra[k]));
+      });
+    }
+    return q;
+  }
+
+  async onConfirmSign() {
+    if (this.state.busy || this.state.downloading) return;
+    this.setState({ busy: true });
+    try {
+      var doc = await this.ensureQuoteDocument();
+      var q = this.buildNextQuery({
+        document_id: doc.documentId,
+        pdf_url: doc.pdfUrl,
+        quote_num: doc.documentId ? ('QT-' + doc.documentId) : (this.state.quoteNum || 'QT-0041')
+      });
+      window.location.href = 'signature-alert.html?' + q.toString();
+    } catch (e) {
+      console.warn('[MineralBar] confirm/sign failed', e);
+      this.showFeedback((e && e.message) || 'Could not create quotation', true);
+      // Still continue the UI flow so sales can proceed
+      var q2 = this.buildNextQuery();
+      window.location.href = 'signature-alert.html?' + q2.toString();
+    } finally {
+      this.setState({ busy: false });
+    }
+  }
+
   renderVals() {
     var s = this.state;
     var initials = this.getInitials(s.name);
-    
-    var subTotal = (s.products || []).reduce((sum, p) => sum + (p.priceNum || 0), 0);
-    var discountAmt = (s.products || []).reduce((sum, p) => sum + (p.discountAmt || 0), 0);
-    var beforeVat = subTotal - discountAmt;
-    var vatAmt = Math.round(beforeVat * 0.18);
-    var totalPayable = beforeVat + vatAmt;
+    var totals = this.calcTotals();
 
     var val = {
       name: s.name,
       phone: s.phone,
-      idText: 'ת.ז. ' + s.tz,
+      idText: 'ת.ז. ' + (s.tz || ''),
       initials: initials,
       address: s.address,
       userName: s.userName,
+      companyName: s.companyName || 'mineral bar',
+      companyPhone: s.companyPhone || '',
+      companyEmail: s.companyEmail || '',
       backUrl: s.backUrl,
       products: s.products || [],
-      subTotal: beforeVat + ' NIS/month',
-      discountAmt: discountAmt + '₪',
-      vatAmt: vatAmt + ' NIS/month',
-      totalPayable: totalPayable,
-      signatureAlertUrl: 'signature-alert.html' + (window.location.search || '')
-    }
+      subTotal: totals.beforeVat + ' NIS/month',
+      discountAmt: totals.discountAmt + '₪',
+      vatAmt: totals.vatAmt + ' NIS/month',
+      totalPayable: totals.totalPayable,
+      quoteNum: s.quoteNum || 'QT-0041',
+      busy: !!s.busy,
+      busyOpacity: s.busy ? '0.7' : '1',
+      downloading: !!s.downloading,
+      confirmLabel: s.busy ? 'Saving…' : 'Confirm and sign the offer',
+      onDownloadPdf: () => this.onDownloadPdf(),
+      onConfirmSign: () => this.onConfirmSign()
+    };
+    var self = this;
+    setTimeout(function () { self.pinActionBar(); self.bindActionClicks(); }, 0);
     return val;
   }
 }</script>
