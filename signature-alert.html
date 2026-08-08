@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="./asset-version.js"></script>
+<script>document.write('<script src="./asset-version.js?_='+Date.now()+'"><\/script>');</script>
 <script>
 mbScripts([
   './support.js',
@@ -34,14 +34,7 @@ mbCss('./common.css');
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
 <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
 <div data-screen-label="Signature alert" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
-<!-- status bar -->
-<div class="status-bar" style="display:flex; align-items:center; justify-content:space-between; padding:11px 22px 4px; font-size:13px; font-weight:700; flex:none; background:#0e2342; color:#fff;">
-<span class="status-clock" style="color:#fff;">9:41</span>
-<div style="display:flex; gap:5px; align-items:center;">
 
-</div>
-<button type="button" class="lang-translator-btn" id="btn-lang-toggle" style="background:transparent; border:none; color:#fff; cursor:pointer; font-weight:700; font-size:11px; padding:0; font-family:'Heebo',sans-serif;">🌐 EN</button>
-</div>
 <!-- navy hero -->
 <div style="background:radial-gradient(120% 90% at 50% 26%, #163a66 0%, #102a4d 42%, #0c2042 100%); padding:8px 18px 30px; flex:none; color:#fff; position:relative;">
 <!-- header: back button only (depth screen, no nav bar) -->

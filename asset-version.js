@@ -4,8 +4,12 @@
  * When JS/CSS must reload in browsers, bump ONLY this value — do not add ?v=…
  * on every <script> line in HTML.
  *
+ * IMPORTANT: load this file with a cache-buster so browsers pick up the new V:
+ *   <script>document.write('<script src="./asset-version.js?_='+Date.now()+'"><\/script>');</script>
+ * Without that, the old asset-version.js stays cached and every asset keeps ?v=old.
+ *
  * Usage in HTML (load this file first):
- *   <script src="./asset-version.js"></script>
+ *   <script>document.write('<script src="./asset-version.js?_='+Date.now()+'"><\/script>');</script>
  *   <script>
  *   mbScripts([
  *     './support.js',
@@ -23,7 +27,7 @@
   'use strict';
 
   // ★ Bump this one string when you need a full client cache refresh.
-  var V = '53';
+  var V = '55';
 
   g.MB_ASSET_V = V;
 
