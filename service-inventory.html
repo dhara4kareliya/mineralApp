@@ -406,19 +406,39 @@ mbCss('./common.css');
           </div>
         </div>
 
-        <label class="form-label">Main Image</label>
-        <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:120px; margin-bottom:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; overflow:hidden;">
-          <input type="file" accept="image/*" onchange="{{ onAddImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
-          <sc-if value="{{ hasAddImage }}">
-            <img src="{{ addImagePreviewSrc }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
-            <div style="font-size:12px; font-weight:700; color:#1f2a3a; position:relative; z-index:1;">{{ addImageName }}</div>
-          </sc-if>
-          <sc-if value="{{ noAddImage }}">
-            <div style="width:44px; height:44px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
-              <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <div style="flex:1; min-width:0;">
+            <label class="form-label">Main Image</label>
+            <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onAddImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+              <sc-if value="{{ hasAddImage }}">
+                <img src="{{ addImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+                <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ addImageName }}</div>
+              </sc-if>
+              <sc-if value="{{ noAddImage }}">
+                <div style="width:40px; height:40px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+                  <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                </div>
+                <div style="font-size:11.5px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; line-height:1.35;">Main picture</div>
+              </sc-if>
             </div>
-            <div style="font-size:13px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1;">Select or drag &amp; drop here your product pictures</div>
-          </sc-if>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <label class="form-label">Secondary Image</label>
+            <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onAddSubImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+              <sc-if value="{{ hasAddSubImage }}">
+                <img src="{{ addSubImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+                <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ addSubImageName }}</div>
+              </sc-if>
+              <sc-if value="{{ noAddSubImage }}">
+                <div style="width:40px; height:40px; border-radius:50%; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+                  <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                </div>
+                <div style="font-size:11.5px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; line-height:1.35;">2nd picture</div>
+              </sc-if>
+            </div>
+          </div>
         </div>
 
         <sc-if value="{{ isSubscription }}">
@@ -636,19 +656,39 @@ mbCss('./common.css');
           </div>
         </div>
 
-        <label class="form-label">Main Image</label>
-        <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:120px; margin-bottom:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; overflow:hidden;">
-          <input type="file" accept="image/*" onchange="{{ onEditImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
-          <sc-if value="{{ hasEditImage }}">
-            <img src="{{ editImagePreviewSrc }}" alt="" style="max-width:100%; max-height:140px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
-            <div style="font-size:12px; font-weight:700; color:#1f2a3a; position:relative; z-index:1;">{{ editImageName }}</div>
-          </sc-if>
-          <sc-if value="{{ noEditImage }}">
-            <div style="width:44px; height:44px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
-              <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <div style="flex:1; min-width:0;">
+            <label class="form-label">Main Image</label>
+            <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onEditImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+              <sc-if value="{{ hasEditImage }}">
+                <img src="{{ editImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+                <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ editImageName }}</div>
+              </sc-if>
+              <sc-if value="{{ noEditImage }}">
+                <div style="width:40px; height:40px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+                  <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                </div>
+                <div style="font-size:11.5px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; line-height:1.35;">Main picture</div>
+              </sc-if>
             </div>
-            <div style="font-size:13px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1;">Select or drag &amp; drop here your product pictures</div>
-          </sc-if>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <label class="form-label">Secondary Image</label>
+            <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onEditSubImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+              <sc-if value="{{ hasEditSubImage }}">
+                <img src="{{ editSubImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
+                <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ editSubImageName }}</div>
+              </sc-if>
+              <sc-if value="{{ noEditSubImage }}">
+                <div style="width:40px; height:40px; border-radius:50%; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
+                  <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                </div>
+                <div style="font-size:11.5px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; line-height:1.35;">2nd picture</div>
+              </sc-if>
+            </div>
+          </div>
         </div>
 
         <sc-if value="{{ isEditSubscription }}">
@@ -864,6 +904,9 @@ class Component extends DCLogic {
     addImageFile: null,
     addImagePreview: '',
     addImageName: '',
+    addSubImageFile: null,
+    addSubImagePreview: '',
+    addSubImageName: '',
     addType: 'product',
     addEndless: false,
     addMonths: '1',
@@ -895,6 +938,11 @@ class Component extends DCLogic {
     editImageFile: null,
     editImagePreview: '',
     editImageName: '',
+    editImagePath: '',
+    editSubImageFile: null,
+    editSubImagePreview: '',
+    editSubImageName: '',
+    editSubImagePath: '',
     editType: 'product',
     editEndless: false,
     editMonths: '1',
@@ -1313,6 +1361,9 @@ class Component extends DCLogic {
     if (this.state.addImagePreview && String(this.state.addImagePreview).indexOf('blob:') === 0) {
       try { URL.revokeObjectURL(this.state.addImagePreview); } catch (e) {}
     }
+    if (this.state.addSubImagePreview && String(this.state.addSubImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.addSubImagePreview); } catch (e2) {}
+    }
     this.setState({
       addOpen: true,
       addName: '',
@@ -1333,6 +1384,9 @@ class Component extends DCLogic {
       addImageFile: null,
       addImagePreview: '',
       addImageName: '',
+      addSubImageFile: null,
+      addSubImagePreview: '',
+      addSubImageName: '',
       addType: 'product',
       addEndless: false,
       addMonths: '1',
@@ -1409,6 +1463,23 @@ class Component extends DCLogic {
     });
   }
 
+  onAddSubImageChange(e) {
+    var file = null;
+    if (e && e.target && e.target.files && e.target.files[0]) file = e.target.files[0];
+    else if (e && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (this.state.addSubImagePreview && String(this.state.addSubImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.addSubImagePreview); } catch (err) {}
+    }
+    var preview = '';
+    try { preview = URL.createObjectURL(file); } catch (err2) { preview = ''; }
+    this.setState({
+      addSubImageFile: file,
+      addSubImagePreview: preview,
+      addSubImageName: file.name || 'Selected image'
+    });
+  }
+
   onAddStorageSelect(e) {
     var id = e && e.target ? e.target.value : '';
     if (!id) return;
@@ -1454,6 +1525,23 @@ class Component extends DCLogic {
     });
   }
 
+  onEditSubImageChange(e) {
+    var file = null;
+    if (e && e.target && e.target.files && e.target.files[0]) file = e.target.files[0];
+    else if (e && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (this.state.editSubImagePreview && String(this.state.editSubImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.editSubImagePreview); } catch (err) {}
+    }
+    var preview = '';
+    try { preview = URL.createObjectURL(file); } catch (err2) { preview = ''; }
+    this.setState({
+      editSubImageFile: file,
+      editSubImagePreview: preview,
+      editSubImageName: file.name || 'Selected image'
+    });
+  }
+
   onEditStorageSelect(e) {
     var id = e && e.target ? e.target.value : '';
     if (!id) return;
@@ -1486,6 +1574,78 @@ class Component extends DCLogic {
     this.setState({ selectedCategory: catId });
   }
 
+  resolveProductImageUrl(path) {
+    if (!path) return '';
+    if (window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
+      return MineralBarApp.resolveFileUrl(path);
+    }
+    return String(path);
+  }
+
+  pickProductMainImagePath(item) {
+    if (!item) return '';
+    return String(
+      item.main_image ||
+      item.site_logo ||
+      item.site_logo_old ||
+      item.main_image_old ||
+      item.image ||
+      item.product_image ||
+      item.file ||
+      item.thumb ||
+      item.thumbnail ||
+      ''
+    ).trim();
+  }
+
+  pickProductSubImagePath(item) {
+    if (!item) return '';
+    return String(
+      item.sub_image ||
+      item.sub_image_old ||
+      item.secondary_image ||
+      item.alt_image ||
+      ''
+    ).trim();
+  }
+
+  /** Build multipart body for Products.Add / Products.Update image fields. */
+  buildProductRequestBody(payload, mainFile, subFile, mainOldPath, subOldPath) {
+    var hasFile = !!(mainFile || subFile);
+    var keepMain = !mainFile && mainOldPath;
+    var keepSub = !subFile && subOldPath;
+    if (!hasFile && !keepMain && !keepSub) return payload;
+
+    if (!hasFile) {
+      var withOld = Object.assign({}, payload);
+      if (keepMain) {
+        withOld.site_logo_old = mainOldPath;
+        withOld.main_image_old = mainOldPath;
+      }
+      if (keepSub) withOld.sub_image_old = subOldPath;
+      return withOld;
+    }
+
+    var fd = new FormData();
+    Object.keys(payload).forEach(function (key) {
+      if (payload[key] === undefined || payload[key] === null) return;
+      fd.append(key, payload[key]);
+    });
+    // API: main_image (file) + optional sub_image (file). Old paths when not replacing.
+    if (mainFile) {
+      fd.append('main_image', mainFile, mainFile.name || 'product.jpg');
+    } else if (keepMain) {
+      fd.append('site_logo_old', mainOldPath);
+      fd.append('main_image_old', mainOldPath);
+    }
+    if (subFile) {
+      fd.append('sub_image', subFile, subFile.name || 'product-alt.jpg');
+    } else if (keepSub) {
+      fd.append('sub_image_old', subOldPath);
+    }
+    return fd;
+  }
+
   applyEditProductFields(item, fallback) {
     fallback = fallback || {};
     var typeVal = String((item && item.type) || fallback.type || 'product').toLowerCase();
@@ -1496,12 +1656,16 @@ class Component extends DCLogic {
     var subCatId = String((item && (item.sub_cat_id || item.subcategory_id)) || '0');
     var storageRaw = (item && (item.storage_id || item.storage || '')) || '';
     var storageIds = String(storageRaw).split(',').map(function (v) { return String(v).trim(); }).filter(Boolean);
-    var imagePath = (item && (item.image || item.product_image || item.file || item.main_image)) || '';
-    var imagePreview = '';
-    if (imagePath && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
-      imagePreview = MineralBarApp.resolveFileUrl(imagePath);
-    } else if (imagePath) {
-      imagePreview = String(imagePath);
+    var imagePath = this.pickProductMainImagePath(item) || this.pickProductMainImagePath(fallback);
+    var subImagePath = this.pickProductSubImagePath(item) || this.pickProductSubImagePath(fallback);
+    var imagePreview = this.resolveProductImageUrl(imagePath);
+    var subImagePreview = this.resolveProductImageUrl(subImagePath);
+
+    if (this.state.editImagePreview && String(this.state.editImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.editImagePreview); } catch (e1) {}
+    }
+    if (this.state.editSubImagePreview && String(this.state.editSubImagePreview).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(this.state.editSubImagePreview); } catch (e2) {}
     }
 
     this.setState({
@@ -1528,6 +1692,11 @@ class Component extends DCLogic {
       editImageFile: null,
       editImagePreview: imagePreview,
       editImageName: imagePath ? String(imagePath).split('/').pop() : '',
+      editImagePath: imagePath,
+      editSubImageFile: null,
+      editSubImagePreview: subImagePreview,
+      editSubImageName: subImagePath ? String(subImagePath).split('/').pop() : '',
+      editSubImagePath: subImagePath,
       editType: typeVal,
       editEndless: Number(item && item.endless) === 1,
       editMonths: String((item && item.months) || '1'),
@@ -1615,19 +1784,16 @@ class Component extends DCLogic {
       payload.price_after = Number(s.editPriceAfter) || 0;
     }
 
-    var requestBody = payload;
-    if (s.editImageFile) {
-      var fd = new FormData();
-      Object.keys(payload).forEach(function (key) {
-        if (payload[key] === undefined || payload[key] === null) return;
-        fd.append(key, payload[key]);
-      });
-      fd.append('image', s.editImageFile, s.editImageFile.name || 'product.jpg');
-      fd.append('file', s.editImageFile, s.editImageFile.name || 'product.jpg');
-      requestBody = fd;
-    }
+    var requestBody = this.buildProductRequestBody(
+      payload,
+      s.editImageFile,
+      s.editSubImageFile,
+      s.editImagePath,
+      s.editSubImagePath
+    );
 
     var previewToRevoke = s.editImagePreview;
+    var subPreviewToRevoke = s.editSubImagePreview;
     var updated = s.products.map(p => {
       if (p.id === targetId) {
         return {
@@ -1650,10 +1816,18 @@ class Component extends DCLogic {
       detailOpen: false,
       editImageFile: null,
       editImagePreview: '',
-      editImageName: ''
+      editImageName: '',
+      editImagePath: '',
+      editSubImageFile: null,
+      editSubImagePreview: '',
+      editSubImageName: '',
+      editSubImagePath: ''
     });
     if (previewToRevoke && String(previewToRevoke).indexOf('blob:') === 0) {
       try { URL.revokeObjectURL(previewToRevoke); } catch (e) {}
+    }
+    if (subPreviewToRevoke && String(subPreviewToRevoke).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(subPreviewToRevoke); } catch (e2) {}
     }
 
     if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
@@ -1731,17 +1905,13 @@ class Component extends DCLogic {
       payload.price_after = Number(s.addPriceAfter) || 0;
     }
 
-    var requestBody = payload;
-    if (s.addImageFile) {
-      var fd = new FormData();
-      Object.keys(payload).forEach(function (key) {
-        if (payload[key] === undefined || payload[key] === null) return;
-        fd.append(key, payload[key]);
-      });
-      fd.append('image', s.addImageFile, s.addImageFile.name || 'product.jpg');
-      fd.append('file', s.addImageFile, s.addImageFile.name || 'product.jpg');
-      requestBody = fd;
-    }
+    var requestBody = this.buildProductRequestBody(
+      payload,
+      s.addImageFile,
+      s.addSubImageFile,
+      '',
+      ''
+    );
 
     var tempId = 'temp-' + Date.now();
     var newProduct = {
@@ -1757,6 +1927,7 @@ class Component extends DCLogic {
     };
 
     var previewToRevoke = s.addImagePreview;
+    var subPreviewToRevoke = s.addSubImagePreview;
     var updated = [...s.products, newProduct];
     if (descEl) descEl.value = '';
     this.setState({
@@ -1779,6 +1950,9 @@ class Component extends DCLogic {
       addImageFile: null,
       addImagePreview: '',
       addImageName: '',
+      addSubImageFile: null,
+      addSubImagePreview: '',
+      addSubImageName: '',
       addType: 'product',
       addEndless: false,
       addMonths: '1',
@@ -1791,6 +1965,9 @@ class Component extends DCLogic {
     });
     if (previewToRevoke && String(previewToRevoke).indexOf('blob:') === 0) {
       try { URL.revokeObjectURL(previewToRevoke); } catch (e) {}
+    }
+    if (subPreviewToRevoke && String(subPreviewToRevoke).indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(subPreviewToRevoke); } catch (e2) {}
     }
 
     if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
@@ -2064,6 +2241,8 @@ class Component extends DCLogic {
 
     var hasAddImage = !!(s.addImageFile || s.addImagePreview);
     var hasEditImage = !!(s.editImageFile || s.editImagePreview);
+    var hasAddSubImage = !!(s.addSubImageFile || s.addSubImagePreview);
+    var hasEditSubImage = !!(s.editSubImageFile || s.editSubImagePreview);
 
     return {
       loading: !!s.loading,
@@ -2106,6 +2285,10 @@ class Component extends DCLogic {
       addImageName: s.addImageName || '',
       hasAddImage: hasAddImage,
       noAddImage: !hasAddImage,
+      addSubImagePreviewSrc: s.addSubImagePreview || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      addSubImageName: s.addSubImageName || '',
+      hasAddSubImage: hasAddSubImage,
+      noAddSubImage: !hasAddSubImage,
       isSubscription: s.addType === 'subscription',
       selectableCategories: selectableCatsMapped,
       suppliers: suppliersMapped,
@@ -2137,6 +2320,10 @@ class Component extends DCLogic {
       editImageName: s.editImageName || '',
       hasEditImage: hasEditImage,
       noEditImage: !hasEditImage,
+      editSubImagePreviewSrc: s.editSubImagePreview || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      editSubImageName: s.editSubImageName || '',
+      hasEditSubImage: hasEditSubImage,
+      noEditSubImage: !hasEditSubImage,
       isEditSubscription: s.editType === 'subscription',
       editSubCategories: editSubCategoriesMapped,
       editSelectedStorageChips: editSelectedStorageChips,
@@ -2172,6 +2359,7 @@ class Component extends DCLogic {
       onAddStoragePlaceChange: (e) => this.setState({ addStoragePlace: this.inputValue(e) }),
       onAddStorageSelect: (e) => this.onAddStorageSelect(e),
       onAddImageChange: (e) => this.onAddImageChange(e),
+      onAddSubImageChange: (e) => this.onAddSubImageChange(e),
       onAddEndlessChange: (e) => this.setState({ addEndless: !!(e.target && e.target.checked) }),
       onAddMonthsChange: (e) => this.setState({ addMonths: e.target.value }),
       onAddPriceAfterChange: (e) => this.setState({ addPriceAfter: this.inputValue(e) }),
@@ -2200,6 +2388,7 @@ class Component extends DCLogic {
       onEditStoragePlaceChange: (e) => this.setState({ editStoragePlace: this.inputValue(e) }),
       onEditStorageSelect: (e) => this.onEditStorageSelect(e),
       onEditImageChange: (e) => this.onEditImageChange(e),
+      onEditSubImageChange: (e) => this.onEditSubImageChange(e),
       onEditEndlessChange: (e) => this.setState({ editEndless: !!(e.target && e.target.checked) }),
       onEditMonthsChange: (e) => this.setState({ editMonths: e.target.value }),
       onEditPriceAfterChange: (e) => this.setState({ editPriceAfter: this.inputValue(e) }),

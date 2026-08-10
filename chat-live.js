@@ -1056,6 +1056,74 @@
     }
   }
 
+  /**
+   * Send one or more already-hosted media URLs (product photos/videos) via Chat.SendCustomer.
+   * Used by the Product media picker — message body is the URL so chat renders the image/video.
+   */
+  async function sendMediaUrls(urls, opts) {
+    opts = opts || {};
+    var list = (Array.isArray(urls) ? urls : [urls]).map(function (u) {
+      return String(u || '').trim();
+    }).filter(Boolean);
+    if (!list.length) return { sent: 0 };
+
+    var p = Object.assign({}, currentParams || params() || {});
+    var customerId = resolveChatCustomerId(p);
+    if (!customerId) {
+      showToast(chatT('Select a customer before uploading files.', 'בחר לקוח לפני העלאת קבצים.'), 'error');
+      throw new Error('Missing customer_id');
+    }
+    p = Object.assign({}, p, { customer_id: customerId, cust_id: customerId });
+    currentParams = p;
+
+    if (isSending) {
+      showToast(chatT('Please wait…', 'נא להמתין…'), 'error');
+      throw new Error('Busy');
+    }
+
+    isSending = true;
+    suppressThreadReload(8000);
+    var sent = 0;
+    try {
+      for (var i = 0; i < list.length; i++) {
+        var url = list[i];
+        if (url && !/^https?:\/\//i.test(url) && !/^data:/i.test(url) && window.MineralBarApp && MineralBarApp.resolveFileUrl) {
+          url = MineralBarApp.resolveFileUrl(url) || url;
+        }
+        // Message is the media URL only — chat bubble renders photo/video, not a product name.
+        var localId = appendLocalMessage(url, true);
+        try {
+          await MineralBarApp.sendCustomerMessage(buildSendPayload(p, url));
+          removeLocalMessage(localId);
+          sent += 1;
+        } catch (errOne) {
+          removeLocalMessage(localId);
+          throw errOne;
+        }
+      }
+      showToast(
+        sent === 1
+          ? chatT('Photo sent', 'התמונה נשלחה')
+          : (chatT('Photos sent', 'התמונות נשלחו') + ' (' + sent + ')')
+      );
+      suppressThreadReload(5000);
+      await loadThread('mb-live-chat', p, { silent: true });
+      return { sent: sent };
+    } catch (err) {
+      console.error('[MineralBar] Product media send failed', err);
+      var failText = (err && err.message) || apiErrorText(err);
+      if (err && err.raw && (err.raw.message_return || err.raw.message)) {
+        failText = String(err.raw.message_return || err.raw.message).trim();
+      }
+      showToast(failText, 'error');
+      throw err;
+    } finally {
+      isSending = false;
+    }
+  }
+
+  window.mbChatSendMediaUrls = sendMediaUrls;
+
   function openAttachPicker(kind) {
     var id = kind === 'image' ? 'mb-chat-file-image'
       : (kind === 'music' ? 'mb-chat-file-music' : 'mb-chat-file-doc');

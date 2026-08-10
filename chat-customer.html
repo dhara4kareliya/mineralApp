@@ -573,15 +573,6 @@ Internal notes
     });
   }
 
-  openFolder(id) {
-    this.setState({
-      mediaView: 'folder',
-      activeFolderId: String(id || ''),
-      selectedMediaIds: [],
-      mediaTab: 'images'
-    });
-  }
-
   setTab(t) {
     this.setState({ mediaTab: t, selectedMediaIds: [] });
   }
@@ -630,50 +621,59 @@ Internal notes
     var name = item.product_name || item.name || ('#' + id);
     var photos = [];
     var videos = [];
+    var self = this;
 
-    // Single main image fields
-    var mainImage = item.image || item.product_image || item.file || item.main_image || item.thumb || item.thumbnail || '';
-    if (mainImage) {
-      var mainUrl = this.resolveImageUrl(mainImage);
-      if (mainUrl) {
-        if (this.isVideoPath(mainImage)) {
-          videos.push({
-            id: id + '-main-video',
-            label: this.t('Product video', 'סרטון מוצר'),
-            src: mainUrl,
-            duration: '',
-            bg: '#16223a'
-          });
-        } else {
-          photos.push({
-            id: id + '-main',
-            label: this.t('Product photo', 'תמונת מוצר'),
-            src: mainUrl,
-            bg: '#eaf2fb'
-          });
-        }
+    function pushPhoto(path, label) {
+      path = String(path || '').trim();
+      if (!path) return;
+      if (self.isVideoPath(path)) {
+        var vUrl = self.resolveImageUrl(path);
+        if (!vUrl) return;
+        if (videos.some(function (v) { return v.src === vUrl; })) return;
+        videos.push({
+          id: id + '-vid-' + videos.length,
+          label: label || self.t('Product video', 'סרטון מוצר'),
+          src: vUrl,
+          duration: '',
+          bg: '#16223a'
+        });
+        return;
       }
+      var url = self.resolveImageUrl(path);
+      if (!url) return;
+      if (photos.some(function (p) { return p.src === url; })) return;
+      photos.push({
+        id: id + '-img-' + photos.length,
+        label: label || (self.t('Photo', 'תמונה') + ' ' + (photos.length + 1)),
+        src: url,
+        path: path,
+        bg: '#eaf2fb'
+      });
     }
 
-    // Gallery / multi image fields from API only
+    // Main + secondary product images (Products.Add fields)
+    pushPhoto(
+      item.main_image || item.site_logo || item.site_logo_old || item.main_image_old ||
+      item.image || item.product_image || item.file || item.thumb || item.thumbnail || '',
+      this.t('Main photo', 'תמונה ראשית')
+    );
+    pushPhoto(
+      item.sub_image || item.sub_image_old || item.secondary_image || item.alt_image || '',
+      this.t('Secondary photo', 'תמונה משנית')
+    );
+
+    // Gallery / multi image fields from API
     var photoSources = []
       .concat(this.collectMediaList(item.images))
       .concat(this.collectMediaList(item.gallery))
       .concat(this.collectMediaList(item.photos))
       .concat(this.collectMediaList(item.product_images))
-      .concat(this.collectMediaList(item.media_images));
-    photoSources.forEach((path, i) => {
-      if (this.isVideoPath(path)) return;
-      var url = this.resolveImageUrl(path);
-      if (!url) return;
-      // skip duplicate of main image
-      if (photos.some(function (p) { return p.src === url; })) return;
-      photos.push({
-        id: id + '-img-' + i,
-        label: this.t('Photo', 'תמונה') + ' ' + (photos.length + 1),
-        src: url,
-        bg: '#eaf2fb'
-      });
+      .concat(this.collectMediaList(item.media_images))
+      .concat(this.collectMediaList(item.media))
+      .concat(this.collectMediaList(item.files));
+    photoSources.forEach(function (path) {
+      if (self.isVideoPath(path)) return;
+      pushPhoto(path);
     });
 
     var videoSources = []
@@ -681,28 +681,38 @@ Internal notes
       .concat(this.collectMediaList(item.product_videos))
       .concat(this.collectMediaList(item.media_videos))
       .concat(this.collectMediaList(item.gallery_videos));
-    // Also pick video paths mixed into media/gallery arrays
-    ;[]
-      .concat(this.collectMediaList(item.media))
-      .concat(this.collectMediaList(item.files))
-      .forEach(function (path) {
-        if (/\.(mp4|webm|mov|m4v|avi|mkv)(\?|$)/i.test(path)) videoSources.push(path);
-      });
-
-    videoSources.forEach((path, i) => {
-      var url = this.resolveImageUrl(path);
-      if (!url) return;
-      if (videos.some(function (v) { return v.src === url; })) return;
-      videos.push({
-        id: id + '-vid-' + i,
-        label: this.t('Video', 'סרטון') + ' ' + (videos.length + 1),
-        src: url,
-        duration: '',
-        bg: '#16223a'
-      });
+    photoSources.forEach(function (path) {
+      if (self.isVideoPath(path)) videoSources.push(path);
+    });
+    videoSources.forEach(function (path) {
+      pushPhoto(path, self.t('Video', 'סרטון') + ' ' + (videos.length + 1));
     });
 
     return { id: id, name: name, image: photos[0] ? photos[0].src : '', photos: photos, videos: videos };
+  }
+
+  async enrichFolderMedia(productId) {
+    if (!productId || !window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return;
+    try {
+      var client = MineralBarApp.getClient();
+      var res = await client.request('Products.Get', { id: productId });
+      var item = res && (res.data || res.output || res);
+      if (!item || !(item.id || item.product_name || item.name || item.main_image || item.sub_image)) return;
+      var enriched = this.buildFolderFromProduct(item, 0);
+      enriched.id = String(productId);
+      var products = (this.state.mediaProducts || []).map(function (p) {
+        if (String(p.id) !== String(productId)) return p;
+        return Object.assign({}, p, {
+          name: enriched.name || p.name,
+          photos: enriched.photos,
+          videos: enriched.videos,
+          image: enriched.image
+        });
+      });
+      this.setState({ mediaProducts: products });
+    } catch (err) {
+      console.warn('[Chat] Products.Get for media failed', err);
+    }
   }
 
   async loadMediaProducts() {
@@ -737,21 +747,57 @@ Internal notes
     this.setState({ selectedMediaIds: selected });
   }
 
-  sendSelectedMedia() {
+  async openFolder(id) {
+    this.setState({
+      mediaView: 'folder',
+      activeFolderId: String(id || ''),
+      selectedMediaIds: [],
+      mediaTab: 'images'
+    });
+    // List often returns only main image — Get fills main + secondary.
+    await this.enrichFolderMedia(id);
+  }
+
+  async sendSelectedMedia() {
     var selected = this.state.selectedMediaIds || [];
     if (!selected.length) return;
     var folder = (this.state.mediaProducts || []).find(p => String(p.id) === String(this.state.activeFolderId));
-    var count = selected.length;
-    var label = folder ? folder.name : this.t('Product media', 'מדיה למוצר');
-    var msg = this.t('Ready to send', 'מוכן לשליחה') + ': ' + label + ' (' + count + ')';
+    if (!folder) return;
+    var pool = (this.state.mediaTab === 'videos' ? (folder.videos || []) : (folder.photos || []));
+    var urls = pool
+      .filter(function (m) { return selected.indexOf(String(m.id)) !== -1; })
+      .map(function (m) { return m.src || m.path || ''; })
+      .filter(Boolean);
+
+    if (!urls.length) {
+      alert(this.t('No media URL to send', 'אין קישור מדיה לשליחה'));
+      return;
+    }
+
     try {
-      var input = document.getElementById('mb-chat-input');
-      if (input) {
-        input.value = (input.value ? (input.value + '\n') : '') + msg;
-        input.focus();
+      if (typeof window.mbChatSendMediaUrls === 'function') {
+        await window.mbChatSendMediaUrls(urls);
+      } else if (window.MineralBarApp && typeof MineralBarApp.sendCustomerMessage === 'function') {
+        var q = new URLSearchParams(window.location.search || '');
+        var customerId = q.get('customer_id') || q.get('cust_id') || q.get('contactus_id') || '';
+        if (!customerId) throw new Error('Missing customer_id');
+        for (var i = 0; i < urls.length; i++) {
+          await MineralBarApp.sendCustomerMessage({
+            msg: urls[i],
+            message: urls[i],
+            customer_id: customerId,
+            cust_id: customerId,
+            from: 'send_notes'
+          });
+        }
+      } else {
+        throw new Error(this.t('Chat send is unavailable', 'שליחת הצ׳אט אינה זמינה'));
       }
-    } catch (e) { /* ignore */ }
-    this.closeMedia();
+      this.closeMedia();
+    } catch (err) {
+      console.warn('[Chat] sendSelectedMedia failed', err);
+      alert((err && err.message) || this.t('Failed to send media', 'שליחת מדיה נכשלה'));
+    }
   }
 
   getActiveFolder() {

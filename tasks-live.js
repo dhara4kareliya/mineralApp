@@ -368,11 +368,54 @@
   var currentFilterType = 'show_all_together_tasks';
   var advancedFilters = {
     status: 'everything',   // today | late | everything | completed
+    priority: 'all',        // all | urgent | normal | low
     association: 'my',      // my | all | <userId>
     sortBy: 'date_to_do',   // date_to_do | priority | date_created
     sortDir: 'asc'          // asc | desc
   };
   var draftFilters = null;
+
+  function defaultAdvancedFilters() {
+    return {
+      status: 'everything',
+      priority: 'all',
+      association: 'my',
+      sortBy: 'date_to_do',
+      sortDir: 'asc'
+    };
+  }
+
+  function isAdvancedFilterActive() {
+    return advancedFilters.priority !== 'all' ||
+      advancedFilters.association !== 'my' ||
+      advancedFilters.sortBy !== 'date_to_do' ||
+      advancedFilters.sortDir !== 'asc';
+  }
+
+  function syncFilterBadge() {
+    var badge = document.getElementById('task-filter-badge');
+    var btn = document.getElementById('task-filter-btn');
+    var active = isAdvancedFilterActive();
+    if (badge) badge.style.display = active ? 'block' : 'none';
+    if (btn) {
+      btn.style.borderColor = active ? '#9ec0e8' : 'var(--border-panel,#dde2ea)';
+      btn.style.background = active ? '#eaf2fb' : 'var(--bg-panel,#fff)';
+      btn.style.color = active ? '#1d60a2' : 'var(--text-title,#1f2a3a)';
+    }
+  }
+
+  function missionMatchesPriority(m, priFilter, today) {
+    if (!priFilter || priFilter === 'all') return true;
+    return priorityFromMission(m, today) === priFilter;
+  }
+
+  function filterRowsByPriority(rows, today) {
+    var pri = advancedFilters.priority || 'all';
+    if (pri === 'all') return rows || [];
+    return (rows || []).filter(function (m) {
+      return missionMatchesPriority(m, pri, today);
+    });
+  }
 
   function statusToType(status) {
     if (status === 'today') return 'today_tasks';
@@ -444,9 +487,15 @@
     var f = draftFilters || Object.assign({}, advancedFilters);
     draftFilters = f;
 
+    var titleEl = document.getElementById('task-filter-title');
+    if (titleEl) titleEl.textContent = uiT('Filter', 'סינון');
+
+    var resetBtn = document.getElementById('reset-task-filters');
+    if (resetBtn) resetBtn.textContent = uiT('Reset', 'איפוס');
+
     var team = (window.MineralBarApp && MineralBarApp.getTeamMembers && MineralBarApp.getTeamMembers()) || [];
-    var assocChips = filterChip('association', 'my', uiT('my', 'שלי'), f.association === 'my') +
-      filterChip('association', 'all', uiT('everything', 'הכל'), f.association === 'all');
+    var assocChips = filterChip('association', 'my', uiT('My tasks', 'המשימות שלי'), f.association === 'my') +
+      filterChip('association', 'all', uiT('All team', 'כל הצוות'), f.association === 'all');
     team.slice(0, 8).forEach(function (t) {
       var id = String(t.id || '');
       if (!id) return;
@@ -454,18 +503,24 @@
     });
 
     host.innerHTML =
-      filterSection(uiT('status', 'סטטוס'),
-        filterChip('status', 'today', uiT('today', 'היום'), f.status === 'today') +
-        filterChip('status', 'late', uiT('Late', 'באיחור'), f.status === 'late') +
-        filterChip('status', 'everything', uiT('everything', 'הכל'), f.status === 'everything') +
+      filterSection(uiT('Status', 'סטטוס'),
+        filterChip('status', 'today', uiT('Today', 'היום'), f.status === 'today') +
+        filterChip('status', 'late', uiT('Overdue', 'באיחור'), f.status === 'late') +
+        filterChip('status', 'everything', uiT('All', 'הכל'), f.status === 'everything') +
         filterChip('status', 'completed', uiT('Completed', 'הושלם'), f.status === 'completed')
       ) +
-      filterSection(uiT('Association', 'שיוך'), assocChips) +
+      filterSection(uiT('Priority', 'עדיפות'),
+        filterChip('priority', 'all', uiT('All', 'הכל'), f.priority === 'all') +
+        filterChip('priority', 'urgent', uiT('Urgent', 'דחוף'), f.priority === 'urgent') +
+        filterChip('priority', 'normal', uiT('Medium', 'בינוני'), f.priority === 'normal') +
+        filterChip('priority', 'low', uiT('Low', 'נמוך'), f.priority === 'low')
+      ) +
+      filterSection(uiT('Team member', 'איש צוות'), assocChips) +
       '<div style="margin-bottom:8px;">' +
       '<div style="font-size:12px;font-weight:800;color:#8a93a3;margin-bottom:4px;">' + esc(uiT('Sort by', 'מיון לפי')) + '</div>' +
-      sortRow('date_to_do', uiT('Execution date', 'תאריך ביצוע'), 'desc', uiT('far', 'רחוק'), 'asc', uiT('close', 'קרוב'), f.sortBy, f.sortDir) +
-      sortRow('priority', uiT('priority', 'עדיפות'), 'asc', uiT('low', 'נמוך'), 'desc', uiT('high', 'גבוה'), f.sortBy, f.sortDir) +
-      sortRow('date_created', uiT('Creation date', 'תאריך יצירה'), 'desc', uiT('new', 'חדש'), 'asc', uiT('old', 'ישן'), f.sortBy, f.sortDir) +
+      sortRow('date_to_do', uiT('Execution date', 'תאריך ביצוע'), 'desc', uiT('Far', 'רחוק'), 'asc', uiT('Close', 'קרוב'), f.sortBy, f.sortDir) +
+      sortRow('priority', uiT('Priority', 'עדיפות'), 'asc', uiT('Low', 'נמוך'), 'desc', uiT('High', 'גבוה'), f.sortBy, f.sortDir) +
+      sortRow('date_created', uiT('Creation date', 'תאריך יצירה'), 'desc', uiT('New', 'חדש'), 'asc', uiT('Old', 'ישן'), f.sortBy, f.sortDir) +
       '</div>';
 
     var applyLabel = document.getElementById('apply-task-filters-label');
@@ -529,6 +584,11 @@
       draw: 1,
       include_counts: 1
     };
+    // Priority is filtered client-side — pull a larger page so results aren't truncated.
+    if (advancedFilters.priority && advancedFilters.priority !== 'all') {
+      params.length = 200;
+      params.start = 0;
+    }
     var f = advancedFilters;
     if (f.association === 'my') params.create_by = 'my_task';
     else if (f.association === 'all') params.create_by = 'all_my_team_task';
@@ -553,6 +613,18 @@
       /* keep */
     }
     syncTopChips(currentFilterType);
+    syncFilterBadge();
+    currentStart = 0;
+    closeFilterPanel();
+    loadTasks(currentFilterType);
+  }
+
+  function resetAdvancedFilters() {
+    draftFilters = defaultAdvancedFilters();
+    advancedFilters = Object.assign({}, draftFilters);
+    currentFilterType = 'show_all_together_tasks';
+    syncTopChips(currentFilterType);
+    syncFilterBadge();
     currentStart = 0;
     closeFilterPanel();
     loadTasks(currentFilterType);
@@ -767,6 +839,7 @@
         currentFilterType = type;
         advancedFilters.status = typeToStatus(type);
         syncTopChips(type);
+        syncFilterBadge();
         currentStart = 0;
         loadTasks(currentFilterType);
       });
@@ -808,6 +881,16 @@
       var groups = result.groups || [];
       var flatRows = result.rows || [];
 
+      // Client-side priority filter (API may not support priority param)
+      flatRows = filterRowsByPriority(flatRows, today);
+      groups = groups.map(function (g) {
+        return Object.assign({}, g, { rows: filterRowsByPriority(g.rows || [], today) });
+      }).filter(function (g) {
+        return (g.rows && g.rows.length) || Number(g.total) > 0;
+      });
+      // Drop empty groups after priority filter
+      groups = groups.filter(function (g) { return g.rows && g.rows.length; });
+
       // Client-side sort fallback
       function sortRows(rows) {
         var key = advancedFilters.sortBy || 'date_to_do';
@@ -838,6 +921,13 @@
       });
 
       var total = Number(result.total) || flatRows.length || 0;
+      // When priority filter is active, show filtered count on this page
+      if (advancedFilters.priority && advancedFilters.priority !== 'all') {
+        var filteredCount = 0;
+        groups.forEach(function (g) { filteredCount += (g.rows && g.rows.length) || 0; });
+        if (!filteredCount) filteredCount = flatRows.length;
+        total = filteredCount;
+      }
       currentTotal = total;
 
       // If filter/total shrank past current page, snap back
@@ -945,6 +1035,7 @@
     wireFilterChips();
     populateQuickMissionDropdowns();
     wireQuickMission();
+    syncFilterBadge();
     loadTasks(currentFilterType || 'show_all_together_tasks');
 
     if (!liveListenersWired) {
@@ -1007,6 +1098,12 @@
     if (applyBtn && !applyBtn.dataset.mbWired) {
       applyBtn.dataset.mbWired = '1';
       applyBtn.addEventListener('click', applyAdvancedFilters);
+    }
+
+    var resetBtn = document.getElementById('reset-task-filters');
+    if (resetBtn && !resetBtn.dataset.mbWired) {
+      resetBtn.dataset.mbWired = '1';
+      resetBtn.addEventListener('click', resetAdvancedFilters);
     }
   }
 

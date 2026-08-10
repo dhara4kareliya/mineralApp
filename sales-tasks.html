@@ -74,28 +74,35 @@
           </div>
         </div>
 
-        <!-- Task Filter Overlay (Hidden by default) -->
-        <!-- <div id="task-filter-panel" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.5); z-index:60; flex-direction:column; justify-content:flex-end;">
-          <div style="background:var(--bg-screen); border-radius:24px 24px 0 0; padding:16px; padding-bottom:32px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-              <h2 style="margin:0; font-size:18px; font-weight:800; color:var(--text-title);">Filter by status</h2>
-              <button id="close-filter-panel" style="background:none; border:none; cursor:pointer; color:var(--text-sub);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <!-- Task Filter Overlay (bottom sheet) -->
+        <div id="task-filter-panel" style="display:none; position:absolute; inset:0; background:rgba(15,24,40,0.45); z-index:60; flex-direction:column; justify-content:flex-end;">
+          <div style="background:var(--bg-screen); border-radius:24px 24px 0 0; padding:18px 16px 22px; max-height:86%; display:flex; flex-direction:column; box-shadow:0 -12px 40px rgba(15,24,40,.18);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex:none;">
+              <h2 id="task-filter-title" style="margin:0; font-size:18px; font-weight:800; color:var(--text-title);">Filter</h2>
+              <button type="button" id="close-filter-panel" aria-label="Close filter" style="width:36px; height:36px; border-radius:50%; border:none; background:var(--bg-form,#f1f3f6); cursor:pointer; color:var(--text-sub); display:flex; align-items:center; justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
-            <div id="task-filter-options" style="display:flex; flex-direction:column; gap:8px;">
-              
+            <div id="task-filter-options" class="dc-scroll" style="flex:1; overflow-y:auto; padding-bottom:8px; min-height:0;"></div>
+            <div style="display:flex; gap:10px; margin-top:12px; flex:none;">
+              <button type="button" id="reset-task-filters" style="flex:0.85; padding:13px; border-radius:12px; border:1.5px solid var(--border-panel,#dde2ea); background:var(--bg-panel,#fff); color:var(--text-title,#1f2a3a); font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;">Reset</button>
+              <button type="button" id="apply-task-filters" style="flex:1.4; padding:13px; border:none; border-radius:12px; background:var(--color-primary,#1d60a2); color:#fff; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; box-shadow:0 6px 16px rgba(29,96,162,.26);">
+                <span id="apply-task-filters-label">Show results</span>
+              </button>
             </div>
           </div>
-        </div> -->
+        </div>
 
         <!-- Scrollable Main Content -->
         <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 18px;">
           
           <!-- Header Title & Filter Button -->
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
             <div style="font-size:21px; font-weight:800; color:var(--text-title);">Tasks</div>
+            <button type="button" id="task-filter-btn" aria-label="Filter tasks" style="position:relative; width:40px; height:40px; border-radius:12px; border:1.5px solid var(--border-panel,#dde2ea); background:var(--bg-panel,#fff); color:var(--text-title,#1f2a3a); cursor:pointer; display:flex; align-items:center; justify-content:center; flex:none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+              <span id="task-filter-badge" style="display:none; position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:#ef4444; border:1.5px solid #fff;"></span>
+            </button>
           </div>
 
           <!-- Filter Chips Bar -->

@@ -1880,6 +1880,7 @@
     "general": "כללי",
     "Secure through Patch · PCI Compliant": "מאובטח דרך Patch · תואם PCI",
     "Secure digital authorization · Can be revoked at any time": "אישור דיגיטלי מאובטח · ניתן לביטול בכל עת",
+    "Secure digital authorization — Can be revoked at any time": "אישור דיגיטלי מאובטח · ניתן לביטול בכל עת",
     "Cash payment": "תשלום במזומן",
     "Copy account details": "העתק פרטי חשבון",
     "Mark as \"awaiting verification\"": "סמן כ־\"ממתין לאימות\"",
