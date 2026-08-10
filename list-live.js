@@ -13,6 +13,87 @@
       .replace(/"/g, '&quot;');
   }
 
+  function pageKind() {
+    var list = document.getElementById('mb-live-list');
+    return (list && list.getAttribute('data-kind')) || 'customers';
+  }
+
+  function kindIsCustomersPage() {
+    return pageKind() === 'customers';
+  }
+
+  function kindIsLeadsPage() {
+    return pageKind() === 'leads';
+  }
+
+  function formatTotalLabel(count, kind) {
+    var n = Number(count) || 0;
+    kind = kind || pageKind();
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    if (kind === 'leads') {
+      return isEn ? (n + ' leads') : (n + ' לידים');
+    }
+    return isEn ? (n + ' customers') : (n + ' לקוחות');
+  }
+
+  function setTotalLabel(count, kind) {
+    var totalEl = document.getElementById('mb-total-label');
+    if (!totalEl) return;
+    totalEl.textContent = formatTotalLabel(count, kind);
+  }
+
+  /** Resolve Biz1 folder id for this page (leads → New Leads, customers → Customers). */
+  function lockedFolderIdForPage(kind) {
+    kind = kind || pageKind();
+    var fallback = kind === 'leads' ? 1 : 2;
+    try {
+      if (window.MineralBarApp && MineralBarApp.FOLDERS) {
+        if (kind === 'leads' && MineralBarApp.FOLDERS.LEADS != null) fallback = Number(MineralBarApp.FOLDERS.LEADS) || fallback;
+        if (kind === 'customers' && MineralBarApp.FOLDERS.CUSTOMERS != null) fallback = Number(MineralBarApp.FOLDERS.CUSTOMERS) || fallback;
+      }
+    } catch (e0) { /* ignore */ }
+
+    var folders = [];
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getFolders === 'function') {
+        folders = MineralBarApp.getFolders() || [];
+      }
+    } catch (e1) { folders = []; }
+    if (!folders.length) return fallback;
+
+    function score(f) {
+      var blob = [
+        f.name, f.name_en, f.name_he, f.title, f.label, f.key, f.slug, f.code, f.type
+      ].map(function (x) { return String(x || '').toLowerCase(); }).join(' ');
+      if (kind === 'leads') {
+        if (/new[_\s-]?lead|פניות|leads?/.test(blob) && !/customer|לקוח/.test(blob)) return 3;
+        if (/new[_\s-]?lead|פניות/.test(blob)) return 2;
+        if (String(f.id || f.folder_id) === '1') return 1;
+        return 0;
+      }
+      // customers
+      if (/^customers?$|לקוחות|customer[_\s-]?folder/.test(blob) && !/lead|פניות|new/.test(blob)) return 3;
+      if (/customer|לקוח/.test(blob) && !/lead|פניות|new/.test(blob)) return 2;
+      if (String(f.id || f.folder_id) === '2') return 1;
+      return 0;
+    }
+
+    var best = null;
+    var bestScore = 0;
+    folders.forEach(function (f) {
+      var s = score(f);
+      if (s > bestScore) {
+        bestScore = s;
+        best = f;
+      }
+    });
+    if (best) {
+      var id = Number(best.id != null ? best.id : best.folder_id);
+      if (isFinite(id) && id > 0) return id;
+    }
+    return fallback;
+  }
+
   function apiErrorText(err) {
     if (!err) return 'שגיאת API לא ידועה';
     var parts = [];
@@ -228,12 +309,12 @@
   function pick(row) {
     var id = row.customer_id || row.contactus_id || row.id || row.ID || '';
     var name = row.name || row.customer_name || row.full_name || row.cname || row.title || ('#' + id);
-    var phone = row.phone || row.mobile || row.cellphone || row.tel || '';
+    var phone = row.phone || row.mobile || row.cellphone || row.tel || row.second_phone || '';
     var city = pickCity(row);
     var address = pickFullAddress(row);
-    var email = row.email || '';
+    var email = row.email || row.second_email || row.mail || '';
     var st = resolveStatus(row);
-    var created = row.date_created || row.created_at || row.date || row.opendate || '';
+    var created = row.date_created || row.created_at || row.created || row.date || row.opendate || row.insert_date || row.added_date || '';
     var products = pickProductPreview(row);
     return {
       id: id,
@@ -327,39 +408,52 @@
     return url;
   }
 
+  function formatListDate(value) {
+    if (!value) return '';
+    try {
+      var d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        var pad = function (n) { return n < 10 ? '0' + n : String(n); };
+        return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() +
+          ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      }
+    } catch (e) { /* ignore */ }
+    return String(value);
+  }
+
+  function leadMetaRow(label, value, opts) {
+    opts = opts || {};
+    value = String(value == null ? '' : value).trim();
+    if (!value) return '';
+    return (
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-top:' + (opts.first ? '9' : '5') + 'px;">' +
+      '<span style="font-size:11.5px;font-weight:700;color:#9aa3b0;flex:none;">' + esc(label) + '</span>' +
+      '<span style="font-size:12.5px;font-weight:600;color:#46505f;text-align:end;min-width:0;word-break:break-word;direction:' + (opts.ltr ? 'ltr' : 'inherit') + ';">' +
+      esc(value) +
+      '</span></div>'
+    );
+  }
+
   function leadCard(c) {
     var detail = customerHref('lead-card.html', c.id);
-    var meta = [];
-    if (c.phone) meta.push(esc(c.phone));
-    if (c.city) meta.push(esc(c.city));
-    if (c.created) {
-      try {
-        var d = new Date(c.created);
-        if (!isNaN(d.getTime())) {
-          var pad = function(n) { return n < 10 ? '0' + n : n; };
-          var formatted = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-          meta.push(formatted);
-        } else {
-          meta.push(esc(c.created));
-        }
-      } catch(e) {
-        meta.push(esc(c.created));
-      }
-    }
+    var phone = String(c.phone || '').trim();
+    var email = String(c.email || '').trim();
+    var address = String(c.address || c.city || '').trim();
+    var dateText = formatListDate(c.created);
     return (
       '<a href="' + detail + '" data-customer-id="' + esc(c.id) + '" data-status="' + esc(c.status) + '" style="display:block;background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;text-decoration:none;">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
-      '<div style="font-size:17px;font-weight:800;color:#16223a;display:inline-flex;align-items:center;gap:5px;">' +
-      esc(c.name) +
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c9d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>' +
+      '<div style="font-size:17px;font-weight:800;color:#16223a;display:inline-flex;align-items:center;gap:5px;min-width:0;">' +
+      '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(c.name) + '</span>' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c9d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="m15 18-6-6 6-6"/></svg></div>' +
       (c.status
         ? '<span style="font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:7px;background:#eaf2fb;color:#1d60a2;flex:none;">' + esc(c.status) + '</span>'
         : '') +
       '</div>' +
-      (meta.length
-        ? '<div style="margin-top:9px;font-size:12.5px;font-weight:600;color:#5a6473;line-height:1.5;">' + meta.join(' &middot; ') + '</div>'
-        : '') +
-      (c.email ? '<div style="margin-top:4px;font-size:12px;color:#9aa3b0;">' + esc(c.email) + '</div>' : '') +
+      leadMetaRow(t('Address', 'כתובת'), address, { first: true }) +
+      leadMetaRow(t('Phone', 'טלפון'), phone, { ltr: true }) +
+      leadMetaRow(t('Date', 'תאריך'), dateText, { ltr: true }) +
+      leadMetaRow(t('Email', 'אימייל'), email, { ltr: true }) +
       '</a>'
     );
   }
@@ -404,11 +498,11 @@
     if (cityLine) metaBits.push(esc(cityLine));
     if (phone) metaBits.push(esc(phone));
     return (
-      '<div data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" style="display:flex;align-items:flex-start;gap:12px;background:#fff;border-radius:14px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:9px;">' +
+      '<div data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" style="display:flex;align-items:flex-start;gap:12px;background:#fff;border-radius:14px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:9px;overflow:hidden;min-width:0;">' +
       '<a href="' + detail + '" style="width:42px;height:42px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:15px;flex:none;display:flex;align-items:center;justify-content:center;text-decoration:none;text-transform:uppercase;margin-top:1px;">' + esc(av) + '</a>' +
-      '<a href="' + detail + '" style="flex:1;min-width:0;text-decoration:none;">' +
-      '<div class="mb-cust-name-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-      '<span style="font-size:15.5px;font-weight:800;color:#16223a;">' + esc(c.name) + '</span>' +
+      '<a href="' + detail + '" style="flex:1;min-width:0;text-decoration:none;overflow:hidden;">' +
+      '<div class="mb-cust-name-row">' +
+      '<span class="mb-cust-name">' + esc(c.name) + '</span>' +
       (statusLabel
         ? '<span class="mb-cust-status" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:' + esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(statusLabel) + '</span>'
         : '') +
@@ -728,49 +822,37 @@
   function detectMount() {
     var el = document.getElementById('mb-live-list');
     if (el) {
-      var rawFolder = el.getAttribute('data-folder');
-      var folderId;
-      if (rawFolder === null || rawFolder === '' || rawFolder === 'all') {
-        folderId = 0; // all customers (no folder filter)
-      } else {
-        folderId = Number(rawFolder);
-        if (Number.isNaN(folderId)) folderId = 0;
-      }
+      var kind = el.getAttribute('data-kind') || 'customers';
+      var folderId = lockedFolderIdForPage(kind);
+      el.setAttribute('data-folder', String(folderId));
       return {
         el: el,
         folderId: folderId,
-        kind: el.getAttribute('data-kind') || 'customers'
+        kind: kind
       };
     }
     return null;
   }
 
-  /** Currently selected folder chip — survives socket soft-refresh / DC remount. */
+  /** Locked folder for this page (leads=New Leads, customers=Customers). */
   function getActiveFolderId(mount) {
-    if (window.__mbActiveFolderId != null && window.__mbActiveFolderId !== '') {
-      return String(window.__mbActiveFolderId);
-    }
-    var chipContainer = document.getElementById('mb-customer-filter-chips');
-    if (chipContainer) {
-      var fromBar = chipContainer.getAttribute('data-active-folder');
-      if (fromBar != null && fromBar !== '') return String(fromBar);
-      var activeChip = chipContainer.querySelector('.mb-cust-chip[data-active="1"], .mb-folder-tab[data-active="1"]');
-      if (activeChip) {
-        var fid = activeChip.getAttribute('data-folder-id') || activeChip.getAttribute('data-chip-id');
-        if (fid != null && fid !== '') return String(fid);
-      }
-    }
-    var list = (mount && mount.el) || document.getElementById('mb-live-list');
-    if (list) {
-      var df = list.getAttribute('data-folder');
-      if (df != null && df !== '') return String(df);
-    }
-    return mount && mount.folderId != null ? String(mount.folderId) : '0';
+    mount = mount || detectMount();
+    var kind = (mount && mount.kind) || pageKind();
+    return String(lockedFolderIdForPage(kind));
   }
 
   function setActiveFolderId(folderId) {
-    var id = folderId == null || folderId === '' ? '0' : String(folderId);
+    var kind = pageKind();
+    var id = String(lockedFolderIdForPage(kind));
+    // Ignore attempts to switch away from the page's locked folder
+    if (folderId != null && folderId !== '' && String(folderId) !== '0' && String(folderId) !== 'all') {
+      // keep locked id — page is not multi-folder
+    }
+    window.__mbListActiveFolder = id;
     window.__mbActiveFolderId = id;
+    try {
+      sessionStorage.setItem('mb_list_active_folder_' + kind, id);
+    } catch (e) { /* ignore */ }
     var chipContainer = document.getElementById('mb-customer-filter-chips');
     if (chipContainer) chipContainer.setAttribute('data-active-folder', id);
     var list = document.getElementById('mb-live-list');
@@ -778,12 +860,12 @@
   }
 
   function syncChipActiveStyles(activeId) {
-    activeId = String(activeId == null ? '0' : activeId);
+    activeId = String(lockedFolderIdForPage(pageKind()));
     var chips = document.querySelectorAll('.mb-cust-chip, .mb-folder-tab');
     chips.forEach(function (c) {
       var fid = c.getAttribute('data-folder-id') || c.getAttribute('data-chip-id');
       // Customers "all" (0): no chip highlighted. Leads folder 1+: highlight match.
-      var isThis = String(fid) === activeId && !(kindIsCustomersPage() && activeId === '0');
+      var isThis = String(fid) === activeId;
       c.setAttribute('data-active', isThis ? '1' : '0');
       c.style.background = isThis ? '#eff6ff' : '#f8fafc';
       c.style.color = isThis ? '#1d4ed8' : '#475569';
@@ -794,49 +876,11 @@
     if (chipContainer) chipContainer.setAttribute('data-active-folder', activeId);
   }
 
-  /** Currently selected folder chip — survives socket refresh + DC remount. */
-  function getActiveFolderId(mount) {
-    mount = mount || detectMount();
-    if (window.__mbListActiveFolder != null && window.__mbListActiveFolder !== '') {
-      return String(window.__mbListActiveFolder);
-    }
-    var chipContainer = document.getElementById('mb-customer-filter-chips');
-    if (chipContainer) {
-      var fromAttr = chipContainer.getAttribute('data-active-folder');
-      if (fromAttr != null && fromAttr !== '') return String(fromAttr);
-      var activeChip = chipContainer.querySelector('.mb-cust-chip[data-active="1"], .mb-folder-tab[data-active="1"]');
-      if (activeChip) {
-        var fid = activeChip.getAttribute('data-folder-id') || activeChip.getAttribute('data-chip-id');
-        if (fid != null && fid !== '') return String(fid);
-      }
-    }
-    if (mount && mount.el) {
-      var listFolder = mount.el.getAttribute('data-folder');
-      if (listFolder != null && listFolder !== '') return String(listFolder);
-    }
-    if (mount && mount.folderId != null) return String(mount.folderId);
-    return kindIsCustomersPage() ? '0' : '1';
-  }
-
-  function setActiveFolderId(folderId) {
-    var id = String(folderId == null ? '' : folderId);
-    if (id === '' || id === 'all' || id === 'null') id = kindIsCustomersPage() ? '0' : '1';
-    window.__mbListActiveFolder = id;
-    try {
-      sessionStorage.setItem('mb_list_active_folder', id);
-    } catch (e) { /* ignore */ }
-    var chipContainer = document.getElementById('mb-customer-filter-chips');
-    if (chipContainer) chipContainer.setAttribute('data-active-folder', id);
-    var list = document.getElementById('mb-live-list');
-    if (list) list.setAttribute('data-folder', id);
-  }
-
   function restoreActiveFolderFromSession() {
-    if (window.__mbListActiveFolder != null && window.__mbListActiveFolder !== '') return;
-    try {
-      var saved = sessionStorage.getItem('mb_list_active_folder');
-      if (saved != null && saved !== '') window.__mbListActiveFolder = String(saved);
-    } catch (e) { /* ignore */ }
+    // Pages are folder-locked; session restore must not override that.
+    var kind = pageKind();
+    window.__mbListActiveFolder = String(lockedFolderIdForPage(kind));
+    window.__mbActiveFolderId = window.__mbListActiveFolder;
   }
 
   async function loadList(mount, explicitFolderId, opts) {
@@ -861,12 +905,10 @@
     var totalEl = document.getElementById('mb-total-label');
 
     var queryParams = { length: 100, start: 0, draw: 1 };
-    // folder_id 0 / null / 'all' = every customer (no folder filter)
-    var folderVal = explicitFolderId;
-    if (folderVal === undefined) folderVal = mount.folderId;
-    if (folderVal != null && folderVal !== '' && String(folderVal) !== 'all' && Number(folderVal) !== 0) {
-      queryParams.folder_id = folderVal;
-    }
+    // Always lock to page folder: leads → New Leads, customers → Customers
+    var folderVal = lockedFolderIdForPage(kind);
+    queryParams.folder_id = folderVal;
+    setActiveFolderId(folderVal);
 
     var lastErr = null;
     // SDK already retries transient failures — avoid stacking another 3× page loop.
@@ -886,10 +928,7 @@
         : rows.length;
 
       if (totalEl) {
-        var isEnList = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
-        totalEl.textContent = total + (kind === 'leads'
-          ? (isEnList ? ' leads' : ' לידים')
-          : (isEnList ? ' customers' : ' לקוחות'));
+        totalEl.textContent = formatTotalLabel(total, kind);
       }
 
       if (!rows.length) {
@@ -960,83 +999,19 @@
 
     var totalEl = document.getElementById('mb-total-label');
     if (totalEl) {
-      var isEnVis = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
       var kindEl = document.getElementById('mb-live-list');
       var kindVis = (kindEl && kindEl.getAttribute('data-kind')) || 'customers';
-      totalEl.textContent = visibleCount + (kindVis === 'leads'
-        ? (isEnVis ? ' leads' : ' לידים')
-        : (isEnVis ? ' customers' : ' לקוחות'));
+      totalEl.textContent = formatTotalLabel(visibleCount, kindVis);
     }
   }
 
   function renderFolderFilterBar(container, selectedFolderId) {
     if (!container) return;
 
-    var folders = (window.MineralBarApp && typeof MineralBarApp.getFolders === 'function') ? MineralBarApp.getFolders() : [];
-
-    if (!folders || !folders.length) {
-      folders = [
-        { id: 1, name_en: "New Leads", name_he: "פניות חדשות", icon: "💼", count: 6 },
-        { id: 2, name_en: "Customers", name_he: "לקוחות", icon: "💡", count: 1 },
-        { id: 3, name_en: "Missions", name_he: "משימות", icon: "📅", count: 1 },
-        { id: 4, name_en: "Archive", name_he: "ארכיון", icon: "📁", count: 0 },
-        { id: 5, name_en: "Trash", name_he: "אשפה", icon: "📹", count: 0 },
-        { id: 6, name_en: "Spam", name_he: "ספאם", icon: "❗", count: 0 }
-      ];
-    }
-
-    var lang = (window.getCurrentLanguage && window.getCurrentLanguage()) || 'he';
-    var isEn = lang === 'en';
-
-    var activeId = null;
-    if (selectedFolderId !== undefined && selectedFolderId !== null) {
-      activeId = String(selectedFolderId);
-    } else if (selectedFolderId === undefined) {
-      activeId = String(container.getAttribute('data-active-folder') || '0');
-    }
-
-    var iconMap = {
-      '1': '💼',
-      '2': '💡',
-      '3': '📅',
-      '4': '📁',
-      '5': '📹',
-      '6': '❗'
-    };
-
-    var html = '';
-    // Customers page defaults to all records (no folder_id) — no "ALL" chip in the UI.
-    // Folder chips still filter when selected; deselect returns to unfiltered list.
-    if (kindIsCustomersPage() && (!activeId || activeId === '0' || activeId === 'all' || activeId === 'null')) {
-      activeId = '0';
-    }
-
-    folders.forEach(function(f) {
-      var fid = String(f.id || f.folder_id || f.value || '1');
-      var name = isEn ? (f.name_en || f.name || f.name_he) : (f.name_he || f.name || f.name_en);
-      if (isEn && name) name = name.toUpperCase();
-      var icon = f.icon || iconMap[fid] || '📁';
-
-      // Never highlight a folder when showing the unfiltered "all" list
-      var isActive = (fid === activeId) && activeId !== '0';
-
-      var btnStyle = isActive
-        ? 'flex:none; display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:12px; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; background:#eff6ff; color:#1d4ed8; border:1.5px solid #3b82f6; box-shadow:0 1px 3px rgba(59,130,246,0.15);'
-        : 'flex:none; display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:12px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; background:#f8fafc; color:#475569; border:1.5px solid #e2e8f0;';
-
-      html += '<button type="button" class="mb-cust-chip mb-folder-tab" data-folder-id="' + fid + '" data-chip-id="' + fid + '" data-active="' + (isActive ? '1' : '0') + '" style="' + btnStyle + '">' +
-        '<span>' + icon + '</span> ' +
-        '<span>' + esc(name) + '</span>' +
-        '</button>';
-    });
-
-    container.innerHTML = html;
-    container.setAttribute('data-active-folder', activeId || '0');
-  }
-
-  function kindIsCustomersPage() {
-    var list = document.getElementById('mb-live-list');
-    return !list || (list.getAttribute('data-kind') || 'customers') === 'customers';
+    // Pages are locked to one folder — hide the multi-folder chip bar
+    container.innerHTML = '';
+    container.style.display = 'none';
+    container.setAttribute('data-active-folder', String(lockedFolderIdForPage(pageKind())));
   }
 
   function bindClientFilters(listEl) {
@@ -1064,82 +1039,10 @@
     var chipContainer = document.getElementById('mb-customer-filter-chips') || document.querySelector('.dc-scroll');
     if (chipContainer && !chipContainer.dataset.rendered) {
       chipContainer.dataset.rendered = '1';
-      var initialFolder = window.__mbActiveFolderId;
-      if (initialFolder == null || initialFolder === '') {
-        initialFolder = chipContainer.getAttribute('data-active-folder');
-      }
-      if (initialFolder == null || initialFolder === '') initialFolder = kindIsCustomersPage() ? '0' : '1';
+      var initialFolder = lockedFolderIdForPage(pageKind());
       setActiveFolderId(initialFolder);
       renderFolderFilterBar(chipContainer, initialFolder);
-
-      // Make it mouse-draggable on desktop
-      var isDown = false, startX, scrollLeft;
-      chipContainer.style.cursor = 'grab';
-      chipContainer.addEventListener('mousedown', function(e) {
-        isDown = true;
-        chipContainer.dataset.dragged = '0';
-        chipContainer.style.cursor = 'grabbing';
-        startX = e.pageX - chipContainer.offsetLeft;
-        scrollLeft = chipContainer.scrollLeft;
-      });
-      chipContainer.addEventListener('mouseleave', function() {
-        isDown = false;
-        chipContainer.style.cursor = 'grab';
-      });
-      chipContainer.addEventListener('mouseup', function() {
-        isDown = false;
-        chipContainer.style.cursor = 'grab';
-        setTimeout(function() { chipContainer.dataset.dragged = '0'; }, 0);
-      });
-      chipContainer.addEventListener('mousemove', function(e) {
-        if (!isDown) return;
-        e.preventDefault();
-        var x = e.pageX - chipContainer.offsetLeft;
-        var walk = (x - startX) * 1.5;
-        if (Math.abs(walk) > 5) chipContainer.dataset.dragged = '1';
-        chipContainer.scrollLeft = scrollLeft - walk;
-      });
     }
-
-    var chips = document.querySelectorAll('.mb-cust-chip, .mb-folder-tab');
-    chips.forEach(function(chip) {
-      if (chip.dataset.wired) return;
-      chip.dataset.wired = '1';
-      chip.addEventListener('click', function(e) {
-        if (chipContainer && chipContainer.dataset.dragged === '1') {
-          e.preventDefault();
-          return;
-        }
-        var selectedFid = chip.getAttribute('data-folder-id') || chip.getAttribute('data-chip-id');
-        var wasActive = (chip.getAttribute('data-active') === '1');
-        
-        // Customers: deselect → All (0). Leads: stay on New Leads (1).
-        var nextActiveId;
-        if (wasActive) {
-          nextActiveId = kindIsCustomersPage() ? '0' : '1';
-        } else {
-          nextActiveId = selectedFid;
-        }
-        if (chipContainer) chipContainer.setAttribute('data-active-folder', String(nextActiveId || '0'));
-        setActiveFolderId(nextActiveId);
-
-        chips.forEach(function(c) {
-          var fid = c.getAttribute('data-folder-id') || c.getAttribute('data-chip-id');
-          var isThis = String(fid) === String(nextActiveId);
-          c.setAttribute('data-active', isThis ? '1' : '0');
-          c.style.background = isThis ? '#eff6ff' : '#f8fafc';
-          c.style.color = isThis ? '#1d4ed8' : '#475569';
-          c.style.border = isThis ? '1.5px solid #3b82f6' : '1.5px solid #e2e8f0';
-          c.style.fontWeight = isThis ? '800' : '700';
-        });
-
-        // Fetch fresh list from API with selected folder_id (0 = all)
-        var mount = detectMount();
-        if (mount) {
-          loadList(mount, nextActiveId);
-        }
-      });
-    });
   }
 
   function start() {
@@ -1176,7 +1079,7 @@
     n = Math.max(0, n + delta);
     var kindEl = document.getElementById('mb-live-list');
     var kind = (kindEl && kindEl.getAttribute('data-kind')) || 'customers';
-    totalEl.textContent = n + (kind === 'leads' ? ' leads' : ' customers');
+    totalEl.textContent = formatTotalLabel(n, kind);
   }
 
   function extractCustomerFromEvent(detail) {

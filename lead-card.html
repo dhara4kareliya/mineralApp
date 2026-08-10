@@ -19,7 +19,7 @@ mbScripts([
 mbCss('./common.css');
 </script>
 </head>
-<body>
+<body data-role="sales" data-active-tab="leads">
 <x-dc>
 <helmet>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -32,365 +32,69 @@ mbCss('./common.css');
   .dc-scroll::-webkit-scrollbar { width: 0; }
   .gv-act { transition: background .12s; }
   .gv-act:active { background:#e9edf3 !important; }
+  .lead-folder-select {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    background-size: 14px 14px;
+  }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
 <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
-<div data-screen-label="Customer Card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
-<!-- header (white) -->
+<div data-screen-label="Lead Card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
 <div style="background:#fff; padding:9px 16px 14px; flex:none; box-shadow:0 1px 0 #edeff2;">
 <div style="display:flex; justify-content:center; padding:3px 0 9px;">
 <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6;"></div>
 </div>
 <div style="display:flex; align-items:center; justify-content:space-between;">
-<a href="leads-list.html" style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+<button type="button" onclick="{{ goBack }}" aria-label="Back" style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; cursor:pointer; display:flex; align-items:center; justify-content:center;">
 <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="m15 18-6-6 6-6"></path></svg>
-</a>
-<div style="font-size:18px; font-weight:800; color:#1f2a3a;">Customer Card</div>
-<!-- <button onclick="{{ openNote }}" style="width:38px; height:38px; border-radius:50%; border:none; background:#bd8324; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(189,131,36,.35);">
-<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
-</button> -->
+</button>
+<div style="font-size:18px; font-weight:800; color:#1f2a3a;">Lead Card</div>
+<div style="width:38px; height:38px; flex:none;"></div>
 </div>
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 20px;">
 <div data-kind="lead" id="mb-live-customer"></div>
-<div id="mb-mock-customer">
-<!-- lead identity -->
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
-<div style="flex:1; text-align:left;">
-<div style="display:flex; align-items:center; gap:8px; justify-content:flex-start;">
-<span style="font-size:20px; font-weight:800; color:#1f2a3a;">{{ leadName }}</span>
-<span style="display:inline-flex; align-items:center; gap:5px; background:{{ statusBg }}; color:{{ statusColor }}; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:99px;">
-<span style="width:6px; height:6px; border-radius:50%; background:{{ statusColor }};"></span>{{ statusLabel }}
-              </span>
 </div>
-<div style="display:inline-flex; align-items:center; gap:5px; font-size:12px; color:#c0392b; font-weight:600; margin-top:5px;">
-<svg fill="none" height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="13"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-              {{ inStatusFor }}
-            </div>
-</div>
-<div style="width:54px; height:54px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:17px; display:flex; align-items:center; justify-content:center; flex:none;">{{ initials }}</div>
-</div>
-<!-- lead details list -->
-<div style="background:#fff; border-radius:16px; padding:4px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
-<sc-for as="d" hint-placeholder-count="5" list="{{ details }}">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid {{ d.border }};">
-<span style="display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#9aa3b0; font-weight:600; flex:none;">
-                <sc-if hint-placeholder-val="{{ true }}" value="{{ d.isPhone }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ d.isOwner }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ d.isSource }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ d.isAddr }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ d.isDate }}"><svg fill="none" height="16" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><rect height="16" rx="2" width="18" x="3" y="5"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg></sc-if>
-                {{ d.label }}
-</span>
-<span style="font-size:13.5px; color:{{ d.valColor }}; font-weight:{{ d.valWeight }}; direction:ltr; text-align:end; min-width:0; word-break:break-word;">{{ d.value }}</span>
-</div>
-</sc-for>
-</div>
-<!-- action grid -->
-<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px;">
-<a class="gv-act" href="tel:0521234567" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="#2e8a63" height="22" viewbox="0 0 24 24" width="22"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">dialing</span>
-</a>
-<a class="gv-act" href="chat-customer.html" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="#25b35e" height="22" viewbox="0 0 24 24" width="22"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">WhatsApp</span>
-</a>
-<button class="gv-act" onclick="{{ openStatus }}" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="none" height="22" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="22"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v5h-5"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">Update status</span>
-</button>
-<a class="gv-act" href="service-quote-form.html" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="none" height="22" stroke="#50439d" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><rect height="18" rx="2" width="16" x="4" y="3"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">quotation</span>
-</a>
-<a class="gv-act" href="service-order-form.html?from=lead" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="none" height="22" stroke="#bd8324" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><rect height="17" rx="2" width="16" x="4" y="4"></rect><path d="M9 2v4M15 2v4M8 11l2 2 3.5-3.5M8 16h6"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">invitation</span>
-</a>
-<a class="gv-act" href="service-create-task.html" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="none" height="22" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><rect height="16" rx="2.5" width="16" x="4" y="4"></rect><path d="M12 8v8M8 12h8"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">Create a task</span>
-</a>
-<button class="gv-act" onclick="{{ openNote }}" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="none" height="22" stroke="#bd8324" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">Add a comment</span>
-</button>
-<a class="gv-act" href="service-inventory.html" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="none" height="22" stroke="#5a6473" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">inventory</span>
-</a>
-<a class="gv-act" href="all-documents.html" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; background:#fff; border:1px solid #e8eaee; border-radius:14px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,.04);">
-<svg fill="none" height="22" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="22"><path d="M9 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3"></path><path d="M14 3h4a2 2 0 0 1 2 2v4M8 9h4M8 13h6M8 17h4"></path></svg>
-<span style="font-size:12px; font-weight:700; color:#1f2a3a;">All the documents</span>
-</a>
-</div>
-<!-- interest / note summary -->
-<div style="font-size:14px; font-weight:800; color:#1f2a3a; margin:2px 2px 11px;">field of interest</div>
-<div style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:18px;">
-<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:11px;">
-<sc-for as="t" hint-placeholder-count="2" list="{{ interests }}">
-<span style="background:#eaf2fb; color:#1d60a2; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">{{ t.label }}</span>
-</sc-for>
-</div>
-<div style="font-size:13.5px; color:#3a4452; line-height:1.6;">"{{ leadNote }}"</div>
-</div>
-<!-- interaction history -->
-<div style="font-size:14px; font-weight:800; color:#1f2a3a; margin:2px 2px 11px;">Interaction history</div>
-<div style="background:#fff; border-radius:16px; padding:6px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:8px;">
-<sc-for as="h" hint-placeholder-count="5" list="{{ history }}">
-<div style="display:flex; align-items:flex-start; gap:11px; padding:12px 0; border-bottom:1px solid {{ h.border }};">
-<div style="width:32px; height:32px; border-radius:9px; background:{{ h.iconBg }}; color:{{ h.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
-<sc-if hint-placeholder-val="{{ true }}" value="{{ h.isCall }}"><svg fill="currentColor" height="16" viewbox="0 0 24 24" width="16"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ h.isWa }}"><svg fill="currentColor" height="16" viewbox="0 0 24 24" width="16"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ h.isQuote }}"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="16"><rect height="18" rx="2" width="16" x="4" y="3"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ h.isNote }}"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="16"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ h.isStatus }}"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="16"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ h.isLead }}"><svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="16"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.4 2.7-5.5 6-5.5M17 11v6M14 14h6"></path></svg></sc-if>
-</div>
-<div style="flex:1;">
-<div style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ h.title }}</div>
-<div style="font-size:11.5px; color:#7b8595; margin-top:2px; line-height:1.45;">{{ h.desc }}</div>
-<div style="font-size:11px; color:#9aa3b0; margin-top:3px;">{{ h.who }} · {{ h.date }}</div>
-</div>
-</div>
-</sc-for>
-</div>
-</div>
-</div>
-<!-- ===== STATUS BOTTOM SHEET ===== -->
-<sc-if hint-placeholder-val="{{ false }}" value="{{ statusOpen }}">
-<div onclick="{{ closeStatus }}" style="position:absolute; inset:0; background:#1f2a3a; opacity:0.32; z-index:40;"></div>
-<div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; overflow-y:auto; max-height:92%; box-shadow:0 -8px 30px rgba(15,24,40,.18); z-index:41; padding:18px 18px 26px;">
-<div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px;"></div>
-<div style="font-size:18px; font-weight:800; color:#1f2a3a; margin-bottom:14px;">Lead status update</div>
-<div style="display:flex; flex-direction:column; gap:9px;">
-<sc-for as="o" hint-placeholder-count="5" list="{{ statusOpts }}">
-<button onclick="{{ o.pick }}" style="display:flex; align-items:center; gap:11px; padding:13px 14px; border:1.5px solid {{ o.border }}; border-radius:13px; background:{{ o.bg }}; cursor:pointer; text-align:left;">
-<span style="width:10px; height:10px; border-radius:50%; background:{{ o.dot }}; flex:none;"></span>
-<span style="flex:1; font-size:14.5px; font-weight:{{ o.weight }}; color:{{ o.textColor }};">{{ o.label }}</span>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ o.isIrrelevant }}"><svg fill="none" height="16" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="16"><path d="m9 6 6 6-6 6"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ o.active }}"><svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="18"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
-</button>
-</sc-for>
-</div>
-<!-- callback task with date + time (followup only) -->
-<sc-if hint-placeholder-val="{{ false }}" value="{{ isFollowup }}">
-<div style="background:#eaf2fb; border:1.5px solid #aecbe9; border-radius:13px; padding:13px 14px; margin-top:11px;">
-<div style="display:flex; align-items:center; gap:10px; margin-bottom:11px;">
-<svg fill="none" height="19" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" style="flex:none;" viewbox="0 0 24 24" width="19"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
-<span style="flex:1; font-size:14px; font-weight:800; color:#1d60a2;">A task will be opened to return to the client</span>
-</div>
-<div style="display:flex; gap:9px;">
-<span style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px; border-radius:10px; background:#fff; border:1.5px solid #bcd6f0; font-size:13px; font-weight:700; color:#7b8595; letter-spacing:.5px;">
-<svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="14"><rect height="16" rx="2" width="18" x="3" y="5"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>
-                  DD/MM/YY
-                </span>
-<span style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px; border-radius:10px; background:#fff; border:1.5px solid #bcd6f0; font-size:13px; font-weight:700; color:#7b8595; letter-spacing:.5px;">
-<svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="14"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-                  HH:MM
-                </span>
-</div>
-</div>
-</sc-if>
-<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:16px 2px 7px;">
-<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
-            Add a comment to the conversation
-          </label>
-<textarea placeholder="For example: the customer asked to come back after 14:00, interested in the Ofek model..." style="width:100%; height:90px; resize:none; border:1.5px solid #e4e8ee; border-radius:13px; padding:12px 13px; font-size:14px; color:#1f2a3a; outline:none;"></textarea>
-<button onclick="{{ closeStatus }}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:14px; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer;">
-<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="17"><path d="M20 6 9 17l-5-5"></path></svg>
-            Save and update status
-          </button>
-</div>
-</sc-if>
-<!-- ===== IRRELEVANT REASON BOTTOM SHEET ===== -->
-<sc-if hint-placeholder-val="{{ false }}" value="{{ reasonOpen }}">
-<div onclick="{{ closeReason }}" style="position:absolute; inset:0; background:#1f2a3a; opacity:0.32; z-index:42;"></div>
-<div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; overflow-y:auto; max-height:92%; box-shadow:0 -8px 30px rgba(15,24,40,.18); z-index:43; padding:18px 18px 24px;">
+
+<!-- Update status sheet (Customer Folders UI) -->
+<div id="mb-lead-status-sheet" style="display:none; position:absolute; inset:0; z-index:50;">
+<div id="mb-lead-status-overlay" style="position:absolute; inset:0; background:#1f2a3a; opacity:0.32;"></div>
+<div class="dc-scroll" style="position:absolute; bottom:0; left:0; right:0; background:#eef0f3; border-radius:24px 24px 0 0; overflow-y:auto; max-height:88%; box-shadow:0 -8px 30px rgba(15,24,40,.18); padding:18px 16px 24px;">
 <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 14px;"></div>
-<div style="text-align:center; margin-bottom:16px;">
-<div style="font-size:18px; font-weight:800; color:#1f2a3a;">Why not relevant?</div>
-<div style="font-size:13px; color:#9aa3b0; margin-top:3px;">Select a reason to close the lead</div>
+<div id="mb-lead-status-title" style="font-size:11.5px; font-weight:700; color:#8a96a3; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px;">CUSTOMER FOLDERS</div>
+<div id="mb-lead-folders-container"></div>
+<button type="button" id="mb-lead-status-close" style="width:100%; margin-top:12px; padding:13px; border:1.5px solid #dde2ea; border-radius:12px; background:#fff; color:#5a6473; font-size:14px; font-weight:700; cursor:pointer;">Close</button>
 </div>
-<div style="display:flex; flex-direction:column; gap:9px;">
-<sc-for as="r" hint-placeholder-count="7" list="{{ reasonOpts }}">
-<button onclick="{{ r.pick }}" style="display:flex; align-items:center; gap:11px; padding:13px 14px; border:1.5px solid {{ r.border }}; border-radius:13px; background:{{ r.bg }}; cursor:pointer; text-align:left;">
-<span style="display:flex; color:{{ r.iconColor }}; flex:none;">
-<sc-if hint-placeholder-val="{{ true }}" value="{{ r.isDoc }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M12 11v6M9 14h6"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ r.isDrop }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M12 3c3 4 6 7 6 10a6 6 0 0 1-12 0c0-3 3-6 6-10z"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ r.isPeople }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3 2.7-4.8 6-4.8s6 1.8 6 4.8"></path><circle cx="17.5" cy="7" r="2.5"></circle><path d="M16 14.4c2.8.2 5 1.9 5 4.6"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ r.isClock }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ r.isBank }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M3 10 12 4l9 6M4 10v9h16v-9M8 19v-5M12 19v-5M16 19v-5"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ r.isShield }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg></sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ r.isPhone }}"><svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg></sc-if>
-</span>
-<span style="flex:1; font-size:14.5px; font-weight:{{ r.weight }}; color:{{ r.textColor }};">{{ r.label }}</span>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ r.task }}"><span style="background:#16487c; color:#fff; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px; flex:none; white-space:nowrap;">opens a task</span></sc-if>
-</button>
-</sc-for>
 </div>
-<!-- follow-up task with date -->
-<div style="display:flex; align-items:center; gap:10px; padding:13px 14px; border:1.5px solid #aecbe9; border-radius:13px; background:#eaf2fb; margin-top:9px;">
-<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" style="flex:none;" viewbox="0 0 24 24" width="18"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
-<span style="flex:1; font-size:13.5px; font-weight:700; color:#1d60a2;">A task to return to the client will open - select a date</span>
-<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:1.5px solid #bcd6f0; border-radius:9px; background:#fff; font-size:12px; font-weight:700; color:#9aa3b0; flex:none;">
-<svg fill="none" height="13" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="13"><rect height="16" rx="2" width="18" x="3" y="5"></rect><path d="M3 9h18M8 3v4M16 3v4"></path></svg>
-              DD/MM/YY
-            </span>
-</div>
-<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:16px 2px 7px;">
-<svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
-            Note (optional)
-          </label>
-<textarea placeholder="More details about the reason..." style="width:100%; height:90px; resize:none; border:1.5px solid #e4e8ee; border-radius:13px; padding:12px 13px; font-size:14px; color:#1f2a3a; outline:none;"></textarea>
-<button onclick="{{ confirmReason }}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:14px; padding:15px; border:none; border-radius:14px; background:#c0392b; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer;">
-<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" viewbox="0 0 24 24" width="17"><path d="M18 6 6 18M6 6l12 12"></path></svg>
-            close next to "not applicable"
-          </button>
-</div>
-</sc-if>
-<!-- ===== NOTE BOTTOM SHEET ===== -->
-<sc-if hint-placeholder-val="{{ false }}" value="{{ noteOpen }}">
-<div onclick="{{ closeNote }}" style="position:absolute; inset:0; background:#1f2a3a; opacity:0.32; z-index:40;"></div>
-<div style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; overflow:hidden; box-shadow:0 -8px 30px rgba(15,24,40,.18); z-index:41; padding:18px 18px 26px;">
-<div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px;"></div>
-<div style="font-size:18px; font-weight:800; color:#1f2a3a; margin-bottom:14px;">Add a comment</div>
-<textarea placeholder="Write a note about the conversation / lead..." style="width:100%; height:110px; resize:none; border:1.5px solid #e4e8ee; border-radius:13px; padding:12px 13px; font-size:14px; color:#1f2a3a; outline:none;"></textarea>
-<button onclick="{{ closeNote }}" style="width:100%; margin-top:14px; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer;">Save a note</button>
-</div>
-</sc-if>
+<div id="mb-lead-status-toast" style="display:none; position:absolute; left:50%; bottom:100px; transform:translateX(-50%); width:calc(100% - 48px); max-width:300px; padding:12px 14px; border-radius:12px; background:#16223a; color:#fff; font-size:13px; font-weight:700; text-align:center; z-index:99999; box-shadow:0 8px 24px rgba(15,24,40,.28); pointer-events:none;"></div>
 </div>
 </div>
 </div>
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { statusOpen: false, noteOpen: false, reasonOpen: false, status: 'new', reason: 'price' };
-
-  openStatus() { this.setState({ statusOpen: true }); }
-  closeStatus() { this.setState({ statusOpen: false }); }
-  openNote() { this.setState({ noteOpen: true }); }
-  closeNote() { this.setState({ noteOpen: false }); }
-  openReason() { this.setState({ statusOpen: false, reasonOpen: true }); }
-  closeReason() { this.setState({ reasonOpen: false }); }
-  confirmReason() { this.setState({ status: 'irrelevant', reasonOpen: false }); }
-
-  STATUS = {
-    new:        { label: 'ליד חדש',      color: '#1d60a2', bg: '#eaf2fb' },
-    followup:   { label: 'פולואפ',        color: '#bd8324', bg: '#fdf1dd' },
-    noanswer:   { label: 'אין מענה',      color: '#c0392b', bg: '#fbeeed' },
-    offer:      { label: 'נשלחה הצעה',    color: '#50439d', bg: '#eef0fb' },
-    closed:     { label: 'בוצעה הזמנה',   color: '#2e8a63', bg: '#e6f4ec' },
-    irrelevant: { label: 'לא רלוונטי',    color: '#5a6473', bg: '#eef0f3' },
-  };
-  STATUS_ORDER = ['new', 'followup', 'noanswer', 'offer', 'closed', 'irrelevant'];
-
-  REASONS = [
-    { id: 'price',     label: 'מחיר',                icon: 'doc' },
-    { id: 'size',      label: 'גודל מוצר',           icon: 'drop' },
-    { id: 'compete',   label: 'עדיפות למתחרים',      icon: 'people' },
-    { id: 'kitchen',   label: 'מטבח לא מוכן',        icon: 'clock', task: true },
-    { id: 'standing',  label: 'נחסם בהוראת קבע',     icon: 'bank' },
-    { id: 'insured',   label: 'מבוטח בחברה מתחרה',   icon: 'shield' },
-    { id: 'wrong',     label: 'מספר שגוי',           icon: 'phone' },
-  ];
-
-  DETAILS = [
-    { kind: 'phone',  label: 'טלפון', value: '052-1234567', accent: true },
-    { kind: 'owner',  label: 'בעלים', value: 'יוסי כהן' },
-    { kind: 'source', label: 'מקור',  value: 'פייסבוק' },
-    { kind: 'addr',   label: 'אזור',  value: 'תל אביב' },
-    { kind: 'date',   label: 'נוצר',  value: '08/06/25' },
-  ];
-
-  INTERESTS = ['סנן ראשי', 'מערכת תת-כיורית', 'בר מים'];
-
-  HISTORY = [
-    { kind: 'lead',   title: 'הליד נוצר', desc: 'התקבל ממודעת פייסבוק — "מערכות סינון מים"', who: 'מערכת', date: '08/06/25, 11:20' },
-    { kind: 'call',   title: 'שיחה יוצאת', desc: 'אין מענה — נשארה הודעה קולית', who: 'יוסי כהן', date: '08/06/25, 14:05' },
-    { kind: 'wa',     title: 'הודעת וואטסאפ', desc: 'נשלחה הודעת פתיחה עם פרטי המוצרים', who: 'יוסי כהן', date: '09/06/25, 09:30' },
-    { kind: 'call',   title: 'שיחה נכנסת', desc: 'הלקוח מעוניין בסנן ראשי — ביקש הצעת מחיר', who: 'יוסי כהן', date: 'היום, 10:34' },
-    { kind: 'note',   title: 'הערה נוספה', desc: 'גר בדירה שכורה — צריך אישור בעל הבית להתקנה', who: 'יוסי כהן', date: 'היום, 10:40' },
-  ];
-
-  HCOL = {
-    call:   { iconBg: '#e6f4ec', iconColor: '#2e8a63' },
-    wa:     { iconBg: '#e7f7ee', iconColor: '#25b35e' },
-    quote:  { iconBg: '#eef0fb', iconColor: '#50439d' },
-    note:   { iconBg: '#fdf1dd', iconColor: '#bd8324' },
-    status: { iconBg: '#eaf2fb', iconColor: '#1d60a2' },
-    lead:   { iconBg: '#eef3fd', iconColor: '#1d60a2' },
-  };
+  goBack(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (window.mbGoCustomerCardBack) {
+      window.mbGoCustomerCardBack(e);
+      return;
+    }
+    window.location.href = 'leads-list.html';
+  }
 
   renderVals() {
-    const cur = this.STATUS[this.state.status];
-
-    const details = this.DETAILS.map((d, i) => ({
-      label: d.label, value: d.value,
-      valColor: d.accent ? '#1d60a2' : '#3a4452',
-      valWeight: d.accent ? '700' : '600',
-      isPhone: d.kind === 'phone', isOwner: d.kind === 'owner', isSource: d.kind === 'source',
-      isAddr: d.kind === 'addr', isDate: d.kind === 'date',
-      border: i === this.DETAILS.length - 1 ? 'transparent' : '#f0f2f5',
-    }));
-
-    const statusOpts = this.STATUS_ORDER.map(id => {
-      const o = this.STATUS[id];
-      const active = this.state.status === id;
-      const isIrrelevant = id === 'irrelevant';
-      return {
-        label: o.label, dot: o.color, active, isIrrelevant,
-        pick: () => isIrrelevant ? this.openReason() : this.setState({ status: id }),
-        bg: active ? o.bg : '#fff', border: active ? o.color : '#e4e8ee',
-        textColor: active ? o.color : '#1f2a3a', weight: active ? '800' : '600',
-      };
-    });
-
-    const reasonOpts = this.REASONS.map(r => {
-      const active = this.state.reason === r.id;
-      return {
-        label: r.label, active, task: !!r.task,
-        pick: () => this.setState({ reason: r.id }),
-        bg: active ? '#fbeeed' : '#fff', border: active ? '#e3a9a2' : '#e8eaee',
-        textColor: active ? '#c0392b' : '#1f2a3a', iconColor: active ? '#c0392b' : '#9aa3b0',
-        weight: active ? '800' : '700',
-        isDoc: r.icon === 'doc', isDrop: r.icon === 'drop', isPeople: r.icon === 'people',
-        isClock: r.icon === 'clock', isBank: r.icon === 'bank', isShield: r.icon === 'shield',
-        isPhone: r.icon === 'phone',
-      };
-    });
-
-    const history = this.HISTORY.map((h, i) => ({
-      title: h.title, desc: h.desc, who: h.who, date: h.date,
-      iconBg: this.HCOL[h.kind].iconBg, iconColor: this.HCOL[h.kind].iconColor,
-      isCall: h.kind === 'call', isWa: h.kind === 'wa', isQuote: h.kind === 'quote',
-      isNote: h.kind === 'note', isStatus: h.kind === 'status', isLead: h.kind === 'lead',
-      border: i === this.HISTORY.length - 1 ? 'transparent' : '#f0f2f5',
-    }));
-
     return {
-      leadName: 'משה כהן',
-      initials: 'מכ',
-      statusLabel: cur.label, statusColor: cur.color, statusBg: cur.bg,
-      inStatusFor: 'בסטטוס זה 3 ימים',
-      details,
-      interests: this.INTERESTS.map(t => ({ label: t })),
-      leadNote: 'פנה דרך מודעת פייסבוק, מעוניין במערכת סינון לדירה חדשה. גר בשכירות — לוודא אישור התקנה.',
-      history,
-      statusOpts, reasonOpts,
-      isFollowup: this.state.status === 'followup',
-      statusOpen: this.state.statusOpen,
-      noteOpen: this.state.noteOpen,
-      reasonOpen: this.state.reasonOpen,
-      openStatus: () => this.openStatus(),
-      closeStatus: () => this.closeStatus(),
-      openNote: () => this.openNote(),
-      closeNote: () => this.closeNote(),
-      openReason: () => this.openReason(),
-      closeReason: () => this.closeReason(),
-      confirmReason: () => this.confirmReason(),
+      goBack: (e) => this.goBack(e)
     };
   }
 }

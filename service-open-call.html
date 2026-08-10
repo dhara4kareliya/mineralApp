@@ -67,8 +67,9 @@ mbCss('./common.css');
   .soc-sku-row { display:flex; align-items:stretch; gap:8px; min-width:0; }
   .soc-sku-row .ds-input { flex:1; min-width:0; }
   .soc-scan-btn {
-    width:46px; flex:none; border:1.5px solid #dde2ea; border-radius:11px; background:#fff;
+    width:48px; height:48px; flex:none; border:1.5px solid #e1e6ee; border-radius:14px; background:#fff;
     color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 1px 2px rgba(15,24,40,.03);
   }
   .soc-scan-btn:active { background:#eaf2fb; }
   .soc-product-found {
@@ -80,97 +81,200 @@ mbCss('./common.css');
   }
   #soc-qr-reader { width:100%; flex:1; min-height:0; background:#000; }
   #soc-qr-reader video { object-fit:cover !important; }
+  .soc-type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .soc-type-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 13px;
+    border-radius: 14px;
+    border: 1.5px solid #e1e6ee;
+    background: #fff;
+    cursor: pointer;
+    text-align: start;
+    min-height: 54px;
+    font-family: inherit;
+    width: 100%;
+    box-shadow: 0 1px 2px rgba(15,24,40,.04);
+  }
+  .soc-type-btn.is-full { grid-column: 1 / -1; }
+  .soc-type-btn__label {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .soc-type-btn__icon {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .soc-page-bg { background: #f3f5f8; }
+  .soc-section-title {
+    font-size: 13px;
+    color: #8a93a3;
+    font-weight: 800;
+    margin: 4px 0 12px;
+  }
+  .soc-label {
+    display: block;
+    font-size: 12.5px;
+    color: #5a6473;
+    font-weight: 700;
+    margin-bottom: 7px;
+  }
+  .soc-label .req { color: #c0392b; margin-inline-end: 3px; }
+  .soc-field {
+    width: 100%;
+    height: 48px;
+    padding: 12px 14px;
+    border: 1.5px solid #e1e6ee;
+    border-radius: 14px;
+    font-size: 14px;
+    color: #1f2a3a;
+    background: #fff;
+    text-align: start;
+    box-shadow: 0 1px 2px rgba(15,24,40,.03);
+  }
+  textarea.soc-field {
+    height: auto;
+    min-height: 110px;
+    resize: vertical;
+    line-height: 1.45;
+  }
+  .soc-field[readonly] { background: #f7f9fb; cursor: default; }
+  .soc-photo-zone {
+    position: relative;
+    border: 1.7px dashed #9fc0e0;
+    border-radius: 16px;
+    background: #f7fbff;
+    min-height: 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px 14px;
+    overflow: hidden;
+    transition: border-color .15s, background .15s;
+  }
+  .soc-photo-zone:hover,
+  .soc-photo-zone.is-dragover { border-color: #1d60a2; background: #eaf2fb; }
+  .soc-photo-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .soc-block { margin-bottom: 18px; }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
 <div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
-<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
+<div style="background:#f3f5f8; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
 <!-- navy header -->
 <div style="background:#16223a; padding:14px 16px; flex:none; display:flex; align-items:center; gap:11px;">
-<a href="#" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
 <div style="width:42px; height:42px; border-radius:50%; background:#2f6aa6; color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none;">{{ custInitials }}</div>
-<div style="flex:1;">
+<div style="flex:1; min-width:0;">
 <div style="display:flex; align-items:center; gap:7px;">
 <div style="font-size:16px; font-weight:800; color:#fff;">{{ custName }}</div>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ custIsNew }}"><span style="font-size:10px; font-weight:700; color:#bfe0c9; background:rgba(46,138,99,.32); padding:2px 8px; border-radius:99px;">new customer</span></sc-if>
 </div>
 <div style="font-size:12px; color:#9fb0c8; margin-top:1px;">{{ custMeta }}</div>
 </div>
+<a href="#" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
 </div>
-<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 20px;">
-<!-- Row 1: Email, Phone -->
-<div style="display:flex; gap:11px; margin-bottom:13px;">
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Email</label>
-    <input oninput="{{ onEmail }}" value="{{ email }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="audit@example.com" />
-  </div>
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Phone</label>
-    <input oninput="{{ onPhone }}" value="{{ phone }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="972505555555" />
+<div class="dc-scroll soc-page-bg" style="flex:1; overflow-y:auto; padding:16px 16px 20px;">
+
+<!-- *Reading type -->
+<div class="soc-block" style="margin-bottom:8px;">
+  <label class="soc-label" data-no-i18n="true" style="font-size:13.5px; color:#1f2a3a; font-weight:800; margin-bottom:10px;">
+    <span class="req">*</span>{{ readingTypeLabel }}
+  </label>
+  <div class="soc-type-grid">
+    <sc-for as="t" hint-placeholder-count="9" list="{{ callTypes }}">
+      <button type="button" class="soc-type-btn {{ t.fullClass }}" onclick="{{ t.pick }}"
+        style="background:{{ t.bg }}; border-color:{{ t.border }}; color:{{ t.textColor }}; border-width:{{ t.borderW }};">
+        <span class="soc-type-btn__label" data-no-i18n="true">{{ t.label }}</span>
+        <span class="soc-type-btn__icon" style="color:{{ t.iconColor }};">
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ t.iWrench }}">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </sc-if>
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ t.iDrop }}">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          </sc-if>
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ t.iBar }}">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2M8 14h.01M16 14h.01"/></svg>
+          </sc-if>
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ t.iBidet }}">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M4 12h16v4a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-4z"/><path d="M7 12V8a5 5 0 0 1 10 0"/><path d="M12 16v2"/></svg>
+          </sc-if>
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ t.iUnder }}">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M4 4h16v4H4z"/><path d="M6 8v3a6 6 0 0 0 12 0V8"/><path d="M12 17v3"/></svg>
+          </sc-if>
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ t.iGrind }}">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M5 7h14v4H5z"/><path d="M7 11v5a5 5 0 0 0 10 0v-5"/><circle cx="12" cy="15" r="1.5"/></svg>
+          </sc-if>
+          <sc-if hint-placeholder-val="{{ false }}" value="{{ t.iTrash }}">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </sc-if>
+        </span>
+      </button>
+    </sc-for>
   </div>
 </div>
 
-<!-- Row 2: phone 2 -->
-<div style="margin-bottom:13px;">
-  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">phone 2</label>
-  <input oninput="{{ onPhone2 }}" value="{{ phone2 }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="0505555555" />
-</div>
+<!-- Details -->
+<div class="soc-section-title" data-no-i18n="true">{{ detailsSectionLabel }}</div>
 
-<!-- Address details -->
-<div style="font-size:13px; color:#7b8595; font-weight:800; margin:0 0 10px;">Address details</div>
-<div style="display:flex; gap:11px; margin-bottom:11px;">
-  <div style="flex:1.4;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Street</label>
-    <input oninput="{{ onStreet }}" value="{{ street }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Street name" />
+<div class="soc-block">
+  <label class="soc-label" data-no-i18n="true">{{ relatedProductLabel }}</label>
+  <div class="soc-sku-row">
+    <input id="soc-sku-input" class="soc-field ds-input" type="text" autocomplete="off" inputmode="text"
+      value="{{ productSku }}" placeholder="Scan or type SKU"
+      oninput="{{ onSkuInput }}" onkeydown="{{ onSkuKeydown }}" onblur="{{ onSkuBlur }}"/>
+    <button type="button" class="soc-scan-btn" onclick="{{ openScanner }}" aria-label="Scan barcode" title="Scan barcode">
+      <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="22"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M14 8v8M17 8v8"/></svg>
+    </button>
   </div>
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Building number</label>
-    <input oninput="{{ onBuilding }}" value="{{ building }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="45" />
-  </div>
-</div>
-<div style="display:flex; gap:9px; margin-bottom:11px;">
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Floor</label>
-    <input oninput="{{ onFloor }}" value="{{ floor }}" class="ds-input" style="width:100%; padding:12px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" placeholder="3" />
-  </div>
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Apartment</label>
-    <input oninput="{{ onApartment }}" value="{{ apartment }}" class="ds-input" style="width:100%; padding:12px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" placeholder="9" />
-  </div>
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Entrance</label>
-    <input oninput="{{ onEntrance }}" value="{{ entrance }}" class="ds-input" style="width:100%; padding:12px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" placeholder="A" />
-  </div>
-</div>
-<div style="display:flex; gap:11px; margin-bottom:11px;">
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Area</label>
-    <input oninput="{{ onArea }}" value="{{ area }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Neighborhood / area" />
-  </div>
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">City</label>
-    <input oninput="{{ onCity }}" value="{{ city }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="City" />
-  </div>
-</div>
-<div style="margin-bottom:13px;">
-  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Full address</label>
-  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFullAddress }}">
-    <input readonly value="{{ fullAddress }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#f6f8fa;" />
+  <sc-if hint-placeholder-val="{{ false }}" value="{{ productLookupLoading }}">
+    <div style="margin-top:8px; font-size:12px; color:#7b8595; font-weight:600;">Looking up product…</div>
   </sc-if>
-  <sc-if hint-placeholder-val="{{ true }}" value="{{ noFullAddress }}">
-    <div style="width:100%; padding:12px 13px; border:1.5px dashed #dde2ea; border-radius:11px; font-size:13.5px; color:#9aa3b0; background:#fafbfc;">Filled fields will appear here</div>
+  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasProductScanError }}">
+    <div style="margin-top:8px; font-size:12px; color:#a3302e; font-weight:600;">{{ productScanError }}</div>
+  </sc-if>
+  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasScannedProduct }}">
+    <div class="soc-product-found">
+      <div style="min-width:0; flex:1;">
+        <div style="font-size:13.5px; font-weight:800; color:#1f2a3a; word-break:break-word;">{{ productName }}</div>
+        <div style="font-size:11.5px; color:#5a7fa8; margin-top:3px; font-weight:600;">SKU · {{ productSkuDisplay }} · #{{ productId }}</div>
+      </div>
+      <button type="button" onclick="{{ clearProduct }}" style="border:none; background:none; color:#c0392b; font-size:12px; font-weight:700; cursor:pointer; flex:none; padding:2px 0;">Clear</button>
+    </div>
   </sc-if>
 </div>
 
-<!-- Row 4: Topic, URGENCY -->
-<div style="display:flex; gap:11px; margin-bottom:13px;">
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Topic</label>
-    <input oninput="{{ onTopic }}" value="{{ topic }}" class="ds-input" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Topic" />
+<div style="display:flex; gap:11px; margin-bottom:14px;">
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label" data-no-i18n="true">{{ topicFieldLabel }}</label>
+    <input readonly value="{{ topic }}" class="soc-field ds-input" placeholder="Select a reading type" />
   </div>
-  <div style="flex:1;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">URGENCY</label>
-    <div style="display:flex; align-items:center; gap:6px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; background:#fff; height:46px;">
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label">URGENCY</label>
+    <div class="soc-field" style="display:flex; align-items:center; gap:6px; height:48px; padding:0 12px;">
       <sc-for as="s" hint-placeholder-count="5" list="{{ stars }}">
         <svg onclick="{{ s.pick }}" fill="currentColor" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20" style="color:{{ s.color }}; cursor:pointer;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
       </sc-for>
@@ -178,67 +282,14 @@ mbCss('./common.css');
   </div>
 </div>
 
-<!-- Row 5: Due date, Team member -->
-<div style="display:flex; gap:11px; margin-bottom:13px;">
+<div style="display:flex; gap:11px; margin-bottom:14px;">
   <div style="flex:1; min-width:0;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Due date</label>
-    <input type="date" min="{{ dueDateMin }}" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select due date" />
+    <label class="soc-label">Due date</label>
+    <input type="date" min="{{ dueDateMin }}" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="soc-field ds-input" placeholder="Select due date" />
   </div>
   <div style="flex:1; min-width:0;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">Team member</label>
-    <select onchange="{{ onTeamMember }}" class="ds-input" style="width:100%; height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;">
-      <option value="">Select</option>
-      <sc-for as="member" list="{{ teamMembers }}">
-        <option value="{{ member.id }}" selected="{{ member.selected }}">{{ member.name }}</option>
-      </sc-for>
-    </select>
-  </div>
-</div>
-
-<!-- Row 6: From, To -->
-<div style="display:flex; gap:11px; margin-bottom:13px;">
-  <div style="flex:1; min-width:0;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">From</label>
-    <input type="time" oninput="{{ onFromTime }}" value="{{ fromTime }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select from time" />
-  </div>
-  <div style="flex:1; min-width:0;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px;">To</label>
-    <input type="time" oninput="{{ onToTime }}" value="{{ toTime }}" class="ds-input" style="width:100%; height:46px; padding:12px 10px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" placeholder="Select to time" />
-  </div>
-</div>
-
-<!-- Row 7: CHOOSE PRODUCT (SKU / barcode), CHOOSE DEPARTMENT -->
-<div style="display:flex; gap:11px; margin-bottom:18px;">
-  <div style="flex:1; min-width:0;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">CHOOSE PRODUCT</label>
-    <div class="soc-sku-row">
-      <input id="soc-sku-input" class="ds-input" type="text" autocomplete="off" inputmode="text"
-        value="{{ productSku }}" placeholder="Scan or type SKU"
-        oninput="{{ onSkuInput }}" onkeydown="{{ onSkuKeydown }}" onblur="{{ onSkuBlur }}"
-        style="height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;"/>
-      <button type="button" class="soc-scan-btn" onclick="{{ openScanner }}" aria-label="Scan barcode" title="Scan barcode">
-        <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="22"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M14 8v8M17 8v8"/></svg>
-      </button>
-    </div>
-    <sc-if hint-placeholder-val="{{ false }}" value="{{ productLookupLoading }}">
-      <div style="margin-top:8px; font-size:12px; color:#7b8595; font-weight:600;">Looking up product…</div>
-    </sc-if>
-    <sc-if hint-placeholder-val="{{ false }}" value="{{ hasProductScanError }}">
-      <div style="margin-top:8px; font-size:12px; color:#a3302e; font-weight:600;">{{ productScanError }}</div>
-    </sc-if>
-    <sc-if hint-placeholder-val="{{ false }}" value="{{ hasScannedProduct }}">
-      <div class="soc-product-found">
-        <div style="min-width:0; flex:1;">
-          <div style="font-size:13.5px; font-weight:800; color:#1f2a3a; word-break:break-word;">{{ productName }}</div>
-          <div style="font-size:11.5px; color:#5a7fa8; margin-top:3px; font-weight:600;">SKU · {{ productSkuDisplay }} · #{{ productId }}</div>
-        </div>
-        <button type="button" onclick="{{ clearProduct }}" style="border:none; background:none; color:#c0392b; font-size:12px; font-weight:700; cursor:pointer; flex:none; padding:2px 0;">Clear</button>
-      </div>
-    </sc-if>
-  </div>
-  <div style="flex:1; min-width:0;">
-    <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">CHOOSE DEPARTMENT</label>
-    <select onchange="{{ onDepartment }}" class="ds-input" style="width:100%; height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;">
+    <label class="soc-label">CHOOSE DEPARTMENT</label>
+    <select onchange="{{ onDepartment }}" class="soc-field ds-input">
       <option value="">Select Department</option>
       <sc-for as="dep" list="{{ departmentsList }}">
         <option value="{{ dep.id }}" selected="{{ dep.selected }}">{{ dep.name }}</option>
@@ -247,15 +298,72 @@ mbCss('./common.css');
   </div>
 </div>
 
-<!-- Row 7: PROBLEM -->
-<div style="margin-bottom:18px;">
-  <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">PROBLEM</label>
-  <textarea oninput="{{ onProblem }}" value="{{ problem }}" class="ds-input" placeholder="Text" style="width:100%; min-height:100px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; resize:vertical; background:#fff;"></textarea>
+<div style="display:flex; gap:11px; margin-bottom:18px;">
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label">From</label>
+    <input type="time" oninput="{{ onFromTime }}" value="{{ fromTime }}" class="soc-field ds-input" placeholder="Select from time" />
+  </div>
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label">To</label>
+    <input type="time" oninput="{{ onToTime }}" value="{{ toTime }}" class="soc-field ds-input" placeholder="Select to time" />
+  </div>
 </div>
 
-<!-- Row 8: Drag & Drop a file (inventory look + safe drop, no browser open) -->
-<div style="margin-bottom:18px;">
-  <div class="soc-drop-zone {{ dropZoneClass }}" id="soc-drop-zone">
+<!-- Problem -->
+<div class="soc-block">
+  <label class="soc-label" data-no-i18n="true"><span class="req">*</span>{{ problemLabel }}</label>
+  <textarea oninput="{{ onProblem }}" value="{{ problem }}" class="soc-field ds-input" placeholder="{{ problemPlaceholder }}"></textarea>
+</div>
+
+<!-- Address and photo -->
+<div class="soc-section-title" data-no-i18n="true">{{ addressPhotoLabel }}</div>
+
+<div style="display:flex; gap:11px; margin-bottom:12px;">
+  <div style="flex:1.4; min-width:0;">
+    <label class="soc-label">Street</label>
+    <input oninput="{{ onStreet }}" value="{{ street }}" class="soc-field ds-input" placeholder="Street name" />
+  </div>
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label">Building number</label>
+    <input oninput="{{ onBuilding }}" value="{{ building }}" class="soc-field ds-input" placeholder="45" />
+  </div>
+</div>
+<div style="display:flex; gap:9px; margin-bottom:12px;">
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label">Floor</label>
+    <input oninput="{{ onFloor }}" value="{{ floor }}" class="soc-field ds-input" style="text-align:center;" placeholder="3" />
+  </div>
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label">Apartment</label>
+    <input oninput="{{ onApartment }}" value="{{ apartment }}" class="soc-field ds-input" style="text-align:center;" placeholder="9" />
+  </div>
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label">Entrance</label>
+    <input oninput="{{ onEntrance }}" value="{{ entrance }}" class="soc-field ds-input" style="text-align:center;" placeholder="A" />
+  </div>
+</div>
+<div style="display:flex; gap:11px; margin-bottom:12px;">
+  <div style="flex:1; min-width:0;">
+    <label class="soc-label" data-no-i18n="true"><span class="req">*</span>{{ areaLabel }}</label>
+    <input oninput="{{ onArea }}" value="{{ area }}" class="soc-field ds-input" placeholder="Neighborhood / area" />
+  </div>
+  <div style="flex:1.6; min-width:0;">
+    <label class="soc-label">City</label>
+    <input oninput="{{ onCity }}" value="{{ city }}" class="soc-field ds-input" placeholder="City" />
+  </div>
+</div>
+<div style="margin-bottom:12px;">
+  <label class="soc-label" data-no-i18n="true"><span class="req">*</span>{{ deliveryAddressLabel }}</label>
+  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFullAddress }}">
+    <input readonly value="{{ fullAddress }}" class="soc-field ds-input" />
+  </sc-if>
+  <sc-if hint-placeholder-val="{{ true }}" value="{{ noFullAddress }}">
+    <div class="soc-field" style="display:flex; align-items:center; border-style:dashed; color:#9aa3b0; background:#fafbfc; height:auto; min-height:48px;">Filled fields will appear here</div>
+  </sc-if>
+</div>
+
+<div class="soc-block">
+  <div class="soc-photo-zone soc-drop-zone {{ dropZoneClass }}" id="soc-drop-zone">
     <input id="soc-file-input" type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.mp4,.webm,.mov,.txt,.csv,.zip" onchange="{{ onFileChange }}"/>
     <sc-if hint-placeholder-val="{{ false }}" value="{{ hasFile }}">
       <div style="width:44px; height:44px; border-radius:50%; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; pointer-events:none;">
@@ -265,13 +373,27 @@ mbCss('./common.css');
       <button type="button" onclick="{{ clearFile }}" style="position:relative; z-index:3; margin-top:2px; padding:6px 12px; border-radius:99px; border:none; background:#eef0f3; color:#5a6473; font-size:12px; font-weight:700; cursor:pointer;">Remove</button>
     </sc-if>
     <sc-if hint-placeholder-val="{{ true }}" value="{{ noFile }}">
-      <div style="width:44px; height:44px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; pointer-events:none;">
-        <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="22"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
+      <div style="color:#1d60a2; position:relative; z-index:1; pointer-events:none; display:flex; flex-direction:column; align-items:center; gap:8px;">
+        <svg fill="none" height="28" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="28"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <div style="font-size:13.5px; font-weight:700; text-align:center;" data-no-i18n="true">
+          <span style="color:#9aa3b0; font-weight:600;">{{ photoOptionalLabel }}</span> {{ photoAttachLabel }}
+        </div>
       </div>
-      <div style="font-size:13px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; pointer-events:none;">Select or drag &amp; drop here your file</div>
     </sc-if>
   </div>
 </div>
+
+<!-- Assignment -->
+<div class="soc-section-title" data-no-i18n="true">{{ assignFieldLabel }}</div>
+<div class="soc-block">
+  <select onchange="{{ onTeamMember }}" class="soc-field ds-input">
+    <option value="">Select</option>
+    <sc-for as="member" list="{{ teamMembers }}">
+      <option value="{{ member.id }}" selected="{{ member.selected }}">{{ member.name }}</option>
+    </sc-for>
+  </select>
+</div>
+
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
   <div role="alert" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:#fbeeed; color:#a3302e; font-size:12.5px; font-weight:600;">{{ errorMsg }}</div>
 </sc-if>
@@ -309,7 +431,7 @@ class Component extends DCLogic {
   state = {
     callType: 'tech', charge: true, cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '',
     products: [], productId: '', productSku: '', productName: '', productScanError: '', productLookupLoading: false, scannerOpen: false,
-    productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: ''
+    productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '', langTick: 0
   };
 
   componentDidMount() {
@@ -317,6 +439,7 @@ class Component extends DCLogic {
       LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
     }
 
+    this.syncTopicFromCallType();
     this.loadCustomer();
     this.loadFormOptions();
     this.loadPaidProducts();
@@ -325,6 +448,7 @@ class Component extends DCLogic {
       this.loadCustomer();
       this.loadFormOptions();
       this.loadPaidProducts();
+      this.syncTopicFromCallType();
     });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => {
@@ -333,6 +457,19 @@ class Component extends DCLogic {
         this.loadPaidProducts();
       }, { keys: /ticket|product|customer|department|socket\.nudge/i, delay: 400 });
     }
+    var self = this;
+    window.addEventListener('mineralbar:language-changed', function () {
+      self.setState({ langTick: Date.now() });
+      self.syncTopicFromCallType();
+    });
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () {
+          self.setState({ langTick: Date.now() });
+          self.syncTopicFromCallType();
+        }, 80);
+      }
+    });
   }
 
   /** Prefer URL customer (from customer card) over stale localStorage. */
@@ -822,6 +959,50 @@ class Component extends DCLogic {
     return localDate;
   }
 
+  buildTicketAddForm(payload, file) {
+    if (!file) return payload;
+    var form = new FormData();
+    Object.keys(payload || {}).forEach(function (key) {
+      var val = payload[key];
+      if (val === undefined || val === null || val === '') return;
+      if (key === 'custom_fields') {
+        if (typeof val === 'object') form.append('custom_fields', JSON.stringify(val));
+        else form.append('custom_fields', String(val));
+        return;
+      }
+      if (key === 'assign_member_id') {
+        form.append('assign_member_id[]', String(val));
+        return;
+      }
+      if (key === 'product_id') {
+        form.append('product_id[]', String(val));
+        return;
+      }
+      if (val instanceof Date) {
+        form.append(key, val);
+        return;
+      }
+      if (Array.isArray(val)) {
+        val.forEach(function (item) {
+          if (item != null && item !== '') form.append(key + '[]', String(item));
+        });
+        return;
+      }
+      form.append(key, String(val));
+    });
+    var uploadName = String(this.state.fileName || file.name || 'upload.jpg').trim() || 'upload.jpg';
+    form.append('image_upload', file, uploadName);
+    return form;
+  }
+
+  ticketFilesFromResult(result) {
+    if (!result) return [];
+    if (Array.isArray(result.files)) return result.files;
+    if (result.output && Array.isArray(result.output.files)) return result.output.files;
+    if (result.data && Array.isArray(result.data.files)) return result.data.files;
+    return [];
+  }
+
   todayDateKey() {
     var d = new Date();
     var y = d.getFullYear();
@@ -1112,10 +1293,17 @@ class Component extends DCLogic {
 
   async createTicket() {
     if (this.state.submitting) return;
-    var topic = String(this.state.topic || '').trim();
+    var selectedType = (this.TYPES || []).find((x) => x.id === this.state.callType);
+    var topic = String(this.typeLabel(selectedType) || this.state.topic || '').trim();
     var problem = String(this.state.problem || '').trim();
     if (!topic || !problem) {
-      this.setState({ errorMsg: 'Topic and problem are required.', successMsg: '' });
+      this.setState({
+        errorMsg: !topic
+          ? (this.isEn() ? 'Select a reading type (topic is required).' : 'יש לבחור סוג קריאה (נושא חובה).')
+          : (this.isEn() ? 'Problem description is required.' : 'יש למלא תיאור בעיה.'),
+        successMsg: '',
+        topic: topic
+      });
       return;
     }
     if (this.state.dueDate && this.state.dueDate < this.todayDateKey()) {
@@ -1169,18 +1357,30 @@ class Component extends DCLogic {
         payload.customer_id = customerId;
       }
       if (this.state.teamMemberId) payload.assign_member_id = String(this.state.teamMemberId);
-      if (this.state.departmentId) payload.department = String(this.state.departmentId);
+      if (this.state.departmentId) {
+        payload.department = String(this.state.departmentId);
+        payload.ticket_department = String(this.state.departmentId);
+      }
       // Only send real catalog ids — never "0" or a product name string
-      var realProductId = product && String(product.product_id || '').trim();
+      var realProductId = product && String(product.product_id || product.id || '').trim();
       if (realProductId && realProductId !== '0' && /^\d+$/.test(realProductId)) {
         payload.product_id = realProductId;
       }
+      if (this.state.urgency) payload.rating = String(this.state.urgency);
       if (this.state.dueDate) payload.due_date = this.dueDateUtc();
-      if (this.state.fromTime) payload.ticket_from_time = this.state.fromTime + ':00';
-      if (this.state.toTime) payload.ticket_to_time = this.state.toTime + ':00';
+      if (this.state.fromTime) {
+        payload.ticket_from_time = this.state.fromTime + ':00';
+        payload.from_time_ticket = this.state.fromTime;
+      }
+      if (this.state.toTime) {
+        payload.ticket_to_time = this.state.toTime + ':00';
+        payload.to_time_ticket = this.state.toTime;
+      }
       if (Object.keys(customFields).length) payload.custom_fields = customFields;
 
-      var result = await client.request('Ticket.Add', payload);
+      var attachFile = this.state.file || null;
+      var requestBody = this.buildTicketAddForm(payload, attachFile);
+      var result = await client.request('Ticket.Add', requestBody);
       var output = result && result.output;
       var ticketId = result && (
         result.ticket_id ||
@@ -1196,24 +1396,18 @@ class Component extends DCLogic {
       }
 
       var uploadWarning = '';
-      if (this.state.file) {
-        if (!customerId) {
-          uploadWarning = ' Ticket created, but the file needs an existing customer.';
-        } else {
-          try {
-            await window.MineralBarApp.uploadCustomerFile(customerId, this.state.file, {
-              file_name: this.state.fileName,
-              folder: 'default'
-            });
-          } catch (uploadError) {
-            uploadWarning = ' Ticket created, but the file upload failed.';
-          }
+      if (attachFile) {
+        var uploadedFiles = this.ticketFilesFromResult(result);
+        if (!uploadedFiles.length) {
+          uploadWarning = this.isEn()
+            ? ' Ticket created, but the photo was not attached to the ticket.'
+            : ' הקריאה נוצרה, אך התמונה לא צורפה לטיקט.';
         }
       }
 
       this.setState({
         submitting: false,
-        successMsg: 'Ticket created successfully.' + uploadWarning,
+        successMsg: (this.isEn() ? 'Ticket created successfully.' : 'הקריאה נוצרה בהצלחה.') + uploadWarning,
         errorMsg: ''
       });
       try { localStorage.removeItem('mineral_new_call_customer'); } catch (e) {}
@@ -1236,29 +1430,59 @@ class Component extends DCLogic {
   }
 
   TYPES = [
-    { id: 'tech', label: 'שירות טכני', icon: 'iWrench', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'center', label: 'התקנת מרכך מים', icon: 'iDrop', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'mainbar', label: 'התקנת בר ראשי', icon: 'iBar', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'bidet', label: 'התקנת בידה חשמלי', icon: 'iBidet', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'under', label: 'מערכת תת כיורית', icon: 'iUnder', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'waterbar', label: 'התקנת בר מים', icon: 'iDrop', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'undergrind', label: 'תת כיורי + טוחן', icon: 'iGrind', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'filter', label: 'החלפת סנן', icon: 'iUnder', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' } },
-    { id: 'disposal', label: 'התקנת טוחן אשפה', icon: 'iTrash', tone: { bg: '#eaf2fb', border: '#aecbe9', icon: '#1d60a2', text: '#194f84' }, full: true },
+    { id: 'center', labelHe: 'התקנת מרכך מים', labelEn: 'Installing a water softener', icon: 'iDrop', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'tech', labelHe: 'שירות טכני', labelEn: 'Technical service', icon: 'iWrench', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'bidet', labelHe: 'התקנת בידה חשמלי', labelEn: 'Electric bidet installation', icon: 'iBidet', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'mainbar', labelHe: 'התקנת בר ראשי', labelEn: 'Installing a main bar', icon: 'iBar', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'waterbar', labelHe: 'התקנת בר מים', labelEn: 'Installing a water bar', icon: 'iDrop', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'under', labelHe: 'מערכת תת כיורית', labelEn: 'Under-sink system', icon: 'iUnder', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'filter', labelHe: 'החלפת סנן', labelEn: 'Filter replacement', icon: 'iUnder', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'undergrind', labelHe: 'תת כיורי + טוחן', labelEn: 'Under sink + grinder', icon: 'iGrind', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' } },
+    { id: 'disposal', labelHe: 'התקנת טוחן אשפה', labelEn: 'Installing a garbage disposer', icon: 'iTrash', tone: { bg: '#eaf2fb', border: '#6ea6d8', icon: '#1d60a2', text: '#194f84' }, full: true },
   ];
 
-  pickType(id) { this.setState({ callType: id }); }
+  isEn() {
+    if (typeof getCurrentLanguage === 'function') return getCurrentLanguage() === 'en';
+    if (typeof isUiEn === 'function') return !!isUiEn();
+    try {
+      return String(document.documentElement.dir || '').toLowerCase() === 'ltr';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  typeLabel(t) {
+    if (!t) return '';
+    return this.isEn() ? (t.labelEn || t.labelHe || '') : (t.labelHe || t.labelEn || '');
+  }
+
+  syncTopicFromCallType() {
+    var id = this.state.callType || 'tech';
+    var t = (this.TYPES || []).find(function (x) { return x.id === id; });
+    this.setState({ topic: this.typeLabel(t) });
+  }
+
+  pickType(id) {
+    var t = (this.TYPES || []).find(function (x) { return x.id === id; });
+    this.setState({
+      callType: id,
+      topic: this.typeLabel(t)
+    });
+  }
   toggleCharge() { this.setState(s => ({ charge: !s.charge })); }
 
   renderVals() {
+    void this.state.langTick;
     const callTypes = this.TYPES.map(t => {
       const on = t.id === this.state.callType;
       return {
-        label: t.label, pick: () => this.pickType(t.id),
+        label: this.typeLabel(t), pick: () => this.pickType(t.id),
+        fullClass: t.full ? 'is-full' : '',
         span: t.full ? '1 / -1' : 'auto',
         iWrench: t.icon === 'iWrench', iDrop: t.icon === 'iDrop', iBar: t.icon === 'iBar',
         iBidet: t.icon === 'iBidet', iUnder: t.icon === 'iUnder', iGrind: t.icon === 'iGrind', iTrash: t.icon === 'iTrash',
-        bg: on ? t.tone.bg : '#fff', border: on ? t.tone.border : '#e4e8ee',
+        bg: on ? t.tone.bg : '#fff', border: on ? t.tone.border : '#e1e6ee',
+        borderW: on ? '2px' : '1.5px',
         iconColor: on ? t.tone.icon : '#9aa3b0',
         textColor: on ? t.tone.text : '#5a6473',
       };
@@ -1321,7 +1545,21 @@ class Component extends DCLogic {
       fullAddress: fullAddress,
       hasFullAddress: !!fullAddress,
       noFullAddress: !fullAddress,
-      topic: this.state.topic, onTopic: e => this.setState({ topic: e.target.value }),
+      topic: this.state.topic || this.typeLabel((this.TYPES || []).find((x) => x.id === this.state.callType)),
+      topicFieldLabel: this.isEn() ? 'Topic' : 'נושא',
+      readingTypeLabel: this.isEn() ? 'Reading type' : 'סוג קריאה',
+      detailsSectionLabel: this.isEn() ? 'Details' : 'פרטים',
+      relatedProductLabel: this.isEn() ? 'Related product' : 'מוצר מקושר',
+      problemLabel: this.isEn() ? 'Problem description' : 'תיאור הבעיה',
+      problemPlaceholder: this.isEn() ? '...Briefly describe what the customer reported' : '...תאר בקצרה מה הלקוח דיווח',
+      addressPhotoLabel: this.isEn() ? 'Address and photo' : 'כתובת ותמונה',
+      areaLabel: this.isEn() ? 'Area' : 'אזור',
+      deliveryAddressLabel: this.isEn() ? 'Delivery address' : 'כתובת למשלוח',
+      photoOptionalLabel: this.isEn() ? '(optional)' : '(אופציונלי)',
+      photoAttachLabel: this.isEn() ? 'Attach a photo' : 'צרף תמונה',
+      assignFieldLabel: this.isEn()
+        ? 'Service member'
+        : 'נציג שירות',
       problem: this.state.problem, onProblem: e => this.setState({ problem: e.target.value }),
       dueDate: this.state.dueDate,
       dueDateMin: this.todayDateKey(),

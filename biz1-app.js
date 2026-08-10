@@ -1302,10 +1302,19 @@
     if (p.city !== undefined && p.city !== '') payload.city = p.city;
     if (p.city_name !== undefined && p.city_name !== '') payload.city_name = p.city_name;
     if (p.city_id !== undefined && p.city_id !== '') payload.city_id = p.city_id;
+    // Area / region aliases → city fields when city not set
+    var areaVal = p.area || p.region || p.zone;
+    if (areaVal !== undefined && areaVal !== '') {
+      if (!payload.city) payload.city = areaVal;
+      if (!payload.city_name) payload.city_name = areaVal;
+    }
 
-    // Folder & Status
-    var folderVal = p.folder_id || p.folder;
-    if (folderVal !== undefined && folderVal !== '') payload.folder_id = folderVal;
+    // Folder & Status — always coerce numeric folder ids
+    var folderVal = p.folder_id != null && p.folder_id !== '' ? p.folder_id : p.folder;
+    if (folderVal !== undefined && folderVal !== '') {
+      var folderNum = Number(folderVal);
+      payload.folder_id = isFinite(folderNum) ? folderNum : folderVal;
+    }
 
     var statusVal = p.status_id || p.status;
     if (statusVal !== undefined && statusVal !== '') payload.status_id = statusVal;
@@ -1316,7 +1325,13 @@
     if (p.tag !== undefined && p.tag !== '') payload.tag = p.tag;
 
     // Custom fields & Parent Customer
-    if (p.extra_fields !== undefined) payload.extra_fields = p.extra_fields;
+    if (p.extra_fields !== undefined && p.extra_fields !== null && p.extra_fields !== '') {
+      if (typeof p.extra_fields === 'object' && !(p.extra_fields instanceof Date)) {
+        payload.extra_fields = JSON.stringify(p.extra_fields);
+      } else {
+        payload.extra_fields = p.extra_fields;
+      }
+    }
     var parentCustVal = p.parent_customer_id || p.parent_cust_IIId;
     if (parentCustVal !== undefined && parentCustVal !== '') payload.parent_customer_id = parentCustVal;
 
@@ -1363,11 +1378,51 @@
       err.raw = raw;
       throw err;
     }
+    var newId = raw.insert_id || raw.customer_id || (raw.output && raw.output.id);
+    var managerId = p.customer_manager || p.team_member_id || p.assign_member_id;
+    if (newId && managerId) {
+      try {
+        await assignCustomerTeamMember(newId, managerId);
+      } catch (assignErr) {
+        console.warn('[MineralBarApp] assignCustomerTeamMember after create failed', assignErr);
+      }
+    }
     return {
       ok: true,
-      id: raw.insert_id || raw.customer_id || (raw.output && raw.output.id),
+      id: newId,
       raw: raw
     };
+  }
+
+  /** Assign a customer to a team member (service representative). */
+  async function assignCustomerTeamMember(customerId, teamMemberId) {
+    var cid = requireId(customerId, 'customer_id');
+    var mid = String(teamMemberId || '').trim();
+    if (!mid) return { ok: false, skipped: true };
+
+    var client = getClient();
+    var routes = ['Customer.Edit', 'Customer.Update'];
+    var payloads = [
+      { customer_manager: mid },
+      { shared_with: mid },
+      { user_id: mid }
+    ];
+
+    for (var r = 0; r < routes.length; r++) {
+      for (var i = 0; i < payloads.length; i++) {
+        try {
+          var body = Object.assign({ customer_id: cid }, payloads[i]);
+          var raw = await client.request(routes[r], body);
+          if (raw && (Number(raw.success) === 1 || raw.success === true)) {
+            return { ok: true, route: routes[r], raw: raw };
+          }
+        } catch (e) {
+          /* try next payload/route */
+        }
+      }
+    }
+
+    return { ok: false, message: 'Team member assignment is not supported by the API yet.' };
   }
 
   /** Single ticket — always pass ticket_id. */
@@ -1534,7 +1589,7 @@
   }
 
   function chatSnippet(r) {
-    return String((r && (r.message || r.note || r.import_note || r.subject)) || '').trim();
+    return String((r && (r.message || r.msg || r.note || r.import_note || r.subject)) || '').trim();
   }
 
   /**
@@ -1656,35 +1711,43 @@
   }
 
   /**
-   * Chat.SendCustomer — always send customer_id (and cust_id alias).
-   * success may be string "4" with message_return when note/message was stored.
+   * Chat.SendCustomer — customer composer / internal notes.
+   * @see https://eli.bull36.com/app/help/Chat.SendCustomer
+   * Required: customer_id (or cust_id / contactus_id), message (or msg).
+   * Notes: from=send_notes stores internal timeline entry; fires message.created.
    */
   async function sendCustomerMessage(params) {
     var client = getClient();
     var p = params || {};
     var msg = String(p.msg || p.message || '').trim();
     if (!msg) {
-      var e = new Error('חסרה הודעה (msg)');
+      var e = new Error('חסרה הודעה (message)');
       e.route = 'Chat.SendCustomer';
       throw e;
     }
     var customerId = p.customer_id != null && p.customer_id !== ''
       ? p.customer_id
-      : (p.cust_id != null && p.cust_id !== '' ? p.cust_id : null);
+      : (p.cust_id != null && p.cust_id !== ''
+        ? p.cust_id
+        : (p.contactus_id != null && p.contactus_id !== '' ? p.contactus_id : null));
     if (customerId == null) {
       var e2 = new Error('חסר customer_id לשליחת הודעה');
       e2.route = 'Chat.SendCustomer';
       e2.code = 'MISSING_ID';
       throw e2;
     }
-    // API accepts 0 for unmatched email threads; still always send the field.
-    var payload = {
-      msg: msg,
-      message: msg,
-      customer_id: customerId,
-      cust_id: customerId
-    };
-    if (p.from) payload.from = p.from;
+    var fromVal = p.from ? String(p.from) : '';
+    var isInternalNote = !fromVal || fromVal === 'send_notes' || fromVal === 'notes';
+    // Official note sample: customer_id + message + from=send_notes
+    var payload = isInternalNote
+      ? { customer_id: customerId, message: msg, from: 'send_notes' }
+      : {
+        msg: msg,
+        message: msg,
+        customer_id: customerId,
+        cust_id: customerId
+      };
+    if (!isInternalNote && p.from) payload.from = p.from;
     // channel_type is for custom channels (from=send_chat_channel) or explicit override
     if (p.channel_type && (p.from === 'send_chat_channel' || p.force_channel_type)) {
       payload.channel_type = p.channel_type;
@@ -1746,6 +1809,23 @@
       message: returnText || 'נשלח',
       raw: raw
     };
+  }
+
+  /** Internal note — Chat.SendCustomer per help sample (from=send_notes). */
+  async function sendCustomerNote(customerId, text, extra) {
+    var cid = customerId != null && customerId !== '' ? customerId : null;
+    if (cid == null) {
+      var e = new Error('חסר customer_id לשמירת הערה');
+      e.route = 'Chat.SendCustomer';
+      e.code = 'MISSING_ID';
+      throw e;
+    }
+    var msg = String(text || '').trim();
+    return sendCustomerMessage(Object.assign({
+      customer_id: cid,
+      message: msg,
+      from: 'send_notes'
+    }, extra || {}));
   }
 
   /** Event keys from biz1:ready that belong to messages / missions. */
@@ -2522,6 +2602,7 @@
     requireAuthOrRedirect: requireAuth,
     listCustomers: listCustomers,
     createCustomer: createCustomer,
+    assignCustomerTeamMember: assignCustomerTeamMember,
     countCustomers: countCustomers,
     listProjects: listProjects,
     uploadCustomerFile: uploadCustomerFile,
@@ -2546,6 +2627,7 @@
     listSingleConversation: listSingleConversation,
     parseEmailsHtml: parseEmailsHtml,
     sendCustomerMessage: sendCustomerMessage,
+    sendCustomerNote: sendCustomerNote,
     connectRealtime: connectRealtime,
     disconnectRealtime: disconnectRealtime,
     ensureRealtimeConnected: ensureRealtimeConnected,

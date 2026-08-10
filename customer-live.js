@@ -456,6 +456,364 @@
     );
   }
 
+  function actionButton(id, svg, label) {
+    return (
+      '<button type="button" id="' + esc(id) + '" class="gv-act" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;background:#fff;border:1px solid #e8eaee;border-radius:14px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04);">' +
+      svg +
+      '<span style="font-size:12px;font-weight:700;color:#1f2a3a;text-align:center;">' + esc(label) + '</span>' +
+      '</button>'
+    );
+  }
+
+  var leadFolderUi = {
+    subStatuses: [],
+    folderStatusCache: {},
+    toastTimer: null,
+    suppressUntil: 0
+  };
+
+  var LEAD_FOLDER_COLORS = { '1': '#f87171', '2': '#3b82f6', '3': '#ef4444' };
+
+  function leadFolderId() {
+    try {
+      if (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.LEADS != null) {
+        return String(MineralBarApp.FOLDERS.LEADS);
+      }
+    } catch (e) { /* ignore */ }
+    return '1';
+  }
+
+  function applyLeadSelectStyle(sel) {
+    if (!sel) return;
+    var isRtl = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'he');
+    sel.style.backgroundImage = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")";
+    sel.style.backgroundRepeat = 'no-repeat';
+    sel.style.backgroundSize = '14px 14px';
+    sel.style.backgroundPosition = isRtl ? 'left 13px center' : 'right 13px center';
+  }
+
+  function showLeadStatusToast(message, kind) {
+    var el = document.getElementById('mb-lead-status-toast');
+    if (!el || !message) return;
+    clearTimeout(leadFolderUi.toastTimer);
+    el.textContent = String(message);
+    el.style.background = kind === 'error' ? '#a3302e' : '#16223a';
+    el.style.display = 'block';
+    leadFolderUi.toastTimer = setTimeout(function () { el.style.display = 'none'; }, 2800);
+  }
+
+  async function fetchLeadSubStatuses() {
+    if (leadFolderUi.subStatuses.length) return leadFolderUi.subStatuses;
+    try {
+      var res = await MineralBarApp.getClient().request('Statuses.List', { type: 'internal_sub_status', limit: 50 });
+      var rows = (res && (res.data || res.rows || res.output)) || [];
+      leadFolderUi.subStatuses = Array.isArray(rows) ? rows : [];
+    } catch (e) {
+      leadFolderUi.subStatuses = [];
+    }
+    return leadFolderUi.subStatuses;
+  }
+
+  async function fetchLeadFolderStatuses(folderId) {
+    var key = String(folderId || '');
+    if (leadFolderUi.folderStatusCache[key]) return leadFolderUi.folderStatusCache[key];
+    try {
+      var res = await MineralBarApp.getClient().request('Statuses.List', {
+        type: 'internal_status',
+        folder_id: folderId,
+        limit: 50
+      });
+      var rows = (res && (res.data || res.rows || res.output)) || [];
+      var list = Array.isArray(rows) ? rows : [];
+      leadFolderUi.folderStatusCache[key] = list;
+      return list;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function leadFolderStatusValue(c, folderId, folderStatuses) {
+    c = c || {};
+    var statusId = '';
+    var known = {};
+    (folderStatuses || []).forEach(function (row) {
+      var id = row && (row.status_id || row.id || row.data_id);
+      if (id != null && id !== '') known[String(id)] = true;
+    });
+    var candidates = [c.sub_list_data, c.status_id, c.status];
+    for (var i = 0; i < candidates.length; i++) {
+      var cand = candidates[i];
+      if (cand == null || cand === '') continue;
+      if (!folderStatuses || !folderStatuses.length || known[String(cand)]) {
+        statusId = String(cand);
+        break;
+      }
+    }
+    return {
+      status_id: statusId,
+      sub_status_id: c.internal_sub_status_list || ''
+    };
+  }
+
+  function leadSubStatusesForParent(parentStatusId) {
+    return leadFolderUi.subStatuses.filter(function (x) {
+      var pId = x.parent_status_id || x.patent_status_id || x.data_patent_id || '';
+      return String(pId) === String(parentStatusId);
+    });
+  }
+
+  function styleLeadStatusSelect(selectEl, folderStatuses) {
+    var selectedId = selectEl ? String(selectEl.value || '') : '';
+    var row = (folderStatuses || []).find(function (r) {
+      var id = r.status_id || r.id || r.data_id;
+      return String(id) === selectedId;
+    });
+    if (row && row.color) {
+      selectEl.style.backgroundColor = String(row.color);
+      selectEl.style.color = '#fff';
+      selectEl.style.border = 'none';
+    } else if (selectedId) {
+      selectEl.style.backgroundColor = '#1d3fd6';
+      selectEl.style.color = '#fff';
+      selectEl.style.border = 'none';
+    } else {
+      selectEl.style.backgroundColor = '#fff';
+      selectEl.style.color = '#1f2a3a';
+      selectEl.style.border = '1.5px solid #d7e2ee';
+    }
+    applyLeadSelectStyle(selectEl);
+  }
+
+  function populateLeadStatusSelect(selectEl, folderStatuses, selectedStatusId) {
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    selectEl.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = t('--Select Internal Status--', '-- בחר סטטוס פנימי --');
+    selectEl.appendChild(placeholder);
+    var knownIds = {};
+    (folderStatuses || []).forEach(function (row) {
+      var id = row.status_id || row.id || row.data_id;
+      var label = isEn ? (row.name_en || row.name_for || row.name_he) : (row.name_he || row.name_for || row.name_en);
+      if (id == null || !label) return;
+      knownIds[String(id)] = true;
+      var option = document.createElement('option');
+      option.value = String(id);
+      option.textContent = String(label);
+      selectEl.appendChild(option);
+    });
+    var sel = selectedStatusId ? String(selectedStatusId) : '';
+    selectEl.value = (sel && knownIds[sel]) ? sel : '';
+    styleLeadStatusSelect(selectEl, folderStatuses);
+  }
+
+  function populateLeadSubStatusSelect(selectEl, parentStatusId, selectedSubId) {
+    selectEl.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '----';
+    selectEl.appendChild(placeholder);
+    leadSubStatusesForParent(parentStatusId).forEach(function (row) {
+      var id = row.status_id || row.id || row.data_id;
+      var label = row.name_he || row.name_for || row.name_en || row.name || '';
+      var option = document.createElement('option');
+      option.value = String(id);
+      option.textContent = String(label);
+      selectEl.appendChild(option);
+    });
+    selectEl.value = selectedSubId ? String(selectedSubId) : '';
+    applyLeadSelectStyle(selectEl);
+  }
+
+  function buildLeadFolderBlock(folderId, folderName, statusVal, subStatusVal, folderStatuses, customerId) {
+    var block = document.createElement('div');
+    block.className = 'folder-block';
+    block.style.cssText = 'background:#eef4fb;border:1px solid #dce8f5;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px;';
+
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    header.innerHTML =
+      '<span style="width:8px;height:8px;border-radius:50%;background:' + (LEAD_FOLDER_COLORS[String(folderId)] || '#f87171') + ';flex:none;"></span>' +
+      '<span style="font-size:14px;font-weight:800;color:#1f2a3a;">' + esc(folderName) + '</span>';
+    block.appendChild(header);
+
+    var statusWrap = document.createElement('div');
+    var statusLabel = document.createElement('span');
+    statusLabel.style.cssText = 'display:block;margin-bottom:4px;font-size:11.5px;color:#7b8595;';
+    statusLabel.textContent = t('Internal status', 'סטטוס פנימי');
+    var statusSelect = document.createElement('select');
+    statusSelect.className = 'lead-folder-select folder-status-select';
+    statusSelect.style.cssText = 'width:100%;padding:9px 12px;border-radius:8px;border:none;font-size:13.5px;font-weight:700;color:#fff;background-color:#1d3fd6;';
+    statusWrap.appendChild(statusLabel);
+    statusWrap.appendChild(statusSelect);
+    block.appendChild(statusWrap);
+
+    var subWrap = document.createElement('div');
+    var subLabel = document.createElement('span');
+    subLabel.style.cssText = 'display:block;margin-bottom:4px;font-size:11.5px;color:#7b8595;';
+    subLabel.textContent = t('Internal sub-status', 'תת-סטטוס פנימי');
+    var subSelect = document.createElement('select');
+    subSelect.className = 'lead-folder-select folder-sub-status-select';
+    subSelect.style.cssText = 'width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #d7e2ee;font-size:13.5px;color:#1f2a3a;background-color:#fff;';
+    subWrap.appendChild(subLabel);
+    subWrap.appendChild(subSelect);
+    block.appendChild(subWrap);
+
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'folder-save-btn';
+    saveBtn.textContent = t('Save for folder', 'שמור לתיקייה');
+    saveBtn.style.cssText = 'align-self:flex-start;background:none;border:none;color:#1d60a2;font-size:12.5px;font-weight:700;cursor:pointer;padding:2px 0;text-decoration:underline;';
+    block.appendChild(saveBtn);
+
+    populateLeadStatusSelect(statusSelect, folderStatuses, statusVal);
+    populateLeadSubStatusSelect(subSelect, statusVal, subStatusVal);
+
+    statusSelect.addEventListener('change', function () {
+      styleLeadStatusSelect(statusSelect, folderStatuses);
+      populateLeadSubStatusSelect(subSelect, statusSelect.value, '');
+    });
+
+    saveBtn.addEventListener('click', function () {
+      saveLeadFolderStatus(folderId, block, customerId);
+    });
+
+    return block;
+  }
+
+  async function saveLeadFolderStatus(folderId, block, customerId) {
+    var btn = block.querySelector('.folder-save-btn');
+    var statusSel = block.querySelector('.folder-status-select');
+    var subSel = block.querySelector('.folder-sub-status-select');
+    if (!btn || btn.disabled || !customerId) return;
+
+    var statusId = statusSel ? String(statusSel.value || '').trim() : '';
+    if (!statusId) {
+      showLeadStatusToast(t('Select internal status', 'בחר סטטוס פנימי'), 'error');
+      return;
+    }
+
+    var statusName = '';
+    if (statusSel && statusSel.selectedIndex >= 0) {
+      statusName = String(statusSel.options[statusSel.selectedIndex].textContent || '').trim();
+    }
+    var subStatusId = subSel ? String(subSel.value || '').trim() : '';
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('Saving…', 'שומר…');
+
+    try {
+      var payload = {
+        customer_id: customerId,
+        id: customerId,
+        cust_id: customerId,
+        folder_id: String(folderId),
+        sub_list_data: statusId,
+        sub_list_data_name: statusName,
+        status: statusId
+      };
+      if (subStatusId) payload.internal_sub_status_list = subStatusId;
+
+      var raw = await MineralBarApp.getClient().request('Customer.Edit', payload);
+      if (!(raw && (Number(raw.success) === 1 || raw.success === true || raw.output || raw.data))) {
+        throw new Error((raw && (raw.message || raw.error)) || 'Customer.Edit failed');
+      }
+
+      leadFolderUi.suppressUntil = Date.now() + 2800;
+      if (window.__mbLeadCardCustomer) {
+        window.__mbLeadCardCustomer.status = statusId;
+        window.__mbLeadCardCustomer.sub_list_data = statusId;
+        window.__mbLeadCardCustomer.sub_list_data_name = statusName;
+        if (subStatusId) window.__mbLeadCardCustomer.internal_sub_status_list = subStatusId;
+      }
+      showLeadStatusToast(t('Details saved successfully!', 'הפרטים נשמרו בהצלחה!'));
+
+      var mount = detectMount();
+      if (mount && window.__mbLeadCardCustomer) {
+        statusMapsPromise = null;
+        statusMapById = {};
+        statusMapByName = {};
+        await ensureStatusMaps();
+        var extras = await fetchCustomerExtras(customerId).catch(function () { return {}; });
+        setMountHtml(renderLead(window.__mbLeadCardCustomer, mount.kind, extras || {}));
+        bindLeadCardActions(window.__mbLeadCardCustomer, mount);
+      }
+    } catch (err) {
+      showLeadStatusToast(t('Error saving details: ', 'שגיאה בשמירת הפרטים: ') + ((err && err.message) || String(err)), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  async function renderLeadStatusSheet(c) {
+    var container = document.getElementById('mb-lead-folders-container');
+    if (!container) return;
+    container.innerHTML = '<div style="padding:12px 0;color:#9aa3b0;font-size:13px;font-weight:600;">' + esc(t('Loading…', 'טוען…')) + '</div>';
+
+    var folderId = leadFolderId();
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    var folderName = isEn ? 'New Leads' : 'פניות חדשות';
+    try {
+      var folders = (window.MineralBarApp && typeof MineralBarApp.getFolders === 'function') ? MineralBarApp.getFolders() : [];
+      var folderDef = (folders || []).find(function (f) { return String(f.id || f.folder_id) === String(folderId); });
+      if (folderDef) {
+        folderName = isEn ? (folderDef.name_en || folderDef.name || folderDef.name_he) : (folderDef.name_he || folderDef.name || folderDef.name_en);
+      }
+    } catch (e0) { /* ignore */ }
+
+    await fetchLeadSubStatuses();
+    var folderStatuses = await fetchLeadFolderStatuses(folderId);
+    var vals = leadFolderStatusValue(c, folderId, folderStatuses);
+    container.innerHTML = '';
+    container.appendChild(buildLeadFolderBlock(folderId, folderName, vals.status_id, vals.sub_status_id, folderStatuses, c.customer_id || c.id));
+
+    var title = document.getElementById('mb-lead-status-title');
+    if (title) title.textContent = t('CUSTOMER FOLDERS', 'תיקיות לקוח');
+  }
+
+  function closeLeadStatusSheet() {
+    var sheet = document.getElementById('mb-lead-status-sheet');
+    if (sheet) sheet.style.display = 'none';
+  }
+
+  function openLeadStatusSheet(c) {
+    var sheet = document.getElementById('mb-lead-status-sheet');
+    if (!sheet || !c) return;
+    sheet.style.display = 'block';
+    renderLeadStatusSheet(c);
+  }
+
+  function bindLeadStatusSheetChrome() {
+    if (window.__mbLeadStatusSheetBound) return;
+    window.__mbLeadStatusSheetBound = true;
+    var overlay = document.getElementById('mb-lead-status-overlay');
+    var closeBtn = document.getElementById('mb-lead-status-close');
+    if (overlay) overlay.addEventListener('click', closeLeadStatusSheet);
+    if (closeBtn) closeBtn.addEventListener('click', closeLeadStatusSheet);
+  }
+
+  function bindLeadCardActions(c, mount) {
+    window.__mbLeadCardCustomer = c;
+    bindLeadStatusSheetChrome();
+    var btn = document.getElementById('mb-lead-update-status');
+    if (!btn || btn.dataset.wired === '1') {
+      if (btn && btn.dataset.wired === '1') {
+        btn.onclick = function () { openLeadStatusSheet(window.__mbLeadCardCustomer || c); };
+      }
+      return;
+    }
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', function () {
+      openLeadStatusSheet(window.__mbLeadCardCustomer || c);
+    });
+  }
+
+  window.mbOpenLeadStatusSheet = function () {
+    if (window.__mbLeadCardCustomer) openLeadStatusSheet(window.__mbLeadCardCustomer);
+  };
+  window.mbCloseLeadStatusSheet = closeLeadStatusSheet;
+
   function fmtShortDate(v) {
     if (!v) return '';
     try {
@@ -623,7 +981,7 @@
 
   function historyKind(row) {
     var type = String((row && (row.type || row.channel || row.message_type)) || '').toLowerCase();
-    var msg = String((row && (row.message || row.note || row.subject)) || '').toLowerCase();
+    var msg = String((row && (row.message || row.msg || row.note || row.subject)) || '').toLowerCase();
     if (/whatsapp|wa|וואטס/.test(type) || /whatsapp|וואטס/.test(msg)) return 'wa';
     if (/email|mail|אימייל/.test(type) || /@/.test(msg)) return 'email';
     if (/call|phone|שיחה|חיוג/.test(type) || /call|שיחה/.test(msg)) return 'call';
@@ -1104,6 +1462,178 @@
     return html;
   }
 
+  function pickSource(c) {
+    var raw = stripHtmlText(c.source || c.affiliate || c.lead_source || c.channel || '');
+    if (!raw) return '';
+    var key = raw.toLowerCase();
+    var en = { fb: 'Facebook', ig: 'Instagram', site: 'Website', ref: 'Referral', call: 'Incoming call', other: 'Other' };
+    var he = { fb: 'פייסבוק', ig: 'אינסטגרם', site: 'אתר', ref: 'הפניה', call: 'שיחה נכנסת', other: 'אחר' };
+    if (en[key]) return t(en[key], he[key]);
+    return raw;
+  }
+
+  function daysInStatus(c) {
+    var since = c.status_date || c.status_changed || c.status_updated || c.date_created || c.created_at || c.opendate;
+    if (!since) return '';
+    try {
+      var d = new Date(since);
+      if (Number.isNaN(d.getTime())) return '';
+      var diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+      if (diff <= 0) return t('In this status today', 'בסטטוס זה היום');
+      if (diff === 1) return t('In this status 1 day', 'בסטטוס זה יום אחד');
+      return t('In this status ' + diff + ' days', 'בסטטוס זה ' + diff + ' ימים');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function pickInterests(c, products) {
+    var tags = [];
+    if (c.tag) {
+      tags = String(c.tag).split(/[,;|]/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+    if (!tags.length && Array.isArray(c.tags)) {
+      tags = c.tags.map(function (x) { return String(x || '').trim(); }).filter(Boolean);
+    }
+    if (!tags.length && products && products.length) {
+      tags = products.slice(0, 4).map(function (p) { return p.name; }).filter(Boolean);
+    }
+    return tags;
+  }
+
+  function leadNoteText(c) {
+    var note = stripHtmlText(c.note || c.notes || '');
+    if (!note) return '';
+    return note.replace(/^Area:\s*.+?(?:\n|$)/i, '').trim();
+  }
+
+  function iconGlobe() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>';
+  }
+
+  function iconCalendar() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aeb6c2" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>';
+  }
+
+  function renderInterestSection(interests, note) {
+    interests = interests || [];
+    note = String(note || '').trim();
+    if (!interests.length && !note) return '';
+    var html = '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">' +
+      esc(t('Field of interest', 'תחום עניין')) + '</div>' +
+      '<div style="background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:18px;">';
+    if (interests.length) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:' + (note ? '11' : '0') + 'px;">';
+      interests.forEach(function (tag) {
+        html += '<span style="background:#eaf2fb;color:#1d60a2;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:7px;">' + esc(tag) + '</span>';
+      });
+      html += '</div>';
+    }
+    if (note) {
+      html += '<div style="font-size:13.5px;color:#3a4452;line-height:1.6;">' + esc(note) + '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderLead(c, kind, extras) {
+    extras = extras || {};
+    var id = c.customer_id || c.id || '';
+    var name = c.name || ('#' + id);
+    var phone = formatPhone(c.mobile || c.phone || '');
+    var phoneRaw = c.mobile || c.phone || '';
+    var email = stripHtmlText(c.email || c.second_email || '');
+    var city = stripHtmlText(c.city || c.city_name || '');
+    var address = stripHtmlText(c.address || c.full_address || c.exact_address || '');
+    var region = pickRegion(c) || city;
+    var owner = pickOwner(c);
+    var source = pickSource(c);
+    var created = fmtShortDate(c.date_created || c.created_at || c.opendate || c.date);
+    var st = statusMeta(c);
+    var av = initials(name);
+    var history = extras.history || [];
+    var products = extras.products || [];
+    var missions = extras.missions || [];
+    var interests = pickInterests(c, products);
+    var note = leadNoteText(c);
+    var inStatus = daysInStatus(c);
+
+    var qs = 'customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id) +
+      '&name=' + encodeURIComponent(name) +
+      (phone ? '&phone=' + encodeURIComponent(phone) : '') +
+      (email ? '&email=' + encodeURIComponent(email) : '') +
+      (address ? '&address=' + encodeURIComponent(address) : '') +
+      (city ? '&city=' + encodeURIComponent(city) : '') +
+      (region && region !== city ? '&area=' + encodeURIComponent(region) : '');
+    var backCard = 'lead-card.html?customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id);
+    try {
+      var entryBack = sessionStorage.getItem('mb_customer_card_back');
+      if (entryBack) backCard += '&back=' + encodeURIComponent(entryBack);
+    } catch (eBack) { /* ignore */ }
+
+    var quoteUrl = 'service-quote-form.html?' + qs + '&back=' + encodeURIComponent(backCard);
+    var orderUrl = 'service-order-form.html?' + qs + '&from=lead&back=' + encodeURIComponent(backCard);
+    var docsUrl = 'all-documents.html?' + qs + '&back=' + encodeURIComponent(backCard);
+    var chatUrl = 'chat-customer.html?' + qs + '&back=' + encodeURIComponent(backCard);
+    var taskUrl = 'service-create-task.html?' + qs + '&from=lead&back=' + encodeURIComponent(backCard);
+    var inventoryUrl = 'service-inventory.html?' + qs + '&back=' + encodeURIComponent(backCard);
+    var noteUrl = 'add-note.html?' + qs + '&back=' + encodeURIComponent(backCard);
+
+    var rows = [];
+    if (phone) rows.push({ label: t('Phone', 'טלפון'), value: phone, icon: iconPhone(), accent: true, href: telHref(phoneRaw) });
+    if (email) rows.push({ label: t('Email', 'אימייל'), value: email, icon: iconMail(), accent: true, href: 'mailto:' + email });
+    if (owner) rows.push({ label: t('Owner', 'בעלים'), value: owner, icon: iconPerson() });
+    if (source) rows.push({ label: t('Source', 'מקור'), value: source, icon: iconGlobe() });
+    if (region) rows.push({ label: t('Area', 'אזור'), value: region, icon: iconPin() });
+    if (address && address !== region) rows.push({ label: t('Address', 'כתובת'), value: address, icon: iconPin() });
+    if (created) rows.push({ label: t('Created', 'נוצר'), value: created, icon: iconCalendar() });
+
+    var detailsHtml = rows.map(function (r, i) {
+      return detailRow(r.label, r.value, r.icon, i === rows.length - 1, { accent: r.accent, href: r.href });
+    }).join('');
+
+    return (
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">' +
+      '<div style="flex:1;min-width:0;text-align:right;">' +
+      '<div style="display:flex;align-items:center;gap:8px;justify-content:flex-start;flex-wrap:wrap;">' +
+      '<span style="font-size:20px;font-weight:800;color:#1f2a3a;">' + esc(name) + '</span>' +
+      (st.label
+        ? '<span style="display:inline-flex;align-items:center;gap:5px;background:' + esc(st.bg) + ';color:' + esc(st.color) + ';font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:99px;">' +
+          '<span style="width:6px;height:6px;border-radius:50%;background:' + esc(st.color) + ';"></span>' + esc(st.label) +
+          '</span>'
+        : '') +
+      '</div>' +
+      (inStatus
+        ? '<div style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#c0392b;font-weight:600;margin-top:5px;">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' +
+          esc(inStatus) + '</div>'
+        : '') +
+      '</div>' +
+      '<div style="width:54px;height:54px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none;text-transform:uppercase;">' +
+      esc(av) + '</div></div>' +
+
+      '<div style="background:#fff;border-radius:16px;padding:4px 15px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:14px;">' +
+      (detailsHtml || ('<div style="padding:12px 0;font-size:13px;color:#9aa3b0;font-weight:600;">' + esc(t('No details yet', 'אין פרטים עדיין')) + '</div>')) +
+      '</div>' +
+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">' +
+      (phoneRaw ? actionTile(telHref(phoneRaw), '<svg width="22" height="22" viewBox="0 0 24 24" fill="#2e8a63"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"/></svg>', t('Dial', 'חיוג')) : '') +
+      (phoneRaw ? actionTile(waHref(phoneRaw), '<svg width="22" height="22" viewBox="0 0 24 24" fill="#25b35e"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg>', t('WhatsApp', 'וואטסאפ'), ' target="_blank" rel="noopener"') : '') +
+      actionButton('mb-lead-update-status', '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.9"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>', t('Update status', 'עדכן סטטוס')) +
+      actionTile(quoteUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#50439d" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>', t('Quote', 'הצעת מחיר')) +
+      actionTile(orderUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bd8324" stroke-width="1.8"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M9 2v4M15 2v4M8 11l2 2 3.5-3.5M8 16h6"/></svg>', t('Order', 'הזמנה')) +
+      actionTile(taskUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M12 8v8M8 12h8"/></svg>', t('Create task', 'צור משימה')) +
+      actionTile(noteUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bd8324" stroke-width="1.8"><path d="M6 2.5h8L19 7v14.5H6z"/><path d="M14 2.5V7h5M9 12h6M9 16h4"/></svg>', t('Add note', 'הוסף הערה')) +
+      actionTile(inventoryUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a6473" stroke-width="1.8"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"/><path d="M4 6.5 12 11l8-4.5M12 11v9"/></svg>', t('Inventory', 'מלאי')) +
+      actionTile(docsUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M9 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><rect x="7" y="7" width="13" height="14" rx="2"/><path d="M11 12h6M11 16h6"/></svg>', t('All documents', 'כל המסמכים')) +
+      '</div>' +
+
+      renderInterestSection(interests, note) +
+      renderMissionsSection(missions, id, name, phone, city) +
+      renderHistorySection(history)
+    );
+  }
+
   function renderCustomer(c, kind, extras) {
     extras = extras || {};
     var id = c.customer_id || c.id || '';
@@ -1288,12 +1818,30 @@
       hideMock();
       publishCustomer(c, kind);
       // Paint core card first, then enrich with products / tickets / missions / history
-      setMountHtml(renderCustomer(c, kind, {}));
+      setMountHtml(kind === 'lead' ? renderLead(c, kind, {}) : renderCustomer(c, kind, {}));
+      if (kind === 'lead') bindLeadCardActions(c, mount);
       var extrasId = c.customer_id || c.id || customerId;
       try {
         var extras = await fetchCustomerExtras(extrasId);
         if (mount._activeLoadId !== loadId) return;
-        setMountHtml(renderCustomer(c, kind, extras));
+        setMountHtml(kind === 'lead' ? renderLead(c, kind, extras) : renderCustomer(c, kind, extras));
+        if (kind === 'lead') bindLeadCardActions(c, mount);
+
+        // After saving a note, history can lag one beat — one silent retry
+        var noteFlag = '';
+        try { noteFlag = sessionStorage.getItem('mb_note_saved_' + extrasId) || ''; } catch (eFlag) { /* ignore */ }
+        if (noteFlag && (Date.now() - Number(noteFlag)) < 15000) {
+          try { sessionStorage.removeItem('mb_note_saved_' + extrasId); } catch (eRm) { /* ignore */ }
+          setTimeout(async function () {
+            if (mount._activeLoadId !== loadId) return;
+            try {
+              var extras2 = await fetchCustomerExtras(extrasId);
+              if (mount._activeLoadId !== loadId) return;
+              setMountHtml(kind === 'lead' ? renderLead(c, kind, extras2) : renderCustomer(c, kind, extras2));
+              if (kind === 'lead') bindLeadCardActions(c, mount);
+            } catch (eRetry) { /* ignore */ }
+          }, 600);
+        }
       } catch (extraErr) {
         console.warn('[CustomerLive] extras failed — keeping core card', extraErr);
       }
@@ -1343,8 +1891,9 @@
     var group = String(detail.group || '').toLowerCase();
     var relevant =
       !key ||
-      /customer|lead|crm|reminder/.test(key) ||
+      /customer|lead|crm|reminder|message\.created|chat\.message/.test(key) ||
       group === 'leads' ||
+      group === 'messages' ||
       group === 'other' ||
       group === 'unknown';
     if (!relevant) return;

@@ -181,6 +181,14 @@ mbCss('./common.css');
       </div>
     </div>
 
+    <!-- Service route (saved via extra_fields.insurance on Customer.Add) -->
+    <div class="field-group">
+      <label class="field-label" id="mb-service-route-label" data-no-i18n="true">Service route <span style="color:#9aa3b0; font-weight:500;">(optional)</span></label>
+      <select id="mb-service-route" class="ds-input" data-no-i18n="true">
+        <option value="">Loading service routes...</option>
+      </select>
+    </div>
+
     <!-- Followup (lower on form) -->
     <div class="field-group">
       <label class="field-label">Followup</label>
@@ -205,6 +213,62 @@ mbCss('./common.css');
   var form = document.getElementById('mb-add-customer-form');
   var statusMsg = document.getElementById('mb-status-msg');
 
+  function isEnLang() {
+    return typeof window.getCurrentLanguage === 'function'
+      ? window.getCurrentLanguage() === 'en'
+      : true;
+  }
+
+  var SERVICE_ROUTE_FIELD = 'insurance';
+  // Static options from mineral2 reference: מכירות הוספת לקוח.dc.html
+  var SERVICE_ROUTE_OPTIONS = [
+    { value: 'no_route', labelHe: 'ללא מסלול', labelEn: 'Without a route' },
+    { value: 'filters_route', labelHe: 'מסלול סננים — 89₪/ח׳', labelEn: 'Filters route — 89₪/month' },
+    { value: 'insurance_route', labelHe: 'מסלול ביטוח — 29₪/ח׳', labelEn: 'Insurance route — 29₪/month' },
+    { value: 'extended_warranty', labelHe: 'אחריות מורחבת', labelEn: 'Extended warranty' }
+  ];
+
+  function serviceRouteLabel() {
+    return isEnLang()
+      ? 'Service route'
+      : 'מסלול שירות';
+  }
+
+  function updateServiceRouteLabel() {
+    var label = document.getElementById('mb-service-route-label');
+    if (!label) return;
+    var optional = isEnLang() ? '(optional)' : '(אופציונלי)';
+    label.innerHTML = serviceRouteLabel() + ' <span style="color:#9aa3b0;font-weight:500;">' + optional + '</span>';
+  }
+
+  function loadServiceRoutes() {
+    var select = document.getElementById('mb-service-route');
+    if (!select) return;
+
+    var currentValue = select.value;
+    var isEn = isEnLang();
+    updateServiceRouteLabel();
+
+    select.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = isEn ? '-- Select --' : '-- בחר --';
+    select.appendChild(placeholder);
+
+    SERVICE_ROUTE_OPTIONS.forEach(function (opt) {
+      var option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = isEn ? opt.labelEn : opt.labelHe;
+      select.appendChild(option);
+    });
+
+    if (currentValue && Array.from(select.options).some(function (option) {
+      return option.value === currentValue;
+    })) {
+      select.value = currentValue;
+    }
+  }
+
   async function loadStatuses() {
     var select = document.getElementById('mb-status');
     if (!select || !window.MineralBarApp || typeof window.MineralBarApp.getClient !== 'function') return;
@@ -212,9 +276,7 @@ mbCss('./common.css');
     if (!client || !client.getToken || !client.getToken()) return;
 
     var currentValue = select.value;
-    var isEn = typeof window.getCurrentLanguage === 'function'
-      ? window.getCurrentLanguage() === 'en'
-      : true;
+    var isEn = isEnLang();
     select.disabled = true;
 
     try {
@@ -258,11 +320,18 @@ mbCss('./common.css');
   }
 
   loadStatuses();
-  window.addEventListener('mineralbar:ready', loadStatuses);
+  loadServiceRoutes();
+  window.addEventListener('mineralbar:ready', function () {
+    loadStatuses();
+    loadServiceRoutes();
+  });
   if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(loadStatuses, { keys: /status|lead|customer|socket\\.nudge/i, delay: 400 });
   }
-  window.addEventListener('mineralbar:language-changed', loadStatuses);
+  window.addEventListener('mineralbar:language-changed', function () {
+    loadStatuses();
+    loadServiceRoutes();
+  });
 
   function showMsg(kind, text) {
     if (!statusMsg) return;
@@ -299,6 +368,7 @@ mbCss('./common.css');
       var noteIn = document.getElementById('mb-note');
       var folderSel = document.getElementById('mb-folders');
       var statusSel = document.getElementById('mb-status');
+      var serviceRouteSel = document.getElementById('mb-service-route');
 
       var name = nameIn ? nameIn.value.trim() : '';
       var phone = phoneIn ? phoneIn.value.trim() : '';
@@ -350,6 +420,13 @@ mbCss('./common.css');
         // ID is optional — only send csv_id when numeric; never block create
         var csvId = idIn ? idIn.value.trim() : '';
         if (csvId && /^\d+$/.test(csvId)) payload.csv_id = csvId;
+
+        var serviceRouteVal = serviceRouteSel ? serviceRouteSel.value : '';
+        if (serviceRouteVal) {
+          var extraFields = {};
+          extraFields[SERVICE_ROUTE_FIELD] = serviceRouteVal;
+          payload.extra_fields = extraFields;
+        }
 
         if (window.MineralBarApp && typeof MineralBarApp.createCustomer === 'function') {
           await MineralBarApp.createCustomer(payload);

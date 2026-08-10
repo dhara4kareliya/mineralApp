@@ -654,3 +654,47 @@ html[dir="rtl"] .select-wrap .select-chevron,
 .mb-inline-loader .mb-page-loader__spin {
   margin-bottom: 14px;
 }
+
+/* Customer list cards — truncate long names so action icons stay visible */
+.mb-cust-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+.mb-cust-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #16223a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mb-lead-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+.mb-lead-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #16223a;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+}
+.mb-lead-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}

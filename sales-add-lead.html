@@ -94,6 +94,18 @@ mbCss('./common.css');
             </label>
 <input class="ds-input" oninput="{{ onAddress }}" value="{{ address }}" placeholder="Street, number, city" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:right; background:#fff;"/>
 </div>
+<div>
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M12 21c5-5.5 7.5-9 7.5-12a7.5 7.5 0 0 0-15 0c0 3 2.5 6.5 7.5 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>
+              area
+            </label>
+<select class="ds-input" value="{{ area }}" onchange="{{ onArea }}" style="width:100%; padding:13px 40px 13px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:right; background:#fff;">
+<option value="">Select a region</option>
+<sc-for as="a" hint-placeholder-count="4" list="{{ areas }}">
+<option value="{{ a.value }}">{{ a.label }}</option>
+</sc-for>
+</select>
+</div>
 </div>
 <!-- Lead source -->
 <div style="padding:18px 16px; border-bottom:1px solid #eef0f3;">
@@ -158,10 +170,17 @@ mbCss('./common.css');
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = { 
-    name: '', phone: '', email: '', address: '',
+    name: '', phone: '', email: '', address: '', area: '',
     source: 'site', status: '', statusesData: [], comments: '',
     submitting: false, error: ''
   };
+
+  AREAS = [
+    { value: 'coordinator', labelHe: 'רכז', labelEn: 'coordinator' },
+    { value: 'north', labelHe: 'צפון', labelEn: 'north' },
+    { value: 'south', labelHe: 'דרום', labelEn: 'south' },
+    { value: 'jerusalem', labelHe: 'ירושלים', labelEn: 'Jerusalem' }
+  ];
 
   inputValue(e) {
     if (e && e.target) return e.target.value;
@@ -173,6 +192,7 @@ class Component extends DCLogic {
   onPhone(e) { this.setState({ phone: this.inputValue(e) }); }
   onEmail(e) { this.setState({ email: this.inputValue(e) }); }
   onAddress(e) { this.setState({ address: this.inputValue(e) }); }
+  onArea(e) { this.setState({ area: this.inputValue(e) }); }
   onComments(e) { this.setState({ comments: this.inputValue(e) }); }
   goBack() { window.history.back(); }
 
@@ -197,6 +217,22 @@ class Component extends DCLogic {
     { id: 'call', label: 'שיחה נכנסת', icon: 'iPhone' },
     { id: 'other', label: 'אחר', icon: 'iDoc' },
   ];
+
+  leadsFolderId() {
+    try {
+      if (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.LEADS != null) {
+        return Number(MineralBarApp.FOLDERS.LEADS) || 1;
+      }
+    } catch (e) { /* ignore */ }
+    return 1;
+  }
+
+  areaLabel(value) {
+    var found = this.AREAS.find(function (a) { return a.value === value; });
+    if (!found) return value || '';
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    return isEn ? found.labelEn : found.labelHe;
+  }
 
   async loadStatuses() {
     try {
@@ -251,11 +287,19 @@ class Component extends DCLogic {
       };
     });
 
+    const isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    const areas = this.AREAS.map(a => ({
+      value: a.value,
+      label: isEn ? a.labelEn : a.labelHe
+    }));
+
     return { 
       name: this.state.name || '',
       phone: this.state.phone || '',
       email: this.state.email || '',
       address: this.state.address || '',
+      area: this.state.area || '',
+      areas: areas,
       comments: String(this.state.comments == null ? '' : this.state.comments),
       submitting: !!this.state.submitting,
       error: this.state.error || '',
@@ -264,6 +308,7 @@ class Component extends DCLogic {
       onPhone: (e) => this.onPhone(e),
       onEmail: (e) => this.onEmail(e),
       onAddress: (e) => this.onAddress(e),
+      onArea: (e) => this.onArea(e),
       onComments: (e) => this.onComments(e),
       goBack: () => this.goBack(),
       submit: () => this.submit()
@@ -278,17 +323,31 @@ class Component extends DCLogic {
     }
     this.setState({ submitting: true, error: '' });
     try {
+      var folderId = this.leadsFolderId();
+      var areaVal = String(this.state.area || '').trim();
+      var areaText = this.areaLabel(areaVal);
+      var noteParts = [];
+      if (this.state.comments) noteParts.push(String(this.state.comments));
+      if (areaText) noteParts.push('Area: ' + areaText);
+
       const payload = {
         name: this.state.name,
         phone: this.state.phone,
+        mobile: this.state.phone,
         email: this.state.email,
         address: this.state.address,
         source: this.state.source,
-        note: this.state.comments,
-        folder_id: '1',
+        note: noteParts.join('\n'),
+        folder_id: folderId,
+        folder: folderId,
         status_id: this.state.status,
         force: '0'
       };
+      if (areaVal) {
+        payload.city = areaText;
+        payload.city_name = areaText;
+        payload.extra_fields = { area: areaVal, region: areaText };
+      }
       
       const res = await MineralBarApp.createCustomer(payload);
       if (res && res.ok) {

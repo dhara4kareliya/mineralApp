@@ -2119,6 +2119,28 @@
     }
   });
 
+  // Prefer "Topic" over "Subject" when reversing Hebrew נושא (open-call label).
+  heToEn["נושא"] = "Topic";
+  enToHe["Topic"] = "נושא";
+  enToHe["Service member"] = "נציג שירות";
+  if (!heToEn["נציג שירות"]) {
+    heToEn["נציג שירות"] = "Service member";
+  }
+  heToEn["רכש ביטוח"] = "Purchased insurance";
+  heToEn["לא רכש ביטוח"] = "Did not purchase insurance";
+  heToEn["רכש סנן רגיל/מרכך במסלול החלפות"] = "Purchased regular filter/softener on replacement plan";
+  heToEn["רכש סנן רגיל"] = "Purchased regular filter";
+  heToEn["רכש סנן רגיל/מרכך ללא מסלול החלפות"] = "Purchased regular filter/softener without replacement plan";
+  heToEn["רכש מערכת סינון"] = "Purchased filtration system";
+  enToHe["Service route"] = "מסלול שירות";
+  if (!heToEn["מסלול שירות"]) {
+    heToEn["מסלול שירות"] = "Service route";
+  }
+  heToEn["ללא מסלול"] = "Without a route";
+  heToEn["מסלול סננים — 89₪/ח׳"] = "Filters route — 89₪/month";
+  heToEn["מסלול ביטוח — 29₪/ח׳"] = "Insurance route — 29₪/month";
+  heToEn["אחריות מורחבת"] = "Extended warranty";
+
   var translations = {
     "en": heToEn,
     "he": enToHe
