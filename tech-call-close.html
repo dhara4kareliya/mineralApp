@@ -29,6 +29,14 @@ mbCss('./common.css');
   html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
   button, input, textarea, select { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
+  /* Native product picker: keep long lists scrollable when browser shows inline options */
+  #spare-product-select {
+    max-width: 100%;
+  }
+  #spare-product-select option {
+    padding: 8px 10px;
+    white-space: normal;
+  }
   .ds-input::placeholder { color: #aeb6c2; }
   html[dir="ltr"] .ds-input,
   [dir="ltr"] .ds-input {
@@ -230,7 +238,7 @@ mbCss('./common.css');
 <div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; overflow:hidden;">
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelSpares }} <span style="font-size:11.5px; color:#9aa3b0; font-weight:600;">({{ optionalLabel }})</span></div>
 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px; min-width:0;">
-<select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff;">
+<select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; max-height:220px; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff; overflow-y:auto;">
 <option value="">{{ selectProduct }}</option>
 <sc-for as="p" hint-placeholder-count="0" list="{{ products }}">
 <option value="{{ p.id }}">{{ p.name }}</option>
@@ -1567,42 +1575,78 @@ class Component extends DCLogic {
   async loadProducts() {
     try {
       if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return;
-      var raw;
-      if (typeof MineralBarApp.listProducts === 'function') {
-        var listed = await MineralBarApp.listProducts({ active: 1, limit: 50, length: 50, start: 0 });
-        raw = listed && (listed.raw || listed);
-        var listedRows = listed && listed.rows;
-        if (Array.isArray(listedRows) && listedRows.length) {
-          this.setState({
-            products: listedRows.map(function (p) {
-              return {
-                id: String(p.id || p.product_id || p.ID || ''),
-                name: p.name || p.product_name || p.title || ('#' + (p.id || ''))
-              };
-            }).filter(function (p) { return p.id; })
-          });
-          return;
-        }
+      var client = MineralBarApp.getClient();
+      if (!client || !client.getToken || !client.getToken()) return;
+
+      // Products.List max 25/call — page until all active products are loaded
+      // https://eli.bull36.com/app/help/Products.List
+      var pageSize = 25;
+      var all = [];
+      var seen = {};
+      var totalHint = 0;
+
+      try {
+        var countRes = await client.request('Products.Count', { active: 1 });
+        totalHint = Number(
+          (countRes && (countRes.count != null ? countRes.count
+            : (countRes.total != null ? countRes.total
+              : (countRes.recordsTotal != null ? countRes.recordsTotal : 0)))) || 0
+        );
+        if (!isFinite(totalHint) || totalHint < 0) totalHint = 0;
+      } catch (eCount) {
+        totalHint = 0;
       }
-      raw = await MineralBarApp.getClient().request('Products.List', {
-        active: 1,
-        length: 50,
-        limit: 50,
-        start: 0
+
+      var maxPages = totalHint > 0 ? Math.ceil(totalHint / pageSize) + 2 : 80;
+      for (var page = 0; page < maxPages; page++) {
+        var start = page * pageSize;
+        var raw = await client.request('Products.List', {
+          active: 1,
+          limit: pageSize,
+          length: pageSize,
+          per_page: pageSize,
+          start: start,
+          offset: start,
+          draw: page + 1,
+          order: 'id_desc'
+        });
+        if (raw && (raw.recordsTotal != null || raw.recordsFiltered != null) && !totalHint) {
+          totalHint = Number(raw.recordsFiltered != null ? raw.recordsFiltered : raw.recordsTotal) || 0;
+          if (totalHint > 0) maxPages = Math.ceil(totalHint / pageSize) + 2;
+        }
+        var rows = [];
+        if (Array.isArray(raw && raw.data)) rows = raw.data;
+        else if (Array.isArray(raw && raw.rows)) rows = raw.rows;
+        else if (Array.isArray(raw && raw.products)) rows = raw.products;
+        else if (Array.isArray(raw && raw.output)) rows = raw.output;
+        else if (raw && raw.output && Array.isArray(raw.output.data)) rows = raw.output.data;
+        if (!rows.length) break;
+
+        for (var i = 0; i < rows.length; i++) {
+          var p = rows[i];
+          if (!p) continue;
+          var id = String(p.id || p.product_id || p.ID || '').trim();
+          if (!id || id === '0' || seen[id]) continue;
+          var name = String(p.product_name || p.name || p.title || '').trim();
+          if (!name) name = '#' + id;
+          seen[id] = true;
+          all.push({
+            id: id,
+            name: name,
+            sku: p.product_sku || p.sku || '',
+            type: p.type || '',
+            price: p.price != null ? p.price : (p.product_price != null ? p.product_price : '')
+          });
+        }
+        if (rows.length < pageSize) break;
+        if (totalHint > 0 && all.length >= totalHint) break;
+      }
+
+      // Prefer readable names first, keep stable order by name
+      all.sort(function (a, b) {
+        return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
       });
-      var rows = [];
-      if (Array.isArray(raw && raw.data)) rows = raw.data;
-      else if (Array.isArray(raw && raw.rows)) rows = raw.rows;
-      else if (Array.isArray(raw && raw.products)) rows = raw.products;
-      else if (Array.isArray(raw && raw.output)) rows = raw.output;
-      else if (raw && raw.output && Array.isArray(raw.output.data)) rows = raw.output.data;
-      var products = rows.map(function (p) {
-        return {
-          id: String(p.id || p.product_id || p.ID || ''),
-          name: p.name || p.product_name || p.title || ('#' + (p.id || ''))
-        };
-      }).filter(function (p) { return p.id; });
-      this.setState({ products: products });
+      this.setState({ products: all });
     } catch (e) {
       console.warn('[tech-call-close] Products.List failed', e);
     }

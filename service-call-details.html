@@ -637,66 +637,59 @@
       });
     }
 
-    unwrapProductRow(raw, fallbackId) {
-      if (!raw || typeof raw !== 'object') return null;
-      var row = raw.data || raw.output || raw.product || raw;
-      if (Array.isArray(row)) row = row[0];
-      if (row && row.data && typeof row.data === 'object' && !Array.isArray(row.data)) row = row.data;
-      if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
-      var name = row.product_name || row.name || row.title || '';
-      var id = row.id || row.product_id || fallbackId || '';
-      if (!name && !id) return null;
-      // ignore non-product success payloads like { success:1, output:"1" }
-      if (!name && String(row.output || '') === '1') return null;
-      return {
-        id: String(id || ''),
-        name: name || ('#' + id),
-        sku: row.product_sku || row.sku || '',
-        type: row.type || '',
-        price: row.price != null ? String(row.price) : ''
-      };
-    }
-
+    /**
+     * Products.Get — https://eli.bull36.com/app/help/Products.Get
+     * Required body: { id: productId }
+     * Response: { success: 1, data: { id, product_name, type, price, ... } }
+     */
     async fetchProductById(id) {
-      if (!id || !window.MineralBarApp) return null;
+      var pid = String(id == null ? '' : id).trim();
+      if (!pid || pid === '0') return null;
+      if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return null;
+
+      if (!this._productByIdCache) this._productByIdCache = {};
+      if (this._productByIdCache[pid]) return this._productByIdCache[pid];
+
       try {
         var client = MineralBarApp.getClient();
-        var raw = await client.request('Products.Get', { id: id, product_id: id });
-        var row = this.unwrapProductRow(raw, id);
-        if (row && row.name && row.name !== ('#' + id)) return row;
-      } catch (e) {
-        console.warn('[service-call-details] Products.Get failed for', id, e);
-      }
-      // Fallback: scan Products.List for this id
-      try {
-        var client2 = MineralBarApp.getClient();
-        var listRaw = await client2.request('Products.List', {
-          length: 50,
-          limit: 50,
-          start: 0,
-          active: 1
-        });
-        var rows = [];
-        if (Array.isArray(listRaw && listRaw.data)) rows = listRaw.data;
-        else if (Array.isArray(listRaw && listRaw.rows)) rows = listRaw.rows;
-        else if (Array.isArray(listRaw && listRaw.products)) rows = listRaw.products;
-        else if (Array.isArray(listRaw && listRaw.output)) rows = listRaw.output;
-        for (var i = 0; i < rows.length; i++) {
-          var r = rows[i];
-          if (String(r.id || r.product_id || '') === String(id)) {
-            return {
-              id: String(id),
-              name: r.product_name || r.name || r.title || ('#' + id),
-              sku: r.product_sku || r.sku || '',
-              type: r.type || '',
-              price: r.price != null ? String(r.price) : ''
-            };
-          }
+        if (!client || !client.getToken || !client.getToken()) return null;
+
+        // Official Products.Get: only `id` is required
+        var raw = await client.request('Products.Get', { id: pid });
+        if (!raw || Number(raw.success) === 0 || raw.success === false) {
+          console.warn('[service-call-details] Products.Get not found for', pid, raw && raw.message);
+          return null;
         }
-      } catch (e2) {
-        console.warn('[service-call-details] Products.List fallback failed', e2);
+
+        // Docs sample: { success: 1, data: { id, product_name, ... } }
+        var data = raw.data;
+        if (!data || typeof data !== 'object') {
+          // Some tenants still nest under output
+          data = raw.output && typeof raw.output === 'object' && !Array.isArray(raw.output)
+            ? raw.output
+            : null;
+        }
+        if (Array.isArray(data)) data = data[0];
+        if (!data || typeof data !== 'object') return null;
+
+        var name = String(data.product_name || '').trim();
+        if (!name) name = String(data.product_enname || data.name || data.item_name || '').trim();
+        name = name.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!name) return null;
+
+        var product = {
+          id: String(data.id || pid),
+          name: name,
+          sku: data.product_sku || data.sku || '',
+          type: data.type || '',
+          price: data.price != null ? String(data.price) : ''
+        };
+        this._productByIdCache[pid] = product;
+        return product;
+      } catch (e) {
+        console.warn('[service-call-details] Products.Get failed for', pid, e);
+        return null;
       }
-      return null;
     }
 
     async resolveLinkedProducts(ticket) {
@@ -705,23 +698,36 @@
       var products = [];
       var seenName = {};
       var seenId = {};
+      var cfName = this.pickProductNameFromCustomFields(ticket);
 
       function normName(n) {
         return String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      }
+
+      function isIdOnlyName(name, id) {
+        var n = String(name || '').trim();
+        var i = String(id || '').trim();
+        return !n || n === ('#' + i) || n === i || /^#?\d+$/.test(n);
       }
 
       function add(p) {
         if (!p || !p.name) return;
         var nameKey = normName(p.name);
         var idKey = String(p.id || '').trim();
-        // Skip bogus ids that are just the product name (or "0")
         if (idKey === '0' || (idKey && normName(idKey) === nameKey)) {
           p = Object.assign({}, p, { id: '' });
           idKey = '';
         }
-        if (idKey && seenId[idKey]) return;
+        if (idKey && seenId[idKey]) {
+          for (var u = 0; u < products.length; u++) {
+            if (String(products[u].id) === idKey && isIdOnlyName(products[u].name, idKey) && !isIdOnlyName(p.name, idKey)) {
+              products[u] = Object.assign({}, products[u], p);
+              seenName[normName(p.name)] = true;
+            }
+          }
+          return;
+        }
         if (nameKey && seenName[nameKey]) {
-          // Upgrade existing nameless row if we now have a better id/meta
           if (idKey) {
             for (var i = 0; i < products.length; i++) {
               if (normName(products[i].name) === nameKey && !products[i].id) {
@@ -738,34 +744,41 @@
         products.push(p);
       }
 
+      // Prefer names already on the ticket, then resolve each id via Products.Get
       named.forEach(add);
 
       for (var i = 0; i < ids.length; i++) {
         var pid = String(ids[i] || '').trim();
         if (!pid || pid === '0') continue;
-        // Skip name-as-id when we already have that product by name
         if (seenName[normName(pid)]) continue;
-        var already = products.some(function (p) { return String(p.id) === pid; });
+        var already = products.some(function (p) {
+          return String(p.id) === pid && !isIdOnlyName(p.name, pid);
+        });
         if (already) continue;
+
+        // Direct Products.Get → data.product_name
         var fetched = await this.fetchProductById(pid);
-        if (fetched) {
+        if (fetched && fetched.name) {
           add(fetched);
-        } else if (!/^\d+$/.test(pid)) {
-          // Non-numeric id is likely a product name stored in product_id
+          continue;
+        }
+
+        if (!/^\d+$/.test(pid)) {
           add({ id: '', name: pid, sku: '', type: '', price: '' });
+        } else if (cfName && ids.length === 1) {
+          add({ id: pid, name: cfName, sku: '', type: '', price: '' });
         } else {
           add({ id: pid, name: '#' + pid, sku: '', type: '', price: '' });
         }
       }
 
-      // If ticket only has product_id ["0"] but name was saved in custom_fields
-      if (!products.length) {
-        var fallbackName = this.pickProductNameFromCustomFields(ticket);
-        if (fallbackName) {
-          var matched = await this.findProductBySearch(fallbackName);
-          if (matched) add(matched);
-          else add({ id: '', name: fallbackName, sku: '', type: '', price: '' });
-        }
+      // Upgrade single placeholder with custom_fields.product_name if Get failed
+      if (cfName && products.length === 1 && isIdOnlyName(products[0].name, products[0].id)) {
+        products[0] = Object.assign({}, products[0], { name: cfName });
+      }
+
+      if (!products.length && cfName) {
+        add({ id: '', name: cfName, sku: '', type: '', price: '' });
       }
 
       return products;
@@ -805,44 +818,6 @@
         }
       }
       return '';
-    }
-
-    async findProductBySearch(name) {
-      if (!name || !window.MineralBarApp) return null;
-      try {
-        var client = MineralBarApp.getClient();
-        var listRaw = await client.request('Products.List', {
-          search: String(name),
-          'search[value]': String(name),
-          filter_data: String(name),
-          length: 25,
-          limit: 25,
-          start: 0,
-          active: 1
-        });
-        var rows = [];
-        if (Array.isArray(listRaw && listRaw.data)) rows = listRaw.data;
-        else if (Array.isArray(listRaw && listRaw.rows)) rows = listRaw.rows;
-        else if (Array.isArray(listRaw && listRaw.products)) rows = listRaw.products;
-        else if (Array.isArray(listRaw && listRaw.output)) rows = listRaw.output;
-        var want = String(name).trim().toLowerCase();
-        for (var i = 0; i < rows.length; i++) {
-          var r = rows[i];
-          var pn = String(r.product_name || r.name || r.title || '').trim().toLowerCase();
-          if (pn === want || pn.indexOf(want) >= 0) {
-            return {
-              id: String(r.id || r.product_id || ''),
-              name: r.product_name || r.name || r.title || name,
-              sku: r.product_sku || r.sku || '',
-              type: r.type || '',
-              price: r.price != null ? String(r.price) : ''
-            };
-          }
-        }
-      } catch (e) {
-        console.warn('[service-call-details] Products.List search failed', e);
-      }
-      return null;
     }
 
     async loadTicket() {
@@ -1087,11 +1062,12 @@
       const custInitials = parts.map(p => p[0]).join('').substring(0, 2);
       const customerId = t.cust_id || t.customer_id || t.contactus_id || t.lead_id;
       const customerPhone = t.phone || t.mobile || t.phone_two || '';
+      const backToTicket = 'service-call-details.html?ticket_id=' + encodeURIComponent(t.ticket_id || t.id || '');
       const customerLink = customerId
-        ? 'service-customer-card.html?customer_id=' + encodeURIComponent(customerId) + '&cust_id=' + encodeURIComponent(customerId)
+        ? 'service-customer-card.html?customer_id=' + encodeURIComponent(customerId) + '&cust_id=' + encodeURIComponent(customerId) +
+          '&back=' + encodeURIComponent(backToTicket)
         : 'service-customer-card.html';
       let chatLink = 'chat-customer.html';
-      const backToTicket = 'service-call-details.html?ticket_id=' + encodeURIComponent(t.ticket_id || t.id || '');
       if (customerId) {
         chatLink = 'chat-customer.html?customer_id=' + encodeURIComponent(customerId) +
           '&name=' + encodeURIComponent(name) +
@@ -1212,14 +1188,17 @@
         noProduct: !(this.state.linkedProducts || []).length,
         noProductLabel: isEn ? 'No product linked to this ticket' : 'לא משויך מוצר לטיקט זה',
         linkedProducts: (this.state.linkedProducts || []).map(function (p, idx, arr) {
+          // Products.Get → data.product_name shown as primary title
+          var displayName = String(p.name || '').trim();
+          var pid = String(p.id || '').trim();
           var bits = [];
+          if (p.type) bits.push(String(p.type));
           if (p.sku) bits.push((isEn ? 'SKU · ' : 'מק״ט · ') + p.sku);
-          if (p.type) bits.push(p.type);
           if (p.price) bits.push(String(p.price));
-          if (p.id) bits.push('#' + p.id);
+          if (pid) bits.push('#' + pid);
           var underWarranty = (t.approved_by_customer === 1);
           return {
-            name: p.name || (isEn ? 'Product' : 'מוצר'),
+            name: displayName || (pid ? ('#' + pid) : (isEn ? 'Product' : 'מוצר')),
             meta: bits.length ? bits.join(' · ') : (isEn ? 'Linked product' : 'מוצר משויך'),
             warranty: underWarranty ? (isEn ? 'Under Warranty' : 'באחריות') : (isEn ? 'No Warranty' : 'ללא אחריות'),
             warrantyBg: underWarranty ? '#e6f4ec' : '#e6f4ec',

@@ -615,6 +615,18 @@ class Component extends DCLogic {
 
   goBack() {
     try {
+      var q = new URLSearchParams(window.location.search || '');
+      var back = q.get('back') || q.get('from') || q.get('return') || '';
+      if (back) {
+        try { back = decodeURIComponent(back); } catch (eDec) { /* keep */ }
+        back = String(back || '').trim().replace(/^\//, '');
+        if (back && back.indexOf('..') < 0 && !/^javascript:/i.test(back)) {
+          window.location.href = back;
+          return;
+        }
+      }
+    } catch (e0) { /* ignore */ }
+    try {
       if (window.history.length > 1) {
         window.history.back();
         return;
@@ -622,7 +634,14 @@ class Component extends DCLogic {
     } catch (e) {
       /* ignore and use fallback */
     }
-    window.location.href = 'chat-customer.html';
+    var cid = '';
+    try {
+      cid = new URLSearchParams(window.location.search || '').get('customer_id') ||
+        new URLSearchParams(window.location.search || '').get('cust_id') || '';
+    } catch (e2) { /* ignore */ }
+    window.location.href = cid
+      ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
+      : 'customers.html';
   }
 
   openSearch() {

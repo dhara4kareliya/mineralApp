@@ -204,7 +204,7 @@ class Component extends DCLogic {
 
       stateUpdate.backUrl = 'final-quote.html' + (paramsStr ? ('?' + paramsStr) : '');
       stateUpdate.orderFormUrl = 'service-order-form.html' + (paramsStr ? ('?' + paramsStr) : '');
-      stateUpdate.customerCardUrl = 'service-customer-card.html' + (customerId ? ('?customer_id=' + encodeURIComponent(customerId)) : '');
+      stateUpdate.customerCardUrl = 'service-customer-card.html' + (customerId ? ('?customer_id=' + encodeURIComponent(customerId) + '&back=' + encodeURIComponent(stateUpdate.backUrl || 'final-quote.html')) : '');
       stateUpdate.collectionUrl = 'collection-payment.html' + (paramsStr ? ('?' + paramsStr) : '');
 
       this.setState(stateUpdate);

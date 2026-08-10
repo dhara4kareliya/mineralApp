@@ -913,7 +913,7 @@ class Component extends DCLogic {
         hasTimeGap: !!c.hasTimeGap,
         cust_id: c.cust_id,
         goCard: () => { window.location.href = 'service-call-details.html?ticket_id=' + c.id.replace('#SRV-', ''); },
-        goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id; },
+        goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id + '&back=' + encodeURIComponent('service-all-calls.html'); },
         callCustomer: () => this.callCustomer(c.phone, c.cust_id)
       };
     });
@@ -991,7 +991,7 @@ class Component extends DCLogic {
       pillClosedBadgeBg: isFiltClosed ? '#2e8a63' : '#e9edf2',
       pillClosedBadgeColor: isFiltClosed ? '#fff' : '#5a6473',
       goCard: () => { window.location.href = 'service-call-details.html'; },
-      goCustomer: () => { window.location.href = 'service-customer-card.html'; },
+      goCustomer: () => { window.location.href = 'service-customer-card.html?back=' + encodeURIComponent('service-all-calls.html'); },
       goOpen: () => { window.location.href = 'service-select-customer.html'; },
       goInventory: () => { window.location.href = 'service-inventory.html'; },
       goTasks: () => { window.location.href = 'sales-tasks.html'; },

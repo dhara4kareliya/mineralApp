@@ -405,6 +405,16 @@ class Component extends DCLogic {
     var backToCustomerUrl = s.customer_id
       ? 'service-customer-card.html?customer_id=' + encodeURIComponent(s.customer_id) + '&cust_id=' + encodeURIComponent(s.customer_id)
       : 'service-customer-card.html';
+    try {
+      var qBack = new URLSearchParams(window.location.search || '').get('back') || '';
+      if (qBack) {
+        try { qBack = decodeURIComponent(qBack); } catch (eDec) { /* keep */ }
+        qBack = String(qBack || '').trim().replace(/^\//, '');
+        if (qBack && qBack.indexOf('..') < 0 && !/^javascript:/i.test(qBack) && qBack !== 'customer') {
+          backToCustomerUrl = qBack;
+        }
+      }
+    } catch (eBack) { /* ignore */ }
 
     return {
       name: s.name || '…',

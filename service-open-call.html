@@ -64,6 +64,22 @@ mbCss('./common.css');
     appearance: none;
     padding-inline: 8px;
   }
+  .soc-sku-row { display:flex; align-items:stretch; gap:8px; min-width:0; }
+  .soc-sku-row .ds-input { flex:1; min-width:0; }
+  .soc-scan-btn {
+    width:46px; flex:none; border:1.5px solid #dde2ea; border-radius:11px; background:#fff;
+    color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .soc-scan-btn:active { background:#eaf2fb; }
+  .soc-product-found {
+    margin-top:8px; padding:10px 12px; border-radius:11px; background:#eaf2fb; border:1px solid #c5daf0;
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+  }
+  .soc-scanner-overlay {
+    position:absolute; inset:0; z-index:60; background:#0f1828; display:flex; flex-direction:column;
+  }
+  #soc-qr-reader { width:100%; flex:1; min-height:0; background:#000; }
+  #soc-qr-reader video { object-fit:cover !important; }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
@@ -71,7 +87,7 @@ mbCss('./common.css');
 <div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
 <!-- navy header -->
 <div style="background:#16223a; padding:14px 16px; flex:none; display:flex; align-items:center; gap:11px;">
-<a href="service-select-customer.html" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
+<a href="#" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
 <div style="width:42px; height:42px; border-radius:50%; background:#2f6aa6; color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none;">{{ custInitials }}</div>
 <div style="flex:1;">
 <div style="display:flex; align-items:center; gap:7px;">
@@ -191,16 +207,34 @@ mbCss('./common.css');
   </div>
 </div>
 
-<!-- Row 7: CHOOSE PRODUCT, CHOOSE DEPARTMEN -->
+<!-- Row 7: CHOOSE PRODUCT (SKU / barcode), CHOOSE DEPARTMENT -->
 <div style="display:flex; gap:11px; margin-bottom:18px;">
   <div style="flex:1; min-width:0;">
     <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">CHOOSE PRODUCT</label>
-    <select onchange="{{ onProduct }}" class="ds-input" style="width:100%; height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;">
-      <option value="">{{ productPlaceholder }}</option>
-      <sc-for as="prod" list="{{ productsList }}">
-        <option value="{{ prod.id }}" selected="{{ prod.selected }}">{{ prod.name }}</option>
-      </sc-for>
-    </select>
+    <div class="soc-sku-row">
+      <input id="soc-sku-input" class="ds-input" type="text" autocomplete="off" inputmode="text"
+        value="{{ productSku }}" placeholder="Scan or type SKU"
+        oninput="{{ onSkuInput }}" onkeydown="{{ onSkuKeydown }}" onblur="{{ onSkuBlur }}"
+        style="height:46px; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;"/>
+      <button type="button" class="soc-scan-btn" onclick="{{ openScanner }}" aria-label="Scan barcode" title="Scan barcode">
+        <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="22"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M14 8v8M17 8v8"/></svg>
+      </button>
+    </div>
+    <sc-if hint-placeholder-val="{{ false }}" value="{{ productLookupLoading }}">
+      <div style="margin-top:8px; font-size:12px; color:#7b8595; font-weight:600;">Looking up product…</div>
+    </sc-if>
+    <sc-if hint-placeholder-val="{{ false }}" value="{{ hasProductScanError }}">
+      <div style="margin-top:8px; font-size:12px; color:#a3302e; font-weight:600;">{{ productScanError }}</div>
+    </sc-if>
+    <sc-if hint-placeholder-val="{{ false }}" value="{{ hasScannedProduct }}">
+      <div class="soc-product-found">
+        <div style="min-width:0; flex:1;">
+          <div style="font-size:13.5px; font-weight:800; color:#1f2a3a; word-break:break-word;">{{ productName }}</div>
+          <div style="font-size:11.5px; color:#5a7fa8; margin-top:3px; font-weight:600;">SKU · {{ productSkuDisplay }} · #{{ productId }}</div>
+        </div>
+        <button type="button" onclick="{{ clearProduct }}" style="border:none; background:none; color:#c0392b; font-size:12px; font-weight:700; cursor:pointer; flex:none; padding:2px 0;">Clear</button>
+      </div>
+    </sc-if>
   </div>
   <div style="flex:1; min-width:0;">
     <label style="display:block; font-size:12.5px; color:#1f2a3a; font-weight:600; margin-bottom:6px; text-transform:uppercase;">CHOOSE DEPARTMENT</label>
@@ -253,66 +287,196 @@ mbCss('./common.css');
         </button>
 </div>
 </div>
+
+<!-- barcode scanner overlay -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ scannerOpen }}">
+  <div class="soc-scanner-overlay">
+    <div style="flex:none; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-size:16px; font-weight:800; color:#fff;">Scan barcode / SKU</div>
+      <button type="button" onclick="{{ closeScanner }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:16px; cursor:pointer;">✕</button>
+    </div>
+    <div id="soc-qr-reader"></div>
+    <div style="flex:none; padding:14px 16px 20px; text-align:center; font-size:12.5px; color:#9fb0c8; font-weight:600;">Point the camera at the product barcode</div>
+  </div>
+</sc-if>
+
+</div>
 </div>
 </div>
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { callType: 'tech', charge: true, cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '', products: [], productId: '', productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '' };
+  state = {
+    callType: 'tech', charge: true, cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '',
+    products: [], productId: '', productSku: '', productName: '', productScanError: '', productLookupLoading: false, scannerOpen: false,
+    productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: ''
+  };
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
       LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
     }
 
-    try {
-      const raw = localStorage.getItem('mineral_new_call_customer');
-      if (raw) {
-        const cust = JSON.parse(raw);
-        // Do not prefill address boxes from customer.address/city free-text
-        // (e.g. "Rothschild Blvd 45") — user enters Street/Area/City fresh.
-        this.setState({
-          cust: cust,
-          email: cust.email || '',
-          phone: cust.phone || '',
-          street: '',
-          building: '',
-          floor: '',
-          apartment: '',
-          entrance: '',
-          area: '',
-          city: '',
-          phone2: cust.phone2 || cust.second_phone || ''
-        });
-      }
-    } catch (e) {}
-    
+    this.loadCustomer();
     this.loadFormOptions();
     this.loadPaidProducts();
     this.bindSafeDropZone();
     window.addEventListener('mineralbar:ready', () => {
+      this.loadCustomer();
       this.loadFormOptions();
       this.loadPaidProducts();
     });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => {
+        this.loadCustomer();
         this.loadFormOptions();
         this.loadPaidProducts();
       }, { keys: /ticket|product|customer|department|socket\.nudge/i, delay: 400 });
     }
   }
 
-  /** Only use real structured parts. Never prefill from free-text cust.address. */
+  /** Prefer URL customer (from customer card) over stale localStorage. */
+  readQueryCustomer() {
+    var q = new URLSearchParams(window.location.search || '');
+    var id = String(q.get('customer_id') || q.get('cust_id') || q.get('contactus_id') || q.get('id') || '').trim();
+    if (id === '0' || id === 'null' || id === 'undefined') id = '';
+    var name = String(q.get('name') || '').trim();
+    var phone = String(q.get('phone') || '').trim();
+    var email = String(q.get('email') || '').trim();
+    var address = String(q.get('address') || '').trim();
+    var city = String(q.get('city') || '').trim();
+    var area = String(q.get('area') || q.get('region') || '').trim();
+    if (!id && !name && !phone) return null;
+    return {
+      customer_id: id,
+      id: id,
+      name: name || (id ? ('#' + id) : ''),
+      phone: phone,
+      email: email,
+      address: address,
+      city: city,
+      area: area,
+      isNew: !id
+    };
+  }
+
+  applyCustomer(cust) {
+    if (!cust) return;
+    var id = String(cust.customer_id || cust.id || '').trim();
+    var phone = String(cust.phone || cust.mobile || '').trim();
+    var email = String(cust.email || '').trim();
+    var name = String(cust.name || '').trim() || (id ? ('#' + id) : '');
+    var phone2 = String(cust.phone2 || cust.second_phone || cust.phone_2 || '').trim();
+    var parts = this.parseAddressParts(cust);
+    var normalized = Object.assign({}, cust, {
+      customer_id: id,
+      id: id,
+      name: name,
+      phone: phone,
+      email: email,
+      phone2: phone2,
+      street: parts.street,
+      building: parts.building,
+      floor: parts.floor,
+      apartment: parts.apartment,
+      entrance: parts.entrance,
+      area: parts.area,
+      city: parts.city,
+      isNew: !!cust.isNew && !id
+    });
+    try { localStorage.setItem('mineral_new_call_customer', JSON.stringify(normalized)); } catch (e) { /* ignore */ }
+    this.setState({
+      cust: normalized,
+      email: email,
+      phone: phone,
+      phone2: phone2,
+      street: parts.street,
+      building: parts.building,
+      floor: parts.floor,
+      apartment: parts.apartment,
+      entrance: parts.entrance,
+      area: parts.area,
+      city: parts.city
+    });
+  }
+
+  async loadCustomer() {
+    var fromQuery = this.readQueryCustomer();
+    var fromStore = null;
+    try {
+      fromStore = JSON.parse(localStorage.getItem('mineral_new_call_customer') || 'null');
+    } catch (e) { fromStore = null; }
+
+    var cust = fromQuery || fromStore || null;
+    // If URL has a different customer than storage, URL wins.
+    if (fromQuery && fromStore) {
+      var qid = String(fromQuery.customer_id || fromQuery.id || '').trim();
+      var sid = String(fromStore.customer_id || fromStore.id || '').trim();
+      if (qid && sid && qid !== sid) cust = fromQuery;
+      else if (qid) cust = Object.assign({}, fromStore, fromQuery, { customer_id: qid, id: qid });
+    }
+
+    if (cust) this.applyCustomer(cust);
+
+    var customerId = String((cust && (cust.customer_id || cust.id)) || (fromQuery && fromQuery.customer_id) || '').trim();
+    if (!customerId) return;
+    if (!window.MineralBarApp || typeof MineralBarApp.getCustomer !== 'function') return;
+
+    try {
+      var custRes = await MineralBarApp.getCustomer(customerId);
+      var c = custRes && custRes.customer;
+      if (c && c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) c = c.data;
+      if (!c) return;
+      this.applyCustomer(Object.assign({}, c, {
+        customer_id: String(c.customer_id || c.id || customerId).trim(),
+        id: String(c.customer_id || c.id || customerId).trim(),
+        name: c.name || (cust && cust.name) || ('#' + customerId),
+        phone: c.mobile || c.phone || (cust && cust.phone) || '',
+        email: c.email || (cust && cust.email) || '',
+        isNew: false
+      }));
+    } catch (err) {
+      console.warn('[service-open-call] Customer.Get failed', err);
+    }
+  }
+
+  /** Prefill address fields from structured customer fields, then free-text address/city. */
   parseAddressParts(cust) {
     var c = cust || {};
+    var city = String(c.city || c.city_name || '').trim();
+    var area = String(c.area || c.region || c.zone || c.district || c.city_area || '').trim();
+    var street = String(c.street || c.street_name || '').trim();
+    var building = String(c.building || c.house || c.house_number || c.building_number || '').trim();
+    var floor = String(c.floor || '').trim();
+    var apartment = String(c.apartment || c.apt || c.flat || '').trim();
+    var entrance = String(c.entrance || c.entry || '').trim();
+    var address = String(c.address || c.full_address || c.fullAddress || '').trim();
+
+    if (!street && address) {
+      // Use free-text address as street; drop trailing city if duplicated.
+      street = address;
+      if (city) {
+        var re = new RegExp('[,\\s]+' + city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i');
+        street = street.replace(re, '').trim();
+      }
+      if (!street) street = address;
+    }
+    if (!city && address) {
+      var bits = address.split(',').map(function (x) { return String(x || '').trim(); }).filter(Boolean);
+      if (bits.length > 1) city = bits[bits.length - 1];
+    }
+    if (area && city && area.toLowerCase() === city.toLowerCase()) {
+      // Keep city; leave area only if distinct
+    }
+
     return {
-      street: String(c.street || c.street_name || '').trim(),
-      building: String(c.building || c.house || c.house_number || c.building_number || '').trim(),
-      floor: String(c.floor || '').trim(),
-      apartment: String(c.apartment || c.apt || c.flat || '').trim(),
-      entrance: String(c.entrance || c.entry || '').trim(),
-      area: String(c.area || '').trim(),
-      city: String(c.city || '').trim()
+      street: street,
+      building: building,
+      floor: floor,
+      apartment: apartment,
+      entrance: entrance,
+      area: area,
+      city: city
     };
   }
 
@@ -445,6 +609,9 @@ class Component extends DCLogic {
 
   getCustomerId() {
     try {
+      var q = new URLSearchParams(window.location.search || '');
+      var fromUrl = String(q.get('customer_id') || q.get('cust_id') || q.get('contactus_id') || '').trim();
+      if (fromUrl && fromUrl !== '0' && fromUrl !== 'null' && fromUrl !== 'undefined') return fromUrl;
       const cust = this.state.cust || JSON.parse(localStorage.getItem('mineral_new_call_customer') || 'null') || {};
       return String(cust.customer_id || cust.id || '').trim();
     } catch (e) {
@@ -599,12 +766,10 @@ class Component extends DCLogic {
         }
       }
 
+      // Product is chosen by SKU scan — do not clear productId from paid-doc list
       this.setState({
         products: allProducts,
-        productsLoading: false,
-        productId: allProducts.some(p => String(p.id) === String(this.state.productId))
-          ? this.state.productId
-          : ''
+        productsLoading: false
       });
     } catch (e) {
       console.warn('[service-open-call] loadPaidProducts failed', e);
@@ -683,9 +848,266 @@ class Component extends DCLogic {
   }
 
   selectedProduct() {
+    var id = String(this.state.productId || '').trim();
+    var name = String(this.state.productName || '').trim();
+    var sku = String(this.state.productSku || '').trim();
+    if (id || name) {
+      return {
+        id: id,
+        product_id: id,
+        name: name,
+        product_name: name,
+        sku: sku,
+        product_sku: sku
+      };
+    }
     return (this.state.products || []).find((p) => {
       return String(p.id) === String(this.state.productId);
     }) || null;
+  }
+
+  productRowsFromList(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw.rows)) return raw.rows;
+    if (Array.isArray(raw.products)) return raw.products;
+    if (Array.isArray(raw.output)) return raw.output;
+    if (raw.output && Array.isArray(raw.output.data)) return raw.output.data;
+    if (raw.data && Array.isArray(raw.data.rows)) return raw.data.rows;
+    return [];
+  }
+
+  normSku(v) {
+    return String(v == null ? '' : v).trim().toLowerCase();
+  }
+
+  matchProductBySku(rows, sku) {
+    var want = this.normSku(sku);
+    if (!want || !rows || !rows.length) return null;
+    var exact = null;
+    var soft = null;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r) continue;
+      var skuA = this.normSku(r.product_sku || r.sku || '');
+      var skuB = this.normSku(r.product_internal_sku || r.internal_sku || '');
+      var id = this.normSku(r.id || r.product_id || '');
+      var name = String(r.product_name || r.name || r.title || '').trim();
+      if (skuA === want || skuB === want || id === want) {
+        exact = r;
+        break;
+      }
+      if (!soft && name && (name.toLowerCase() === want || skuA.indexOf(want) >= 0 || want.indexOf(skuA) >= 0 && skuA)) {
+        soft = r;
+      }
+    }
+    return exact || soft;
+  }
+
+  applyScannedProduct(row, skuTyped) {
+    if (!row) return;
+    var id = String(row.id || row.product_id || '').trim();
+    var name = String(row.product_name || row.name || row.title || '').trim();
+    var sku = String(row.product_sku || row.sku || skuTyped || '').trim();
+    this.setState({
+      productId: id,
+      productName: name || ('#' + id),
+      productSku: sku || skuTyped || '',
+      productScanError: '',
+      productLookupLoading: false
+    });
+  }
+
+  clearProduct() {
+    this.setState({
+      productId: '',
+      productName: '',
+      productSku: '',
+      productScanError: '',
+      productLookupLoading: false
+    });
+  }
+
+  onSkuInput(e) {
+    var val = e && e.target ? e.target.value : '';
+    this.setState({ productSku: val, productScanError: '' });
+  }
+
+  onSkuKeydown(e) {
+    var key = e && (e.key || e.keyCode);
+    if (key === 'Enter' || key === 13) {
+      if (e && e.preventDefault) e.preventDefault();
+      var sku = (e && e.target && e.target.value != null) ? e.target.value : this.state.productSku;
+      this.lookupProductBySku(sku);
+    }
+  }
+
+  onSkuBlur(e) {
+    var sku = String((e && e.target && e.target.value != null) ? e.target.value : this.state.productSku || '').trim();
+    if (!sku) return;
+    // Barcode guns typically end with Enter; blur covers guns that only tab away
+    if (this.state.productLookupLoading) return;
+    if (this.state.productName && this.normSku(this.state.productSku) === this.normSku(sku)) return;
+    this.lookupProductBySku(sku);
+  }
+
+  async lookupProductBySku(sku) {
+    var code = String(sku == null ? '' : sku).trim();
+    if (!code) {
+      this.setState({ productScanError: 'Enter or scan a SKU / barcode.', productLookupLoading: false });
+      return null;
+    }
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
+      this.setState({ productScanError: 'App not ready. Try again.', productLookupLoading: false });
+      return null;
+    }
+    var client = MineralBarApp.getClient();
+    if (!client || !client.getToken || !client.getToken()) {
+      this.setState({ productScanError: 'Please log in first.', productLookupLoading: false });
+      return null;
+    }
+
+    this.setState({
+      productSku: code,
+      productLookupLoading: true,
+      productScanError: '',
+      productId: '',
+      productName: ''
+    });
+
+    try {
+      // Products.List search covers name / description / SKU
+      var raw = await client.request('Products.List', {
+        search: code,
+        'search[value]': code,
+        filter_data: code,
+        length: 25,
+        limit: 25,
+        start: 0,
+        draw: 1,
+        active: 1
+      });
+      var rows = this.productRowsFromList(raw);
+      var match = this.matchProductBySku(rows, code);
+
+      // If search missed exact SKU, page a few catalog pages and match locally
+      if (!match) {
+        for (var page = 0; page < 8 && !match; page++) {
+          var pageRaw = await client.request('Products.List', {
+            length: 25,
+            limit: 25,
+            start: page * 25,
+            offset: page * 25,
+            draw: page + 1,
+            active: 1,
+            order: 'id_desc'
+          });
+          var pageRows = this.productRowsFromList(pageRaw);
+          if (!pageRows.length) break;
+          match = this.matchProductBySku(pageRows, code);
+          if (pageRows.length < 25) break;
+        }
+      }
+
+      if (!match) {
+        this.setState({
+          productLookupLoading: false,
+          productScanError: 'Product not found for this SKU',
+          productId: '',
+          productName: ''
+        });
+        return null;
+      }
+
+      this.applyScannedProduct(match, code);
+      return match;
+    } catch (err) {
+      console.warn('[service-open-call] SKU lookup failed', err);
+      this.setState({
+        productLookupLoading: false,
+        productScanError: (err && err.message) || 'Product lookup failed.'
+      });
+      return null;
+    }
+  }
+
+  loadHtml5Qrcode() {
+    return new Promise(function (resolve, reject) {
+      if (window.Html5Qrcode) {
+        resolve(window.Html5Qrcode);
+        return;
+      }
+      var existing = document.querySelector('script[data-soc-html5-qrcode="1"]');
+      if (existing) {
+        existing.addEventListener('load', function () { resolve(window.Html5Qrcode); });
+        existing.addEventListener('error', reject);
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      s.async = true;
+      s.setAttribute('data-soc-html5-qrcode', '1');
+      s.onload = function () { resolve(window.Html5Qrcode); };
+      s.onerror = function () { reject(new Error('Failed to load barcode scanner')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async openScanner() {
+    var self = this;
+    this.setState({ scannerOpen: true, productScanError: '' });
+    try {
+      await this.loadHtml5Qrcode();
+      await new Promise(function (r) { setTimeout(r, 80); });
+      var elId = 'soc-qr-reader';
+      if (this._html5Qrcode) {
+        try { await this._html5Qrcode.stop(); } catch (e1) { /* ignore */ }
+        try { await this._html5Qrcode.clear(); } catch (e2) { /* ignore */ }
+        this._html5Qrcode = null;
+      }
+      var scanner = new window.Html5Qrcode(elId);
+      this._html5Qrcode = scanner;
+      var handled = false;
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 8, qrbox: { width: 240, height: 140 } },
+        function (decoded) {
+          if (handled) return;
+          handled = true;
+          var code = String(decoded || '').trim();
+          self.closeScanner().then(function () {
+            if (code) self.lookupProductBySku(code);
+          });
+        },
+        function () { /* ignore frame miss */ }
+      );
+    } catch (err) {
+      console.warn('[service-open-call] scanner failed', err);
+      this.setState({
+        scannerOpen: false,
+        productScanError: 'Camera not available. Type or scan SKU into the field.'
+      });
+      try {
+        if (this._html5Qrcode) {
+          await this._html5Qrcode.stop();
+          await this._html5Qrcode.clear();
+        }
+      } catch (e3) { /* ignore */ }
+      this._html5Qrcode = null;
+    }
+  }
+
+  async closeScanner() {
+    try {
+      if (this._html5Qrcode) {
+        try { await this._html5Qrcode.stop(); } catch (e1) { /* ignore */ }
+        try { await this._html5Qrcode.clear(); } catch (e2) { /* ignore */ }
+      }
+    } finally {
+      this._html5Qrcode = null;
+      this.setState({ scannerOpen: false });
+    }
   }
 
   async createTicket() {
@@ -729,7 +1151,9 @@ class Component extends DCLogic {
       if (this.state.entrance) customFields.entrance = String(this.state.entrance).trim();
       if (this.state.phone2) customFields.second_phone = this.state.phone2;
       if (this.state.urgency) customFields.urgency = this.state.urgency;
-      if (product && product.product_name) customFields.product_name = product.product_name;
+      if (product && (product.product_name || product.name)) {
+        customFields.product_name = product.product_name || product.name;
+      }
 
       var payload = {
         topic: topic,
@@ -841,8 +1265,24 @@ class Component extends DCLogic {
     });
 
     const charge = this.state.charge;
-    const cust = this.state.cust || { name: 'משה כהן', phone: '050-1234567', city: 'תל אביב', isNew: false };
-    const custMeta = [cust.phone, this.state.city || this.state.area || cust.city].filter(Boolean).join(' · ');
+    const cust = this.state.cust || { name: '', phone: '', city: '', isNew: false };
+    const custId = String(cust.customer_id || cust.id || this.getCustomerId() || '').trim();
+    const custMeta = [cust.phone, this.state.city || this.state.area || cust.city, custId ? ('#' + custId) : '']
+      .filter(Boolean).join(' · ');
+    var closeUrl = 'service-select-customer.html';
+    try {
+      var qBack = new URLSearchParams(window.location.search || '').get('back') || '';
+      if (qBack) {
+        try { qBack = decodeURIComponent(qBack); } catch (eDec) { /* keep */ }
+        if (qBack && qBack.indexOf('..') < 0 && !/^javascript:/i.test(qBack)) closeUrl = qBack.replace(/^\//, '');
+      } else if (custId) {
+        closeUrl = 'service-customer-card.html?customer_id=' + encodeURIComponent(custId) + '&cust_id=' + encodeURIComponent(custId);
+      }
+    } catch (eClose) {
+      if (custId) {
+        closeUrl = 'service-customer-card.html?customer_id=' + encodeURIComponent(custId) + '&cust_id=' + encodeURIComponent(custId);
+      }
+    }
     const fullAddress = this.buildFullAddress(this.state);
     const stars = [1, 2, 3, 4, 5].map(v => {
       const active = v <= this.state.urgency;
@@ -864,20 +1304,8 @@ class Component extends DCLogic {
       selected: this.state.departmentId == (d.id || d.department_id || d.code || d.name)
     }));
 
-    const productsList = (this.state.products || []).map(p => {
-      var productName = p.product_name || p.name || '';
-      var selectKey = String(p.id || '');
-      return {
-        id: selectKey,
-        product_name: productName,
-        name: productName,
-        selected: String(this.state.productId) === selectKey
-      };
-    });
-
-    var productPlaceholder = 'Select Some Options';
-    if (this.state.productsLoading) productPlaceholder = 'Loading products...';
-    else if (!(this.state.products || []).length) productPlaceholder = 'No paid products';
+    var hasScannedProduct = !!(String(this.state.productName || '').trim() || String(this.state.productId || '').trim());
+    var productSkuDisplay = String(this.state.productSku || '').trim() || '—';
 
     return {
       email: this.state.email, onEmail: e => this.setState({ email: e.target.value }),
@@ -902,13 +1330,40 @@ class Component extends DCLogic {
       toTime: this.state.toTime, onToTime: e => this.setState({ toTime: e.target.value }),
       teamMembers: teamMembersList, onTeamMember: e => this.setState({ teamMemberId: e.target.value }),
       departmentsList, onDepartment: e => this.setState({ departmentId: e.target.value }),
-      productsList,
-      productPlaceholder,
-      onProduct: e => this.setState({ productId: e.target.value }),
+      productSku: this.state.productSku || '',
+      productSkuDisplay,
+      productName: this.state.productName || '',
+      productId: this.state.productId || '',
+      productScanError: this.state.productScanError || '',
+      hasProductScanError: !!String(this.state.productScanError || '').trim(),
+      hasScannedProduct,
+      productLookupLoading: !!this.state.productLookupLoading,
+      scannerOpen: !!this.state.scannerOpen,
+      onSkuInput: (e) => this.onSkuInput(e),
+      onSkuKeydown: (e) => this.onSkuKeydown(e),
+      onSkuBlur: (e) => this.onSkuBlur(e),
+      openScanner: () => this.openScanner(),
+      closeScanner: () => this.closeScanner(),
+      clearProduct: () => this.clearProduct(),
       stars,
       callTypes,
-      custName: cust.name,
-      custInitials: this.initials(cust.name),
+      closeUrl,
+      onClose: (e) => {
+        if (e) { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* ignore */ } }
+        try {
+          var ref = document.referrer || '';
+          if (window.history.length > 1 && ref) {
+            var u = new URL(ref);
+            if (u.origin === location.origin) {
+              window.history.back();
+              return;
+            }
+          }
+        } catch (err2) { /* ignore */ }
+        window.location.href = closeUrl;
+      },
+      custName: cust.name || (custId ? ('#' + custId) : 'Customer'),
+      custInitials: this.initials(cust.name || custId || 'CU'),
       custMeta,
       custIsNew: !!cust.isNew,
       custAddress: fullAddress || '',

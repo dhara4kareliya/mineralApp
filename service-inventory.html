@@ -183,9 +183,12 @@ mbCss('./common.css');
   <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 10px; flex:none;">
     <div style="width:40px;"></div>
     <div style="font-size:20px; font-weight:800; color:#1f2a3a;">inventory</div>
+    <!-- Add product button disabled
     <button onclick="{{ openAddModal }}" style="width:40px; height:40px; border-radius:50%; border:none; background:#1d60a2; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(29,96,162,0.3);">
       <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="20"><path d="M12 5v14M5 12h14"></path></svg>
     </button>
+    -->
+    <div style="width:40px;"></div>
   </div>
 
   <!-- summary cards -->
@@ -263,6 +266,16 @@ mbCss('./common.css');
         </div>
       </div>
     </sc-for>
+    <sc-if hint-placeholder-val="{{ false }}" value="{{ showPager }}">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 4px 4px; margin-bottom:8px;">
+        <button type="button" onclick="{{ prevPage }}" style="min-width:72px; padding:9px 12px; border-radius:10px; border:1.4px solid #dde2ea; background:#fff; color:#1f2a3a; font-size:13px; font-weight:700; cursor:pointer; opacity:{{ prevOpacity }};">Prev</button>
+        <div style="text-align:center; flex:1; min-width:0;">
+          <div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ pageLabel }}</div>
+          <div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:2px;">{{ pagerLabel }}</div>
+        </div>
+        <button type="button" onclick="{{ nextPage }}" style="min-width:72px; padding:9px 12px; border-radius:10px; border:1.4px solid #dde2ea; background:#fff; color:#1f2a3a; font-size:13px; font-weight:700; cursor:pointer; opacity:{{ nextOpacity }};">Next</button>
+      </div>
+    </sc-if>
   </div>
 
   <!-- Add Product Modal Sheet overlay -->
@@ -883,6 +896,8 @@ class Component extends DCLogic {
     selectedCategory: 'all',
     statusFilter: 'active',
     searchQuery: '',
+    listPage: 1,
+    listPageSize: 25,
     
     // Add product state
     addOpen: false,
@@ -1128,6 +1143,107 @@ class Component extends DCLogic {
     }, 50);
   }
 
+  productRowsFromList(res) {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.products)) return res.products;
+    if (Array.isArray(res.output)) return res.output;
+    if (res.output && Array.isArray(res.output.data)) return res.output.data;
+    if (res.data && Array.isArray(res.data.rows)) return res.data.rows;
+    return [];
+  }
+
+  mapRawProduct(item) {
+    if (!item) return null;
+    var pName = item.product_name || item.name || 'Product';
+    var sku = item.product_sku || item.sku || ('SKU-' + String(item.id || Math.random()).slice(-5).toUpperCase());
+    var itemCatId = (item.cat_id || item.category_id) ? String(item.cat_id || item.category_id) : '';
+    var desc = item.description || item.discription || item.desc || '';
+    var priceVal = Math.round(Number(
+      item.product_price != null ? item.product_price
+        : (item.main_price != null ? item.main_price
+          : (item.sale_price != null ? item.sale_price
+            : (item.price != null ? item.price
+              : (item.cost != null ? item.cost : 0))))
+    ));
+    if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
+    var stock = item.left_stock !== undefined ? Number(item.left_stock)
+      : (item.stock !== undefined ? Number(item.stock)
+        : (item.qty !== undefined ? Number(item.qty) : 0));
+    if (!isFinite(stock)) stock = 0;
+    var rawStatus = item.status;
+    var status = (rawStatus === 0 || rawStatus === '0' || rawStatus === false || rawStatus === 'inactive') ? 0 : 1;
+    var typeVal = String(item.type || item.product_type || 'product').toLowerCase();
+    if (typeVal === 'physical') typeVal = 'product';
+    if (typeVal === 'membership') typeVal = 'subscription';
+    return {
+      id: String(item.id || item.product_id || ''),
+      name: pName,
+      sku: sku,
+      cat_id: itemCatId,
+      price: priceVal,
+      stock: stock,
+      status: status,
+      type: typeVal,
+      sub: desc
+    };
+  }
+
+  /**
+   * Products.List is capped at 25 rows/call — page until all products are loaded.
+   * Docs: https://eli.bull36.com/app/help/Products.List
+   */
+  async fetchAllProducts(client) {
+    var pageSize = 25;
+    var all = [];
+    var seen = {};
+    var totalHint = 0;
+
+    try {
+      var countRes = await client.request('Products.Count', {});
+      totalHint = Number(
+        (countRes && (countRes.count != null ? countRes.count
+          : (countRes.total != null ? countRes.total
+            : (countRes.recordsTotal != null ? countRes.recordsTotal : 0)))) || 0
+      );
+      if (!isFinite(totalHint) || totalHint < 0) totalHint = 0;
+    } catch (eCount) {
+      totalHint = 0;
+    }
+
+    var maxPages = totalHint > 0 ? Math.ceil(totalHint / pageSize) + 2 : 80;
+    for (var page = 0; page < maxPages; page++) {
+      var start = page * pageSize;
+      var res = await client.request('Products.List', {
+        limit: pageSize,
+        length: pageSize,
+        per_page: pageSize,
+        start: start,
+        offset: start,
+        draw: page + 1,
+        order: 'id_desc'
+      });
+      if (res && (res.recordsTotal != null || res.recordsFiltered != null) && !totalHint) {
+        totalHint = Number(res.recordsFiltered != null ? res.recordsFiltered : res.recordsTotal) || 0;
+        if (totalHint > 0) maxPages = Math.ceil(totalHint / pageSize) + 2;
+      }
+      var rows = this.productRowsFromList(res);
+      if (!rows.length) break;
+      for (var i = 0; i < rows.length; i++) {
+        var mapped = this.mapRawProduct(rows[i]);
+        if (!mapped || !mapped.id) continue;
+        if (seen[mapped.id]) continue;
+        seen[mapped.id] = true;
+        all.push(mapped);
+      }
+      if (rows.length < pageSize) break;
+      if (totalHint > 0 && all.length >= totalHint) break;
+    }
+    return all;
+  }
+
   async initData() {
     if (!arguments.length || !(arguments[0] && arguments[0].silent)) {
       this.setState({ loading: true });
@@ -1144,8 +1260,7 @@ class Component extends DCLogic {
     if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
       try {
         var client = MineralBarApp.getClient();
-        var res = await client.request('Products.List', { limit: 200, start: 0, length: 200 });
-        var data = res && (res.data || res.output || res);
+        productsList = await this.fetchAllProducts(client);
 
         if (typeof MineralBarApp.getTeamMembers === 'function') {
           var team = MineralBarApp.getTeamMembers() || [];
@@ -1173,10 +1288,10 @@ class Component extends DCLogic {
         });
 
         // Fallback: extract category ids from products and fetch missing names only
-        if (Array.isArray(data) && data.length > 0) {
+        if (productsList.length > 0) {
           var catIds = [];
-          data.forEach(function(item) {
-            var cid = item.category_id || item.cat_id;
+          productsList.forEach(function(item) {
+            var cid = item.cat_id;
             if (cid && catIds.indexOf(String(cid)) === -1) catIds.push(String(cid));
           });
 
@@ -1255,44 +1370,6 @@ class Component extends DCLogic {
         if (!storagesList.length) {
           storagesList = [];
         }
-
-        if (Array.isArray(data) && data.length > 0) {
-          productsList = data.map(function(item) {
-            var pName = item.product_name || item.name || 'Product';
-            var sku = item.product_sku || item.sku || ('SKU-' + String(item.id || Math.random()).slice(-5).toUpperCase());
-            var itemCatId = (item.cat_id || item.category_id) ? String(item.cat_id || item.category_id) : '';
-            var desc = item.description || item.discription || item.desc || '';
-            var priceVal = Math.round(Number(
-              item.product_price != null ? item.product_price
-                : (item.main_price != null ? item.main_price
-                  : (item.sale_price != null ? item.sale_price
-                    : (item.price != null ? item.price
-                      : (item.cost != null ? item.cost : 0))))
-            ));
-            if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
-            var stock = item.left_stock !== undefined ? Number(item.left_stock)
-              : (item.stock !== undefined ? Number(item.stock)
-                : (item.qty !== undefined ? Number(item.qty) : 0));
-            if (!isFinite(stock)) stock = 0;
-            var rawStatus = item.status;
-            var status = (rawStatus === 0 || rawStatus === '0' || rawStatus === false || rawStatus === 'inactive') ? 0 : 1;
-            var typeVal = String(item.type || item.product_type || 'product').toLowerCase();
-            if (typeVal === 'physical') typeVal = 'product';
-            if (typeVal === 'membership') typeVal = 'subscription';
-
-            return {
-              id: String(item.id),
-              name: pName,
-              sku: sku,
-              cat_id: itemCatId,
-              price: priceVal,
-              stock: stock,
-              status: status,
-              type: typeVal,
-              sub: desc
-            };
-          });
-        }
       } catch (err) {
         console.warn('[MineralBar] failed to load inventory', err);
       }
@@ -1311,6 +1388,7 @@ class Component extends DCLogic {
       teamMembers: teamMembersList,
       companies: companiesList,
       storages: storagesList,
+      listPage: 1,
       listRev: Date.now()
     });
     try { this.forceUpdate(); } catch (eFu) { /* ignore */ }
@@ -1571,7 +1649,7 @@ class Component extends DCLogic {
   }
 
   onCategorySelect(catId) {
-    this.setState({ selectedCategory: catId });
+    this.setState({ selectedCategory: catId, listPage: 1 });
   }
 
   resolveProductImageUrl(path) {
@@ -2114,9 +2192,20 @@ class Component extends DCLogic {
       return true;
     });
 
-    // Group products by category dynamically
+    // Client-side pagination (API loads all; UI shows pageSize at a time)
+    var pageSize = Number(s.listPageSize) || 25;
+    var totalFiltered = filtered.length;
+    var totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize) || 1);
+    var currentPage = Math.min(Math.max(1, Number(s.listPage) || 1), totalPages);
+    var pageStart = (currentPage - 1) * pageSize;
+    var pageItems = filtered.slice(pageStart, pageStart + pageSize);
+    var showPager = totalFiltered > pageSize;
+    var rangeFrom = totalFiltered ? (pageStart + 1) : 0;
+    var rangeTo = Math.min(pageStart + pageSize, totalFiltered);
+
+    // Group current page products by category
     var groupsMap = {};
-    filtered.forEach(p => {
+    pageItems.forEach(p => {
       var catObj = s.categories.find(c => c.id === p.cat_id);
       var catName = catObj ? catObj.name : 'other';
       if (!groupsMap[catName]) {
@@ -2260,11 +2349,25 @@ class Component extends DCLogic {
       searchQuery: s.searchQuery,
       categories: s.loading ? [] : categoriesMapped,
       groups: s.loading ? [] : groupsMapped,
+      showPager: !s.loading && showPager,
+      pagerLabel: rangeFrom + '–' + rangeTo + ' / ' + totalFiltered,
+      pageLabel: currentPage + ' / ' + totalPages,
+      prevOpacity: currentPage <= 1 ? '0.45' : '1',
+      nextOpacity: currentPage >= totalPages ? '0.45' : '1',
+      prevPage: () => {
+        if (currentPage <= 1) return;
+        this.setState({ listPage: currentPage - 1 });
+      },
+      nextPage: () => {
+        if (currentPage >= totalPages) return;
+        this.setState({ listPage: currentPage + 1 });
+      },
       productTypes: productTypesMapped,
       chipsRef: this.chipsRef,
       
       // Add Product variables
-      addOpen: s.addOpen,
+      addOpen: false, // Add product option disabled
+      // addOpen: s.addOpen,
       addName: s.addName,
       addEnname: s.addEnname,
       addSku: s.addSku,
@@ -2332,9 +2435,9 @@ class Component extends DCLogic {
       editStatusInactive: Number(s.editStatus) === 0,
       
       // Handlers
-      setStatusActive: () => this.setState({ statusFilter: 'active' }),
-      setStatusInactive: () => this.setState({ statusFilter: 'inactive' }),
-      onSearchChange: (e) => this.setState({ searchQuery: this.inputValue(e) }),
+      setStatusActive: () => this.setState({ statusFilter: 'active', listPage: 1 }),
+      setStatusInactive: () => this.setState({ statusFilter: 'inactive', listPage: 1 }),
+      onSearchChange: (e) => this.setState({ searchQuery: this.inputValue(e), listPage: 1 }),
       onAddNameChange: (e) => this.setState({ addName: this.inputValue(e) }),
       onAddEnnameChange: (e) => this.setState({ addEnname: this.inputValue(e) }),
       onAddSkuChange: (e) => this.setState({ addSku: this.inputValue(e) }),
@@ -2395,7 +2498,8 @@ class Component extends DCLogic {
       onEditStatusChange: (e) => this.setState({ editStatus: Number(e.target.value) }),
       onEditDescChange: (e) => this.setState({ editDesc: this.inputValue(e) }),
 
-      openAddModal: () => this.openAddModal(),
+      // openAddModal: () => this.openAddModal(), // Add product option disabled
+      openAddModal: () => {},
       closeAdd: () => this.setState({ addOpen: false }),
       createProduct: () => this.createProduct(),
       closeDetail: () => this.setState({ detailOpen: false }),

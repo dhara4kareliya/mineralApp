@@ -285,18 +285,33 @@ class Component extends DCLogic {
 
   goBack() {
     try {
+      var q = new URLSearchParams(window.location.search || '');
+      var back = q.get('back') || q.get('from') || q.get('return') || '';
+      if (back) {
+        try { back = decodeURIComponent(back); } catch (eDec) { /* keep */ }
+        back = String(back || '').trim().replace(/^\//, '');
+        if (back && back.indexOf('..') < 0 && !/^javascript:/i.test(back) && back !== 'customer') {
+          window.location.href = back;
+          return;
+        }
+      }
+    } catch (e0) { /* ignore */ }
+    try {
       if (window.history.length > 1) {
         window.history.back();
         return;
       }
     } catch (e) { /* fallback below */ }
-    var home = 'tech-dashboard.html';
+    var home = 'customers.html';
     try {
       if (window.MineralBarApp && typeof MineralBarApp.homeForRole === 'function') {
         home = MineralBarApp.homeForRole(MineralBarApp.getRole()) || home;
       }
     } catch (e2) { /* keep home */ }
-    window.location.href = home;
+    var cid = this.state && this.state.customerId;
+    window.location.href = cid
+      ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
+      : home;
   }
 
   openForm(type) {

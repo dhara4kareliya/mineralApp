@@ -905,7 +905,7 @@ Internal notes
       sendBtnOpacity: hasSel ? '1' : '0.8',
       reminderUrl: 'reminders.html?' + paramsStr,
       createTaskUrl: 'service-create-task.html?' + paramsStr + (paramsStr ? '&' : '') + 'from=messages',
-      customerCardUrl: 'service-customer-card.html?' + paramsStr,
+      customerCardUrl: 'service-customer-card.html?' + paramsStr + (paramsStr ? '&' : '') + 'back=' + encodeURIComponent('chat-customer.html?' + paramsStr),
       leadsListUrl: 'leads-list.html?' + paramsStr,
       quoteUrl: 'service-quote-form.html' + qs,
       paymentUrl: 'collection-payment.html' + qs,

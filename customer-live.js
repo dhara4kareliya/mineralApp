@@ -62,10 +62,116 @@
         var base = href.split('?')[0];
         var params = new URLSearchParams((href.split('?')[1] || ''));
         params.set('customer_id', String(id));
+        params.set('cust_id', String(id));
+        // Return here after payment/docs — not a brand-new page.
+        var cardBack = 'service-customer-card.html?customer_id=' + encodeURIComponent(id) +
+          '&cust_id=' + encodeURIComponent(id);
+        if (!params.get('back')) params.set('back', cardBack);
         a.setAttribute('href', base + '?' + params.toString());
       });
     } catch (e2) { /* ignore */ }
   }
+
+  var CARD_SELF_RE = /service-customer-card|chat-customer-details|tech-customer-card|lead-card/i;
+  var CARD_CHILD_RE = /service-open-call|service-quote-form|service-order-form|all-documents|collection-payment|document-issuance|document-issue-form|chat-customer\.html|service-create-task|service-inventory|service-select-customer/i;
+
+  function safeCardBackHref(raw) {
+    if (!raw) return '';
+    try { raw = decodeURIComponent(String(raw)); } catch (e) { raw = String(raw); }
+    raw = String(raw || '').trim();
+    if (!raw || /^javascript:/i.test(raw) || raw.indexOf('//') === 0) return '';
+    if (/^https?:/i.test(raw)) {
+      try {
+        var abs = new URL(raw, location.href);
+        if (abs.origin !== location.origin) return '';
+        return (abs.pathname.split('/').pop() || '') + abs.search + abs.hash;
+      } catch (e2) { return ''; }
+    }
+    if (raw.indexOf('..') >= 0) return '';
+    return raw.replace(/^\//, '');
+  }
+
+  function defaultCustomerCardBack() {
+    var role = '';
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getRole === 'function') {
+        role = String(MineralBarApp.getRole() || '');
+      }
+    } catch (e) { /* ignore */ }
+    if (!role) {
+      try { role = document.body.getAttribute('data-role') || ''; } catch (e2) { /* ignore */ }
+    }
+    if (role === 'tech') return 'tech-daily-schedule.html';
+    if (role === 'sales') return 'leads-list.html';
+    return 'customers.html';
+  }
+
+  function rememberCustomerCardEntry() {
+    if (!CARD_SELF_RE.test(location.pathname || location.href || '')) return;
+    var q = new URLSearchParams(location.search || '');
+    var explicit = safeCardBackHref(q.get('back') || q.get('from') || q.get('return'));
+    if (explicit && !CARD_SELF_RE.test(explicit)) {
+      try { sessionStorage.setItem('mb_customer_card_back', explicit); } catch (e) { /* ignore */ }
+      return;
+    }
+    try {
+      var ref = document.referrer;
+      if (!ref) return;
+      var u = new URL(ref);
+      if (u.origin !== location.origin) return;
+      var file = (u.pathname.split('/').pop() || '');
+      if (!file || CARD_SELF_RE.test(file) || CARD_CHILD_RE.test(file) || /login/i.test(file)) return;
+      var rel = file + u.search + u.hash;
+      if (rel) sessionStorage.setItem('mb_customer_card_back', rel);
+    } catch (e3) { /* ignore */ }
+  }
+
+  function resolveCustomerCardBack() {
+    var q = new URLSearchParams(location.search || '');
+    var fromParam = safeCardBackHref(q.get('back') || q.get('from') || q.get('return'));
+    if (fromParam && !CARD_SELF_RE.test(fromParam) && !CARD_CHILD_RE.test(fromParam)) return fromParam;
+    try {
+      var stored = safeCardBackHref(sessionStorage.getItem('mb_customer_card_back'));
+      if (stored && !CARD_SELF_RE.test(stored) && !CARD_CHILD_RE.test(stored)) return stored;
+    } catch (e) { /* ignore */ }
+    try {
+      var ref = document.referrer;
+      if (ref) {
+        var u = new URL(ref);
+        if (u.origin === location.origin) {
+          var file = (u.pathname.split('/').pop() || '');
+          if (file && !CARD_SELF_RE.test(file) && !CARD_CHILD_RE.test(file) && !/login/i.test(file)) {
+            return file + u.search + u.hash;
+          }
+        }
+      }
+    } catch (e2) { /* ignore */ }
+    return defaultCustomerCardBack();
+  }
+
+  function goCustomerCardBack(e) {
+    if (e) {
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+      } catch (err) { /* ignore */ }
+    }
+    var href = resolveCustomerCardBack();
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (err2) { /* ignore */ }
+    window.location.href = defaultCustomerCardBack();
+  }
+
+  window.mbGoCustomerCardBack = goCustomerCardBack;
+  window.mbResolveCustomerCardBack = resolveCustomerCardBack;
 
   function initials(name) {
     var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -860,7 +966,9 @@
 
   function renderTicketsSection(tickets, customerId) {
     var openUrl = 'service-open-call.html?customer_id=' + encodeURIComponent(customerId) +
-      '&cust_id=' + encodeURIComponent(customerId);
+      '&cust_id=' + encodeURIComponent(customerId) +
+      '&back=' + encodeURIComponent('service-customer-card.html?customer_id=' + encodeURIComponent(customerId) +
+        '&cust_id=' + encodeURIComponent(customerId));
     var html = '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">' +
       esc(t('Service calls', 'קריאות שירות')) + '</div>';
     if (tickets && tickets.length) {
@@ -1018,12 +1126,20 @@
 
     var qs = 'customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id) +
       '&name=' + encodeURIComponent(name) +
-      (phone ? '&phone=' + encodeURIComponent(phone) : '');
+      (phone ? '&phone=' + encodeURIComponent(phone) : '') +
+      (email ? '&email=' + encodeURIComponent(email) : '') +
+      (address ? '&address=' + encodeURIComponent(address) : '') +
+      (city ? '&city=' + encodeURIComponent(city) : '') +
+      (region && region !== city ? '&area=' + encodeURIComponent(region) : '');
     var backCard = 'service-customer-card.html?customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id);
-    var serviceUrl = 'service-open-call.html?' + qs;
+    try {
+      var entryBack = sessionStorage.getItem('mb_customer_card_back');
+      if (entryBack) backCard += '&back=' + encodeURIComponent(entryBack);
+    } catch (eBack) { /* ignore */ }
+    var serviceUrl = 'service-open-call.html?' + qs + '&back=' + encodeURIComponent(backCard);
     var quoteUrl = 'service-quote-form.html?' + qs + '&back=' + encodeURIComponent(backCard);
-    var orderUrl = 'service-order-form.html?' + qs + '&from=customer';
-    var docsUrl = 'all-documents.html?' + qs;
+    var orderUrl = 'service-order-form.html?' + qs + '&from=customer&back=' + encodeURIComponent(backCard);
+    var docsUrl = 'all-documents.html?' + qs + '&back=' + encodeURIComponent(backCard);
     var chatUrl = 'chat-customer.html?' + qs + '&back=' + encodeURIComponent(backCard);
 
     var rows = [];
@@ -1251,8 +1367,12 @@
   // No pageshow re-fetch — app resume updates come from socket only.
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 20); });
+    document.addEventListener('DOMContentLoaded', function () {
+      rememberCustomerCardEntry();
+      setTimeout(start, 20);
+    });
   } else {
+    rememberCustomerCardEntry();
     setTimeout(start, 20);
   }
 

@@ -47,7 +47,7 @@ mbCss('./common.css');
 <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18"><circle cx="5" cy="12" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="19" cy="12" r="1.4"></circle></svg>
 </button>
 <div style="font-size:18px; font-weight:800; color:#1f2a3a;">Customer card</div>
-<button type="button" onclick="history.back()" aria-label="Back" style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<button type="button" onclick="{{ goBack }}" aria-label="Back" style="width:38px; height:38px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; cursor:pointer; display:flex; align-items:center; justify-content:center;">
 <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18"><path d="m9 18 6-6-6-6"></path></svg>
 </button>
 </div>
@@ -123,6 +123,20 @@ class Component extends DCLogic {
     });
   }
 
+  goBack(e) {
+    if (typeof window.mbGoCustomerCardBack === 'function') {
+      window.mbGoCustomerCardBack(e);
+      return;
+    }
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (err) { /* ignore */ }
+    window.location.href = 'customers.html';
+  }
+
   syncCustomerFromCache() {
     var cached = window.__mbCurrentCustomer || null;
     if (cached && (cached.id || cached.name)) {
@@ -164,7 +178,8 @@ class Component extends DCLogic {
       sheetOpen: this.state.sheetOpen,
       sheetCustomerLabel: this.state.sheetCustomerLabel || '…',
       openSheet: () => this.openSheet(),
-      closeSheet: () => this.closeSheet()
+      closeSheet: () => this.closeSheet(),
+      goBack: (e) => this.goBack(e)
     };
   }
 }

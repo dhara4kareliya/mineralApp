@@ -315,9 +315,16 @@
       sessionStorage.setItem('mb_customer_id', String(id));
       localStorage.setItem('mb_customer_id', String(id));
     } catch (e) { /* ignore */ }
-    return encodeURI(page) + '?customer_id=' + encodeURIComponent(id) +
+    var url = encodeURI(page) + '?customer_id=' + encodeURIComponent(id) +
       '&cust_id=' + encodeURIComponent(id) +
       '&id=' + encodeURIComponent(id);
+    try {
+      var here = (location.pathname.split('/').pop() || '') + (location.search || '');
+      if (here && !/service-customer-card|lead-card|chat-customer-details/i.test(here)) {
+        url += '&back=' + encodeURIComponent(here);
+      }
+    } catch (e2) { /* ignore */ }
+    return url;
   }
 
   function leadCard(c) {
