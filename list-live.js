@@ -579,9 +579,10 @@
   async function enrichOneCustomerCard(card) {
     var cid = card.getAttribute('data-customer-id') || '';
     if (!cid || card.dataset.enriched === '1') return;
+    // Lead cards use a different layout — skip per-card enrichment there
+    if (!card.querySelector('.mb-cust-name-row') && !card.querySelector('.mb-cust-address')) return;
     card.dataset.enriched = '1';
     var needsAddress = !((card.querySelector('.mb-cust-address') || {}).textContent || '').trim();
-    var needsProduct = !((card.querySelector('.mb-cust-product-line') || {}).textContent || '').trim();
     var needsStatus = !card.querySelector('.mb-cust-status');
 
     try {
@@ -594,9 +595,10 @@
           if (needsAddress) {
             setAddressLines(card, picked.address, picked.city, picked.phone || card.getAttribute('data-phone') || '');
           }
+          // Products come from Customer.List / Customer.Get when available —
+          // do not call Documents.Products per card (unused + noisy on list pages).
           if (picked.products) {
             setProductLine(card, picked.products);
-            needsProduct = false;
           }
           if (picked.status && needsStatus) {
             var nameRow = card.querySelector('.mb-cust-name-row');
@@ -613,20 +615,13 @@
         }
       }
     } catch (e) { /* ignore */ }
-
-    if (needsProduct) {
-      try {
-        var products = await fetchCustomerProducts(cid);
-        if (products && products.length) {
-          setProductLine(card, products.map(function (p) { return p.name; }).filter(Boolean).join(', '));
-        }
-      } catch (e) { /* ignore */ }
-    }
   }
 
   function enrichCustomerCards(listEl) {
     listEl = document.getElementById('mb-live-list') || listEl;
     if (!listEl) return;
+    // Leads list does not show product lines — skip enrichment entirely
+    if ((listEl.getAttribute('data-kind') || pageKind()) === 'leads') return;
     var cards = Array.prototype.slice.call(listEl.querySelectorAll('[data-customer-id]'));
     if (!cards.length) return;
     var queue = cards.slice();

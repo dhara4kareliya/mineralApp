@@ -47,7 +47,8 @@
       details: "DETAILS",
       openMissions: "Missions",
       notes: "NOTES",
-      notesPlaceholder: "Add a note about the customer..."
+      notesPlaceholder: "Add a note about the customer...",
+      internalComment: "Internal comment"
     },
     he: {
       title: "כרטיס לקוח",
@@ -70,7 +71,8 @@
       details: "פרטים",
       openMissions: "משימות",
       notes: "הערות",
-      notesPlaceholder: "הוסף הערה לגבי הלקוח..."
+      notesPlaceholder: "הוסף הערה לגבי הלקוח...",
+      internalComment: "הערה פנימית"
     }
   };
 
@@ -117,7 +119,32 @@
       if (k === 'notes_title') el.textContent = t('notes');
       if (k === 'save_button') el.textContent = t('saveFolderBtn');
       if (k === 'channel_wa') el.textContent = t('channelWA');
+      if (k === 'internal_comment_label') el.textContent = t('internalComment');
     });
+  }
+
+  function buildAddNoteUrl(c) {
+    c = c || customerData || {};
+    var id = String(currentCustomerId || c.customer_id || c.id || '').trim();
+    var name = c.name || '';
+    var phone = formatPhone(c.mobile || c.phone || '');
+    var email = c.email || '';
+    var address = c.address || '';
+    var city = c.city || c.city_name || '';
+    var qs = 'customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id) +
+      (name ? '&name=' + encodeURIComponent(name) : '') +
+      (phone ? '&phone=' + encodeURIComponent(phone) : '') +
+      (email ? '&email=' + encodeURIComponent(email) : '') +
+      (address ? '&address=' + encodeURIComponent(address) : '') +
+      (city ? '&city=' + encodeURIComponent(city) : '');
+    var back = 'chat-customer-details.html?customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id);
+    return 'add-note.html?' + qs + '&back=' + encodeURIComponent(back);
+  }
+
+  function wireInternalCommentLink(c) {
+    var link = document.getElementById('mb-internal-comment-link');
+    if (!link) return;
+    link.href = buildAddNoteUrl(c);
   }
 
   function applySelectStyle(sel) {
@@ -590,6 +617,7 @@
         if (noteElement) {
           noteElement.textContent = noteText !== "" ? noteText : "-";
         }
+        wireInternalCommentLink(c);
 
         // After our own save, skip folder rebuild (already reflects UI) — avoids flicker/API storm.
         // Remote updates still rebuild folders once.

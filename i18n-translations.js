@@ -1631,6 +1631,7 @@
     "Payment link": "קישור לתשלום",
     "Product media": "מדיה למוצר",
     "Add a comment": "הוסף הערה",
+    "Internal comment": "הערה פנימית",
     "Internal note to the customer card": "הערה פנימית לכרטיס הלקוח",
     "Choose from my gallery": "בחר מהגלריה שלי",
     "Under sinks": "תת כיור",
