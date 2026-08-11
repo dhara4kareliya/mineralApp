@@ -655,23 +655,146 @@ html[dir="rtl"] .select-wrap .select-chevron,
   margin-bottom: 14px;
 }
 
-/* Customer list cards — truncate long names so action icons stay visible */
+/* Customer list cards */
+.mb-cust-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  margin-bottom: 9px;
+  overflow: hidden;
+  min-width: 0;
+}
+.mb-cust-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #dbe7f8;
+  color: #2f6aa6;
+  font-weight: 800;
+  font-size: 15px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.mb-cust-main {
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  overflow: hidden;
+}
 .mb-cust-name-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 5px 7px;
   min-width: 0;
-  overflow: hidden;
 }
 .mb-cust-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 15.5px;
+  max-width: 100%;
+  font-size: 15px;
   font-weight: 800;
   color: #16223a;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.mb-cust-status,
+.mb-cust-vip-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 7px;
+  flex: none;
+}
+.mb-cust-vip-badge {
+  font-weight: 800;
+  background: #f6eee4;
+  color: #8a6540;
+}
+.mb-cust-address {
+  font-size: 12px;
+  color: #5a6473;
+  margin-top: 4px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.mb-cust-meta {
+  font-size: 12px;
+  color: #7b8595;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mb-cust-product-line {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1d60a2;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mb-cust-product-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.mb-cust-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.mb-cust-action {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid #e4e8ee;
+  background: #fff;
+  color: #9aa3b0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  flex: none;
+}
+.mb-cust-products-btn {
+  border-color: #d6e4f5;
+  background: #eaf2fb;
+  color: #1d60a2;
+}
+.mb-cust-vip-btn.is-on,
+.mb-cust-vip-btn[data-vip="1"] {
+  border-color: #c9a882;
+  background: #f6eee4;
+  color: #8a6540;
+}
+.mb-cust-wa {
+  border: none;
+  background: #25b35e;
+  color: #fff;
+}
+.mb-cust-chevron {
+  color: #c2c9d2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  text-decoration: none;
+  width: 18px;
 }
 .mb-lead-name-row {
   display: flex;

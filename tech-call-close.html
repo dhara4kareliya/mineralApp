@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html dir="rtl" lang="he">
 <head>
@@ -352,6 +352,13 @@ mbCss('./common.css');
 </div>
 </sc-if>
 
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasViewReason }}">
+<div style="margin-bottom:14px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelFollowReason }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewReason }}</div>
+</div>
+</sc-if>
+
 <div style="margin-bottom:14px;">
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelSummary }}</div>
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45; white-space:pre-wrap;">{{ viewSummary }}</div>
@@ -483,6 +490,7 @@ class Component extends DCLogic {
     closeStatusLabel: '',
     reason: '',
     reasonOther: '',
+    viewReason: '',
     products: [],
     productId: '',
     qty: '1',
@@ -1036,6 +1044,20 @@ class Component extends DCLogic {
     return { id: id || raw, label: label || raw };
   }
 
+  /** Reads closing_reason / followup_reason from custom_fields, else note text */
+  parseClosingReason(ticket) {
+    var cf = this.parseCustomFields(ticket);
+    var raw = cf.closing_reason != null ? cf.closing_reason
+      : (cf.followup_reason != null ? cf.followup_reason
+        : (cf.close_reason != null ? cf.close_reason : ''));
+    raw = String(raw != null ? raw : '').trim();
+    if (!raw) {
+      var m = this.ticketNotesText(ticket).match(/Follow-up reason:\s*([^\n]+)/i);
+      if (m && m[1]) raw = String(m[1]).trim();
+    }
+    return raw;
+  }
+
   ticketNotesText(ticket) {
     if (!ticket || typeof ticket !== 'object') return '';
     var parts = [];
@@ -1190,6 +1212,7 @@ class Component extends DCLogic {
             linkedProducts: linked0,
             closeStatus: close0.id || this.state.closeStatus || '',
             closeStatusLabel: close0.label || this.state.closeStatusLabel || '',
+            viewReason: this.parseClosingReason(liveTicket) || this.state.viewReason || '',
             viewCashLabel: this.parseCashFromTicket(liveTicket).label || this.state.viewCashLabel || ''
           });
         }
@@ -1218,6 +1241,7 @@ class Component extends DCLogic {
         closeStatusLabel: '',
         reason: '',
         reasonOther: '',
+        viewReason: '',
         extraPhotos: [],
         cash: null,
         cashAmount: '',
@@ -1271,6 +1295,7 @@ class Component extends DCLogic {
             linkedProducts: linkedProducts,
             closeStatus: closeInfo.id || '',
             closeStatusLabel: closeInfo.label || '',
+            viewReason: this.parseClosingReason(ticket) || '',
             viewCashLabel: this.parseCashFromTicket(ticket).label || ''
           });
         } else {
@@ -2146,6 +2171,17 @@ class Component extends DCLogic {
       if (!media.signature) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
 
       var statusLabel = st.closeStatusLabel || this.closeStatusLabelOf(st.closeStatus) || st.closeStatus;
+      var reasonText = '';
+      var reasonId = '';
+      if (this.needsReason()) {
+        var reasonOpts = this.reasonOptionsList();
+        var reasonRow = reasonOpts.find(function (r) { return r.id === st.reason; });
+        reasonId = String(st.reason || '');
+        reasonText = (reasonRow && reasonRow.label) || st.reason || '';
+        if (st.reason === 'e' && String(st.reasonOther || '').trim()) {
+          reasonText = String(st.reasonOther).trim();
+        }
+      }
       var lines = ['Closing status: ' + statusLabel];
       if (st.customerId) lines.push('Customer ID: ' + st.customerId);
       if (st.cash === 'yes') lines.push('Cash collected: ' + (st.cashAmount || '0') + ' ILS');
@@ -2159,15 +2195,7 @@ class Component extends DCLogic {
       if (st.terms) lines.push('Customer approved terms.');
       if (st.sendCopy) lines.push('Send copy to customer: yes');
       else lines.push('Send copy to customer: no');
-      if (this.needsReason()) {
-        var reasonOpts = this.reasonOptionsList();
-        var reasonRow = reasonOpts.find(function (r) { return r.id === st.reason; });
-        var reasonText = (reasonRow && reasonRow.label) || st.reason || '';
-        if (st.reason === 'e' && String(st.reasonOther || '').trim()) {
-          reasonText = String(st.reasonOther).trim();
-        }
-        if (reasonText) lines.push('Follow-up reason: ' + reasonText);
-      }
+      if (reasonText) lines.push('Follow-up reason: ' + reasonText);
       lines.push('Work summary: ' + summary);
       (st.spares || []).forEach(function (s) {
         lines.push('- ' + s.name + ' x' + s.qty);
@@ -2190,9 +2218,14 @@ class Component extends DCLogic {
         custom_fields: {
           closing_status: st.closeStatus || statusLabel,
           cash_collected: st.cash === 'yes' ? 'yes' : (st.cash === 'no' ? 'no' : ''),
-          cash_amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9]/g, '') : ''
+          cash_amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9.]/g, '') : ''
         }
       };
+      if (reasonText) {
+        payload.custom_fields.closing_reason = reasonText;
+        payload.custom_fields.followup_reason = reasonText;
+        if (reasonId) payload.custom_fields.closing_reason_id = reasonId;
+      }
       // Only keep cash fields when user selected Yes/No
       if (!st.cash) {
         delete payload.custom_fields.cash_collected;
@@ -2231,6 +2264,7 @@ class Component extends DCLogic {
         mode: 'view',
         viewSummary: summary,
         closeStatusLabel: statusLabel,
+        viewReason: reasonText || '',
         viewCashLabel: st.cash === 'yes'
           ? (this.t('Yes', 'כן') + (st.cashAmount ? (' · ' + st.cashAmount + ' ₪') : ''))
           : (st.cash === 'no' ? this.t('No', 'לא') : ''),
@@ -2419,8 +2453,8 @@ class Component extends DCLogic {
       })),
 
       labelPhotos: this.t('Device photos', 'תמונות המכשיר'),
-      beforePhoto: this.t('Under sink', 'מתחת לכיור'),
-      afterPhoto: this.t('The device', 'המכשיר'),
+      beforePhoto: this.t('Above the sink', 'מעל הכיור'),
+      afterPhoto: this.t('Under the sink', 'מתחת לכיור'),
       beforeClass: st.beforeDataUrl ? 'has-img' : '',
       afterClass: st.afterDataUrl ? 'has-img' : '',
       extraPhotoLine1: this.t('Another', 'תמונה'),
@@ -2502,6 +2536,8 @@ class Component extends DCLogic {
       viewSummary: st.viewSummary || st.summary || '—',
       hasCloseStatus: !!(st.closeStatusLabel || st.closeStatus),
       viewCloseStatus: st.closeStatusLabel || this.closeStatusLabelOf(st.closeStatus) || '',
+      hasViewReason: !!(st.viewReason),
+      viewReason: st.viewReason || '',
       hasViewCash: !!st.viewCashLabel,
       viewCashDisplay: st.viewCashLabel ? 'block' : 'none',
       viewCash: st.viewCashLabel || '',
@@ -2528,8 +2564,8 @@ class Component extends DCLogic {
       hasAfter: !!st.afterUrl,
       beforeUrl: st.beforeUrl || '',
       afterUrl: st.afterUrl || '',
-      openBefore: () => this.openPhoto(st.beforeUrl, this.t('Under sink', 'מתחת לכיור')),
-      openAfter: () => this.openPhoto(st.afterUrl, this.t('The device', 'המכשיר')),
+      openBefore: () => this.openPhoto(st.beforeUrl, this.t('Above the sink', 'מעל הכיור')),
+      openAfter: () => this.openPhoto(st.afterUrl, this.t('Under the sink', 'מתחת לכיור')),
       viewExtraPhotos: (st.extraUrls || []).map(function (url, i) {
         return {
           src: url,

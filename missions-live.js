@@ -68,15 +68,23 @@
 
   function priorityFromMission(mission, today) {
     if (!mission) return 'none';
-    var color = String(mission.color || '').toLowerCase();
-    var priority = String(mission.priority || '').toLowerCase();
+    var color = String(mission.color || mission.appoinment_color1 || '').trim().toLowerCase();
+    var priority = String(mission.priority || '').trim().toLowerCase();
     var meta = {};
     try { meta = JSON.parse(mission.meta || '{}') || {}; } catch (e) { /* ignore */ }
     var he = String(meta.priority_he || '');
-    
-    if (/urgent|high|דחוף|גבוה/i.test(priority) || /דחוף|גבוה/i.test(he) || color === '#ef4444' || color === '#c0392b') return 'urgent';
-    if (/low|נמוכ/i.test(priority) || /נמוכ/i.test(he) || color === '#22c55e' || color === '#2e8a63') return 'low';
-    if (/normal|medium|רגיל|בינוני/i.test(priority) || color === '#f59e0b' || color === '#eab308' || color === '#f1c40f') return 'normal';
+
+    if (color === 'yellow' || color === 'transparent' || color === 'blue' ||
+        priority === 'yellow' || priority === 'transparent' || priority === 'blue' ||
+        color === '#f59e0b' || color === '#eab308' || color === '#f1c40f') return 'normal';
+    if (color === 'green' || priority === 'green' ||
+        color === '#22c55e' || color === '#2e8a63') return 'low';
+    if (color === 'red' || priority === 'red' ||
+        color === '#ef4444' || color === '#c0392b') return 'urgent';
+
+    if (/\burgent\b|\bhigh\b|דחוף|גבוה/i.test(priority) || /דחוף|גבוה/i.test(he)) return 'urgent';
+    if (/\blow\b|נמוכ/i.test(priority) || /נמוכ/i.test(he)) return 'low';
+    if (/\bregular\b|\bnormal\b|\bmedium\b|רגיל|בינוני/i.test(priority)) return 'normal';
 
     if (isOverdue(mission, today)) return 'urgent';
     return 'none';

@@ -306,6 +306,49 @@
     return { label: '', color: '#1d60a2' };
   }
 
+  function parseExtraFields(row) {
+    row = row || {};
+    var ef = row.extra_fields_json;
+    if (!ef && row.extra_fields != null) {
+      if (typeof row.extra_fields === 'string') {
+        try { ef = JSON.parse(row.extra_fields); } catch (e) { ef = null; }
+      } else if (typeof row.extra_fields === 'object') {
+        ef = row.extra_fields;
+      }
+    }
+    return (ef && typeof ef === 'object') ? ef : {};
+  }
+
+  // Biz1 rejects unknown custom fields. Mineral has Level (a-1785311630):
+  // לא מעוניין / מתלבט / רציני / תותח — use "תותח" as VIP marker.
+  var VIP_FIELD = 'a-1785311630';
+  var VIP_VALUE = 'תותח';
+
+  function isVipFromExtra(ef) {
+    var v = String((ef && (ef[VIP_FIELD] || ef.vip || ef.vip_level)) || '').trim();
+    return v === VIP_VALUE || /^(1|yes|true|vip|gold|תותח)$/i.test(v);
+  }
+
+  function isRenewDue(row) {
+    if (!row || !row.followup) return false;
+    var ts = new Date(row.followup).getTime();
+    if (isNaN(ts)) return false;
+    // Due for renew: overdue or within next 30 days
+    return (ts - Date.now()) / 86400000 <= 30;
+  }
+
+  function isWarrantyRunningOut(row, ef) {
+    ef = ef || parseExtraFields(row);
+    var ins = String(ef.insurance || row.insurance || row.warranty || row.warranty_status || '').trim();
+    if (/warrant|אחרי|extended/i.test(ins)) return true;
+    var end = row.warranty_end || row.warranty_until || ef.warranty_end || ef.warranty_until;
+    if (end) {
+      var ts = new Date(end).getTime();
+      if (!isNaN(ts)) return (ts - Date.now()) / 86400000 <= 60;
+    }
+    return false;
+  }
+
   function pick(row) {
     var id = row.customer_id || row.contactus_id || row.id || row.ID || '';
     var name = row.name || row.customer_name || row.full_name || row.cname || row.title || ('#' + id);
@@ -316,7 +359,11 @@
     var st = resolveStatus(row);
     var created = row.date_created || row.created_at || row.created || row.date || row.opendate || row.insert_date || row.added_date || '';
     var products = pickProductPreview(row);
-    return {
+    var ef = parseExtraFields(row);
+    var isVip = isVipFromExtra(ef);
+    var isRenew = isRenewDue(row);
+    var isWarranty = isWarrantyRunningOut(row, ef);
+    var out = {
       id: id,
       name: name,
       phone: phone,
@@ -327,8 +374,84 @@
       statusColor: st.color,
       created: created,
       products: products,
+      isVip: isVip,
+      isRenew: isRenew,
+      isWarranty: isWarranty,
+      followup: row.followup || '',
+      source: stripHtmlText(row.source || row.affiliate || row.lead_source || row.channel || ''),
+      statusKey: '',
       raw: row
     };
+    out.statusKey = leadStatusKey(out.status, row);
+    return out;
+  }
+
+  function leadStatusKey(statusLabel, row) {
+    var s = String(statusLabel || '').toLowerCase();
+    if (/follow|פולוא/.test(s)) return 'followup';
+    if (/offer|quote|הצע|sent|proposal/.test(s)) return 'sent';
+    if (/closed|won|נסגר|deal|converted|שולם/.test(s)) return 'closed';
+    if (/no.?answer|מענה|לא ענה|unreachable|לא זמין/.test(s)) return 'noanswer';
+    if (/irrelevant|לא רלוונט|not relevant/.test(s)) return 'irrelevant';
+    if (/new|חדש/.test(s)) return 'new';
+    if (row && row.followup) {
+      var ts = new Date(row.followup).getTime();
+      if (!isNaN(ts) && ts <= Date.now()) return 'followup';
+    }
+    return 'other';
+  }
+
+  function leadSourceKey(sourceLabel) {
+    var s = String(sourceLabel || '').toLowerCase();
+    if (/fb|facebook|פייסבוק/.test(s)) return 'fb';
+    if (/ig|insta|אינסט/.test(s)) return 'ig';
+    if (/site|web|אתר/.test(s)) return 'site';
+    if (/ref|refer|הפנ/.test(s)) return 'ref';
+    if (/call|incoming|שיחה|נכנס/.test(s)) return 'incoming';
+    if (s) return 'other';
+    return '';
+  }
+
+  function defaultLeadFilters() {
+    return {
+      mainChip: 'all',
+      soug: 'all',
+      status: 'all',
+      owner: 'all',
+      source: 'all',
+      dateQuick: 'none',
+      sortLeads: 'created',
+      sortRenew: 'expiry',
+      dir: { created: 'new', statusTime: 'long', expiry: 'urgent' }
+    };
+  }
+
+  function getLeadFilters() {
+    if (!window.__mbLeadFilters) window.__mbLeadFilters = defaultLeadFilters();
+    return window.__mbLeadFilters;
+  }
+
+  function setLeadFilters(patch) {
+    var cur = getLeadFilters();
+    window.__mbLeadFilters = Object.assign({}, cur, patch || {});
+    if (patch && patch.dir) {
+      window.__mbLeadFilters.dir = Object.assign({}, cur.dir, patch.dir);
+    }
+    try {
+      window.dispatchEvent(new CustomEvent('mineralbar:lead-filters', { detail: window.__mbLeadFilters }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function getActiveLeadFilter() {
+    return String(getLeadFilters().mainChip || 'all');
+  }
+
+  function setActiveLeadFilter(id) {
+    var filters = getLeadFilters();
+    filters.mainChip = String(id || 'all');
+    if (filters.mainChip !== 'all') filters.status = filters.mainChip;
+    else filters.status = 'all';
+    setLeadFilters(filters);
   }
 
   function initials(name) {
@@ -441,7 +564,7 @@
     var address = String(c.address || c.city || '').trim();
     var dateText = formatListDate(c.created);
     return (
-      '<a href="' + detail + '" data-customer-id="' + esc(c.id) + '" data-status="' + esc(c.status) + '" style="display:block;background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;text-decoration:none;">' +
+      '<a href="' + detail + '" data-customer-id="' + esc(c.id) + '" data-status="' + esc(c.status) + '" data-status-key="' + esc(c.statusKey || leadStatusKey(c.status, c.raw)) + '" data-source-key="' + esc(leadSourceKey(c.source)) + '" data-created="' + esc(c.created || '') + '" data-followup="' + esc(c.followup || '') + '" style="display:block;background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;text-decoration:none;">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
       '<div style="font-size:17px;font-weight:800;color:#16223a;display:inline-flex;align-items:center;gap:5px;min-width:0;">' +
       '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(c.name) + '</span>' +
@@ -479,6 +602,9 @@
     var statusLabel = String(c.status || '').trim();
     var statusColor = String(c.statusColor || '#1d60a2').trim() || '#1d60a2';
     var statusBg = statusColor.charAt(0) === '#' ? (statusColor + '22') : '#eaf2fb';
+    var isVip = !!c.isVip;
+    var isRenew = !!c.isRenew;
+    var isWarranty = !!c.isWarranty;
     // Avoid repeating city when it is already at the end of the address line
     var cityLine = city;
     if (cityLine && address) {
@@ -497,36 +623,55 @@
     var metaBits = [];
     if (cityLine) metaBits.push(esc(cityLine));
     if (phone) metaBits.push(esc(phone));
+    var badges = '';
+    if (isVip) {
+      badges += '<span class="mb-cust-vip-badge" style="font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:7px;background:#f6eee4;color:#8a6540;flex:none;">VIP</span>';
+    }
+    if (isRenew) {
+      badges += '<span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#f0eefb;color:#50439d;flex:none;">' + esc(t('Renew', 'חידוש')) + '</span>';
+    }
+    if (isWarranty) {
+      badges += '<span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#fbeeed;color:#a3302e;flex:none;">' + esc(t('Warranty', 'אחריות')) + '</span>';
+    }
     return (
-      '<div data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" style="display:flex;align-items:flex-start;gap:12px;background:#fff;border-radius:14px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:9px;overflow:hidden;min-width:0;">' +
-      '<a href="' + detail + '" style="width:42px;height:42px;border-radius:50%;background:#dbe7f8;color:#2f6aa6;font-weight:800;font-size:15px;flex:none;display:flex;align-items:center;justify-content:center;text-decoration:none;text-transform:uppercase;margin-top:1px;">' + esc(av) + '</a>' +
-      '<a href="' + detail + '" style="flex:1;min-width:0;text-decoration:none;overflow:hidden;">' +
+      '<div class="mb-cust-card" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" data-vip="' + (isVip ? '1' : '0') + '" data-renew="' + (isRenew ? '1' : '0') + '" data-warranty="' + (isWarranty ? '1' : '0') + '">' +
+      '<a href="' + detail + '" class="mb-cust-avatar">' + esc(av) + '</a>' +
+      '<a href="' + detail + '" class="mb-cust-main">' +
       '<div class="mb-cust-name-row">' +
       '<span class="mb-cust-name">' + esc(c.name) + '</span>' +
+      badges +
       (statusLabel
-        ? '<span class="mb-cust-status" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:' + esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(statusLabel) + '</span>'
+        ? '<span class="mb-cust-status" style="background:' + esc(statusBg) + ';color:' + esc(statusColor) + ';">' + esc(statusLabel) + '</span>'
         : '') +
       '</div>' +
-      '<div class="mb-cust-address" style="font-size:12px;color:#5a6473;margin-top:4px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:' + (address ? '-webkit-box' : 'none') + ';-webkit-line-clamp:2;-webkit-box-orient:vertical;">' +
+      '<div class="mb-cust-address" style="display:' + (address ? '-webkit-box' : 'none') + ';">' +
       (address ? esc(address) : '') +
       '</div>' +
-      '<div class="mb-cust-meta" style="font-size:12px;color:#7b8595;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:' + (metaBits.length ? 'block' : 'none') + ';">' +
+      '<div class="mb-cust-meta" style="display:' + (metaBits.length ? 'block' : 'none') + ';">' +
       (metaBits.length ? metaBits.join(' · ') : '') +
       '</div>' +
-      '<div class="mb-cust-product-line" data-customer-id="' + esc(c.id) + '" style="font-size:11.5px;font-weight:700;color:#1d60a2;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (products ? '' : 'display:none;') + '">' +
+      '<div class="mb-cust-product-line" data-customer-id="' + esc(c.id) + '" style="' + (products ? '' : 'display:none;') + '">' +
       (products
-        ? ('<span style="display:inline-flex;align-items:center;gap:5px;">' + productIconSvg(12, '#1d60a2') + '<span>' + esc(products) + '</span></span>')
+        ? ('<span class="mb-cust-product-inner">' + productIconSvg(12, '#1d60a2') + '<span>' + esc(products) + '</span></span>')
         : '') +
       '</div>' +
       '</a>' +
+      '<div class="mb-cust-actions">' +
+      '<button type="button" class="mb-cust-products-btn mb-cust-action" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" title="' + esc(t('Show products', 'הצג מוצרים')) + '" aria-label="' + esc(t('Show products', 'הצג מוצרים')) + '">' +
+      productIconSvg(15, '#1d60a2') +
+      '</button>' +
+      '<button type="button" class="mb-cust-vip-btn mb-cust-action' + (isVip ? ' is-on' : '') + '" data-customer-id="' + esc(c.id) + '" data-vip="' + (isVip ? '1' : '0') + '" title="' + esc(isVip ? t('Unmark VIP', 'הסר VIP') : t('Mark as VIP', 'סמן כ־VIP')) + '" aria-label="VIP">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="' + (isVip ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+      '</button>' +
       (wa
-        ? '<a href="' + esc(wa) + '" target="_blank" rel="noopener" aria-label="WhatsApp" onclick="event.stopPropagation();" style="width:36px;height:36px;border-radius:50%;background:#25b35e;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none;text-decoration:none;margin-top:2px;">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg>' +
+        ? '<a href="' + esc(wa) + '" target="_blank" rel="noopener" class="mb-cust-action mb-cust-wa" aria-label="WhatsApp" onclick="event.stopPropagation();">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg>' +
           '</a>'
         : '') +
-      '<a href="' + detail + '" aria-hidden="true" style="color:#c2c9d2;display:inline-flex;align-items:center;justify-content:center;flex:none;text-decoration:none;margin-top:8px;">' +
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
+      '<a href="' + detail + '" class="mb-cust-chevron" aria-hidden="true">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
       '</a>' +
+      '</div>' +
       '</div>'
     );
   }
@@ -855,6 +1000,12 @@
   }
 
   function syncChipActiveStyles(activeId) {
+    // Customers page uses Renew/Warranty/VIP chips — don't restyle those as folder chips
+    if (pageKind() === 'customers') {
+      var chipContainer = document.getElementById('mb-customer-filter-chips');
+      if (chipContainer) renderCustFilterChips(chipContainer);
+      return;
+    }
     activeId = String(lockedFolderIdForPage(pageKind()));
     var chips = document.querySelectorAll('.mb-cust-chip, .mb-folder-tab');
     chips.forEach(function (c) {
@@ -937,9 +1088,11 @@
       }).join('');
 
       el.innerHTML = html;
+      mount._rowsCache = rows.slice();
       applyClientFilters(el);
       bindClientFilters(el);
       bindProductButtons(el);
+      bindVipButtons(el);
       enrichCustomerCards(el);
       syncChipActiveStyles(getActiveFolderId(mount));
       return;
@@ -967,16 +1120,110 @@
     });
   }
 
+  function getActiveCustFilter() {
+    return String(window.__mbCustListFilter || 'all');
+  }
+
+  function setActiveCustFilter(id) {
+    window.__mbCustListFilter = String(id || 'all');
+  }
+
+  function parseListDate(raw) {
+    if (!raw) return NaN;
+    var d = new Date(raw);
+    if (!isNaN(d.getTime())) return d.getTime();
+    var m = String(raw).match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (m) {
+      d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+      if (!isNaN(d.getTime())) return d.getTime();
+    }
+    return NaN;
+  }
+
+  function normalizeLeadStatusFilter(id) {
+    var s = String(id || 'all');
+    if (s === 'offer') return 'sent';
+    return s;
+  }
+
+  function leadMatchesAdvancedFilters(item, filters) {
+    filters = filters || getLeadFilters();
+    var statusKey = item.getAttribute('data-status-key') || '';
+    var sourceKey = item.getAttribute('data-source-key') || '';
+    var createdTs = parseListDate(item.getAttribute('data-created'));
+    var followupTs = parseListDate(item.getAttribute('data-followup'));
+    var now = Date.now();
+    var dayMs = 86400000;
+    var statusFilter = normalizeLeadStatusFilter(filters.status);
+    var chipFilter = normalizeLeadStatusFilter(filters.mainChip);
+
+    if (chipFilter && chipFilter !== 'all') {
+      if (statusKey !== chipFilter) return false;
+    } else if (statusFilter && statusFilter !== 'all') {
+      if (statusKey !== statusFilter) return false;
+    }
+
+    if (filters.source && filters.source !== 'all') {
+      if (sourceKey !== filters.source) return false;
+    }
+
+    if (filters.dateQuick && filters.dateQuick !== 'none') {
+      var anchor = createdTs;
+      if (filters.soug === 'renew' && !isNaN(followupTs)) anchor = followupTs;
+      if (isNaN(anchor)) return false;
+      var ageDays = (now - anchor) / dayMs;
+      if (filters.dateQuick === 'today' && ageDays > 1) return false;
+      if (filters.dateQuick === 'week' && ageDays > 7) return false;
+      if (filters.dateQuick === 'month' && ageDays > 31) return false;
+      if (filters.dateQuick === 'd30' && ageDays > 30) return false;
+      if (filters.dateQuick === 'expired' && anchor > now) return false;
+    }
+
+    return true;
+  }
+
+  function sortLeadItems(listEl, filters) {
+    filters = filters || getLeadFilters();
+    var items = Array.prototype.slice.call(listEl.querySelectorAll('[data-customer-id]'));
+    if (items.length < 2) return;
+
+    var sortKey = filters.sortLeads || 'created';
+    var dirKey = (filters.dir && filters.dir[sortKey]) || 'new';
+    var desc = dirKey === 'new' || dirKey === 'long' || dirKey === 'urgent';
+
+    items.sort(function (a, b) {
+      var av;
+      var bv;
+      if (sortKey === 'statusTime') {
+        av = parseListDate(a.getAttribute('data-followup') || a.getAttribute('data-created'));
+        bv = parseListDate(b.getAttribute('data-followup') || b.getAttribute('data-created'));
+      } else {
+        av = parseListDate(a.getAttribute('data-created'));
+        bv = parseListDate(b.getAttribute('data-created'));
+      }
+      if (isNaN(av)) av = 0;
+      if (isNaN(bv)) bv = 0;
+      return desc ? (bv - av) : (av - bv);
+    });
+
+    items.forEach(function (node) { listEl.appendChild(node); });
+  }
+
   function applyClientFilters(listEl) {
     listEl = document.getElementById('mb-live-list') || listEl;
+    if (!listEl) return;
     var input = document.querySelector('.ds-input') || document.getElementById('mb-customer-search');
-    var query = input ? input.value.toLowerCase().trim() : '';
+    var query = input ? String(input.value || '').toLowerCase().trim() : '';
 
     var clearBtn = document.getElementById('mb-clear-search');
     if (clearBtn) {
       clearBtn.style.display = query.length > 0 ? 'flex' : 'none';
     }
-    
+
+    var kindEl = document.getElementById('mb-live-list');
+    var kindVis = (kindEl && kindEl.getAttribute('data-kind')) || 'customers';
+    var filter = getActiveCustFilter();
+
     var items = listEl.querySelectorAll('div[data-customer-id], a[data-customer-id]');
     var visibleCount = 0;
     for (var i = 0; i < items.length; i++) {
@@ -984,29 +1231,186 @@
       if (!item.dataset.originalDisplay) {
         item.dataset.originalDisplay = item.style.display || 'flex';
       }
-      
-      var text = item.textContent.toLowerCase();
-      var isVisible = query === '' || text.indexOf(query) > -1;
 
+      var text = item.textContent.toLowerCase();
+      var matchesQuery = query === '' || text.indexOf(query) > -1;
+      var matchesFilter = true;
+      if (kindVis === 'customers' && filter && filter !== 'all') {
+        if (filter === 'renew') matchesFilter = item.getAttribute('data-renew') === '1';
+        else if (filter === 'warranty') matchesFilter = item.getAttribute('data-warranty') === '1';
+        else if (filter === 'vip') matchesFilter = item.getAttribute('data-vip') === '1';
+      } else if (kindVis === 'leads') {
+        matchesFilter = leadMatchesAdvancedFilters(item, getLeadFilters());
+      }
+
+      var isVisible = matchesQuery && matchesFilter;
       item.style.display = isVisible ? item.dataset.originalDisplay : 'none';
       if (isVisible) visibleCount++;
     }
 
     var totalEl = document.getElementById('mb-total-label');
     if (totalEl) {
-      var kindEl = document.getElementById('mb-live-list');
-      var kindVis = (kindEl && kindEl.getAttribute('data-kind')) || 'customers';
       totalEl.textContent = formatTotalLabel(visibleCount, kindVis);
     }
+
+    if (kindVis === 'leads') {
+      sortLeadItems(listEl, getLeadFilters());
+    }
+  }
+
+  function renderLeadFilterChips(container) {
+    if (!container) return;
+    var active = getActiveLeadFilter();
+    var chips = [
+      { id: 'all', label: t('All', 'הכל'), color: '#1d60a2', bg: '#eaf2fb', border: '#6ea6d8' },
+      { id: 'new', label: t('New lead', 'ליד חדש'), color: '#1d60a2', bg: '#eaf2fb', border: '#aecbe9' },
+      { id: 'followup', label: t('Follow up', 'פולואפ'), color: '#bd8324', bg: '#fdf1dd', border: '#ecd3a0' },
+      { id: 'sent', label: t('Offer sent', 'נשלחה הצעה'), color: '#50439d', bg: '#eef0fb', border: '#c3bfe6' },
+      { id: 'closed', label: t('Closed', 'נסגר'), color: '#2e8a63', bg: '#e6f4ec', border: '#aed8c2' },
+      { id: 'noanswer', label: t('No answer', 'אין מענה'), color: '#c0392b', bg: '#fbeeed', border: '#ecb8b1' }
+    ];
+    container.style.display = 'flex';
+    container.innerHTML = chips.map(function (chip) {
+      var on = active === chip.id;
+      return (
+        '<button type="button" class="mb-lead-chip" data-chip-id="' + esc(chip.id) + '" data-active="' + (on ? '1' : '0') + '" style="flex:none;padding:7px 12px;border-radius:99px;border:1.5px solid ' +
+        (on ? chip.border : '#e2e8f0') + ';background:' + (on ? chip.bg : '#f8fafc') + ';color:' + (on ? chip.color : '#475569') +
+        ';font-size:12.5px;font-weight:' + (on ? '800' : '700') + ';cursor:pointer;white-space:nowrap;">' +
+        esc(chip.label) +
+        '</button>'
+      );
+    }).join('');
+
+    container.querySelectorAll('.mb-lead-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setActiveLeadFilter(btn.getAttribute('data-chip-id') || 'all');
+        renderLeadFilterChips(container);
+        applyClientFilters(document.getElementById('mb-live-list'));
+      });
+    });
+
+    try {
+      window.dispatchEvent(new CustomEvent('mineralbar:lead-chips-ready'));
+    } catch (e) { /* ignore */ }
+  }
+
+  function renderCustFilterChips(container) {
+    if (!container) return;
+    var active = getActiveCustFilter();
+    var chips = [
+      { id: 'all', label: t('All', 'הכל'), color: '#1d60a2', bg: '#eaf2fb', border: '#6ea6d8' },
+      { id: 'renew', label: t('To renew', 'לחידוש'), color: '#50439d', bg: '#f0eefb', border: '#a89fd4' },
+      { id: 'warranty', label: t('Warranty ending', 'אחריות פוקעת'), color: '#a3302e', bg: '#fbeeed', border: '#e8a9a4' },
+      { id: 'vip', label: t('VIP', 'VIP'), color: '#8a6540', bg: '#f6eee4', border: '#c9a882' }
+    ];
+    container.style.display = 'flex';
+    container.innerHTML = chips.map(function (chip) {
+      var on = active === chip.id;
+      return (
+        '<button type="button" class="mb-cust-chip" data-chip-id="' + esc(chip.id) + '" data-active="' + (on ? '1' : '0') + '" style="flex:none;padding:7px 12px;border-radius:99px;border:1.5px solid ' +
+        (on ? chip.border : '#e2e8f0') + ';background:' + (on ? chip.bg : '#f8fafc') + ';color:' + (on ? chip.color : '#475569') +
+        ';font-size:12.5px;font-weight:' + (on ? '800' : '700') + ';cursor:pointer;white-space:nowrap;">' +
+        esc(chip.label) +
+        '</button>'
+      );
+    }).join('');
+
+    container.querySelectorAll('.mb-cust-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setActiveCustFilter(btn.getAttribute('data-chip-id') || 'all');
+        renderCustFilterChips(container);
+        applyClientFilters(document.getElementById('mb-live-list'));
+      });
+    });
   }
 
   function renderFolderFilterBar(container, selectedFolderId) {
     if (!container) return;
-
-    // Pages are locked to one folder — hide the multi-folder chip bar
+    var kind = pageKind();
+    if (kind === 'customers') {
+      renderCustFilterChips(container);
+      return;
+    }
+    if (kind === 'leads') {
+      renderLeadFilterChips(container);
+      return;
+    }
     container.innerHTML = '';
     container.style.display = 'none';
-    container.setAttribute('data-active-folder', String(lockedFolderIdForPage(pageKind())));
+    container.setAttribute('data-active-folder', String(lockedFolderIdForPage(kind)));
+  }
+
+  function bindVipButtons(listEl) {
+    listEl = document.getElementById('mb-live-list') || listEl;
+    if (!listEl) return;
+    var buttons = listEl.querySelectorAll('.mb-cust-vip-btn');
+    buttons.forEach(function (btn) {
+      if (btn.dataset.wired === '1') return;
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleCustomerVip(btn);
+      });
+    });
+  }
+
+  async function toggleCustomerVip(btn) {
+    var cid = btn.getAttribute('data-customer-id') || '';
+    if (!cid || btn.dataset.busy === '1') return;
+    var makeVip = btn.getAttribute('data-vip') !== '1';
+    btn.dataset.busy = '1';
+    btn.style.opacity = '0.55';
+    try {
+      if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') {
+        throw new Error(t('SDK not ready', 'המערכת עדיין לא מוכנה'));
+      }
+      var client = MineralBarApp.getClient();
+      var extra = {};
+      extra[VIP_FIELD] = makeVip ? VIP_VALUE : '';
+      var res = await client.request('Customer.Edit', {
+        customer_id: cid,
+        cust_id: cid,
+        extra_fields: JSON.stringify(extra)
+      });
+      if (res && Number(res.success) === 0) {
+        throw new Error(res.message || t('Failed to update VIP', 'עדכון VIP נכשל'));
+      }
+      var card = btn.closest('[data-customer-id]');
+      if (card) {
+        card.setAttribute('data-vip', makeVip ? '1' : '0');
+        btn.setAttribute('data-vip', makeVip ? '1' : '0');
+        btn.title = makeVip ? t('Unmark VIP', 'הסר VIP') : t('Mark as VIP', 'סמן כ־VIP');
+        if (makeVip) btn.classList.add('is-on');
+        else btn.classList.remove('is-on');
+        btn.style.borderColor = '';
+        btn.style.background = '';
+        btn.style.color = '';
+        var star = btn.querySelector('svg');
+        if (star) star.setAttribute('fill', makeVip ? 'currentColor' : 'none');
+        var nameRow = card.querySelector('.mb-cust-name-row');
+        if (nameRow) {
+          var existing = nameRow.querySelector('.mb-cust-vip-badge');
+          if (makeVip && !existing) {
+            var badge = document.createElement('span');
+            badge.className = 'mb-cust-vip-badge';
+            badge.textContent = 'VIP';
+            var nameEl = nameRow.querySelector('.mb-cust-name');
+            if (nameEl && nameEl.nextSibling) nameRow.insertBefore(badge, nameEl.nextSibling);
+            else nameRow.appendChild(badge);
+          } else if (!makeVip && existing) {
+            existing.parentNode.removeChild(existing);
+          }
+        }
+      }
+      applyClientFilters(document.getElementById('mb-live-list'));
+    } catch (err) {
+      console.warn('[ListLive] VIP toggle failed', err);
+      alert((err && err.message) || t('Failed to update VIP', 'עדכון VIP נכשל'));
+    } finally {
+      btn.dataset.busy = '0';
+      btn.style.opacity = '1';
+    }
   }
 
   function bindClientFilters(listEl) {
@@ -1031,7 +1435,7 @@
       });
     }
 
-    var chipContainer = document.getElementById('mb-customer-filter-chips') || document.querySelector('.dc-scroll');
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
     if (chipContainer && !chipContainer.dataset.rendered) {
       chipContainer.dataset.rendered = '1';
       var initialFolder = lockedFolderIdForPage(pageKind());
@@ -1117,6 +1521,7 @@
       var next = wrap.firstElementChild;
       if (next) existing.replaceWith(next);
       bindProductButtons(el);
+      bindVipButtons(el);
       if (kind !== 'leads') enrichOneCustomerCard(next || el.querySelector('[data-customer-id="' + cssAttrEscape(String(c.id)) + '"]'));
       console.log('[ListLive] socket updated row', c.id, c.name);
       return true;
@@ -1129,6 +1534,7 @@
     }
     bumpTotal(1);
     bindProductButtons(el);
+    bindVipButtons(el);
     if (kind !== 'leads') {
       enrichOneCustomerCard(el.querySelector('[data-customer-id="' + cssAttrEscape(String(c.id)) + '"]'));
     }
@@ -1268,5 +1674,47 @@
       fullListRefresh('bindLiveReload');
     }, { keys: /customer|lead|crm|socket\.nudge/i, delay: 180 });
   }
+
+  window.ListLive = window.ListLive || {};
+  window.ListLive.setLeadAdvancedFilters = function (patch) {
+    setLeadFilters(patch || {});
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer && pageKind() === 'leads') renderLeadFilterChips(chipContainer);
+    applyClientFilters(document.getElementById('mb-live-list'));
+  };
+  window.ListLive.setLeadFilter = setActiveLeadFilter;
+  window.ListLive.getLeadFilters = getLeadFilters;
+  window.ListLive.getVisibleLeadCount = function () {
+    var listEl = document.getElementById('mb-live-list');
+    if (!listEl) return 0;
+    var n = 0;
+    listEl.querySelectorAll('[data-customer-id]').forEach(function (item) {
+      if (item.style.display !== 'none') n++;
+    });
+    return n;
+  };
+  window.ListLive.previewLeadFilterCount = function (patch) {
+    var listEl = document.getElementById('mb-live-list');
+    if (!listEl) return -1;
+    var base = getLeadFilters();
+    var filters = Object.assign({}, base, patch || {});
+    if (patch && patch.dir) filters.dir = Object.assign({}, base.dir, patch.dir);
+    var input = document.querySelector('.ds-input') || document.getElementById('mb-customer-search');
+    var query = input ? String(input.value || '').toLowerCase().trim() : '';
+    var n = 0;
+    listEl.querySelectorAll('[data-customer-id]').forEach(function (item) {
+      var text = item.textContent.toLowerCase();
+      var matchesQuery = query === '' || text.indexOf(query) > -1;
+      if (matchesQuery && leadMatchesAdvancedFilters(item, filters)) n++;
+    });
+    return n;
+  };
+  window.ListLive.refreshList = function () {
+    var mount = detectMount();
+    if (!mount || !mount.el) return;
+    mount.el.removeAttribute('data-initial-loaded');
+    mount._activeLoadId = '';
+    start();
+  };
 
 })();

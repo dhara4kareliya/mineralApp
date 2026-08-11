@@ -194,6 +194,62 @@
     return active ? (active.getAttribute('data-repeat') || '') : '';
   }
 
+  var PRIORITY_API_COLORS = {
+    low: 'green',
+    regular: 'yellow',
+    urgent: 'red'
+  };
+
+  function getSelectedPriority() {
+    var active = getActivePill('mb-priority-pills');
+    var key = active ? String(active.getAttribute('data-priority') || '').trim() : '';
+    return PRIORITY_API_COLORS[key] ? key : 'regular';
+  }
+
+  function priorityFromApiColor(value) {
+    var raw = String(value == null ? '' : value).trim().toLowerCase();
+    if (!raw || raw === 'default' || raw === 'transparent') return 'regular';
+    if (raw === 'yellow' || raw === 'blue' || raw === '#f59e0b' || raw === '#eab308' || raw === '#f1c40f' ||
+        raw.indexOf('yellow') !== -1) return 'regular';
+    if (raw === 'red' || raw === '#ef4444' || raw === '#c0392b' || raw.indexOf('red') !== -1) return 'urgent';
+    if (raw === 'green' || raw === '#22c55e' || raw === '#2e8a63' || raw.indexOf('green') !== -1) return 'low';
+    if (/urgent|high|דחוף|גבוה/i.test(raw)) return 'urgent';
+    if (/\blow\b|נמוכ/i.test(raw)) return 'low';
+    if (/regular|normal|medium|רגיל|בינוני/i.test(raw)) return 'regular';
+    return 'regular';
+  }
+
+  function selectPriority(priority) {
+    var container = document.getElementById('mb-priority-pills');
+    if (!container) return;
+    var pill = qs('.mb-pill[data-priority="' + priority + '"]', container);
+    if (pill) setActivePill(container, pill);
+  }
+
+  function updatePriorityLabels() {
+    var isEnglish = isEn();
+    var title = document.getElementById('mb-priority-label');
+    var low = document.querySelector('.mb-priority-low-label');
+    var regular = document.querySelector('.mb-priority-regular-label');
+    var urgent = document.querySelector('.mb-priority-urgent-label');
+    if (title) title.textContent = isEnglish ? 'Priority' : 'עדיפות';
+    if (low) low.textContent = isEnglish ? 'Low' : 'נמוך';
+    if (regular) regular.textContent = isEnglish ? 'Regular' : 'רגיל';
+    if (urgent) urgent.textContent = isEnglish ? 'Urgent' : 'דחוף';
+  }
+
+  function wirePriorityPills() {
+    var container = document.getElementById('mb-priority-pills');
+    if (!container || container.dataset.wired) return;
+    container.dataset.wired = 'true';
+    qsa('.mb-pill', container).forEach(function (pill) {
+      pill.addEventListener('click', function () {
+        setActivePill(container, pill);
+      });
+    });
+    updatePriorityLabels();
+  }
+
   function wireSchedulePills() {
     function wireGroup(containerId, onSelect) {
       var container = document.getElementById(containerId);
@@ -654,7 +710,6 @@
       var noteIn = document.getElementById('mb-mission-note');
       var assignSel = document.getElementById('mb-mission-assignee');
       var custSel = document.getElementById('mb-customer-name');
-      var colorSel = document.getElementById('mb-choose-color');
       var projectSel = document.getElementById('mb-project-name');
       var columnSel = document.getElementById('mb-project-column');
       var stepSel = document.getElementById('mb-mission-step');
@@ -740,10 +795,8 @@
         stepSel.value = stepStr;
       }
 
-      // 7. Color
-      if (colorSel && m.color) {
-        colorSel.value = String(m.color);
-      }
+      // 7. Priority
+      selectPriority(priorityFromApiColor(m.color || m.priority || m.appoinment_color1));
 
       // 8. Private Checkbox
       if (privateCb) {
@@ -990,7 +1043,6 @@
       var noteIn = document.getElementById('mb-mission-note');
       var assignSel = document.getElementById('mb-mission-assignee');
       var custSel = document.getElementById('mb-customer-name');
-      var colorSel = document.getElementById('mb-choose-color');
       var projectSel = document.getElementById('mb-project-name');
       var columnSel = document.getElementById('mb-project-column');
       var stepSel = document.getElementById('mb-mission-step');
@@ -1029,8 +1081,8 @@
 
         var isPrivate = privateCb && privateCb.checked ? 1 : 0;
         var memberId = assignSel ? assignSel.value : '';
-        var colorVal = (colorSel && colorSel.value) ? colorSel.value : 'transparent';
-        if (colorVal === 'default' || colorVal === 'yellow') colorVal = 'transparent';
+        var priorityKey = getSelectedPriority();
+        var colorVal = PRIORITY_API_COLORS[priorityKey] || 'yellow';
 
         var projChoice = projectSel && projectSel.value ? projectSel.value : undefined;
         var stepChoice = stepSel && stepSel.value ? Number(stepSel.value) : 0;
@@ -1041,6 +1093,7 @@
           note: (noteIn && noteIn.value) || title,
           date_to_do: bizDate,
           private_mission: isPrivate,
+          priority: colorVal,
           color: colorVal,
           appoinment_color1: colorVal,
           project_column: columnSel && columnSel.value ? columnSel.value : undefined,
@@ -1065,6 +1118,8 @@
             note: payload.note,
             date_to_do: payload.date_to_do || bizDate,
             color: colorVal,
+            priority: colorVal,
+            appoinment_color1: colorVal,
             project_column: payload.project_column || 'to_do',
             private_mission: isPrivate,
             project_id: projChoice ? Number(projChoice) : 0,
@@ -1144,6 +1199,7 @@
     started = true;
     wireBackNavigation();
     wireSchedulePills();
+    wirePriorityPills();
     wireProjectColumnLiveUpdate();
     populateDropdowns().then(function() {
       loadExistingMission();
@@ -1151,6 +1207,7 @@
     wireMediaAndUploads();
     wireSubmit();
     window.addEventListener('mineralbar:language-changed', function () {
+      updatePriorityLabels();
       loadProjectColumns(document.getElementById('mb-project-column') && document.getElementById('mb-project-column').value);
     });
   }

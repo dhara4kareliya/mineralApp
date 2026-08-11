@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
@@ -269,8 +269,8 @@ mbCss('./common.css');
 
 <div style="display:flex; gap:11px; margin-bottom:14px;">
   <div style="flex:1; min-width:0;">
-    <label class="soc-label" data-no-i18n="true">{{ topicFieldLabel }}</label>
-    <input readonly value="{{ topic }}" class="soc-field ds-input" placeholder="Select a reading type" />
+    <label class="soc-label">Due date</label>
+    <input type="date" min="{{ dueDateMin }}" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="soc-field ds-input" placeholder="Select due date" />
   </div>
   <div style="flex:1; min-width:0;">
     <label class="soc-label">URGENCY</label>
@@ -279,22 +279,6 @@ mbCss('./common.css');
         <svg onclick="{{ s.pick }}" fill="currentColor" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20" style="color:{{ s.color }}; cursor:pointer;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
       </sc-for>
     </div>
-  </div>
-</div>
-
-<div style="display:flex; gap:11px; margin-bottom:14px;">
-  <div style="flex:1; min-width:0;">
-    <label class="soc-label">Due date</label>
-    <input type="date" min="{{ dueDateMin }}" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="soc-field ds-input" placeholder="Select due date" />
-  </div>
-  <div style="flex:1; min-width:0;">
-    <label class="soc-label">CHOOSE DEPARTMENT</label>
-    <select onchange="{{ onDepartment }}" class="soc-field ds-input">
-      <option value="">Select Department</option>
-      <sc-for as="dep" list="{{ departmentsList }}">
-        <option value="{{ dep.id }}" selected="{{ dep.selected }}">{{ dep.name }}</option>
-      </sc-for>
-    </select>
   </div>
 </div>
 
@@ -345,7 +329,12 @@ mbCss('./common.css');
 <div style="display:flex; gap:11px; margin-bottom:12px;">
   <div style="flex:1; min-width:0;">
     <label class="soc-label" data-no-i18n="true"><span class="req">*</span>{{ areaLabel }}</label>
-    <input oninput="{{ onArea }}" value="{{ area }}" class="soc-field ds-input" placeholder="Neighborhood / area" />
+    <select onchange="{{ onArea }}" class="soc-field ds-input">
+      <option value="">{{ areaPlaceholder }}</option>
+      <sc-for as="a" hint-placeholder-count="4" list="{{ areaOptions }}">
+        <option value="{{ a.id }}" selected="{{ a.selected }}">{{ a.label }}</option>
+      </sc-for>
+    </select>
   </div>
   <div style="flex:1.6; min-width:0;">
     <label class="soc-label">City</label>
@@ -429,7 +418,7 @@ mbCss('./common.css');
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = {
-    callType: 'tech', charge: true, cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '', departments: [], departmentId: '',
+    callType: 'tech', charge: true, cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '',
     products: [], productId: '', productSku: '', productName: '', productScanError: '', productLookupLoading: false, scannerOpen: false,
     productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '', langTick: 0
   };
@@ -455,7 +444,7 @@ class Component extends DCLogic {
         this.loadCustomer();
         this.loadFormOptions();
         this.loadPaidProducts();
-      }, { keys: /ticket|product|customer|department|socket\.nudge/i, delay: 400 });
+      }, { keys: /ticket|product|customer|socket\.nudge/i, delay: 400 });
     }
     var self = this;
     window.addEventListener('mineralbar:language-changed', function () {
@@ -612,7 +601,7 @@ class Component extends DCLogic {
       floor: floor,
       apartment: apartment,
       entrance: entrance,
-      area: area,
+      area: this.normalizeAreaValue(area),
       city: city
     };
   }
@@ -638,10 +627,11 @@ class Component extends DCLogic {
     if (floor) parts.push(he ? ('קומה ' + floor) : ('Floor ' + floor));
     if (apartment) parts.push(he ? ('דירה ' + apartment) : ('Apt ' + apartment));
 
-    var area = part(s.area);
+    var areaId = this.normalizeAreaValue(s.area) || part(s.area);
+    var area = this.areaLabelOf(areaId) || areaId;
     var city = part(s.city);
     if (area) parts.push(area);
-    if (city && city.toLowerCase() !== area.toLowerCase()) parts.push(city);
+    if (city && city.toLowerCase() !== String(area).toLowerCase()) parts.push(city);
 
     return parts.join(', ');
   }
@@ -731,17 +721,34 @@ class Component extends DCLogic {
         var team = window.MineralBarApp.getTeamMembers();
         this.setState({ teamMembers: team || [] });
       }
-      var client = window.MineralBarApp.getClient ? window.MineralBarApp.getClient() : null;
-      if (!client || !client.getToken || !client.getToken()) return;
-      var res = await client.request('Ticket.Department', { limit: 100 });
-      var departments = [];
-      if (res && Array.isArray(res.data)) departments = res.data;
-      else if (res && Array.isArray(res.output)) departments = res.output;
-      else if (Array.isArray(res)) departments = res;
-      this.setState({ departments: departments });
     } catch (e) {
       console.warn('[service-open-call] Failed to load ticket form options', e);
     }
+  }
+
+  areaOptionsList() {
+    return [
+      { id: 'north', labelEn: 'North', labelHe: 'צפון' },
+      { id: 'center', labelEn: 'Center', labelHe: 'מרכז' },
+      { id: 'south', labelEn: 'South', labelHe: 'דרום' },
+      { id: 'jerusalem', labelEn: 'Jerusalem', labelHe: 'ירושלים' }
+    ];
+  }
+
+  areaLabelOf(id) {
+    var hit = this.areaOptionsList().find(function (a) { return a.id === id; });
+    if (!hit) return '';
+    return this.isEn() ? hit.labelEn : hit.labelHe;
+  }
+
+  normalizeAreaValue(raw) {
+    var s = String(raw || '').trim().toLowerCase();
+    if (!s) return '';
+    if (/^(north|צפון)$/i.test(s)) return 'north';
+    if (/^(center|central|מרכז)$/i.test(s)) return 'center';
+    if (/^(south|דרום)$/i.test(s)) return 'south';
+    if (/^(jerusalem|ירושלים)$/i.test(s)) return 'jerusalem';
+    return '';
   }
 
   getCustomerId() {
@@ -1306,6 +1313,14 @@ class Component extends DCLogic {
       });
       return;
     }
+    var areaId = this.normalizeAreaValue(this.state.area);
+    if (!areaId) {
+      this.setState({
+        errorMsg: this.isEn() ? 'Area is required.' : 'יש לבחור אזור.',
+        successMsg: ''
+      });
+      return;
+    }
     if (this.state.dueDate && this.state.dueDate < this.todayDateKey()) {
       this.setState({
         errorMsg: 'Due date cannot be before today. Please select today or a future date.',
@@ -1328,9 +1343,11 @@ class Component extends DCLogic {
       var product = this.selectedProduct();
       var customFields = {};
       var fullAddress = this.buildFullAddress(this.state);
-      var area = String(this.state.area || '').trim();
+      var area = areaId;
+      var areaLabel = this.areaLabelOf(areaId) || areaId;
       var city = String(this.state.city || '').trim();
       if (area) customFields.area = area;
+      if (areaLabel) customFields.area_label = areaLabel;
       if (city) customFields.city = city;
       if (this.state.street) customFields.street = String(this.state.street).trim();
       if (this.state.building) customFields.building = String(this.state.building).trim();
@@ -1345,6 +1362,7 @@ class Component extends DCLogic {
 
       var payload = {
         topic: topic,
+        subject: topic,
         messages: problem,
         customername: customer.name || '',
         email: String(this.state.email || '').trim(),
@@ -1357,10 +1375,6 @@ class Component extends DCLogic {
         payload.customer_id = customerId;
       }
       if (this.state.teamMemberId) payload.assign_member_id = String(this.state.teamMemberId);
-      if (this.state.departmentId) {
-        payload.department = String(this.state.departmentId);
-        payload.ticket_department = String(this.state.departmentId);
-      }
       // Only send real catalog ids — never "0" or a product name string
       var realProductId = product && String(product.product_id || product.id || '').trim();
       if (realProductId && realProductId !== '0' && /^\d+$/.test(realProductId)) {
@@ -1521,12 +1535,14 @@ class Component extends DCLogic {
       name: m.name,
       selected: this.state.teamMemberId == (m.id || m.user_id)
     }));
-    
-    const departmentsList = (this.state.departments || []).map(d => ({
-      id: d.id || d.department_id || d.code || d.name,
-      name: d.name || d.label || d.department_name || d.id,
-      selected: this.state.departmentId == (d.id || d.department_id || d.code || d.name)
-    }));
+
+    var areaOptions = this.areaOptionsList().map(function (a) {
+      return {
+        id: a.id,
+        label: this.isEn() ? a.labelEn : a.labelHe,
+        selected: this.state.area === a.id
+      };
+    }.bind(this));
 
     var hasScannedProduct = !!(String(this.state.productName || '').trim() || String(this.state.productId || '').trim());
     var productSkuDisplay = String(this.state.productSku || '').trim() || '—';
@@ -1540,13 +1556,15 @@ class Component extends DCLogic {
       floor: this.state.floor, onFloor: e => this.setAddressPart('floor', e.target.value),
       apartment: this.state.apartment, onApartment: e => this.setAddressPart('apartment', e.target.value),
       entrance: this.state.entrance, onEntrance: e => this.setAddressPart('entrance', e.target.value),
-      area: this.state.area, onArea: e => this.setAddressPart('area', e.target.value),
+      area: this.state.area,
+      onArea: e => this.setAddressPart('area', this.normalizeAreaValue(e.target.value) || String(e.target.value || '')),
+      areaOptions: areaOptions,
+      areaPlaceholder: this.isEn() ? 'Select area' : 'בחר אזור',
       city: this.state.city, onCity: e => this.setAddressPart('city', e.target.value),
       fullAddress: fullAddress,
       hasFullAddress: !!fullAddress,
       noFullAddress: !fullAddress,
       topic: this.state.topic || this.typeLabel((this.TYPES || []).find((x) => x.id === this.state.callType)),
-      topicFieldLabel: this.isEn() ? 'Topic' : 'נושא',
       readingTypeLabel: this.isEn() ? 'Reading type' : 'סוג קריאה',
       detailsSectionLabel: this.isEn() ? 'Details' : 'פרטים',
       relatedProductLabel: this.isEn() ? 'Related product' : 'מוצר מקושר',
@@ -1567,7 +1585,6 @@ class Component extends DCLogic {
       fromTime: this.state.fromTime, onFromTime: e => this.setState({ fromTime: e.target.value }),
       toTime: this.state.toTime, onToTime: e => this.setState({ toTime: e.target.value }),
       teamMembers: teamMembersList, onTeamMember: e => this.setState({ teamMemberId: e.target.value }),
-      departmentsList, onDepartment: e => this.setState({ departmentId: e.target.value }),
       productSku: this.state.productSku || '',
       productSkuDisplay,
       productName: this.state.productName || '',

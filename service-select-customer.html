@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
@@ -99,8 +99,8 @@ mbCss('./common.css');
 <div style="display:flex; align-items:center; gap:11px;">
 <a href="service-all-calls.html" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
 <div style="flex:1;">
-<div style="font-size:16px; font-weight:800; color:#fff;">New ticket create</div>
-<div style="font-size:11.5px; color:#9fb0c8; margin-top:2px;">Step 1 of 2 · Client association</div>
+<div style="font-size:16px; font-weight:800; color:#fff;">New service call</div>
+<div style="font-size:11.5px; color:#9fb0c8; margin-top:2px;">Step 1 of 2 · Customer association</div>
 </div>
 <div style="display:flex; gap:5px; align-items:center; flex:none;">
 <span style="width:22px; height:5px; border-radius:99px; background:#3c8be0;"></span>
@@ -118,65 +118,68 @@ mbCss('./common.css');
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 16px;">
 <!-- add-new-customer card -->
-<!-- <button onclick="{{ toggleNew }}" style="width:100%; display:flex; align-items:center; gap:12px; background:{{ newCardBg }}; border:1.6px {{ newCardBorderStyle }} {{ newCardBorder }}; border-radius:15px; padding:13px 14px; cursor:pointer; text-align:left; margin-bottom:16px;">
+<button type="button" onclick="{{ toggleNew }}" style="width:100%; display:flex; align-items:center; gap:12px; background:{{ newCardBg }}; border:1.6px {{ newCardBorderStyle }} {{ newCardBorder }}; border-radius:15px; padding:13px 14px; cursor:pointer; text-align:start; margin-bottom:16px;">
+<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none; transform:rotate({{ newChevronRot }}); transition:transform .2s;" viewbox="0 0 24 24" width="20"><path d="m6 9 6 6 6-6"></path></svg>
+<div style="flex:1; min-width:0;">
+<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">New customer</div>
+<div style="font-size:12px; color:#8a93a3; margin-top:1px;">Opening a call to a customer who is not in the system</div>
+</div>
 <div style="width:42px; height:42px; border-radius:12px; background:{{ newIconBg }}; color:#fff; flex:none; display:flex; align-items:center; justify-content:center;">
 <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.1" viewbox="0 0 24 24" width="22"><circle cx="9" cy="8" r="4"></circle><path d="M2.5 21c0-3.6 3-6 6.5-6 1 0 1.9.2 2.7.5"></path><path d="M18 14v6M15 17h6"></path></svg>
 </div>
-<div style="flex:1;">
-<div style="font-size:14.5px; font-weight:800; color:#1f2a3a;">new customer</div>
-<div style="font-size:12px; color:#8a93a3; margin-top:1px;">Opening a call to a client who is not in the system</div>
-</div>
-<svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" style="flex:none; transform:rotate({{ newChevronRot }}); transition:transform .2s;" viewbox="0 0 24 24" width="20"><path d="m6 9 6 6 6-6"></path></svg>
-</button> -->
+</button>
 <!-- new-customer quick form -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ newOpen }}">
 <div style="background:#fff; border:1.6px solid #d8e3f1; border-radius:15px; padding:15px; margin:-6px 0 16px;">
 <div style="font-size:13px; color:#7b8595; font-weight:800; margin:0 0 12px;">New customer details</div>
 <div style="margin-bottom:11px;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">full name <span style="color:#c0392b;">*</span></label>
-<input class="ds-input" oninput="{{ onNName }}" placeholder="First name and last name" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nName }}"/>
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">Full name <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNName }}" placeholder="First name and last name" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:start; background:#fff;" value="{{ nName }}"/>
 </div>
 <div style="margin-bottom:13px;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">phone <span style="color:#c0392b;">*</span></label>
-<input class="ds-input" oninput="{{ onNPhone }}" placeholder="050-0000000" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nPhone }}"/>
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">Phone <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNPhone }}" placeholder="050-0000000" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:start; background:#fff;" value="{{ nPhone }}"/>
 </div>
 <div style="height:1px; background:#eef1f5; margin:0 0 13px;"></div>
-<div style="font-size:13px; color:#7b8595; font-weight:800; margin:0 0 11px;">address</div>
+<div style="font-size:13px; color:#7b8595; font-weight:800; margin:0 0 11px;">Address</div>
 <div style="display:flex; gap:11px; margin-bottom:11px;">
-<div style="flex:1;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">city <span style="color:#c0392b;">*</span></label>
-<input class="ds-input" oninput="{{ onNCity }}" placeholder="city" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nCity }}"/>
-</div>
 <div style="flex:1.4;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">street <span style="color:#c0392b;">*</span></label>
-<input class="ds-input" oninput="{{ onNStreet }}" placeholder="street name" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ nStreet }}"/>
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">Street <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNStreet }}" placeholder="Street name" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:start; background:#fff;" value="{{ nStreet }}"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">City <span style="color:#c0392b;">*</span></label>
+<input class="ds-input" oninput="{{ onNCity }}" placeholder="City" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:start; background:#fff;" value="{{ nCity }}"/>
 </div>
 </div>
 <div style="display:flex; gap:9px; margin-bottom:13px;">
 <div style="flex:1;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">house number</label>
-<input class="ds-input" oninput="{{ onNHouse }}" placeholder="12" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nHouse }}"/>
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">Apartment</label>
+<input class="ds-input" oninput="{{ onNApt }}" placeholder="4" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nApt }}"/>
 </div>
 <div style="flex:1;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">entry</label>
-<input class="ds-input" oninput="{{ onNEntrance }}" placeholder="A" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nEntrance }}"/>
-</div>
-<div style="flex:1;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">floor</label>
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">Floor</label>
 <input class="ds-input" oninput="{{ onNFloor }}" placeholder="3" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nFloor }}"/>
 </div>
 <div style="flex:1;">
-<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">apartment</label>
-<input class="ds-input" oninput="{{ onNApt }}" placeholder="4" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nApt }}"/>
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">Entry</label>
+<input class="ds-input" oninput="{{ onNEntrance }}" placeholder="A" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nEntrance }}"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:12px; color:#7b8595; font-weight:600; margin-bottom:6px;">House number</label>
+<input class="ds-input" oninput="{{ onNHouse }}" placeholder="12" style="width:100%; padding:11px 9px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ nHouse }}"/>
 </div>
 </div>
-<button disabled="{{ newDisabled }}" onclick="{{ saveNew }}" style="width:100%; padding:12px; border:none; border-radius:11px; background:{{ saveBg }}; color:#fff; font-size:14px; font-weight:800; cursor:{{ saveCursor }};">Save and read</button>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ saveError }}">
+<div style="margin-bottom:10px; padding:10px 12px; border-radius:10px; background:#fbeeed; border:1px solid #f0c9c4; color:#7a2e28; font-size:12.5px; font-weight:700;">{{ saveError }}</div>
+</sc-if>
+<button disabled="{{ newDisabled }}" onclick="{{ saveNew }}" style="width:100%; padding:12px; border:none; border-radius:11px; background:{{ saveBg }}; color:#fff; font-size:14px; font-weight:800; cursor:{{ saveCursor }};">{{ saveLabel }}</button>
 </div>
 </sc-if>
 <!-- results header -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:2px 2px 11px;">
 <div style="font-size:13px; color:#6a7382; font-weight:800;">{{ listLabel }}</div>
-<!-- <div style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ resultCount }} customers</div> -->
+<div style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ listSubLabel }}</div>
 </div>
 <!-- customer results -->
 <sc-for as="c" hint-placeholder-count="5" list="{{ results }}">
@@ -244,6 +247,8 @@ class Component extends DCLogic {
     query: '',
     selectedId: null,
     newOpen: false,
+    savingNew: false,
+    saveError: '',
     nName: '', nPhone: '', nCity: '',
     nStreet: '', nHouse: '', nFloor: '', nApt: '', nEntrance: '',
   };
@@ -323,7 +328,13 @@ class Component extends DCLogic {
 
   onSearch(e) { this.setState({ query: e.target.value }); }
   clearSearch() { this.setState({ query: '' }); }
-  toggleNew() { this.setState(s => ({ newOpen: !s.newOpen, selectedId: s.newOpen ? s.selectedId : null })); }
+  toggleNew() {
+    this.setState(s => ({
+      newOpen: !s.newOpen,
+      selectedId: s.newOpen ? s.selectedId : null,
+      saveError: ''
+    }));
+  }
   pick(id) { this.setState({ selectedId: id == null ? null : String(id), newOpen: false }); }
 
   filtered() {
@@ -351,11 +362,32 @@ class Component extends DCLogic {
     return [street, extra.join(', '), s.nCity.trim()].filter(Boolean).join(', ');
   }
 
-  saveNew() {
+  async saveNew() {
     const s = this.state;
-    if (!s.nName.trim() || !s.nPhone.trim() || !s.nCity.trim() || !s.nStreet.trim()) return;
+    if (!s.nName.trim() || !s.nPhone.trim() || !s.nCity.trim() || !s.nStreet.trim() || s.savingNew) return;
+
+    this.setState({ savingNew: true, saveError: '' });
+    var customerPayload = {
+      name: s.nName.trim(),
+      phone: s.nPhone.trim(),
+      city: s.nCity.trim(),
+      address: this.fullAddress(),
+      folder_id: (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.CUSTOMERS) || 2
+    };
+
+    var newId = '';
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.createCustomer === 'function') {
+        var res = await MineralBarApp.createCustomer(customerPayload);
+        newId = String((res && res.id) || (res && res.raw && (res.raw.insert_id || res.raw.customer_id)) || '').trim();
+      }
+    } catch (e) {
+      console.warn('[service-select-customer] createCustomer failed, continuing as new client', e);
+    }
+
     this.proceed({
-      name: s.nName.trim(), phone: s.nPhone.trim(),
+      name: s.nName.trim(),
+      phone: s.nPhone.trim(),
       city: s.nCity.trim(),
       area: '',
       street: s.nStreet.trim(),
@@ -364,7 +396,10 @@ class Component extends DCLogic {
       entrance: s.nEntrance.trim(),
       floor: s.nFloor.trim(),
       apartment: s.nApt.trim(),
-      address: this.fullAddress(), isNew: true, customer_id: '', id: '',
+      address: this.fullAddress(),
+      isNew: !newId,
+      customer_id: newId,
+      id: newId,
     });
   }
 
@@ -411,7 +446,7 @@ class Component extends DCLogic {
       };
     });
 
-    const newReady = st.nName.trim() && st.nPhone.trim() && st.nCity.trim() && st.nStreet.trim();
+    const newReady = st.nName.trim() && st.nPhone.trim() && st.nCity.trim() && st.nStreet.trim() && !st.savingNew;
     const hasSel = !!sel;
 
     return {
@@ -431,20 +466,23 @@ class Component extends DCLogic {
 
       nName: st.nName, nPhone: st.nPhone, nCity: st.nCity,
       nStreet: st.nStreet, nHouse: st.nHouse, nFloor: st.nFloor, nApt: st.nApt, nEntrance: st.nEntrance,
-      onNName: (e) => this.setState({ nName: e.target.value }),
-      onNPhone: (e) => this.setState({ nPhone: e.target.value }),
-      onNCity: (e) => this.setState({ nCity: e.target.value }),
-      onNStreet: (e) => this.setState({ nStreet: e.target.value }),
-      onNHouse: (e) => this.setState({ nHouse: e.target.value }),
-      onNFloor: (e) => this.setState({ nFloor: e.target.value }),
-      onNApt: (e) => this.setState({ nApt: e.target.value }),
-      onNEntrance: (e) => this.setState({ nEntrance: e.target.value }),
+      onNName: (e) => this.setState({ nName: e.target.value, saveError: '' }),
+      onNPhone: (e) => this.setState({ nPhone: e.target.value, saveError: '' }),
+      onNCity: (e) => this.setState({ nCity: e.target.value, saveError: '' }),
+      onNStreet: (e) => this.setState({ nStreet: e.target.value, saveError: '' }),
+      onNHouse: (e) => this.setState({ nHouse: e.target.value, saveError: '' }),
+      onNFloor: (e) => this.setState({ nFloor: e.target.value, saveError: '' }),
+      onNApt: (e) => this.setState({ nApt: e.target.value, saveError: '' }),
+      onNEntrance: (e) => this.setState({ nEntrance: e.target.value, saveError: '' }),
       saveNew: () => this.saveNew(),
+      saveError: st.saveError || '',
       newDisabled: !newReady,
       saveBg: newReady ? '#1d60a2' : '#b9c4d2',
       saveCursor: newReady ? 'pointer' : 'not-allowed',
+      saveLabel: st.savingNew ? 'Saving…' : 'Save and continue',
 
-      listLabel: st.query.trim() ? 'Search results' : 'Recent customers',
+      listLabel: st.query.trim() ? ('Search results (' + list.length + ')') : ('Customers ' + list.length),
+      listSubLabel: st.query.trim() ? '' : 'Recent customers',
       resultCount: list.length,
       results,
       isEmpty: list.length === 0,
@@ -454,7 +492,7 @@ class Component extends DCLogic {
       selInitials: sel ? this.initials(sel.name) : '',
       goNext: () => this.goNext(),
       nextDisabled: !hasSel,
-      nextLabel: hasSel ? 'Continue to ticket details' : 'Select customer to continue',
+      nextLabel: hasSel ? 'Continue to ticket details' : 'Select a customer to continue',
       nextBg: hasSel ? '#1d60a2' : '#e3e7ed',
       nextColor: hasSel ? '#fff' : '#9aa3b0',
       nextCursor: hasSel ? 'pointer' : 'not-allowed',

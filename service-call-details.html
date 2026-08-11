@@ -1,4 +1,4 @@
-﻿  <!DOCTYPE html>
+  <!DOCTYPE html>
 
   <html>
 
@@ -176,6 +176,23 @@
                   </div>
                 </div>
               </div>
+              <!-- closing status + reason (from Ticket.Edit custom_fields) -->
+              <sc-if hint-placeholder-val="{{ false }}" value="{{ hasClosingInfo }}">
+                <div style="font-size:13px; color:#7b8595; font-weight:800; margin:2px 2px 9px;">{{ closingSectionTitle }}</div>
+                <div
+                  style="background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+                  <div style="margin-bottom:{{ closingReasonMb }};">
+                    <div style="font-size:11px; color:#9aa3b0; font-weight:700; margin-bottom:4px;">{{ closingStatusTitle }}</div>
+                    <div style="font-size:14.5px; font-weight:800; color:#1f2a3a; line-height:1.4;">{{ closingStatusLabel }}</div>
+                  </div>
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasClosingReason }}">
+                    <div style="padding-top:12px; border-top:1px solid #f0f2f5;">
+                      <div style="font-size:11px; color:#9aa3b0; font-weight:700; margin-bottom:4px;">{{ closingReasonTitle }}</div>
+                      <div style="font-size:14px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ closingReason }}</div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
               <!-- customer mini card -->
               <a class="gv-tap" href="{{ customerLink }}"
                 style="display:flex; align-items:center; gap:12px; background:#fff; border-radius:16px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; text-decoration:none;">
@@ -498,6 +515,86 @@
       var msg = String(msgs || '');
       if (/BIZ1_MEDIA\s*:/i.test(msg) || /Client signature saved/i.test(msg)) return true;
       return false;
+    }
+
+    parseCustomFields(ticket) {
+      var cf = ticket && ticket.custom_fields;
+      if (typeof cf === 'string') {
+        try { cf = JSON.parse(cf); } catch (e) { cf = null; }
+      }
+      if (Array.isArray(cf)) {
+        var obj = {};
+        cf.forEach(function (row) {
+          if (!row || typeof row !== 'object') return;
+          var k = row.key || row.name || row.field || row.id;
+          var v = row.value != null ? row.value : row.val;
+          if (k != null) obj[String(k)] = v;
+        });
+        return obj;
+      }
+      if (cf && typeof cf === 'object') return cf;
+      return {};
+    }
+
+    ticketNotesText(ticket) {
+      if (!ticket) return '';
+      var parts = [];
+      function push(v) {
+        if (v == null || v === '') return;
+        if (Array.isArray(v)) {
+          v.forEach(push);
+          return;
+        }
+        if (typeof v === 'object') {
+          push(v.message || v.msg || v.text || v.note || v.content || v.body);
+          return;
+        }
+        parts.push(String(v));
+      }
+      push(ticket.messages);
+      push(ticket.message);
+      push(ticket.notes);
+      push(ticket.note);
+      return parts.join('\n');
+    }
+
+    parseClosingStatusLabel(ticket, isEn) {
+      var cf = this.parseCustomFields(ticket);
+      var raw = cf.closing_status != null ? cf.closing_status : cf.close_status;
+      raw = String(raw != null ? raw : '').trim();
+      if (!raw) {
+        var m = this.ticketNotesText(ticket).match(/Closing status:\s*([^\n]+)/i);
+        if (m && m[1]) raw = String(m[1]).trim();
+      }
+      if (!raw) return '';
+      var lower = raw.toLowerCase();
+      var map = {
+        done: isEn ? 'Completed successfully' : 'הושלם בהצלחה',
+        followup: isEn ? 'Requires follow-up' : 'דורש המשך טיפול',
+        noanswer: isEn ? 'No answer' : 'אין מענה',
+        notdone: isEn ? 'Not performed' : 'לא בוצע',
+        lab: isEn ? 'Sent to lab' : 'נשלח למעבדה'
+      };
+      if (map[lower]) return map[lower];
+      if (/success|completed|הושלם|done/.test(lower)) return map.done;
+      if (/follow|המשך|followup/.test(lower)) return map.followup;
+      if (/no.?answer|אין מענה|noanswer/.test(lower)) return map.noanswer;
+      if (/not.?perform|לא בוצע|notdone/.test(lower)) return map.notdone;
+      if (/lab|מעבד/.test(lower)) return map.lab;
+      return raw;
+    }
+
+    parseClosingReason(ticket) {
+      var cf = this.parseCustomFields(ticket);
+      var raw = cf.closing_reason != null ? cf.closing_reason
+        : (cf.followup_reason != null ? cf.followup_reason
+          : (cf.close_reason != null ? cf.close_reason : ''));
+      raw = String(raw != null ? raw : '').trim();
+      if (!raw) {
+        var m = this.ticketNotesText(ticket).match(/Follow-up reason:\s*([^\n]+)/i);
+        if (m && m[1]) raw = String(m[1]).trim();
+      }
+      return raw;
     }
 
     extractProductIds(ticket) {
@@ -933,8 +1030,8 @@
         if (mediaMatch) {
           try {
             var json = JSON.parse(mediaMatch[1]);
-            if (json.before) pushPhoto(json.before, isEn ? 'Before photo' : 'תמונה לפני');
-            if (json.after) pushPhoto(json.after, isEn ? 'After photo' : 'תמונה אחרי');
+            if (json.before) pushPhoto(json.before, isEn ? 'Above the sink' : 'מעל הכיור');
+            if (json.after) pushPhoto(json.after, isEn ? 'Under the sink' : 'מתחת לכיור');
           } catch (e) { /* ignore */ }
         }
 
@@ -1084,6 +1181,8 @@
       const photos = this.collectTicketPhotos(t, isEn);
       const hasPhotos = photos.length > 0;
       const photoCountLabel = hasPhotos ? (photos.length + (isEn ? ' Pictures' : ' תמונות')) : (isEn ? 'None' : 'אין');
+      const closingStatusLabel = this.parseClosingStatusLabel(t, isEn);
+      const closingReason = this.parseClosingReason(t);
 
       let repName = '';
       let hasRep = false;
@@ -1178,6 +1277,15 @@
         ticketStateColor: ticketStateColor,
         ticketStateBg: ticketStateBg,
         ticketStateBorder: ticketStateBorder,
+
+        hasClosingInfo: !!closingStatusLabel,
+        closingSectionTitle: isEn ? 'Closing details' : 'פרטי סגירה',
+        closingStatusTitle: isEn ? 'Closing status' : 'סטטוס סיום',
+        closingStatusLabel: closingStatusLabel,
+        hasClosingReason: !!closingReason,
+        closingReasonTitle: isEn ? 'Follow-up reason' : 'סיבת המשך טיפול',
+        closingReason: closingReason,
+        closingReasonMb: closingReason ? '12px' : '0',
 
         custInitials: custInitials, custName: name, custAddress: t.address || '---',
         customerLink: customerLink,

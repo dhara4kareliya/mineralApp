@@ -32,8 +32,19 @@ mbCss('./common.css');
     transition: border-color 0.15s ease;
   }
   .ds-input:focus { border-color: #1d60a2; box-shadow: 0 0 0 3px rgba(29,96,162,0.08); }
+  select.ds-input {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 13px center;
+    padding-inline-start: 12px;
+    padding-inline-end: 36px;
+  }
+  html[dir="ltr"] select.ds-input { background-position: right 13px center; }
+  html[dir="rtl"] select.ds-input { background-position: left 13px center; }
   .field-group { margin-bottom: 11px; }
-  .field-label { display: block; font-size: 12.5px; font-weight: 600; color: #5a6473; margin-bottom: 5px; }
+  .field-label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: #5a6473; margin-bottom: 5px; }
   .dc-scroll::-webkit-scrollbar { width: 0; height: 0; }
 </style>
 </head>
@@ -163,22 +174,34 @@ mbCss('./common.css');
       <textarea id="mb-note" class="ds-input" rows="2" placeholder="Note" style="resize:vertical;"></textarea>
     </div>
 
-    <!-- Folders & Status -->
-    <div style="display:flex; gap:10px;" class="field-group">
-      <div style="flex:1;">
-        <label class="field-label">Folders</label>
-        <select id="mb-folders" class="ds-input">
-          <option value="1">New Leads</option>
-          <option value="2" selected>Customers</option>
-          <option value="3">Archive</option>
-        </select>
-      </div>
-      <div style="flex:1;">
-        <label class="field-label">status</label>
-        <select id="mb-status" class="ds-input">
-          <option value="">Loading statuses...</option>
-        </select>
-      </div>
+    <!-- Owner / Main Contact -->
+    <div class="field-group">
+      <label class="field-label" id="mb-owner-label">
+        <svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="14"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"></path></svg>
+        <span id="mb-owner-label-text">Owner / Main Contact</span>
+      </label>
+      <input id="mb-owner-name" class="ds-input" placeholder="Property owner's name (if different from the client)" />
+    </div>
+
+    <!-- Responsible salesperson -->
+    <div class="field-group">
+      <label class="field-label" id="mb-salesperson-label">
+        <svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="14"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"></path></svg>
+        <span id="mb-salesperson-label-text">Responsible salesperson</span> <span style="color:#e74c3c;">*</span>
+      </label>
+      <select id="mb-salesperson" class="ds-input" required>
+        <option value="">Loading team members...</option>
+      </select>
+    </div>
+
+    <!-- Customer status -->
+    <div class="field-group">
+      <label class="field-label" id="mb-status-label">
+        <span id="mb-status-label-text">Customer status</span>
+      </label>
+      <select id="mb-status" class="ds-input">
+        <option value="">Loading statuses...</option>
+      </select>
     </div>
 
     <!-- Service route (saved via extra_fields.insurance on Customer.Add) -->
@@ -217,6 +240,75 @@ mbCss('./common.css');
     return typeof window.getCurrentLanguage === 'function'
       ? window.getCurrentLanguage() === 'en'
       : true;
+  }
+
+  function customersFolderId() {
+    if (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.CUSTOMERS != null) {
+      return Number(MineralBarApp.FOLDERS.CUSTOMERS) || 2;
+    }
+    return 2;
+  }
+
+  function updateFormLabels() {
+    var isEn = isEnLang();
+    var ownerLabel = document.getElementById('mb-owner-label-text');
+    var ownerInput = document.getElementById('mb-owner-name');
+    var salespersonLabel = document.getElementById('mb-salesperson-label-text');
+    var statusLabel = document.getElementById('mb-status-label-text');
+
+    if (ownerLabel) ownerLabel.textContent = isEn ? 'Owner / Main Contact' : 'בעלים / איש קשר ראשי';
+    if (ownerInput) {
+      ownerInput.placeholder = isEn
+        ? "Property owner's name (if different from the client)"
+        : 'שם בעל הנכס (אם שונה מהלקוח)';
+    }
+    if (salespersonLabel) salespersonLabel.textContent = isEn ? 'Responsible salesperson' : 'איש מכירות אחראי';
+    if (statusLabel) statusLabel.textContent = isEn ? 'Customer status' : 'סטטוס לקוח';
+  }
+
+  function loadSalespeople() {
+    var select = document.getElementById('mb-salesperson');
+    if (!select) return;
+
+    var currentValue = select.value;
+    var isEn = isEnLang();
+    var team = (window.MineralBarApp && typeof MineralBarApp.getTeamMembers === 'function')
+      ? (MineralBarApp.getTeamMembers() || [])
+      : [];
+    var meEmail = ((window.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
+    var me = team.find(function (t) {
+      return String(t.email || '').toLowerCase() === meEmail;
+    }) || team[0];
+
+    select.innerHTML = '';
+    if (!team.length) {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = isEn ? 'No team members available' : 'אין אנשי צוות זמינים';
+      select.appendChild(empty);
+      return;
+    }
+
+    team.forEach(function (member) {
+      var id = String(member.id || member.user_id || member.member_id || '').trim();
+      if (!id) return;
+      var option = document.createElement('option');
+      option.value = id;
+      var label = member.name || member.full_name || member.email || ('#' + id);
+      if (me && String(id) === String(me.id || me.user_id || me.member_id)) {
+        label += isEn ? ' (me)' : ' (אני)';
+      }
+      option.textContent = label;
+      select.appendChild(option);
+    });
+
+    if (currentValue && Array.from(select.options).some(function (option) {
+      return option.value === currentValue;
+    })) {
+      select.value = currentValue;
+    } else if (me) {
+      select.value = String(me.id || me.user_id || me.member_id || '');
+    }
   }
 
   var SERVICE_ROUTE_FIELD = 'insurance';
@@ -321,9 +413,13 @@ mbCss('./common.css');
 
   loadStatuses();
   loadServiceRoutes();
+  loadSalespeople();
+  updateFormLabels();
   window.addEventListener('mineralbar:ready', function () {
     loadStatuses();
     loadServiceRoutes();
+    loadSalespeople();
+    updateFormLabels();
   });
   if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
     MineralBarApp.bindLiveReload(loadStatuses, { keys: /status|lead|customer|socket\\.nudge/i, delay: 400 });
@@ -331,6 +427,8 @@ mbCss('./common.css');
   window.addEventListener('mineralbar:language-changed', function () {
     loadStatuses();
     loadServiceRoutes();
+    loadSalespeople();
+    updateFormLabels();
   });
 
   function showMsg(kind, text) {
@@ -366,15 +464,23 @@ mbCss('./common.css');
       var email2In = document.getElementById('mb-email-2');
       var sourceIn = document.getElementById('mb-source');
       var noteIn = document.getElementById('mb-note');
-      var folderSel = document.getElementById('mb-folders');
+      var ownerIn = document.getElementById('mb-owner-name');
+      var salespersonSel = document.getElementById('mb-salesperson');
       var statusSel = document.getElementById('mb-status');
       var serviceRouteSel = document.getElementById('mb-service-route');
 
       var name = nameIn ? nameIn.value.trim() : '';
       var phone = phoneIn ? phoneIn.value.trim() : '';
+      var salespersonId = salespersonSel ? salespersonSel.value.trim() : '';
 
       if (!name || !phone) {
         showMsg('error', 'Please enter Full name and Phone number.');
+        return;
+      }
+      if (!salespersonId) {
+        showMsg('error', isEnLang()
+          ? 'Please select a responsible salesperson.'
+          : 'יש לבחור איש מכירות אחראי.');
         return;
       }
 
@@ -413,9 +519,14 @@ mbCss('./common.css');
           source: sourceIn ? sourceIn.value.trim() : '',
           address: address,
           note: noteIn ? noteIn.value.trim() : '',
-          folder_id: folderSel ? folderSel.value : '2',
-          status_id: statusSel ? statusSel.value : ''
+          folder_id: customersFolderId(),
+          status_id: statusSel ? statusSel.value : '',
+          customer_manager: salespersonId,
+          team_member_id: salespersonId
         };
+
+        var ownerName = ownerIn ? ownerIn.value.trim() : '';
+        if (ownerName) payload.room_customer_name = ownerName;
 
         // ID is optional — only send csv_id when numeric; never block create
         var csvId = idIn ? idIn.value.trim() : '';

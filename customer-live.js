@@ -961,20 +961,31 @@
   }
 
   function missionPriorityMeta(row) {
-    var color = String((row && row.color) || '').toLowerCase();
-    var priority = String((row && row.priority) || '').toLowerCase();
+    var color = String((row && (row.color || row.appoinment_color1)) || '').trim().toLowerCase();
+    var priority = String((row && row.priority) || '').trim().toLowerCase();
     var meta = {};
     try { meta = JSON.parse((row && row.meta) || '{}') || {}; } catch (e) { /* ignore */ }
     var he = String(meta.priority_he || '');
-    if (/urgent|high|דחוף|גבוה/i.test(priority) || /דחוף|גבוה/i.test(he) || color === '#ef4444' || color === '#c0392b') {
+
+    if (color === 'yellow' || color === 'transparent' || color === 'blue' ||
+        priority === 'yellow' || priority === 'transparent' || priority === 'blue' ||
+        color === '#f59e0b' || color === '#eab308' || color === '#f1c40f') {
+      return { label: t('Regular', 'רגיל'), bg: '#fef3c7', color: '#b45309', bar: '#f59e0b' };
+    }
+    if (color === 'green' || priority === 'green' ||
+        color === '#22c55e' || color === '#2e8a63') {
+      return { label: t('Low', 'נמוך'), bg: '#e9f5ee', color: '#2e8a63', bar: '#22c55e' };
+    }
+    if (color === 'red' || priority === 'red' ||
+        color === '#ef4444' || color === '#c0392b' ||
+        /\burgent\b|\bhigh\b|דחוף|גבוה/i.test(priority) || /דחוף|גבוה/i.test(he)) {
       return { label: t('Urgent', 'דחוף'), bg: '#fee2e2', color: '#b91c1c', bar: '#ef4444' };
     }
-    if (color === '#f59e0b' || color === '#eab308' || color === '#f1c40f' || color === 'yellow' ||
-        /normal|medium|רגיל|בינוני/i.test(priority)) {
-      return { label: t('Medium', 'בינוני'), bg: '#fef3c7', color: '#b45309', bar: '#f59e0b' };
-    }
-    if (/low|נמוכ/i.test(priority) || color === '#22c55e' || color === '#2e8a63') {
+    if (/\blow\b|נמוכ/i.test(priority)) {
       return { label: t('Low', 'נמוך'), bg: '#e9f5ee', color: '#2e8a63', bar: '#22c55e' };
+    }
+    if (/\bregular\b|\bnormal\b|\bmedium\b|רגיל|בינוני/i.test(priority)) {
+      return { label: t('Regular', 'רגיל'), bg: '#fef3c7', color: '#b45309', bar: '#f59e0b' };
     }
     return { label: '', bg: '', color: '', bar: '' };
   }

@@ -54,6 +54,72 @@
         .ds-input::placeholder {
           color: #aeb6c2;
         }
+
+        .mb-lead-filter-overlay {
+          position: absolute;
+          inset: 0;
+          z-index: 80;
+        }
+
+        .mb-lead-filter-sheet {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: #fff;
+          border-radius: 24px 24px 0 0;
+          max-height: min(92%, calc(100% - 48px));
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          box-shadow: 0 -8px 28px rgba(15, 24, 40, .18);
+          will-change: transform;
+          z-index: 81;
+        }
+
+        .mb-lead-filter-sheet-body {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          touch-action: pan-y;
+          padding: 0 18px 12px;
+        }
+
+        .mb-lead-filter-sheet-foot {
+          flex: 0 0 auto;
+          padding: 12px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+          border-top: 1px solid #eef0f3;
+          background: #fff;
+          position: relative;
+          z-index: 2;
+          box-shadow: 0 -6px 16px rgba(15, 24, 40, .06);
+        }
+
+        .mb-lead-sheet-handle {
+          width: 42px;
+          height: 5px;
+          border-radius: 99px;
+          background: #dadfe6;
+          margin: 0 auto 14px;
+          cursor: grab;
+          touch-action: none;
+        }
+
+        .mb-lead-sheet-handle:active {
+          cursor: grabbing;
+        }
+
+        #mb-customer-filter-chips {
+          cursor: grab;
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        #mb-customer-filter-chips:active {
+          cursor: grabbing;
+        }
       </style>
     </helmet>
     <div
@@ -63,29 +129,29 @@
           <div class="screen-card" style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
           <!-- header: title + count + new lead -->
           <div
-            style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 16px 12px; flex:none; background:#fff;">
-            <div style="min-width:0;">
-              <div style="font-size:22px; font-weight:800; color:#16223a; line-height:1.15;">לידים</div>
+            style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:8px 16px 12px; flex:none; background:#fff;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:22px; font-weight:800; color:#16223a; line-height:1.15;">{{ pageTitle }}</div>
               <div id="mb-total-label" style="font-size:12px; font-weight:700; color:#9aa3b0; margin-top:3px; line-height:1.3;">…</div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <!-- <button onclick="{{ openFilters }}"
-                style="display:inline-flex; align-items:center; gap:6px; padding:9px 13px; border-radius:99px; border:1.5px solid #dde2ea; background:#fff; cursor:pointer; flex:none;">
-                <svg fill="none" height="16" stroke="#46505f" stroke-linecap="round" stroke-linejoin="round"
-                  stroke-width="2" viewbox="0 0 24 24" width="16">
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              <button type="button" onclick="{{ openFilters }}"
+                style="display:inline-flex; align-items:center; gap:5px; padding:8px 11px; border-radius:99px; border:1.5px solid #dde2ea; background:#fff; cursor:pointer; flex:none; max-width:148px;">
+                <svg fill="none" height="15" stroke="#46505f" stroke-linecap="round" stroke-linejoin="round"
+                  stroke-width="2" viewbox="0 0 24 24" width="15" style="flex:none;">
                   <path d="M3 5h18M6 12h12M10 19h4"></path>
                 </svg>
-                <span style="font-size:13px; font-weight:700; color:#46505f; white-space:nowrap;">סינון ומיון</span>
+                <span style="font-size:12px; font-weight:700; color:#46505f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ filterBtnLabel }}</span>
                 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasActiveFilters }}"><span
-                    style="width:7px; height:7px; border-radius:50%; background:#c0392b;"></span></sc-if>
-              </button> -->
+                    style="width:7px; height:7px; border-radius:50%; background:#c0392b; flex:none;"></span></sc-if>
+              </button>
               <a href="sales-add-lead.html"
-                style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; background:#1d60a2; color:#fff; text-decoration:none; flex:none; box-shadow:0 5px 13px rgba(29,96,162,.26);">
-                <svg fill="none" height="16" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
-                  stroke-width="2.4" viewbox="0 0 24 24" width="16">
+                style="display:inline-flex; align-items:center; gap:5px; padding:8px 12px; border-radius:99px; background:#1d60a2; color:#fff; text-decoration:none; flex:none; box-shadow:0 5px 13px rgba(29,96,162,.26);">
+                <svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
+                  stroke-width="2.4" viewbox="0 0 24 24" width="15" style="flex:none;">
                   <path d="M5 12h14M12 5v14"></path>
                 </svg>
-                <span style="font-size:13.5px; font-weight:800; white-space:nowrap;">ליד חדש</span>
+                <span style="font-size:13px; font-weight:800; white-space:nowrap;">{{ newLeadLabel }}</span>
               </a>
             </div>
           </div>
@@ -98,11 +164,11 @@
                 <circle cx="11" cy="11" r="7"></circle>
                 <path d="m20 20-3.2-3.2"></path>
               </svg>
-              <input class="ds-input mb-search" placeholder="חיפוש לפי שם, טלפון, עיר..."
+              <input class="ds-input mb-search" placeholder="{{ searchPlaceholder }}"
                 style="flex:1; border:none; outline:none; font-size:14.5px; color:#1f2a3a; background:transparent; text-align:start;" />
             </div>
             <div id="mb-customer-filter-chips" class="dc-scroll" data-active-folder="1"
-              style="display:none; gap:8px; overflow-x:auto; margin-top:11px; padding-bottom:4px; scrollbar-width:none; -webkit-overflow-scrolling:touch;">
+              style="display:flex; gap:8px; overflow-x:auto; margin-top:11px; padding-bottom:4px; scrollbar-width:none; -webkit-overflow-scrolling:touch;">
             </div>
           </div>
           <!-- ===== scrollable list ===== -->
@@ -112,18 +178,19 @@
 
           <!-- ============ FILTER SHEET ============ -->
           <sc-if hint-placeholder-val="{{ false }}" value="{{ filtersOpen }}">
-            <div style="position:absolute; inset:0; z-index:20;">
+            <div class="mb-lead-filter-overlay">
               <div onclick="{{ closeFilters }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;">
               </div>
-              <div class="dc-scroll"
-                style="position:absolute; bottom:0; left:0; right:0; background:#fff; border-radius:24px 24px 0 0; padding:18px 18px 22px; max-height:92%; overflow-y:auto;">
-                <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 14px;"></div>
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
-                  <div style="font-size:19px; font-weight:800; color:#1f2a3a;">סינון ומיון</div>
-                  <button onclick="{{ clearFilters }}"
-                    style="border:none; background:none; color:#c0392b; font-size:13.5px; font-weight:700; cursor:pointer;">נקה
-                    הכל</button>
+              <div id="mb-lead-filter-sheet" class="mb-lead-filter-sheet">
+                <div style="flex:none; padding:14px 18px 0;">
+                  <div id="mb-lead-filter-sheet-handle" class="mb-lead-sheet-handle"></div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
+                    <div style="font-size:19px; font-weight:800; color:#1f2a3a;">{{ filterTitle }}</div>
+                    <button onclick="{{ clearFilters }}"
+                      style="border:none; background:none; color:#c0392b; font-size:13.5px; font-weight:700; cursor:pointer;">{{ clearAllLabel }}</button>
+                  </div>
                 </div>
+                <div class="mb-lead-filter-sheet-body dc-scroll">
                 <!-- active chips -->
                 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasChips }}">
                   <div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px;">
@@ -139,126 +206,40 @@
                     </sc-for>
                   </div>
                 </sc-if>
-                <!-- segmented type -->
-                <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:9px;">סוג</div>
-                <div
-                  style="display:flex; background:#eef0f3; border:1.5px solid #e4e8ee; border-radius:13px; padding:3px; gap:3px; margin-bottom:18px;">
-                  <sc-for as="s" hint-placeholder-count="3" list="{{ sougSegs }}">
-                    <button onclick="{{ s.pick }}"
-                      style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 4px; border:none; border-radius:10px; cursor:pointer; font-size:13.5px; font-weight:700; background:{{ s.bg }}; color:{{ s.color }}; box-shadow:{{ s.shadow }};">
-                      <span style="display:flex; color:{{ s.color }};">
-                        <sc-if hint-placeholder-val="{{ true }}" value="{{ s.iFilter }}"><svg fill="none" height="16"
-                            stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            viewbox="0 0 24 24" width="16">
-                            <path d="M3 5h18M6 12h12M10 19h4"></path>
-                          </svg></sc-if>
-                        <sc-if hint-placeholder-val="{{ false }}" value="{{ s.iLead }}"><svg fill="none" height="16"
-                            stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            viewbox="0 0 24 24" width="16">
-                            <circle cx="9" cy="8" r="3.2"></circle>
-                            <path d="M3 20c0-3.4 2.7-5.5 6-5.5 1 0 1.9.2 2.7.5"></path>
-                            <path d="M17 8v6M14 11h6"></path>
-                          </svg></sc-if>
-                        <sc-if hint-placeholder-val="{{ false }}" value="{{ s.iShield }}"><svg fill="none" height="16"
-                            stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            viewbox="0 0 24 24" width="16">
-                            <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"></path>
-                          </svg></sc-if>
-                      </span>
-                      {{ s.label }}
-                    </button>
-                  </sc-for>
-                </div>
-                <div style="height:1px; background:#f0f2f5; margin:0 0 16px;"></div>
-                <!-- Status (leads mode) -->
-                <sc-if hint-placeholder-val="{{ true }}" value="{{ showStatus }}">
-                  <div style="margin-bottom:17px;">
-                    <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">סטטוס</div>
-                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                      <sc-for as="o" hint-placeholder-count="6" list="{{ statusOpts }}">
-                        <button onclick="{{ o.pick }}"
-                          style="display:inline-flex; align-items:center; gap:5px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
-                          <sc-if hint-placeholder-val="{{ false }}" value="{{ o.check }}"><svg fill="none" height="13"
-                              stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6"
-                              viewbox="0 0 24 24" width="13">
-                              <path d="M20 6 9 17l-5-5"></path>
-                            </svg></sc-if>
-                          {{ o.label }}
-                        </button>
-                      </sc-for>
-                    </div>
-                  </div>
-                </sc-if>
-                <!-- type of renewal (renew mode) -->
-                <sc-if hint-placeholder-val="{{ false }}" value="{{ showRenew }}">
-                  <div style="margin-bottom:17px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                      <span style="font-size:13.5px; color:#7b8595; font-weight:700;">סוג חידוש</span>
-                      <span
-                        style="background:#eef0fb; color:#50439d; font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px;">רלוונטי
-                        לחידושים בלבד</span>
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                      <sc-for as="o" hint-placeholder-count="4" list="{{ renewOpts }}">
-                        <button onclick="{{ o.pick }}"
-                          style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
-                          <span style="display:flex;">
-                            <sc-if hint-placeholder-val="{{ true }}" value="{{ o.iShield }}"><svg fill="none"
-                                height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="2" viewbox="0 0 24 24" width="13">
-                                <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"></path>
-                              </svg></sc-if>
-                            <sc-if hint-placeholder-val="{{ false }}" value="{{ o.iDrop }}"><svg fill="none" height="13"
-                                stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                viewbox="0 0 24 24" width="13">
-                                <path d="M12 3s6 5.5 6 10a6 6 0 0 1-12 0c0-4.5 6-10 6-10z"></path>
-                              </svg></sc-if>
-                            <sc-if hint-placeholder-val="{{ false }}" value="{{ o.iFunnel }}"><svg fill="none"
-                                height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="2" viewbox="0 0 24 24" width="13">
-                                <path d="M3 5h18l-7 8v6l-4 2v-8z"></path>
-                              </svg></sc-if>
-                          </span>
-                          {{ o.label }}
-                        </button>
-                      </sc-for>
-                    </div>
-                  </div>
-                </sc-if>
-                <div style="height:1px; background:#f0f2f5; margin:0 0 16px;"></div>
-                <!-- owner -->
+                <!-- Status -->
                 <div style="margin-bottom:17px;">
-                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">בעלים</div>
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ statusLabel }}</div>
                   <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    <sc-for as="o" hint-placeholder-count="5" list="{{ ownerOpts }}">
+                    <sc-for as="o" hint-placeholder-count="6" list="{{ statusOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:5px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
+                        <sc-if hint-placeholder-val="{{ false }}" value="{{ o.check }}"><svg fill="none" height="13"
+                            stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6"
+                            viewbox="0 0 24 24" width="13">
+                            <path d="M20 6 9 17l-5-5"></path>
+                          </svg></sc-if>
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+                <!-- source -->
+                <div style="height:1px; background:#f0f2f5; margin:0 0 16px;"></div>
+                <div style="margin-bottom:17px;">
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ sourceLabel }}</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <sc-for as="o" hint-placeholder-count="6" list="{{ sourceOpts }}">
                       <button onclick="{{ o.pick }}"
                         style="display:inline-flex; align-items:center; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">{{
                         o.label }}</button>
                     </sc-for>
                   </div>
                 </div>
-                <!-- source (leads mode) -->
-                <sc-if hint-placeholder-val="{{ true }}" value="{{ showStatus }}">
-                  <div style="height:1px; background:#f0f2f5; margin:0 0 16px;"></div>
-                  <div style="margin-bottom:17px;">
-                    <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">מקור</div>
-                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                      <sc-for as="o" hint-placeholder-count="6" list="{{ sourceOpts }}">
-                        <button onclick="{{ o.pick }}"
-                          style="display:inline-flex; align-items:center; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">{{
-                          o.label }}</button>
-                      </sc-for>
-                    </div>
-                  </div>
-                </sc-if>
                 <div style="height:1px; background:#f0f2f5; margin:0 0 16px;"></div>
                 <!-- date -->
                 <div style="margin-bottom:17px;">
                   <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                     <span style="font-size:13.5px; color:#7b8595; font-weight:700;">{{ dateTitle }}</span>
-                    <sc-if hint-placeholder-val="{{ false }}" value="{{ hasDateBadge }}"><span
-                        style="background:#eef0fb; color:#50439d; font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px;">{{
-                        dateBadge }}</span></sc-if>
                   </div>
                   <div style="display:flex; gap:10px; margin-bottom:10px;">
                     <div
@@ -278,7 +259,7 @@
                         <rect height="16" rx="2.5" width="18" x="3" y="5"></rect>
                         <path d="M3 9h18M8 3v4M16 3v4"></path>
                       </svg>
-                      <span style="font-size:13.5px; color:#aeb6c2; font-weight:600;">עד תאריך</span>
+                      <span style="font-size:13.5px; color:#aeb6c2; font-weight:600;">{{ dateToLabel }}</span>
                     </div>
                   </div>
                   <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -291,7 +272,7 @@
                 </div>
                 <div style="height:1px; background:#f0f2f5; margin:0 0 16px;"></div>
                 <!-- sort -->
-                <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">מיון לפי</div>
+                <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ sortByLabel }}</div>
                 <sc-for as="r" hint-placeholder-count="2" list="{{ sortRows }}">
                   <div onclick="{{ r.pick }}"
                     style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:13px; margin-bottom:9px; cursor:pointer; background:{{ r.bg }}; border:1.5px solid {{ r.border }};">
@@ -301,7 +282,7 @@
                           style="width:9px; height:9px; border-radius:50%; background:#1d60a2;"></span></sc-if>
                     </span>
                     <span style="font-size:14px; font-weight:700; color:{{ r.labelColor }};">{{ r.label }}</span>
-                    <div style="display:flex; gap:6px; margin-right:auto;">
+                    <div style="display:flex; gap:6px; margin-inline-start:auto;">
                       <sc-for as="d" hint-placeholder-count="2" list="{{ r.dirs }}">
                         <button onclick="{{ d.pick }}"
                           style="display:inline-flex; align-items:center; gap:3px; padding:6px 11px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:700; background:{{ d.bg }}; color:{{ d.color }};">
@@ -321,14 +302,17 @@
                     </div>
                   </div>
                 </sc-for>
-                <button onclick="{{ closeFilters }}"
-                  style="width:100%; margin-top:8px; padding:15px; border:none; border-radius:14px; background:{{ btnBg }}; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;">
+                </div>
+                <div class="mb-lead-filter-sheet-foot">
+                <button onclick="{{ applyFilters }}"
+                  style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ btnBg }}; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;">
                   <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
                     stroke-width="2.6" viewbox="0 0 24 24" width="17">
                     <path d="M20 6 9 17l-5-5"></path>
                   </svg>
-                  הצג {{ resultCount }} {{ resultLabel }}
+                  {{ showResultsPrefix }} {{ resultCount }} {{ resultLabel }}
                 </button>
+                </div>
               </div>
             </div>
           </sc-if>
@@ -350,15 +334,12 @@ class Component extends DCLogic {
   state = {
     filtersOpen: false,
     mainChip: 'all',
-    soug: 'all',
     status: 'all',
-    owner: 'all',
     source: 'all',
-    renew: { insurance: true, filter: true, softener: false, warranty: false, system: false },
     dateQuick: 'none',
     sortLeads: 'created',
-    sortRenew: 'expiry',
-    dir: { created: 'new', statusTime: 'long', expiry: 'urgent' },
+    dir: { created: 'new', statusTime: 'long' },
+    langTick: 0,
   };
 
   TONES = {
@@ -370,60 +351,274 @@ class Component extends DCLogic {
     gray:   { bg: '#eef0f3', color: '#5a6473', border: '#d6dbe2' },
   };
 
-  STATUSES = [
-    { id: 'all', label: 'הכל' },
-    { id: 'new', label: 'ליד חדש' },
-    { id: 'followup', label: 'פולואפ' },
-    { id: 'noanswer', label: 'אין מענה' },
-    { id: 'offer', label: 'נשלחה הצעה' },
-    { id: 'closed', label: 'נסגר' },
-    { id: 'irrelevant', label: 'לא רלוונטי' },
-  ];
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
 
-  OWNERS = [
-    { id: 'all', label: 'הכל' },
-    { id: 'yossi', label: 'יוסי כהן' },
-    { id: 'elkana', label: 'אלקנה' },
-    { id: 'ariel', label: 'אריאל' },
-    { id: 'zion', label: 'ציון' },
-  ];
+  t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    return this.isEn() ? en : he;
+  }
 
-  SOURCES = [
-    { id: 'all', label: 'הכל' },
-    { id: 'fb', label: 'פייסבוק' },
-    { id: 'ig', label: 'אינסטגרם' },
-    { id: 'site', label: 'אתר' },
-    { id: 'ref', label: 'הפניה' },
-    { id: 'incoming', label: 'שיחה נכנסת' },
-    { id: 'other', label: 'אחר' },
-  ];
+  statusDefs() {
+    return [
+      { id: 'all', en: 'All', he: 'הכל' },
+      { id: 'new', en: 'New lead', he: 'ליד חדש' },
+      { id: 'followup', en: 'Follow up', he: 'פולואפ' },
+      { id: 'noanswer', en: 'No answer', he: 'אין מענה' },
+      { id: 'offer', en: 'Offer sent', he: 'נשלחה הצעה' },
+      { id: 'closed', en: 'Closed', he: 'נסגר' },
+      { id: 'irrelevant', en: 'Not relevant', he: 'לא רלוונטי' },
+    ];
+  }
 
-  RENEWS = [
-    { id: 'insurance', label: 'ביטוח פג', tone: 'purple', icon: 'shield' },
-    { id: 'filter', label: 'סנן לחידוש', tone: 'amber', icon: 'drop' },
-    { id: 'softener', label: 'מרכך לחידוש', tone: 'blue', icon: 'drop' },
-    { id: 'warranty', label: 'אחריות פגה', tone: 'red', icon: 'shield' },
-    { id: 'system', label: 'מערכת סינון', tone: 'green', icon: 'funnel' },
-  ];
+  sourceDefs() {
+    return [
+      { id: 'all', en: 'All', he: 'הכל' },
+      { id: 'fb', en: 'Facebook', he: 'פייסבוק' },
+      { id: 'ig', en: 'Instagram', he: 'אינסטגרם' },
+      { id: 'site', en: 'Website', he: 'אתר' },
+      { id: 'ref', en: 'Referral', he: 'הפניה' },
+      { id: 'incoming', en: 'Incoming call', he: 'שיחה נכנסת' },
+      { id: 'other', en: 'Other', he: 'אחר' },
+    ];
+  }
 
-  MAIN_CHIPS = [
-    { id: 'all', label: 'הכל' },
-    { id: 'new', label: 'ליד חדש' },
-    { id: 'followup', label: 'פולואפ' },
-    { id: 'sent', label: 'נשלחה הצעה' },
-    { id: 'closed', label: 'נסגר' },
-    { id: 'noanswer', label: 'אין מענה' },
-  ];
+  openFilters() {
+    this.setState({ filtersOpen: true });
+    var foot = document.getElementById('common-app-footer');
+    if (foot) foot.style.visibility = 'hidden';
+    var self = this;
+    setTimeout(function () { self.setupSheetDrag(); }, 30);
+  }
+  closeFilters() {
+    var sheet = document.getElementById('mb-lead-filter-sheet');
+    if (sheet) {
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+    }
+    var foot = document.getElementById('common-app-footer');
+    if (foot) foot.style.visibility = '';
+    this.setState({ filtersOpen: false });
+  }
 
-  openFilters() { this.setState({ filtersOpen: true }); }
-  closeFilters() { this.setState({ filtersOpen: false }); }
+  applyFilters() {
+    var status = this.state.status;
+    if (status === 'offer') status = 'sent';
+    var mainChip = this.state.mainChip;
+    if (status !== 'all') mainChip = status;
+    if (window.ListLive && typeof window.ListLive.setLeadAdvancedFilters === 'function') {
+      window.ListLive.setLeadAdvancedFilters({
+        status: status,
+        source: this.state.source,
+        dateQuick: this.state.dateQuick,
+        sortLeads: this.state.sortLeads,
+        dir: Object.assign({}, this.state.dir),
+        mainChip: mainChip
+      });
+    }
+    this.setState({ filtersOpen: false, status: status, mainChip: mainChip });
+    var foot = document.getElementById('common-app-footer');
+    if (foot) foot.style.visibility = '';
+  }
+
+  componentDidMount() {
+    var self = this;
+    this._onLeadFilterSync = function (ev) {
+      var d = (ev && ev.detail) || {};
+      self.setState({
+        mainChip: d.mainChip != null ? d.mainChip : self.state.mainChip,
+        status: d.status != null ? d.status : self.state.status,
+        source: d.source != null ? d.source : self.state.source
+      });
+    };
+    window.addEventListener('mineralbar:lead-filters', this._onLeadFilterSync);
+    this._onLeadChipsReady = function () { self.setupFilterDragScroll(); };
+    window.addEventListener('mineralbar:lead-chips-ready', this._onLeadChipsReady);
+    this._onLang = function () { self.setState({ langTick: Date.now() }); };
+    window.addEventListener('mineralbar:language-changed', this._onLang);
+    this.setupFilterDragScroll();
+    setTimeout(function () { self.setupFilterDragScroll(); }, 400);
+  }
+
+  setupFilterDragScroll() {
+    var el = document.getElementById('mb-customer-filter-chips');
+    if (!el || el.getAttribute('data-drag-bound') === '1') return;
+    el.setAttribute('data-drag-bound', '1');
+
+    var isDown = false;
+    var didDrag = false;
+    var startX = 0;
+    var scrollLeft = 0;
+
+    function getX(e) {
+      return e.touches && e.touches.length ? e.touches[0].pageX : e.pageX;
+    }
+
+    function onStart(e) {
+      if (e.target && e.target.closest && e.target.closest('.mb-lead-chip')) {
+        /* allow chip clicks unless we actually drag */
+      }
+      isDown = true;
+      didDrag = false;
+      startX = getX(e);
+      scrollLeft = el.scrollLeft;
+    }
+
+    function onMove(e) {
+      if (!isDown) return;
+      var x = getX(e);
+      var walk = (x - startX) * 1.6;
+      if (Math.abs(walk) > 4) didDrag = true;
+      el.scrollLeft = scrollLeft - walk;
+      if (didDrag && e.cancelable) e.preventDefault();
+    }
+
+    function onEnd() {
+      isDown = false;
+    }
+
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseup', onEnd);
+    el.addEventListener('mouseleave', onEnd);
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    el.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    el.addEventListener('click', function (e) {
+      if (didDrag) {
+        e.preventDefault();
+        e.stopPropagation();
+        didDrag = false;
+      }
+    }, true);
+  }
+
+  setupSheetDrag() {
+    var sheet = document.getElementById('mb-lead-filter-sheet');
+    var handle = document.getElementById('mb-lead-filter-sheet-handle');
+    if (!sheet || !handle || handle.getAttribute('data-sheet-drag-bound') === '1') return;
+    handle.setAttribute('data-sheet-drag-bound', '1');
+
+    var self = this;
+    var dragging = false;
+    var startY = 0;
+    var offsetY = 0;
+
+    function getY(e) {
+      return e.touches && e.touches.length ? e.touches[0].clientY : e.clientY;
+    }
+
+    function onStart(e) {
+      dragging = true;
+      startY = getY(e);
+      offsetY = 0;
+      sheet.style.transition = 'none';
+    }
+
+    function onMove(e) {
+      if (!dragging) return;
+      var dy = getY(e) - startY;
+      if (dy < 0) dy = 0;
+      offsetY = dy;
+      sheet.style.transform = 'translateY(' + dy + 'px)';
+      if (e.cancelable) e.preventDefault();
+    }
+
+    function onEnd() {
+      if (!dragging) return;
+      dragging = false;
+      sheet.style.transition = 'transform 0.22s ease';
+      if (offsetY > 90) {
+        sheet.style.transform = 'translateY(100%)';
+        setTimeout(function () { self.closeFilters(); }, 200);
+      } else {
+        sheet.style.transform = '';
+      }
+    }
+
+    handle.addEventListener('mousedown', onStart);
+    handle.addEventListener('mousemove', onMove);
+    handle.addEventListener('mouseup', onEnd);
+    handle.addEventListener('mouseleave', onEnd);
+    handle.addEventListener('touchstart', onStart, { passive: true });
+    handle.addEventListener('touchmove', onMove, { passive: false });
+    handle.addEventListener('touchend', onEnd);
+    handle.addEventListener('touchcancel', onEnd);
+
+    sheet.addEventListener('touchstart', function (e) {
+      if (e.target === handle || (handle.contains && handle.contains(e.target))) return;
+      var body = sheet.querySelector('.mb-lead-filter-sheet-body');
+      if (body && body.scrollTop <= 0) {
+        startY = getY(e);
+        dragging = true;
+        offsetY = 0;
+        sheet.style.transition = 'none';
+      }
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', function (e) {
+      if (!dragging) return;
+      var body = sheet.querySelector('.mb-lead-filter-sheet-body');
+      if (body && body.scrollTop > 0) {
+        dragging = false;
+        sheet.style.transform = '';
+        return;
+      }
+      var dy = getY(e) - startY;
+      if (dy > 8) {
+        if (dy < 0) dy = 0;
+        offsetY = dy;
+        sheet.style.transform = 'translateY(' + dy + 'px)';
+        if (e.cancelable) e.preventDefault();
+      } else if (dy < -4) {
+        dragging = false;
+        sheet.style.transform = '';
+      }
+    }, { passive: false });
+
+    sheet.addEventListener('touchend', onEnd);
+  }
+
+  componentWillUnmount() {
+    if (this._onLeadFilterSync) {
+      window.removeEventListener('mineralbar:lead-filters', this._onLeadFilterSync);
+    }
+    if (this._onLeadChipsReady) {
+      window.removeEventListener('mineralbar:lead-chips-ready', this._onLeadChipsReady);
+    }
+    if (this._onLang) {
+      window.removeEventListener('mineralbar:language-changed', this._onLang);
+    }
+  }
 
   clearFilters() {
     this.setState({
-      soug: 'all', status: 'all', owner: 'all', source: 'all',
-      renew: { insurance: false, filter: false, softener: false, warranty: false, system: false },
+      mainChip: 'all',
+      status: 'all',
+      source: 'all',
       dateQuick: 'none',
+      sortLeads: 'created',
+      dir: { created: 'new', statusTime: 'long' },
     });
+    if (window.ListLive && typeof window.ListLive.setLeadAdvancedFilters === 'function') {
+      window.ListLive.setLeadAdvancedFilters({
+        mainChip: 'all',
+        status: 'all',
+        source: 'all',
+        dateQuick: 'none',
+        sortLeads: 'created',
+        dir: { created: 'new', statusTime: 'long' },
+      });
+    }
   }
 
   selPill(selected) {
@@ -431,186 +626,181 @@ class Component extends DCLogic {
     return { bg: '#fff', color: '#5a6473', border: '#e4e8ee', weight: '600' };
   }
 
-  isRenew() { return this.state.soug === 'renew'; }
-
   resultCount() {
-    const s = this.state;
-    if (this.isRenew()) {
-      const n = Object.values(s.renew).filter(Boolean).length;
-      return n === 0 ? 14 : (n === 2 ? 8 : n * 5);
+    var s = this.state;
+    if (window.ListLive && typeof window.ListLive.previewLeadFilterCount === 'function') {
+      var status = s.status === 'offer' ? 'sent' : s.status;
+      var mainChip = s.mainChip;
+      if (status !== 'all') mainChip = status;
+      var liveCount = window.ListLive.previewLeadFilterCount({
+        status: status,
+        source: s.source,
+        dateQuick: s.dateQuick,
+        sortLeads: s.sortLeads,
+        dir: Object.assign({}, s.dir),
+        mainChip: mainChip
+      });
+      if (liveCount >= 0) return liveCount;
     }
-    let n = 47;
-    if (s.status !== 'all') n = 22;
-    if (s.source !== 'all') n = 14;
-    if (s.owner !== 'all') n = Math.min(n, 14);
-    return n;
+    var fallback = 47;
+    if (s.status !== 'all') fallback = 22;
+    if (s.source !== 'all') fallback = 14;
+    return fallback;
   }
 
   renderVals() {
     const s = this.state;
-    const renew = this.isRenew();
-    const accent = renew ? '#50439d' : '#1d60a2';
+    void s.langTick;
+    const accent = '#1d60a2';
+    const t = (en, he) => this.t(en, he);
 
-    // main chips
-    const mainChips = this.MAIN_CHIPS.map(c => {
-      const on = s.mainChip === c.id;
-      return {
-        id: c.id,
-        active: on ? '1' : '',
-        label: c.label,
-        pick: () => this.setState({ mainChip: c.id }),
-        bg: on ? '#dceaf8' : '#fff',
-        color: on ? '#1d60a2' : '#5a6473',
-        border: on ? '#bcd6f0' : '#e4e8ee',
-        weight: on ? '700' : '600',
-      };
-    });
-
-    // soug segments
-    const sougDefs = [
-      { id: 'all', label: 'הכל', icon: 'iFilter' },
-      { id: 'leads', label: 'לידים', icon: 'iLead' },
-      { id: 'renew', label: 'חידושים', icon: 'iShield' },
-    ];
-    const sougSegs = sougDefs.map(d => {
-      const on = s.soug === d.id;
-      return {
-        label: d.label,
-        pick: () => this.setState({ soug: d.id }),
-        bg: on ? accent : 'transparent',
-        color: on ? '#fff' : '#5a6473',
-        shadow: on ? '0 2px 6px rgba(29,96,162,.28)' : 'none',
-        iFilter: d.icon === 'iFilter', iLead: d.icon === 'iLead', iShield: d.icon === 'iShield',
-      };
-    });
-
-    // status pills
-    const statusOpts = this.STATUSES.map(o => {
+    const statusOpts = this.statusDefs().map(o => {
       const on = s.status === o.id;
       const st = this.selPill(on);
-      return { label: o.label, pick: () => this.setState({ status: o.id }),
-        bg: st.bg, color: st.color, border: st.border, weight: st.weight, check: on && o.id !== 'all' };
-    });
-
-    // renew pills
-    const renewOpts = this.RENEWS.map(o => {
-      const on = !!s.renew[o.id];
-      const t = this.TONES[o.tone];
       return {
-        label: o.label,
-        pick: () => this.setState(p => ({ renew: { ...p.renew, [o.id]: !p.renew[o.id] } })),
-        bg: on ? t.bg : '#fff', color: on ? t.color : '#5a6473', border: on ? t.border : '#e4e8ee',
-        weight: on ? '700' : '600', iShield: o.icon === 'shield', iDrop: o.icon === 'drop', iFunnel: o.icon === 'funnel',
+        label: t(o.en, o.he),
+        pick: () => this.setState({ status: o.id }),
+        bg: st.bg, color: st.color, border: st.border, weight: st.weight,
+        check: on && o.id !== 'all'
       };
     });
 
-    // owner pills
-    const ownerOpts = this.OWNERS.map(o => {
-      const on = s.owner === o.id;
-      const st = this.selPill(on);
-      return { label: o.label, pick: () => this.setState({ owner: o.id }),
-        bg: st.bg, color: st.color, border: st.border, weight: st.weight };
-    });
-
-    // source pills
-    const sourceOpts = this.SOURCES.map(o => {
+    const sourceOpts = this.sourceDefs().map(o => {
       const on = s.source === o.id;
       const st = this.selPill(on);
-      return { label: o.label, pick: () => this.setState({ source: o.id }),
-        bg: st.bg, color: st.color, border: st.border, weight: st.weight };
+      return {
+        label: t(o.en, o.he),
+        pick: () => this.setState({ source: o.id }),
+        bg: st.bg, color: st.color, border: st.border, weight: st.weight
+      };
     });
 
-    // date
-    const dateDefs = renew
-      ? [ { id: 'expired', label: 'פג כבר' }, { id: 'week', label: 'השבוע' }, { id: 'month', label: 'החודש' }, { id: 'd30', label: '30 יום' }, { id: 'custom', label: 'מותאם' } ]
-      : [ { id: 'today', label: 'היום' }, { id: 'week', label: 'השבוע' }, { id: 'month', label: 'החודש' }, { id: 'd30', label: '30 יום' }, { id: 'custom', label: 'מותאם' } ];
+    const dateDefs = [
+      { id: 'today', en: 'Today', he: 'היום' },
+      { id: 'week', en: 'This week', he: 'השבוע' },
+      { id: 'month', en: 'This month', he: 'החודש' },
+      { id: 'd30', en: '30 days', he: '30 יום' },
+      { id: 'custom', en: 'Custom', he: 'מותאם' },
+    ];
     const dateChips = dateDefs.map(o => {
       const on = s.dateQuick === o.id;
       const st = this.selPill(on);
-      return { label: o.label, pick: () => this.setState({ dateQuick: on ? 'none' : o.id }),
-        bg: st.bg, color: st.color, border: st.border, weight: st.weight };
+      return {
+        label: t(o.en, o.he),
+        pick: () => this.setState({ dateQuick: on ? 'none' : o.id }),
+        bg: st.bg, color: st.color, border: st.border, weight: st.weight
+      };
     });
-    const dateFromSet = !renew && s.dateQuick === 'week';
-    const dateFromText = dateFromSet ? '01/06/25' : 'מתאריך';
+    const dateFromSet = s.dateQuick === 'week';
+    const dateFromText = dateFromSet ? '01/06/25' : t('From date', 'מתאריך');
     const dateFromColor = dateFromSet ? '#1f2a3a' : '#aeb6c2';
 
-    // sort
-    const sortDefs = renew
-      ? [ { id: 'expiry', label: 'תאריך פקיעה', dirs: [ { id: 'urgent', label: 'דחוף', up: true }, { id: 'far', label: 'רחוק', up: false } ] },
-          { id: 'created', label: 'תאריך יצירה', dirs: [ { id: 'new', label: 'חדש', up: false }, { id: 'old', label: 'ישן', up: true } ] } ]
-      : [ { id: 'created', label: 'תאריך יצירה', dirs: [ { id: 'new', label: 'חדש', up: false }, { id: 'old', label: 'ישן', up: true } ] },
-          { id: 'statusTime', label: 'זמן בסטטוס', dirs: [ { id: 'long', label: 'ארוך', up: false }, { id: 'short', label: 'קצר', up: true } ] } ];
-    const curSort = renew ? s.sortRenew : s.sortLeads;
-    const sortKey = renew ? 'sortRenew' : 'sortLeads';
+    const sortDefs = [
+      {
+        id: 'created',
+        en: 'Creation date', he: 'תאריך יצירה',
+        dirs: [
+          { id: 'new', en: 'New', he: 'חדש', up: false },
+          { id: 'old', en: 'Old', he: 'ישן', up: true },
+        ]
+      },
+      {
+        id: 'statusTime',
+        en: 'Time in status', he: 'זמן בסטטוס',
+        dirs: [
+          { id: 'long', en: 'Long', he: 'ארוך', up: false },
+          { id: 'short', en: 'Short', he: 'קצר', up: true },
+        ]
+      },
+    ];
+    const curSort = s.sortLeads;
     const sortRows = sortDefs.map(r => {
       const active = curSort === r.id;
       return {
-        label: r.label, active,
-        pick: () => this.setState({ [sortKey]: r.id }),
-        bg: active ? '#eaf2fb' : '#fff', border: active ? '#aecbe9' : '#e4e8ee',
-        ring: active ? '#1d60a2' : '#cbd2dc', labelColor: active ? '#194f84' : '#46505f',
+        label: t(r.en, r.he),
+        active,
+        pick: () => this.setState({ sortLeads: r.id }),
+        bg: active ? '#eaf2fb' : '#fff',
+        border: active ? '#aecbe9' : '#e4e8ee',
+        ring: active ? '#1d60a2' : '#cbd2dc',
+        labelColor: active ? '#194f84' : '#46505f',
         dirs: r.dirs.map(d => {
           const on = active && s.dir[r.id] === d.id;
-          return { label: d.label, up: d.up, down: !d.up,
-            pick: () => this.setState(p => ({ dir: { ...p.dir, [r.id]: d.id } })),
-            bg: on ? '#1d60a2' : '#eef0f3', color: on ? '#fff' : '#7b8595' };
+          return {
+            label: t(d.en, d.he),
+            up: d.up,
+            down: !d.up,
+            pick: () => this.setState(p => ({ dir: Object.assign({}, p.dir, { [r.id]: d.id }) })),
+            bg: on ? '#1d60a2' : '#eef0f3',
+            color: on ? '#fff' : '#7b8595'
+          };
         }),
       };
     });
 
-    // chips
     const chips = [];
-    if (s.soug !== 'all') {
-      const t = renew ? this.TONES.purple : this.TONES.blue;
-      chips.push({ label: renew ? 'חידושים' : 'לידים', bg: t.bg, color: t.color, border: t.border,
-        clear: () => this.setState({ soug: 'all' }) });
-    }
     if (s.status !== 'all') {
-      const o = this.STATUSES.find(x => x.id === s.status);
-      chips.push({ label: o.label, bg: this.TONES.blue.bg, color: this.TONES.blue.color, border: this.TONES.blue.border,
-        clear: () => this.setState({ status: 'all' }) });
-    }
-    if (s.owner !== 'all') {
-      const o = this.OWNERS.find(x => x.id === s.owner);
-      chips.push({ label: o.label, bg: this.TONES.blue.bg, color: this.TONES.blue.color, border: this.TONES.blue.border,
-        clear: () => this.setState({ owner: 'all' }) });
+      const o = this.statusDefs().find(x => x.id === s.status);
+      if (o) {
+        chips.push({
+          label: t(o.en, o.he),
+          bg: this.TONES.blue.bg, color: this.TONES.blue.color, border: this.TONES.blue.border,
+          clear: () => this.setState({ status: 'all' })
+        });
+      }
     }
     if (s.source !== 'all') {
-      const o = this.SOURCES.find(x => x.id === s.source);
-      chips.push({ label: o.label, bg: this.TONES.blue.bg, color: this.TONES.blue.color, border: this.TONES.blue.border,
-        clear: () => this.setState({ source: 'all' }) });
+      const o = this.sourceDefs().find(x => x.id === s.source);
+      if (o) {
+        chips.push({
+          label: t(o.en, o.he),
+          bg: this.TONES.blue.bg, color: this.TONES.blue.color, border: this.TONES.blue.border,
+          clear: () => this.setState({ source: 'all' })
+        });
+      }
     }
-    if (renew) {
-      this.RENEWS.forEach(o => {
-        if (s.renew[o.id]) {
-          const t = this.TONES[o.tone];
-          chips.push({ label: o.label, bg: t.bg, color: t.color, border: t.border,
-            clear: () => this.setState(p => ({ renew: { ...p.renew, [o.id]: false } })) });
-        }
-      });
+    if (s.dateQuick !== 'none') {
+      const o = dateDefs.find(x => x.id === s.dateQuick);
+      if (o) {
+        chips.push({
+          label: t(o.en, o.he),
+          bg: this.TONES.blue.bg, color: this.TONES.blue.color, border: this.TONES.blue.border,
+          clear: () => this.setState({ dateQuick: 'none' })
+        });
+      }
     }
 
-    const hasActiveFilters = s.soug !== 'all' || s.status !== 'all' || s.owner !== 'all' || s.source !== 'all'
-      || (renew && Object.values(s.renew).some(Boolean)) || s.dateQuick !== 'none';
+    const hasActiveFilters = s.status !== 'all' || s.source !== 'all' || s.dateQuick !== 'none';
 
     return {
+      pageTitle: t('Leads', 'לידים'),
+      filterBtnLabel: t('Filtering and sorting', 'סינון ומיון'),
+      newLeadLabel: t('New lead', 'ליד חדש'),
+      searchPlaceholder: t('Search by name, phone, city...', 'חיפוש לפי שם, טלפון, עיר...'),
+      filterTitle: t('Filtering and sorting', 'סינון ומיון'),
+      clearAllLabel: t('Clear all', 'נקה הכל'),
+      statusLabel: t('Status', 'סטטוס'),
+      sourceLabel: t('Source', 'מקור'),
+      dateTitle: t('Creation date', 'תאריך יצירה'),
+      dateToLabel: t('To date', 'עד תאריך'),
+      sortByLabel: t('Sort by', 'מיון לפי'),
+      showResultsPrefix: t('Show', 'הצג'),
       filtersOpen: s.filtersOpen,
       openFilters: () => this.openFilters(),
       closeFilters: () => this.closeFilters(),
+      applyFilters: () => this.applyFilters(),
       clearFilters: () => this.clearFilters(),
       hasActiveFilters,
-      mainChips,
-      sougSegs,
-      showStatus: !renew,
-      showRenew: renew,
-      statusOpts, renewOpts, ownerOpts, sourceOpts,
-      dateTitle: renew ? 'תאריך פקיעה' : 'תאריך יצירה',
-      hasDateBadge: renew, dateBadge: 'במקום תאריך יצירה',
-      dateChips, dateFromText, dateFromColor,
+      statusOpts,
+      sourceOpts,
+      dateChips,
+      dateFromText,
+      dateFromColor,
       sortRows,
-      chips, hasChips: chips.length > 0,
+      chips,
+      hasChips: chips.length > 0,
       resultCount: this.resultCount(),
-      resultLabel: renew ? 'חידושים' : 'תוצאות',
+      resultLabel: t('results', 'תוצאות'),
       btnBg: accent,
     };
   }

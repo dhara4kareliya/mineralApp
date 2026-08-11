@@ -100,20 +100,30 @@ mbCss('./common.css');
                   {{ v.badge }}
                 </div>
 </div>
-<!-- type pill + description -->
-<div style="display:flex; align-items:center; gap:7px; margin-top:11px;">
+<!-- type pill + ticket id -->
+<div style="display:flex; align-items:center; gap:7px; margin-top:11px; flex-wrap:wrap;">
 <div style="display:inline-flex; align-items:center; gap:5px; background:{{ v.typeBg }}; color:{{ v.typeColor }}; font-size:12px; font-weight:700; padding:5px 10px; border-radius:8px;">
                   {{ v.type }}
                 </div>
 <div style="font-size:11.5px; color:#9aa3b0; font-weight:600;">{{ v.ticketRef }}</div>
 </div>
+<!-- product name -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ v.hasProduct }}">
+<div style="display:flex; align-items:flex-start; gap:7px; margin-top:9px; padding:9px 11px; background:#f7f9fc; border-radius:10px;">
+<svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="14" style="flex:none; margin-top:1px;"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path></svg>
+<div style="min-width:0; flex:1;">
+<div style="font-size:11px; color:#8a93a3; font-weight:700; margin-bottom:2px;">{{ v.productLabel }}</div>
+<div style="font-size:13px; color:#1f2a3a; font-weight:700; line-height:1.35; word-break:break-word;">{{ v.productName }}</div>
+</div>
+</div>
+</sc-if>
 <div style="font-size:13.5px; color:#5a6473; margin-top:9px; line-height:1.5;">{{ v.desc }}</div>
 <!-- equipment -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ v.hasParts }}">
 <div style="background:#f7f9fc; border-radius:11px; padding:10px 12px; margin-top:11px;">
 <div style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#8a93a3; font-weight:700; margin-bottom:7px;">
 <svg fill="none" height="13" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="13"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path></svg>
-                  Equipment / inventory required
+                  {{ v.partsTitle }}
                 </div>
 <div style="display:flex; flex-wrap:wrap; gap:6px;">
 <sc-for as="p" hint-placeholder-count="2" list="{{ v.parts }}">
@@ -825,6 +835,8 @@ class Component extends DCLogic {
         return this.ticketSortKey(a) - this.ticketSortKey(b);
       }.bind(this));
 
+      rows = await this.enrichTicketProductNames(client, rows);
+
       var shift = await this.loadShiftStatus(client);
       this.setState({
         loading: false,
@@ -1225,6 +1237,101 @@ class Component extends DCLogic {
     });
   }
 
+  async enrichTicketProductNames(client, rows) {
+    var list = Array.isArray(rows) ? rows : [];
+    var needsLookup = list.some(function (t) {
+      if (!t) return false;
+      if (this.extractTicketProducts(t).length) return false;
+      return !!(t.product_id || t.productId || (t.products && t.products.length));
+    }.bind(this));
+    if (!needsLookup) return list;
+
+    var byId = {};
+    try {
+      var res = await client.request('Products.List', { limit: 500 });
+      var products = this.extractRows(res);
+      products.forEach(function (p) {
+        if (!p || p.id == null) return;
+        var name = String(p.product_name || p.name || p.title || '').trim();
+        if (name) byId[String(p.id)] = name;
+      });
+    } catch (e) {
+      console.warn('[DailySchedule] Products.List enrich failed', e);
+      return list;
+    }
+
+    return list.map(function (t) {
+      if (!t || this.extractTicketProducts(t).length) return t;
+      var id = t.product_id || t.productId;
+      if (!id && Array.isArray(t.products) && t.products[0]) {
+        var first = t.products[0];
+        id = typeof first === 'object' ? (first.id || first.product_id) : first;
+      }
+      var name = id != null ? byId[String(id)] : '';
+      if (!name) return t;
+      return Object.assign({}, t, { product_name: name, product_id: id });
+    }.bind(this));
+  }
+
+  extractTicketProducts(ticket) {
+    var out = [];
+    if (!ticket) return out;
+    var subject = String(ticket.subject || ticket.topic || '').trim();
+    function push(name, id) {
+      name = String(name || '').trim();
+      if (!name || name === 'undefined' || name === 'null') return;
+      if (subject && name === subject) return;
+      var key = name.toLowerCase();
+      for (var i = 0; i < out.length; i++) {
+        if (String(out[i].label || '').toLowerCase() === key) return;
+      }
+      out.push({ label: name, id: id ? String(id) : '' });
+    }
+
+    var lists = [ticket.products, ticket.product_list, ticket.linked_products];
+    lists.forEach(function (list) {
+      if (!Array.isArray(list)) return;
+      list.forEach(function (item) {
+        if (!item) return;
+        if (typeof item === 'object') {
+          push(item.product_name || item.name || item.title || item.label, item.id || item.product_id);
+        } else if (typeof item === 'string' && !/^\d+$/.test(String(item).trim())) {
+          push(item, '');
+        }
+      });
+    });
+
+    if (ticket.product && typeof ticket.product === 'object' && !Array.isArray(ticket.product)) {
+      push(ticket.product.product_name || ticket.product.name, ticket.product.id || ticket.product.product_id);
+    }
+
+    push(ticket.product_name || ticket.joined_product_name || ticket.item_name, ticket.product_id);
+
+    var cf = ticket.custom_fields;
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e) { cf = null; }
+    }
+    if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
+      Object.keys(cf).forEach(function (k) {
+        if (!/product/i.test(k)) return;
+        var v = cf[k];
+        if (v == null) return;
+        if (typeof v === 'object') push(v.product_name || v.name || v.label, v.id || v.product_id);
+        else {
+          var s = String(v).trim();
+          if (s && !/^\d+$/.test(s)) push(s, '');
+        }
+      });
+    }
+
+    Object.keys(ticket).forEach(function (k) {
+      if (!/^a-.*product.*name/i.test(k) && k !== 'a-product_name') return;
+      push(ticket[k], '');
+    });
+
+    return out;
+  }
+
   mapVisit(ticket, statusKey) {
     var STATUS = {
       done: { badge: this.t('Completed', 'הושלם'), badgeBg: '#e6f4ec', badgeColor: '#2e8a63', accent: '#2e8a63', timeColor: '#b6bdc8' },
@@ -1253,15 +1360,17 @@ class Component extends DCLogic {
     var ticketId = ticket.ticket_id || ticket.id;
     var customerId = ticket.customer_id || ticket.cust_id || ticket.contactus_id || '';
 
-    var desc = ticket.subject || '';
+    var desc = '';
     if (Array.isArray(ticket.messages) && ticket.messages.length) {
       var msg = ticket.messages[0] && ticket.messages[0].message;
-      if (msg && String(msg).indexOf('biz1upload/') !== 0) desc = msg;
+      if (msg && String(msg).indexOf('biz1upload/') !== 0) desc = String(msg).trim();
     }
+    if (!desc) desc = String(ticket.note || ticket.description || '').trim();
 
-    var parts = [];
-    if (ticket.product_name) parts.push({ label: ticket.product_name });
-    if (ticket.department_name) parts.push({ label: ticket.department_name });
+    var productParts = this.extractTicketProducts(ticket);
+    var productName = productParts.length ? productParts[0].label : '';
+    // Extra chips only when more than one product (primary is shown above)
+    var parts = productParts.length > 1 ? productParts.slice(1) : [];
 
     // Biz1 in-app WhatsApp chat (not wa.me browser landing page)
     var chatHref = this.buildBiz1WhatsAppChatHref(ticket) || '#';
@@ -1275,8 +1384,12 @@ class Component extends DCLogic {
       desc: desc,
       type: ticket.subject || ticket.type || this.t('Service call', 'קריאת שירות'),
       ticketRef: ticketId ? ('#' + ticketId) : '',
+      productName: productName,
+      productLabel: this.t('Product', 'מוצר'),
+      hasProduct: !!productName,
       parts: parts,
       hasParts: parts.length > 0,
+      partsTitle: this.t('More products', 'מוצרים נוספים'),
       badge: s.badge,
       badgeBg: s.badgeBg,
       badgeColor: s.badgeColor,

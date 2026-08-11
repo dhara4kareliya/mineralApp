@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
@@ -108,53 +108,55 @@ mbCss('./common.css');
 </div>
 </sc-if>
 </div>
-<!-- breakdown by install type -->
+<!-- open tickets by installation (to do) -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
 <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Detail by type of installation</span>
-<span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ productsCountLabel }}</span>
+<span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ openTicketsCountLabel }}</span>
 </div>
 <div style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
-<sc-if hint-placeholder-val="{{ false }}" value="{{ productsLoading }}">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsLoading }}">
 <div class="mb-inline-loader">
 <div class="mb-page-loader__spin" aria-hidden="true"></div>
 <div class="mb-page-loader__label">Loading…</div>
 </div>
 </sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ productsEmpty }}">
-<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">No products</div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsEmpty }}">
+<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">No open tickets</div>
 </sc-if>
-<sc-for as="t" hint-placeholder-count="5" list="{{ types }}">
-<div style="padding:11px 0; border-bottom:1px solid {{ t.border }};">
-<div style="display:flex; align-items:center; gap:11px;">
-<div style="width:34px; height:34px; border-radius:9px; background:{{ t.iconBg }}; color:{{ t.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
-<span style="font-size:13px; font-weight:800;">{{ t.count }}</span>
+<sc-for as="ot" hint-placeholder-count="0" list="{{ openTickets }}">
+<div style="padding:12px 0; border-bottom:1px solid {{ ot.border }};">
+<div style="display:flex; align-items:flex-start; gap:11px;">
+<div style="width:34px; height:34px; border-radius:9px; background:{{ ot.iconBg }}; color:{{ ot.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z"></path></svg>
 </div>
-<div style="flex:1;">
+<div style="flex:1; min-width:0;">
 <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ t.name }}</span>
-<span style="font-size:13px; font-weight:800; color:#5a6473; flex:none;">{{ t.amount }}</span>
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ot.name }}</span>
+<span style="display:inline-flex; align-items:center; gap:4px; background:{{ ot.badgeBg }}; color:{{ ot.badgeColor }}; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; white-space:nowrap; flex:none;">
+<span style="width:5px; height:5px; border-radius:50%; background:{{ ot.badgeColor }};"></span>{{ ot.badge }}
+</span>
 </div>
-<div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-<span style="font-size:11px; color:#9aa3b0; font-weight:600;">{{ t.stockLabel }}</span>
-</div>
-<div style="height:6px; border-radius:99px; background:#eef0f3; margin-top:7px; overflow:hidden;">
-<div style="height:100%; border-radius:99px; background:{{ t.barColor }}; width:{{ t.barW }};"></div>
+<div style="font-size:12px; color:#5a6473; font-weight:600; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ot.customer }}</div>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:5px;">
+<span style="font-size:11px; color:#9aa3b0; font-weight:600;">{{ ot.meta }}</span>
+<button type="button" onclick="{{ ot.open }}" style="border:none; background:none; color:#1d60a2; font-size:12px; font-weight:800; cursor:pointer; padding:0; font-family:inherit; flex:none;">{{ ot.actionLabel }}</button>
 </div>
 </div>
 </div>
 </div>
 </sc-for>
-<sc-if hint-placeholder-val="{{ true }}" value="{{ showProductsPager }}">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showOpenTicketsPager }}">
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; padding:12px 4px 4px; border-top:1px solid #f0f2f5;">
-<button type="button" onclick="{{ prevProducts }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ prodPrevBg }}; color:{{ prodPrevColor }}; font-size:13px; font-weight:800; cursor:{{ prodPrevCursor }}; opacity:{{ prodPrevOpacity }}; font-family:inherit;">‹ Prev</button>
+<button type="button" onclick="{{ prevOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openPrevBg }}; color:{{ openPrevColor }}; font-size:13px; font-weight:800; cursor:{{ openPrevCursor }}; opacity:{{ openPrevOpacity }}; font-family:inherit;">‹ Prev</button>
 <div style="text-align:center; flex:1; min-width:0;">
-<div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ productsRangeLabel }}</div>
-<div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ productsPageLabel }}</div>
+<div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ openTicketsRangeLabel }}</div>
+<div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ openTicketsPageLabel }}</div>
 </div>
-<button type="button" onclick="{{ nextProducts }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ prodNextBg }}; color:{{ prodNextColor }}; font-size:13px; font-weight:800; cursor:{{ prodNextCursor }}; opacity:{{ prodNextOpacity }}; font-family:inherit;">Next ›</button>
+<button type="button" onclick="{{ nextOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openNextBg }}; color:{{ openNextColor }}; font-size:13px; font-weight:800; cursor:{{ openNextCursor }}; opacity:{{ openNextOpacity }}; font-family:inherit;">Next ›</button>
 </div>
 </sc-if>
 </div>
+
 <div style="text-align:center; padding:4px 0; color:#b6bdc8; font-size:12px; font-weight:600;">{{ updatedLabel }}</div>
 </div>
 </div>
@@ -165,9 +167,9 @@ mbCss('./common.css');
 class Component extends DCLogic {
   state = {
     loadingDocs: true,
-    loadingProducts: true,
     loadingWeeks: true,
-    products: [],
+    loadingOpenTickets: true,
+    openTickets: [],
     weekTickets: [0, 0, 0, 0],
     salesTotal: 0,
     salesAvg: 0,
@@ -176,8 +178,8 @@ class Component extends DCLogic {
     selectedYear: new Date().getFullYear(),
     selectedMonth: new Date().getMonth(),
     monthPickerOpen: false,
-    productsPage: 1,
-    productsPageSize: 5,
+    openTicketsPage: 1,
+    openTicketsPageSize: 5,
     langTick: 0
   };
 
@@ -383,7 +385,7 @@ class Component extends DCLogic {
     }
     var client = this.getClient();
     if (!client) {
-      this.setState({ loadingDocs: false, loadingProducts: false, loadingWeeks: false });
+      this.setState({ loadingDocs: false, loadingWeeks: false, loadingOpenTickets: false });
       return;
     }
     var self = this;
@@ -391,8 +393,8 @@ class Component extends DCLogic {
       try {
         await Promise.all([
           self.loadDocuments(client, null, null, silent),
-          self.loadProducts(client, silent),
-          self.loadWeekTickets(client, null, null, silent)
+          self.loadWeekTickets(client, null, null, silent),
+          self.loadOpenTickets(client, silent)
         ]);
         self._booted = true;
         self.ensureChrome();
@@ -505,57 +507,98 @@ class Component extends DCLogic {
     }
   }
 
-  async loadProducts(client, silent) {
-    if (!silent) this.setState({ loadingProducts: true });
+  isTicketClosed(item) {
+    if (!item) return false;
+    if (item.is_done === 1 || item.closed === 1 || item.is_closed === 1 || item.close_date) return true;
+    var st = String(item.status_name || item.status_label || item.status || '').toLowerCase().trim();
+    if (st === '2' || st === 'closed' || st === 'done' || st === 'completed' || st === 'סגור' || st === 'נסגר' || st === 'הושלם' || st === 'בוצע') return true;
+    var sid = Number(item.status_id != null ? item.status_id : item.status);
+    if (sid === 2 || sid === 4 || sid === 5) return true;
+    var msgs = item.messages || item.message || '';
+    if (Array.isArray(msgs)) {
+      msgs = msgs.map(function (m) { return (m && (m.message || m.msg || m.text)) || ''; }).join('\n');
+    }
+    var msg = String(msgs || '');
+    if (/BIZ1_MEDIA\s*:/i.test(msg) || /Client signature saved/i.test(msg)) return true;
+    return false;
+  }
+
+  formatTicketWhen(item) {
+    var dateStr = item.due_date || item.open_date || item.date_created || '';
+    if (!dateStr) return '';
     try {
-      var res = await client.request('Products.List', { limit: 25, active: 1 });
-      var rows = this.extractRows(res).map(function (item) {
-        var stock = item.stock != null ? Number(item.stock)
-          : (item.qty != null ? Number(item.qty) : (item.left_stock != null ? Number(item.left_stock) : 0));
-        var minStock = item.min_stock != null ? Number(item.min_stock)
-          : (item.minStock != null ? Number(item.minStock) : (item.minimum_stock != null ? Number(item.minimum_stock) : 0));
-        var price = Number(item.price != null ? item.price
-          : (item.product_price != null ? item.product_price
-            : (item.main_price != null ? item.main_price : (item.cost || 0))));
-        return {
-          id: String(item.id || item.product_id || ''),
-          name: item.product_name || item.name || 'Product',
-          price: isFinite(price) ? price : 0,
-          stock: isFinite(stock) ? stock : 0,
-          min_stock: isFinite(minStock) ? minStock : 0
-        };
-      });
-      this.setState({ loadingProducts: false, products: rows, productsPage: 1 });
+      var d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return this.pad(d.getDate()) + '/' + this.pad(d.getMonth() + 1) +
+          ' · ' + this.pad(d.getHours()) + ':' + this.pad(d.getMinutes());
+      }
+    } catch (e) { /* ignore */ }
+    if (String(dateStr).indexOf('T') >= 0) {
+      var parts = String(dateStr).split('T');
+      var day = (parts[0] || '').slice(5).replace('-', '/');
+      var time = (parts[1] || '').substring(0, 5);
+      return [day, time].filter(Boolean).join(' · ');
+    }
+    return String(dateStr).slice(0, 16);
+  }
+
+  async loadOpenTickets(client, silent) {
+    if (!silent) this.setState({ loadingOpenTickets: true });
+    try {
+      var res = await client.request('Ticket.List', { limit: 25 });
+      var rows = this.extractRows(res);
+      var open = [];
+      for (var i = 0; i < rows.length; i++) {
+        var item = rows[i];
+        if (this.isTicketClosed(item)) continue;
+        var st = String(item.status_name || item.status_label || item.status || '').toLowerCase();
+        var overdue = /overdue|delayed|late|באיחור|מאחר/.test(st);
+        var address = item.address;
+        if (!address || address === 'null') {
+          address = (item.city_id && item.city_id !== 'undefined') ? String(item.city_id) : '';
+        }
+        open.push({
+          id: String(item.id || item.ticket_id || ''),
+          name: item.subject || item.name || ('#' + (item.id || '')),
+          customer: item.customer_name || item.joined_customer_name || '',
+          type: item.type || '',
+          address: address || '',
+          when: this.formatTicketWhen(item),
+          overdue: overdue
+        });
+      }
+      this.setState({ loadingOpenTickets: false, openTickets: open, openTicketsPage: 1 });
     } catch (e) {
-      console.error('[TechDashboard] Products.List failed', e);
-      this.setState({ loadingProducts: false, products: [], productsPage: 1 });
+      console.error('[TechDashboard] Ticket.List open failed', e);
+      this.setState({ loadingOpenTickets: false, openTickets: [], openTicketsPage: 1 });
     }
   }
 
-  prevProducts() {
-    if ((Number(this.state.productsPage) || 1) <= 1) return;
-    this.setState({ productsPage: Math.max(1, (Number(this.state.productsPage) || 1) - 1) });
+  openTicketDetails(id) {
+    var q = new URLSearchParams();
+    if (id) q.set('ticket_id', String(id));
+    var ticket = (this.state.openTickets || []).find(function (t) { return String(t.id) === String(id); });
+    if (ticket && ticket.name) {
+      q.set('name', ticket.name);
+      q.set('subject', ticket.name);
+    }
+    if (ticket && ticket.customer) q.set('customer', ticket.customer);
+    q.set('back', 'tech-dashboard.html');
+    window.location.href = 'service-call-details.html?' + q.toString();
   }
 
-  nextProducts() {
-    var pageSize = Math.max(1, Number(this.state.productsPageSize) || 5);
-    var total = (this.state.products || []).length;
+  prevOpenTickets() {
+    if ((Number(this.state.openTicketsPage) || 1) <= 1) return;
+    this.setState({ openTicketsPage: Math.max(1, (Number(this.state.openTicketsPage) || 1) - 1) });
+  }
+
+  nextOpenTickets() {
+    var pageSize = Math.max(1, Number(this.state.openTicketsPageSize) || 5);
+    var total = (this.state.openTickets || []).length;
     var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
-    var cur = Number(this.state.productsPage) || 1;
+    var cur = Number(this.state.openTicketsPage) || 1;
     if (cur >= totalPages) return;
-    this.setState({ productsPage: Math.min(totalPages, cur + 1) });
-  }
-
-  stockBar(product) {
-    var stock = Math.max(0, Number(product.stock) || 0);
-    var minStock = Math.max(0, Number(product.min_stock) || 0);
-    var target = Math.max(minStock > 0 ? minStock * 2 : 10, stock, 1);
-    var pct = Math.max(0, Math.min(100, Math.round((stock / target) * 100)));
-    var color = '#2e8a63';
-    if (stock <= 0) color = '#c0392b';
-    else if (minStock > 0 && stock <= minStock) color = '#bd8324';
-    else if (pct < 40) color = '#bd8324';
-    return { barW: pct + '%', barColor: color, pct: pct };
+    this.setState({ openTicketsPage: Math.min(totalPages, cur + 1) });
   }
 
   renderVals() {
@@ -599,38 +642,17 @@ class Component extends DCLogic {
         ? ('A total of ' + totalTickets + ' tickets')
         : ('סה״כ ' + totalTickets + ' קריאות'));
 
-    var products = st.products || [];
-    var pageSize = Math.max(1, Number(st.productsPageSize) || 5);
-    var totalProducts = products.length;
-    var totalPages = Math.max(1, Math.ceil(totalProducts / pageSize) || 1);
-    var page = Math.min(Math.max(1, Number(st.productsPage) || 1), totalPages);
+    var allOpen = st.openTickets || [];
+    var pageSize = Math.max(1, Number(st.openTicketsPageSize) || 5);
+    var totalOpen = allOpen.length;
+    var totalPages = Math.max(1, Math.ceil(totalOpen / pageSize) || 1);
+    var page = Math.min(Math.max(1, Number(st.openTicketsPage) || 1), totalPages);
     var startIdx = (page - 1) * pageSize;
-    var pageProducts = products.slice(startIdx, startIdx + pageSize);
-    var from = totalProducts ? (startIdx + 1) : 0;
-    var to = Math.min(startIdx + pageProducts.length, totalProducts);
+    var pageOpen = allOpen.slice(startIdx, startIdx + pageSize);
+    var from = totalOpen ? (startIdx + 1) : 0;
+    var to = Math.min(startIdx + pageOpen.length, totalOpen);
     var canPrev = page > 1;
     var canNext = page < totalPages;
-
-    var types = pageProducts.map(function (p, i) {
-      var color = this.COLORS[(startIdx + i) % this.COLORS.length];
-      var tone = this.TONE[color] || { bg: '#eef0f3' };
-      var bar = this.stockBar(p);
-      var stockLabel = this.t(
-        'Left ' + p.stock + ' · Min ' + p.min_stock,
-        'נותר ' + p.stock + ' · מינ׳ ' + p.min_stock
-      );
-      return {
-        name: p.name,
-        count: p.stock,
-        amount: this.fmt(p.price),
-        stockLabel: stockLabel,
-        iconBg: tone.bg,
-        iconColor: bar.barColor,
-        barColor: bar.barColor,
-        barW: bar.barW,
-        border: i === pageProducts.length - 1 ? 'transparent' : '#f0f2f5'
-      };
-    }.bind(this));
 
     var monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     var monthsHe = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -659,6 +681,26 @@ class Component extends DCLogic {
       })(y, m, selected);
     }
 
+    var openTickets = pageOpen.map(function (t, i) {
+      var overdue = !!t.overdue;
+      var metaParts = [t.when, t.type, t.address].filter(Boolean);
+      return {
+        name: t.name,
+        customer: t.customer || this.t('No customer', 'ללא לקוח'),
+        meta: metaParts.join(' · ') || this.t('Not scheduled', 'ללא תזמון'),
+        badge: overdue ? this.t('Overdue', 'באיחור') : this.t('Open', 'פתוח'),
+        badgeBg: overdue ? '#fbeeed' : '#eaf2fb',
+        badgeColor: overdue ? '#c0392b' : '#1d60a2',
+        iconBg: overdue ? '#fbeeed' : '#eaf2fb',
+        iconColor: overdue ? '#c0392b' : '#1d60a2',
+        border: i === pageOpen.length - 1 ? 'transparent' : '#f0f2f5',
+        actionLabel: this.t('Open', 'פתח'),
+        open: (function (id) {
+          return function () { self.openTicketDetails(id); };
+        })(t.id)
+      };
+    }.bind(this));
+
     return {
       monthLabel: monthLabel,
       monthShort: monthShort,
@@ -669,25 +711,27 @@ class Component extends DCLogic {
       weeksTotalLabel: weeksTotalLabel,
       weeksLoading: !!st.loadingWeeks,
       weeksReady: !st.loadingWeeks,
-      types: types,
-      productsLoading: !!st.loadingProducts,
-      productsEmpty: !st.loadingProducts && totalProducts === 0,
-      productsCountLabel: totalProducts + ' ' + this.t('products', 'מוצרים'),
-      showProductsPager: !st.loadingProducts && totalProducts > 0,
-      productsRangeLabel: totalProducts
-        ? (from + '–' + to + ' ' + this.t('of', 'מתוך') + ' ' + totalProducts)
+      openTickets: openTickets,
+      openTicketsLoading: !!st.loadingOpenTickets,
+      openTicketsEmpty: !st.loadingOpenTickets && totalOpen === 0,
+      openTicketsCountLabel: st.loadingOpenTickets
+        ? ''
+        : (totalOpen + ' ' + this.t('open tickets', 'קריאות פתוחות')),
+      showOpenTicketsPager: !st.loadingOpenTickets && totalOpen > 0,
+      openTicketsRangeLabel: totalOpen
+        ? (from + '–' + to + ' ' + this.t('of', 'מתוך') + ' ' + totalOpen)
         : '',
-      productsPageLabel: this.t('Page ', 'עמוד ') + page + ' / ' + totalPages,
-      prevProducts: function () { self.prevProducts(); },
-      nextProducts: function () { self.nextProducts(); },
-      prodPrevBg: canPrev ? '#1d60a2' : '#e9ecf0',
-      prodNextBg: canNext ? '#1d60a2' : '#e9ecf0',
-      prodPrevColor: canPrev ? '#fff' : '#9aa3b0',
-      prodNextColor: canNext ? '#fff' : '#9aa3b0',
-      prodPrevCursor: canPrev ? 'pointer' : 'not-allowed',
-      prodNextCursor: canNext ? 'pointer' : 'not-allowed',
-      prodPrevOpacity: canPrev ? '1' : '0.7',
-      prodNextOpacity: canNext ? '1' : '0.7',
+      openTicketsPageLabel: this.t('Page ', 'עמוד ') + page + ' / ' + totalPages,
+      prevOpenTickets: function () { self.prevOpenTickets(); },
+      nextOpenTickets: function () { self.nextOpenTickets(); },
+      openPrevBg: canPrev ? '#1d60a2' : '#e9ecf0',
+      openNextBg: canNext ? '#1d60a2' : '#e9ecf0',
+      openPrevColor: canPrev ? '#fff' : '#9aa3b0',
+      openNextColor: canNext ? '#fff' : '#9aa3b0',
+      openPrevCursor: canPrev ? 'pointer' : 'not-allowed',
+      openNextCursor: canNext ? 'pointer' : 'not-allowed',
+      openPrevOpacity: canPrev ? '1' : '0.7',
+      openNextOpacity: canNext ? '1' : '0.7',
       salesTotal: st.loadingDocs ? '…' : this.fmt(st.salesTotal),
       salesAvg: st.loadingDocs ? '…' : this.fmt(st.salesAvg),
       closedTickets: st.loadingDocs ? '…' : String(st.closedTickets || 0),

@@ -43,18 +43,40 @@
 
   function priorityFromMission(mission, today) {
     if (!mission) return 'none';
-    var color = String(mission.color || '').toLowerCase();
-    var priority = String(mission.priority || '').toLowerCase();
+    var color = String(mission.color || mission.appoinment_color1 || '').trim().toLowerCase();
+    var priority = String(mission.priority || '').trim().toLowerCase();
     var meta = {};
     try { meta = JSON.parse(mission.meta || '{}') || {}; } catch (e) { /* ignore */ }
     var he = String(meta.priority_he || '');
-    
-    if (/urgent|high|דחוף|גבוה/i.test(priority) || /דחוף|גבוה/i.test(he) || color === '#ef4444' || color === '#c0392b') return 'urgent';
-    if (/low|נמוכ/i.test(priority) || /נמוכ/i.test(he) || color === '#22c55e' || color === '#2e8a63') return 'low';
-    if (/normal|medium|רגיל|בינוני/i.test(priority) || color === '#f59e0b' || color === '#eab308' || color === '#f1c40f') return 'normal';
+
+    // Known Mission.Add color values first — avoid /low/ matching inside "yellow".
+    if (color === 'yellow' || color === 'transparent' || color === 'blue' ||
+        priority === 'yellow' || priority === 'transparent' || priority === 'blue' ||
+        color === '#f59e0b' || color === '#eab308' || color === '#f1c40f') return 'regular';
+    if (color === 'green' || priority === 'green' ||
+        color === '#22c55e' || color === '#2e8a63') return 'low';
+    if (color === 'red' || priority === 'red' ||
+        color === '#ef4444' || color === '#c0392b') return 'urgent';
+
+    if (/\burgent\b|\bhigh\b|דחוף|גבוה/i.test(priority) || /דחוף|גבוה/i.test(he)) return 'urgent';
+    if (/\blow\b|נמוכ/i.test(priority) || /נמוכ/i.test(he)) return 'low';
+    if (/\bregular\b|\bnormal\b|\bmedium\b|רגיל|בינוני/i.test(priority)) return 'regular';
 
     if (isOverdue(mission, today)) return 'urgent';
     return 'none';
+  }
+
+  function priorityTagStyle(pri, isEn) {
+    if (pri === 'urgent') {
+      return { label: isEn ? 'Urgent' : 'דחוף', bg: '#fee2e2', color: '#b91c1c', dot: '#ef4444' };
+    }
+    if (pri === 'low') {
+      return { label: isEn ? 'Low' : 'נמוך', bg: '#e9f5ee', color: '#2e8a63', dot: '#22c55e' };
+    }
+    if (pri === 'regular') {
+      return { label: isEn ? 'Regular' : 'רגיל', bg: '#fef3c7', color: '#b45309', dot: '#f59e0b' };
+    }
+    return null;
   }
 
   function formatColumnStatus(m) {
@@ -78,35 +100,12 @@
     var columnStatus = formatColumnStatus(m);
     var overdue = isOverdue(m, today);
     
-    var color = String(m.color || '').toLowerCase();
     var pri = priorityFromMission(m, today);
-    
-    var priLabel = '--';
-    var priBg = 'var(--bg-panel)';
-    var priColor = 'var(--text-sub)';
-    var dotColor = m.color || (overdue ? '#c0392b' : '#1d60a2');
-
-    if (color === '#f59e0b' || color === '#eab308' || color === '#f1c40f' || color === 'yellow') {
-      dotColor = m.color || '#f59e0b';
-      priBg = '#fef3c7';
-      priColor = '#b45309';
-      priLabel = isEn ? 'Medium' : 'בינוני';
-    } else if (pri === 'urgent') {
-      priLabel = isEn ? 'Urgent' : 'דחוף';
-      priBg = '#fee2e2';
-      priColor = '#b91c1c';
-      dotColor = m.color || '#ef4444';
-    } else if (pri === 'low') {
-      priLabel = isEn ? 'Low' : 'נמוך';
-      priBg = '#e9f5ee';
-      priColor = '#2e8a63';
-      dotColor = m.color || '#22c55e';
-    } else if (pri === 'normal') {
-      priLabel = isEn ? 'Normal' : 'רגיל';
-      priBg = '#eaf2fb';
-      priColor = '#1d60a2';
-      dotColor = m.color || '#1d60a2';
-    }
+    var tag = priorityTagStyle(pri, isEn);
+    var priLabel = tag ? tag.label : '--';
+    var priBg = tag ? tag.bg : 'var(--bg-panel)';
+    var priColor = tag ? tag.color : 'var(--text-sub)';
+    var dotColor = tag ? tag.dot : (m.color || (overdue ? '#c0392b' : '#1d60a2'));
 
     var groupColor = m.color || (overdue ? '#c0392b' : dotColor);
     var dueBg = overdue ? '#fbeeed' : '#eaf2fb';
@@ -161,19 +160,10 @@
     var today = todayKey();
     var pri = priorityFromMission(mission, today);
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
-    var priLabel = isEn ? 'Normal' : 'רגיל';
-    var priBg = '#eaf2fb';
-    var priColor = '#1d60a2';
-
-    if (pri === 'urgent') {
-      priLabel = isEn ? 'Urgent' : 'דחוף';
-      priBg = '#fee2e2';
-      priColor = '#b91c1c';
-    } else if (pri === 'low') {
-      priLabel = isEn ? 'Low' : 'נמוך';
-      priBg = '#e9f5ee';
-      priColor = '#2e8a63';
-    }
+    var tag = priorityTagStyle(pri, isEn);
+    var priLabel = tag ? tag.label : (isEn ? 'Regular' : 'רגיל');
+    var priBg = tag ? tag.bg : '#fef3c7';
+    var priColor = tag ? tag.color : '#b45309';
 
     var doneLabel = uiT('Done', 'בוצע');
     var titleRow =
@@ -368,7 +358,7 @@
   var currentFilterType = 'show_all_together_tasks';
   var advancedFilters = {
     status: 'everything',   // today | late | everything | completed
-    priority: 'all',        // all | urgent | normal | low
+    priority: 'all',        // all | urgent | regular | low
     association: 'my',      // my | all | <userId>
     sortBy: 'date_to_do',   // date_to_do | priority | date_created
     sortDir: 'asc'          // asc | desc
@@ -512,7 +502,7 @@
       filterSection(uiT('Priority', 'עדיפות'),
         filterChip('priority', 'all', uiT('All', 'הכל'), f.priority === 'all') +
         filterChip('priority', 'urgent', uiT('Urgent', 'דחוף'), f.priority === 'urgent') +
-        filterChip('priority', 'normal', uiT('Medium', 'בינוני'), f.priority === 'normal') +
+        filterChip('priority', 'regular', uiT('Regular', 'רגיל'), f.priority === 'regular') +
         filterChip('priority', 'low', uiT('Low', 'נמוך'), f.priority === 'low')
       ) +
       filterSection(uiT('Team member', 'איש צוות'), assocChips) +
@@ -902,7 +892,7 @@
             av = String(a.date_created || a.created_at || '');
             bv = String(b.date_created || b.created_at || '');
           } else if (key === 'priority') {
-            var rank = { urgent: 3, normal: 2, none: 1, low: 0 };
+            var rank = { urgent: 3, regular: 2, none: 1, low: 0 };
             av = rank[priorityFromMission(a, today)] || 0;
             bv = rank[priorityFromMission(b, today)] || 0;
             return (av - bv) * dir;
