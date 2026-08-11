@@ -1605,16 +1605,11 @@ class Component extends DCLogic {
       closeUrl,
       onClose: (e) => {
         if (e) { try { e.preventDefault(); e.stopPropagation(); } catch (err) { /* ignore */ } }
-        try {
-          var ref = document.referrer || '';
-          if (window.history.length > 1 && ref) {
-            var u = new URL(ref);
-            if (u.origin === location.origin) {
-              window.history.back();
-              return;
-            }
-          }
-        } catch (err2) { /* ignore */ }
+        // Prefer explicit entry back (?back=) / closeUrl — history.back is unreliable in WebViews
+        if (typeof window.mbGoEntryBack === 'function') {
+          window.mbGoEntryBack(e, { fallback: closeUrl, allowHistory: false });
+          return;
+        }
         window.location.href = closeUrl;
       },
       custName: cust.name || (custId ? ('#' + custId) : 'Customer'),

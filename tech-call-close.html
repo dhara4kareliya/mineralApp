@@ -2300,6 +2300,10 @@ class Component extends DCLogic {
   }
 
   goBack() {
+    if (typeof window.mbGoEntryBack === 'function') {
+      window.mbGoEntryBack(null, { fallback: 'tech-open-calls.html', selfRe: /tech-call-close/i });
+      return;
+    }
     try {
       if (window.history.length > 1) { window.history.back(); return; }
     } catch (e) { /* ignore */ }

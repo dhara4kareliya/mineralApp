@@ -94,7 +94,7 @@
             <sc-if hint-placeholder-val="{{ true }}" value="{{ showContent }}">
             <div style="background:#16223a; padding:13px 18px 16px; flex:none;">
               <div style="display:flex; align-items:center; justify-content:space-between;">
-                <a href="service-all-calls.html"
+                <a href="{{ backHref }}" onclick="{{ onBack }}"
                   style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none;">
                   <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
                     stroke-width="2" viewbox="0 0 24 24" width="17">
@@ -1069,6 +1069,30 @@
     }
 
     renderVals() {
+      const defaultBack = (function () {
+        var role = '';
+        try {
+          if (window.MineralBarApp && typeof MineralBarApp.getRole === 'function') {
+            role = String(MineralBarApp.getRole() || '');
+          }
+        } catch (eR) { /* ignore */ }
+        if (role === 'tech') return 'tech-open-calls.html';
+        return 'service-all-calls.html';
+      })();
+      const backHref = (typeof window.mbResolveEntryBack === 'function')
+        ? (window.mbResolveEntryBack({
+          fallback: defaultBack,
+          selfRe: /service-call-details/i
+        }) || defaultBack)
+        : defaultBack;
+      const onBack = (e) => {
+        if (typeof window.mbGoEntryBack === 'function') {
+          window.mbGoEntryBack(e, { fallback: defaultBack, selfRe: /service-call-details/i, allowHistory: false });
+          return;
+        }
+        window.location.href = backHref;
+      };
+
       const t = this.state.ticket;
       if (!t) {
         const stillLoading = this.state.loading !== false;
@@ -1078,6 +1102,8 @@
           callId: '',
           openedAt: '',
           chatLink: '#',
+          backHref: backHref,
+          onBack: onBack,
           loadingMsg: stillLoading
             ? ((typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en')
               ? 'Loading…'
@@ -1263,10 +1289,13 @@
 
       return {
         callId: '#SRV-' + t.ticket_id,
-        assignTechLink: 'service-assign-tech.html?ticket_id=' + t.ticket_id,
+        assignTechLink: 'service-assign-tech.html?ticket_id=' + encodeURIComponent(t.ticket_id || t.id || '') +
+          '&back=' + encodeURIComponent(backToTicket),
         openedAt: age,
         callType: t.subject || (isEn ? 'Technical Service' : 'שירות טכני'),
         source: t.email || t.phone || '---',
+        backHref: backHref,
+        onBack: onBack,
 
         statusLabel: statusLabel, statusColor: status.color, statusBg: status.bg,
 

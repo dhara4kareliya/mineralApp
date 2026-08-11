@@ -194,7 +194,13 @@ class Component extends DCLogic {
   onAddress(e) { this.setState({ address: this.inputValue(e) }); }
   onArea(e) { this.setState({ area: this.inputValue(e) }); }
   onComments(e) { this.setState({ comments: this.inputValue(e) }); }
-  goBack() { window.history.back(); }
+  goBack() {
+    if (typeof window.mbGoEntryBack === 'function') {
+      window.mbGoEntryBack(null, { fallback: 'leads-list.html', selfRe: /sales-add-lead/i });
+      return;
+    }
+    window.history.back();
+  }
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {

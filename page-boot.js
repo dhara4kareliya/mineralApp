@@ -9,6 +9,90 @@
 
   window.i18nDict = window.i18nTranslations || window.i18nDict || (window.appI18nDict || { "en": {} });
 
+  /** Sanitize in-app back/return URLs (relative html only). */
+  window.mbSafeBackHref = function (raw) {
+    if (!raw) return '';
+    try { raw = decodeURIComponent(String(raw)); } catch (e) { raw = String(raw); }
+    raw = String(raw || '').trim();
+    if (!raw || /^javascript:/i.test(raw) || raw.indexOf('//') === 0) return '';
+    if (/^https?:/i.test(raw)) {
+      try {
+        var abs = new URL(raw, location.href);
+        if (abs.origin !== location.origin) return '';
+        return (abs.pathname.split('/').pop() || '') + abs.search + abs.hash;
+      } catch (e2) { return ''; }
+    }
+    if (raw.indexOf('..') >= 0) return '';
+    return raw.replace(/^\//, '');
+  };
+
+  /**
+   * Resolve the page the user entered from.
+   * Priority: ?back|return → ?from (only if it looks like a page) → sessionStorage → referrer → fallback.
+   * Note: short aliases like from=lead / from=home are ignored here (page-specific handlers may map them).
+   */
+  window.mbResolveEntryBack = function (opts) {
+    opts = opts || {};
+    var fallback = opts.fallback || '';
+    var q = new URLSearchParams(location.search || '');
+    var fromParam = window.mbSafeBackHref(q.get('back') || q.get('return') || '');
+    if (!fromParam) {
+      var rawFrom = String(q.get('from') || '').trim();
+      // Only treat from= as a URL when it looks like a page path
+      if (rawFrom && (/\.html/i.test(rawFrom) || rawFrom.indexOf('/') >= 0)) {
+        fromParam = window.mbSafeBackHref(rawFrom);
+      }
+    }
+    if (fromParam) return fromParam;
+    if (opts.storageKey) {
+      try {
+        var stored = window.mbSafeBackHref(sessionStorage.getItem(opts.storageKey));
+        if (stored) return stored;
+      } catch (e0) { /* ignore */ }
+    }
+    if (opts.useReferrer !== false) {
+      try {
+        var ref = document.referrer;
+        if (ref) {
+          var u = new URL(ref);
+          if (u.origin === location.origin) {
+            var file = (u.pathname.split('/').pop() || '');
+            var selfRe = opts.selfRe || null;
+            if (file && !/login/i.test(file) && !(selfRe && selfRe.test(file))) {
+              return file + u.search + u.hash;
+            }
+          }
+        }
+      } catch (e1) { /* ignore */ }
+    }
+    return fallback;
+  };
+
+  /** Navigate back to the entry page (hard nav — more reliable than history.back in WebViews). */
+  window.mbGoEntryBack = function (e, opts) {
+    if (e) {
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+      } catch (err) { /* ignore */ }
+    }
+    opts = opts || {};
+    var href = window.mbResolveEntryBack(opts);
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    if (opts.allowHistory !== false) {
+      try {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+      } catch (e2) { /* ignore */ }
+    }
+    window.location.href = opts.fallback || 'sales-home.html';
+  };
+
   window.switchLanguage = function(lang) {
     if (window.switchAppLanguage) {
       window.switchAppLanguage(lang);

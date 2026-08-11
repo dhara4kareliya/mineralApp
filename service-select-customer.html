@@ -97,7 +97,7 @@ mbCss('./common.css');
 <!-- navy header -->
 <div style="background:#16223a; padding:13px 16px 16px; flex:none;">
 <div style="display:flex; align-items:center; gap:11px;">
-<a href="service-all-calls.html" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
+<a href="{{ closeUrl }}" onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:15px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">✕</a>
 <div style="flex:1;">
 <div style="font-size:16px; font-weight:800; color:#fff;">New service call</div>
 <div style="font-size:11.5px; color:#9fb0c8; margin-top:2px;">Step 1 of 2 · Customer association</div>
@@ -455,6 +455,16 @@ class Component extends DCLogic {
       searchPadEnd: st.query.length > 0 ? '40px' : '14px',
       onSearch: (e) => this.onSearch(e),
       clearSearch: () => this.clearSearch(),
+      closeUrl: (typeof window.mbResolveEntryBack === 'function'
+        ? window.mbResolveEntryBack({ fallback: 'service-all-calls.html', selfRe: /service-select-customer/i })
+        : 'service-all-calls.html') || 'service-all-calls.html',
+      onClose: (e) => {
+        if (typeof window.mbGoEntryBack === 'function') {
+          window.mbGoEntryBack(e, { fallback: 'service-all-calls.html', selfRe: /service-select-customer/i, allowHistory: false });
+          return;
+        }
+        window.location.href = 'service-all-calls.html';
+      },
 
       newOpen: st.newOpen,
       toggleNew: () => this.toggleNew(),

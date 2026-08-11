@@ -284,6 +284,20 @@ class Component extends DCLogic {
   }
 
   goBack() {
+    var cid = this.state && this.state.customerId;
+    var home = 'customers.html';
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.homeForRole === 'function') {
+        home = MineralBarApp.homeForRole(MineralBarApp.getRole()) || home;
+      }
+    } catch (e2) { /* keep home */ }
+    var fallback = cid
+      ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
+      : home;
+    if (typeof window.mbGoEntryBack === 'function') {
+      window.mbGoEntryBack(null, { fallback: fallback, selfRe: /document-issuance/i });
+      return;
+    }
     try {
       var q = new URLSearchParams(window.location.search || '');
       var back = q.get('back') || q.get('from') || q.get('return') || '';
@@ -302,16 +316,7 @@ class Component extends DCLogic {
         return;
       }
     } catch (e) { /* fallback below */ }
-    var home = 'customers.html';
-    try {
-      if (window.MineralBarApp && typeof MineralBarApp.homeForRole === 'function') {
-        home = MineralBarApp.homeForRole(MineralBarApp.getRole()) || home;
-      }
-    } catch (e2) { /* keep home */ }
-    var cid = this.state && this.state.customerId;
-    window.location.href = cid
-      ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
-      : home;
+    window.location.href = fallback;
   }
 
   openForm(type) {
@@ -319,6 +324,12 @@ class Component extends DCLogic {
     var q = new URLSearchParams();
     q.set('customer_id', this.state.customerId);
     if (type) q.set('type', type);
+    var here = 'document-issuance.html?customer_id=' + encodeURIComponent(this.state.customerId);
+    try {
+      var curBack = new URLSearchParams(window.location.search || '').get('back');
+      if (curBack) here += '&back=' + encodeURIComponent(curBack);
+    } catch (e0) { /* ignore */ }
+    q.set('back', here);
     window.location.href = 'document-issue-form.html?' + q.toString();
   }
 

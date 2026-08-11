@@ -244,6 +244,10 @@ class Component extends DCLogic {
   reset() { window.location.href = 'tech-daily-schedule.html'; }
 
   goBack() {
+    if (typeof window.mbGoEntryBack === 'function') {
+      window.mbGoEntryBack(null, { fallback: 'tech-daily-schedule.html', selfRe: /tech-field-order/i });
+      return;
+    }
     try {
       if (window.history.length > 1) {
         window.history.back();

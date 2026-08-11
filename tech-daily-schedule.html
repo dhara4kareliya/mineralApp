@@ -1411,6 +1411,7 @@ class Component extends DCLogic {
         if (ticketId) q.set('ticket_id', ticketId);
         if (customerId) q.set('customer_id', customerId);
         if (name) q.set('name', name);
+        q.set('back', 'tech-daily-schedule.html');
         window.location.href = 'tech-call-close.html?' + q.toString();
       },
       viewCall: function () {
@@ -1419,6 +1420,7 @@ class Component extends DCLogic {
         if (customerId) q.set('customer_id', customerId);
         if (name) q.set('name', name);
         q.set('view', '1');
+        q.set('back', 'tech-daily-schedule.html');
         window.location.href = 'tech-call-close.html?' + q.toString();
       }
     };

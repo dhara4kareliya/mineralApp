@@ -875,14 +875,20 @@ class Component extends DCLogic {
 
   goBack() {
     var cid = this.state.customerId || this.getCustomerId();
-    var q = cid ? ('?customer_id=' + encodeURIComponent(cid)) : '';
+    var fallback = cid
+      ? ('document-issuance.html?customer_id=' + encodeURIComponent(cid))
+      : 'document-issuance.html';
+    if (typeof window.mbGoEntryBack === 'function') {
+      window.mbGoEntryBack(null, { fallback: fallback, selfRe: /document-issue-form/i });
+      return;
+    }
     try {
       if (window.history.length > 1) {
         window.history.back();
         return;
       }
     } catch (e) { /* fallback below */ }
-    window.location.href = 'document-issuance.html' + q;
+    window.location.href = fallback;
   }
 
   goAllDocuments() {

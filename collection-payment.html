@@ -756,6 +756,14 @@ class Component extends DCLogic {
   }
 
   goBack() {
+    var cid = this.getCustomerId();
+    var fallback = cid
+      ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
+      : 'customers.html';
+    if (typeof window.mbGoEntryBack === 'function') {
+      window.mbGoEntryBack(null, { fallback: fallback, selfRe: /collection-payment/i });
+      return;
+    }
     try {
       var q = new URLSearchParams(window.location.search || '');
       var back = q.get('back') || q.get('from') || q.get('return') || '';
@@ -776,10 +784,7 @@ class Component extends DCLogic {
     } catch (e) {
       /* ignore and use fallback */
     }
-    var cid = this.getCustomerId();
-    window.location.href = cid
-      ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
-      : 'customers.html';
+    window.location.href = fallback;
   }
 
   buildOrderDocumentUrl(customerId, amount, paymentSnap) {
