@@ -266,14 +266,17 @@ mbCss('./common.css');
         </div>
       </div>
     </sc-for>
+    <sc-if hint-placeholder-val="{{ false }}" value="{{ loadingMore }}">
+      <div style="text-align:center; padding:10px 8px 14px; color:#8a93a3; font-size:12.5px; font-weight:700;" data-no-i18n="true">{{ loadingMoreLabel }}</div>
+    </sc-if>
     <sc-if hint-placeholder-val="{{ false }}" value="{{ showPager }}">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 4px 4px; margin-bottom:8px;">
-        <button type="button" onclick="{{ prevPage }}" style="min-width:72px; padding:9px 12px; border-radius:10px; border:1.4px solid #dde2ea; background:#fff; color:#1f2a3a; font-size:13px; font-weight:700; cursor:pointer; opacity:{{ prevOpacity }};">Prev</button>
+        <button type="button" onclick="{{ prevPage }}" style="min-width:72px; padding:9px 12px; border-radius:10px; border:1.4px solid #dde2ea; background:#fff; color:#1f2a3a; font-size:13px; font-weight:700; cursor:pointer; opacity:{{ prevOpacity }};" data-no-i18n="true">{{ prevLabel }}</button>
         <div style="text-align:center; flex:1; min-width:0;">
           <div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ pageLabel }}</div>
           <div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:2px;">{{ pagerLabel }}</div>
         </div>
-        <button type="button" onclick="{{ nextPage }}" style="min-width:72px; padding:9px 12px; border-radius:10px; border:1.4px solid #dde2ea; background:#fff; color:#1f2a3a; font-size:13px; font-weight:700; cursor:pointer; opacity:{{ nextOpacity }};">Next</button>
+        <button type="button" onclick="{{ nextPage }}" style="min-width:72px; padding:9px 12px; border-radius:10px; border:1.4px solid #dde2ea; background:#fff; color:#1f2a3a; font-size:13px; font-weight:700; cursor:pointer; opacity:{{ nextOpacity }};" data-no-i18n="true">{{ nextLabel }}</button>
       </div>
     </sc-if>
   </div>
@@ -898,6 +901,7 @@ class Component extends DCLogic {
     searchQuery: '',
     listPage: 1,
     listPageSize: 25,
+    loadingMore: false,
     
     // Add product state
     addOpen: false,
@@ -995,6 +999,12 @@ class Component extends DCLogic {
 
   componentWillUnmount() {
     if (window.__mbInventoryComp === this) window.__mbInventoryComp = null;
+  }
+
+  t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
+    return lang === 'en' ? en : he;
   }
 
   onInventoryRealtime(ev) {
@@ -1192,11 +1202,44 @@ class Component extends DCLogic {
   }
 
   /**
-   * Products.List is capped at 25 rows/call — page until all products are loaded.
-   * Docs: https://eli.bull36.com/app/help/Products.List
+   * One Products.List page (API cap ≈ 25 rows).
    */
-  async fetchAllProducts(client) {
+  async fetchProductsPage(client, page, pageSize) {
+    pageSize = pageSize || 25;
+    var start = page * pageSize;
+    var res = await client.request('Products.List', {
+      limit: pageSize,
+      length: pageSize,
+      per_page: pageSize,
+      start: start,
+      offset: start,
+      draw: page + 1,
+      order: 'id_desc'
+    });
+    var totalHint = Number(
+      (res && (res.recordsFiltered != null ? res.recordsFiltered
+        : (res.recordsTotal != null ? res.recordsTotal : 0))) || 0
+    );
+    if (!isFinite(totalHint) || totalHint < 0) totalHint = 0;
+    var rows = this.productRowsFromList(res);
+    var mapped = [];
+    for (var i = 0; i < rows.length; i++) {
+      var m = this.mapRawProduct(rows[i]);
+      if (m && m.id) mapped.push(m);
+    }
+    return { mapped: mapped, rawCount: rows.length, totalHint: totalHint };
+  }
+
+  /**
+   * Products.List is capped at 25 rows/call — page until all products are loaded.
+   * Optional onProgress(allSoFar, meta) paints UI after each batch (first page ASAP).
+   */
+  async fetchAllProducts(client, opts) {
+    opts = opts || {};
+    var onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
+    var shouldAbort = typeof opts.shouldAbort === 'function' ? opts.shouldAbort : function () { return false; };
     var pageSize = 25;
+    var concurrency = 3;
     var all = [];
     var seen = {};
     var totalHint = 0;
@@ -1213,70 +1256,224 @@ class Component extends DCLogic {
       totalHint = 0;
     }
 
-    var maxPages = totalHint > 0 ? Math.ceil(totalHint / pageSize) + 2 : 80;
-    for (var page = 0; page < maxPages; page++) {
-      var start = page * pageSize;
-      var res = await client.request('Products.List', {
-        limit: pageSize,
-        length: pageSize,
-        per_page: pageSize,
-        start: start,
-        offset: start,
-        draw: page + 1,
-        order: 'id_desc'
-      });
-      if (res && (res.recordsTotal != null || res.recordsFiltered != null) && !totalHint) {
-        totalHint = Number(res.recordsFiltered != null ? res.recordsFiltered : res.recordsTotal) || 0;
-        if (totalHint > 0) maxPages = Math.ceil(totalHint / pageSize) + 2;
-      }
-      var rows = this.productRowsFromList(res);
-      if (!rows.length) break;
-      for (var i = 0; i < rows.length; i++) {
-        var mapped = this.mapRawProduct(rows[i]);
-        if (!mapped || !mapped.id) continue;
-        if (seen[mapped.id]) continue;
-        seen[mapped.id] = true;
-        all.push(mapped);
-      }
-      if (rows.length < pageSize) break;
-      if (totalHint > 0 && all.length >= totalHint) break;
+    // First page alone — unlock UI ASAP
+    if (shouldAbort()) return all;
+    var first = await this.fetchProductsPage(client, 0, pageSize);
+    if (first.totalHint) totalHint = first.totalHint;
+    for (var fi = 0; fi < first.mapped.length; fi++) {
+      var fm = first.mapped[fi];
+      if (seen[fm.id]) continue;
+      seen[fm.id] = true;
+      all.push(fm);
     }
+    if (onProgress) onProgress(all.slice(), { done: false, page: 0, totalHint: totalHint });
+    if (first.rawCount < pageSize) {
+      if (onProgress) onProgress(all.slice(), { done: true, page: 0, totalHint: totalHint });
+      return all;
+    }
+    if (totalHint > 0 && all.length >= totalHint) {
+      if (onProgress) onProgress(all.slice(), { done: true, page: 0, totalHint: totalHint });
+      return all;
+    }
+
+    var page = 1;
+    var maxPage = totalHint > 0 ? Math.ceil(totalHint / pageSize) + 2 : 80;
+    while (page < maxPage) {
+      if (shouldAbort()) return all;
+      var batchPages = [];
+      for (var b = 0; b < concurrency && (page + b) < maxPage; b++) batchPages.push(page + b);
+      var results = await Promise.all(batchPages.map(function (p) {
+        return this.fetchProductsPage(client, p, pageSize);
+      }.bind(this)));
+
+      var gotAny = false;
+      var hitShort = false;
+      for (var ri = 0; ri < results.length; ri++) {
+        var r = results[ri];
+        if (r.totalHint) totalHint = r.totalHint;
+        if (!r.rawCount) {
+          hitShort = true;
+          continue;
+        }
+        if (r.rawCount < pageSize) hitShort = true;
+        gotAny = true;
+        for (var mi = 0; mi < r.mapped.length; mi++) {
+          var m = r.mapped[mi];
+          if (seen[m.id]) continue;
+          seen[m.id] = true;
+          all.push(m);
+        }
+      }
+
+      if (onProgress) {
+        onProgress(all.slice(), {
+          done: !gotAny || hitShort || (totalHint > 0 && all.length >= totalHint),
+          page: page,
+          totalHint: totalHint
+        });
+      }
+
+      if (!gotAny || hitShort) break;
+      if (totalHint > 0 && all.length >= totalHint) break;
+      page += concurrency;
+    }
+
+    if (onProgress) onProgress(all.slice(), { done: true, page: page, totalHint: totalHint });
     return all;
   }
 
-  async initData() {
-    if (!arguments.length || !(arguments[0] && arguments[0].silent)) {
-      this.setState({ loading: true });
-    }
-    var productsList = [];
-    var resolvedCategories = [];
+  buildCategoryList(categoryNamesMap) {
+    var resolved = [{ id: 'all', name: 'everything' }];
+    Object.keys(categoryNamesMap || {}).forEach(function (key) {
+      resolved.push({ id: String(key), name: categoryNamesMap[key] });
+    });
+    resolved.push({ id: 'low', name: 'low inventory' });
+    return resolved;
+  }
+
+  async loadInventoryFormMeta(client, loadId) {
+    var self = this;
     var suppliersList = [];
     var teamMembersList = [];
     var companiesList = [];
     var storagesList = [];
-    
-    var defaultCategories = [{ id: 'all', name: 'everything' }, { id: 'low', name: 'low inventory' }];
 
-    if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
-      try {
-        var client = MineralBarApp.getClient();
-        productsList = await this.fetchAllProducts(client);
+    try {
+      if (typeof MineralBarApp.getTeamMembers === 'function') {
+        var team = MineralBarApp.getTeamMembers() || [];
+        teamMembersList = (Array.isArray(team) ? team : []).map(function (m) {
+          return {
+            id: String(m.id || m.user_id || m.member_id || ''),
+            name: m.name || m.full_name || m.email || ('#' + (m.id || ''))
+          };
+        }).filter(function (m) { return m.id; });
+      }
+    } catch (eTeam) { /* ignore */ }
 
-        if (typeof MineralBarApp.getTeamMembers === 'function') {
-          var team = MineralBarApp.getTeamMembers() || [];
-          teamMembersList = (Array.isArray(team) ? team : []).map(function (m) {
-            return {
-              id: String(m.id || m.user_id || m.member_id || ''),
-              name: m.name || m.full_name || m.email || ('#' + (m.id || ''))
-            };
-          }).filter(function (m) { return m.id; });
+    try {
+      var supRes = await client.request('Suppliers.List', { for_product: 1, limit: 100 });
+      var supData = supRes && (supRes.data || supRes.output || supRes);
+      var supRows = Array.isArray(supData) ? supData : ((supData && (supData.rows || supData.list)) || []);
+      suppliersList = (supRows || []).map(function (sup) {
+        return {
+          id: String(sup.suppliers_id || sup.supplier_id || sup.id || ''),
+          name: sup.name || sup.supplier_name || sup.title || ('Supplier #' + (sup.id || ''))
+        };
+      }).filter(function (sup) { return sup.id; });
+    } catch (supErr) {
+      console.warn('[MineralBar] failed to load suppliers', supErr);
+    }
+
+    try {
+      var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
+      var coData = coRes && (coRes.data || coRes.output || coRes);
+      var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+      companiesList = (coRows || []).map(function (co) {
+        return {
+          id: String(co.id || co.invoice_setting_id || co.company_id || ''),
+          name: co.company_name || co.name || co.title || ('Company #' + (co.id || ''))
+        };
+      }).filter(function (co) { return co.id; });
+    } catch (coErr) {
+      console.warn('[MineralBar] failed to load companies', coErr);
+    }
+
+    try {
+      var stRes = null;
+      try { stRes = await client.request('Storage.List', { limit: 25 }); } catch (e1) {
+        try { stRes = await client.request('Storages.List', { limit: 25 }); } catch (e2) {
+          try { stRes = await client.request('Warehouse.List', { limit: 25 }); } catch (e3) { stRes = null; }
         }
-        
-        // Main categories only (parent=0) for chips + Create Product Category select
-        var catRes = await client.request('Categories.List', { parent: 0, limit: 100 });
+      }
+      if (stRes) {
+        var stData = stRes && (stRes.data || stRes.output || stRes);
+        var stRows = Array.isArray(stData) ? stData : ((stData && (stData.rows || stData.list)) || []);
+        storagesList = (stRows || []).map(function (st) {
+          return {
+            id: String(st.id || st.storage_id || st.warehouse_id || ''),
+            name: st.name || st.storage_name || st.warehouse_name || st.title || ('Storage #' + (st.id || ''))
+          };
+        }).filter(function (st) { return st.id; });
+      }
+    } catch (stErr) {
+      console.warn('[MineralBar] failed to load storages', stErr);
+    }
+
+    if (loadId != null && loadId !== self._inventoryLoadId) return;
+    self.setState({
+      suppliers: suppliersList,
+      teamMembers: teamMembersList,
+      companies: companiesList,
+      storages: storagesList
+    });
+  }
+
+  async initData() {
+    var opts = arguments[0] || {};
+    var silent = !!opts.silent;
+    var self = this;
+    var loadId = (this._inventoryLoadId || 0) + 1;
+    this._inventoryLoadId = loadId;
+    var hasProducts = !!(this.state.products && this.state.products.length);
+    if (!silent && !hasProducts) {
+      this.setState({ loading: true });
+    }
+
+    var defaultCategories = [{ id: 'all', name: 'everything' }, { id: 'low', name: 'low inventory' }];
+    var productsList = [];
+    var resolvedCategories = defaultCategories.slice();
+
+    if (!(window.MineralBarApp && typeof MineralBarApp.getClient === 'function')) {
+      this.setState({
+        loading: false,
+        products: [],
+        categories: defaultCategories,
+        listPage: 1,
+        listRev: Date.now(),
+        loadingMore: false
+      });
+      return;
+    }
+
+    try {
+      var client = MineralBarApp.getClient();
+
+      // Categories in parallel with progressive product fetch (do not block first paint)
+      var catsPromise = client.request('Categories.List', { parent: 0, limit: 100 }).catch(function (e) {
+        console.warn('[MineralBar] failed to load categories', e);
+        return null;
+      });
+
+      // Form dropdowns never block the list
+      this.loadInventoryFormMeta(client, loadId);
+
+      await this.fetchAllProducts(client, {
+        shouldAbort: function () { return self._inventoryLoadId !== loadId; },
+        onProgress: function (batch, meta) {
+          if (self._inventoryLoadId !== loadId) return;
+          productsList = batch || [];
+          var patch = {
+            loading: false,
+            products: productsList,
+            listPage: silent ? (self.state.listPage || 1) : 1,
+            listRev: Date.now(),
+            loadingMore: !(meta && meta.done)
+          };
+          if (!(self.state.categories && self.state.categories.length)) {
+            patch.categories = defaultCategories;
+          }
+          self.setState(patch);
+          try { self.forceUpdate(); } catch (eFu) { /* ignore */ }
+        }
+      });
+
+      if (self._inventoryLoadId !== loadId) return;
+
+      var catRes = await catsPromise;
+      var categoryNamesMap = {};
+      if (catRes) {
         var catData = catRes && (catRes.data || catRes.output || catRes);
         var catRows = Array.isArray(catData) ? catData : ((catData && catData.rows) || []);
-        var categoryNamesMap = {};
         catRows.forEach(function (cat) {
           var cid = cat.category_id || cat.id || cat.cat_id;
           if (!cid) return;
@@ -1286,112 +1483,49 @@ class Component extends DCLogic {
           if (!catName) return;
           categoryNamesMap[String(cid)] = String(catName);
         });
-
-        // Fallback: extract category ids from products and fetch missing names only
-        if (productsList.length > 0) {
-          var catIds = [];
-          productsList.forEach(function(item) {
-            var cid = item.cat_id;
-            if (cid && catIds.indexOf(String(cid)) === -1) catIds.push(String(cid));
-          });
-
-          await Promise.all(catIds.map(async function(catId) {
-            if (categoryNamesMap[catId]) return;
-            try {
-              var singleCatRes = await client.request('Categories.Get', { category_id: catId });
-              var singleCatData = singleCatRes && (singleCatRes.data || singleCatRes.output || singleCatRes);
-              if (singleCatData) {
-                var singleName = singleCatData.category || singleCatData.category_name || singleCatData.title || singleCatData.name || '';
-                if (singleName) categoryNamesMap[catId] = singleName;
-              }
-            } catch (catErr) {
-              console.warn('[MineralBar] failed to fetch category name', catId, catErr);
-            }
-          }));
-        }
-
-        resolvedCategories.push({ id: 'all', name: 'everything' });
-        for (var key in categoryNamesMap) {
-          resolvedCategories.push({ id: String(key), name: categoryNamesMap[key] });
-        }
-        resolvedCategories.push({ id: 'low', name: 'low inventory' });
-
-        // Suppliers for Create Product (for_product=1)
-        try {
-          var supRes = await client.request('Suppliers.List', { for_product: 1, limit: 100 });
-          var supData = supRes && (supRes.data || supRes.output || supRes);
-          var supRows = Array.isArray(supData) ? supData : ((supData && (supData.rows || supData.list)) || []);
-          suppliersList = (supRows || []).map(function (sup) {
-            return {
-              id: String(sup.suppliers_id || sup.supplier_id || sup.id || ''),
-              name: sup.name || sup.supplier_name || sup.title || ('Supplier #' + (sup.id || ''))
-            };
-          }).filter(function (sup) { return sup.id; });
-        } catch (supErr) {
-          console.warn('[MineralBar] failed to load suppliers', supErr);
-        }
-
-        // Company dropdown = InvoiceSettings.List
-        try {
-          var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
-          var coData = coRes && (coRes.data || coRes.output || coRes);
-          var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
-          companiesList = (coRows || []).map(function (co) {
-            return {
-              id: String(co.id || co.invoice_setting_id || co.company_id || ''),
-              name: co.company_name || co.name || co.title || ('Company #' + (co.id || ''))
-            };
-          }).filter(function (co) { return co.id; });
-        } catch (coErr) {
-          console.warn('[MineralBar] failed to load companies', coErr);
-        }
-
-        // Storage options (best-effort; dashboard Select Storage)
-        try {
-          var stRes = null;
-          try { stRes = await client.request('Storage.List', { limit: 25 }); } catch (e1) {
-            try { stRes = await client.request('Storages.List', { limit: 25 }); } catch (e2) {
-              try { stRes = await client.request('Warehouse.List', { limit: 25 }); } catch (e3) { stRes = null; }
-            }
-          }
-          if (stRes) {
-            var stData = stRes && (stRes.data || stRes.output || stRes);
-            var stRows = Array.isArray(stData) ? stData : ((stData && (stData.rows || stData.list)) || []);
-            storagesList = (stRows || []).map(function (st) {
-              return {
-                id: String(st.id || st.storage_id || st.warehouse_id || ''),
-                name: st.name || st.storage_name || st.warehouse_name || st.title || ('Storage #' + (st.id || ''))
-              };
-            }).filter(function (st) { return st.id; });
-          }
-        } catch (stErr) {
-          console.warn('[MineralBar] failed to load storages', stErr);
-        }
-        if (!storagesList.length) {
-          storagesList = [];
-        }
-      } catch (err) {
-        console.warn('[MineralBar] failed to load inventory', err);
       }
-    }
 
-    if (resolvedCategories.length === 0) {
-      resolvedCategories = defaultCategories;
-      productsList = [];
-    }
+      // Best-effort: fill missing category names without blocking (max 8 parallel)
+      var missingIds = [];
+      productsList.forEach(function (item) {
+        var cid = item && item.cat_id ? String(item.cat_id) : '';
+        if (cid && !categoryNamesMap[cid] && missingIds.indexOf(cid) === -1) missingIds.push(cid);
+      });
+      if (missingIds.length) {
+        var fillN = Math.min(missingIds.length, 8);
+        await Promise.all(missingIds.slice(0, fillN).map(async function (catId) {
+          try {
+            var singleCatRes = await client.request('Categories.Get', { category_id: catId });
+            var singleCatData = singleCatRes && (singleCatRes.data || singleCatRes.output || singleCatRes);
+            if (singleCatData) {
+              var singleName = singleCatData.category || singleCatData.category_name || singleCatData.title || singleCatData.name || '';
+              if (singleName) categoryNamesMap[catId] = singleName;
+            }
+          } catch (catErr) { /* ignore */ }
+        }));
+      }
 
-    this.setState({
-      loading: false,
-      products: productsList,
-      categories: resolvedCategories,
-      suppliers: suppliersList,
-      teamMembers: teamMembersList,
-      companies: companiesList,
-      storages: storagesList,
-      listPage: 1,
-      listRev: Date.now()
-    });
-    try { this.forceUpdate(); } catch (eFu) { /* ignore */ }
+      if (self._inventoryLoadId !== loadId) return;
+      resolvedCategories = self.buildCategoryList(categoryNamesMap);
+      self.setState({
+        loading: false,
+        loadingMore: false,
+        products: productsList,
+        categories: resolvedCategories,
+        listRev: Date.now()
+      });
+      try { self.forceUpdate(); } catch (eFu2) { /* ignore */ }
+    } catch (err) {
+      console.warn('[MineralBar] failed to load inventory', err);
+      if (self._inventoryLoadId !== loadId) return;
+      self.setState({
+        loading: false,
+        loadingMore: false,
+        products: productsList.length ? productsList : (self.state.products || []),
+        categories: resolvedCategories.length ? resolvedCategories : defaultCategories,
+        listRev: Date.now()
+      });
+    }
   }
 
   normalizeCategoryRows(res) {
@@ -2335,6 +2469,8 @@ class Component extends DCLogic {
 
     return {
       loading: !!s.loading,
+      loadingMore: !s.loading && !!s.loadingMore,
+      loadingMoreLabel: this.t('Loading more products…', 'טוען עוד מוצרים…'),
       inStockQty: s.loading ? '…' : inStockQty,
       lowStockCount: s.loading ? '…' : lowStockCount,
       outStockCount: s.loading ? '…' : outStockCount,
@@ -2354,6 +2490,8 @@ class Component extends DCLogic {
       pageLabel: currentPage + ' / ' + totalPages,
       prevOpacity: currentPage <= 1 ? '0.45' : '1',
       nextOpacity: currentPage >= totalPages ? '0.45' : '1',
+      prevLabel: this.t('Prev', 'הקודם'),
+      nextLabel: this.t('Next', 'הבא'),
       prevPage: () => {
         if (currentPage <= 1) return;
         this.setState({ listPage: currentPage - 1 });

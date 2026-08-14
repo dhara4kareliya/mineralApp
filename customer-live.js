@@ -735,8 +735,10 @@
         statusMapByName = {};
         await ensureStatusMaps();
         var extras = await fetchCustomerExtras(customerId).catch(function () { return {}; });
+        rememberCardState(window.__mbLeadCardCustomer, mount.kind, extras || {}, { resetPage: true });
         setMountHtml(renderLead(window.__mbLeadCardCustomer, mount.kind, extras || {}));
         bindLeadCardActions(window.__mbLeadCardCustomer, mount);
+        bindHistoryPager();
       }
     } catch (err) {
       showLeadStatusToast(t('Error saving details: ', 'שגיאה בשמירת הפרטים: ') + ((err && err.message) || String(err)), 'error');
@@ -1202,9 +1204,10 @@
     var historyP = (async function () {
       try {
         if (!MineralBarApp.listCustomerMessages) return [];
-        var res = await MineralBarApp.listCustomerMessages(cid, { limit: 12 });
+        var res = await MineralBarApp.listCustomerMessages(cid, { limit: 100 });
         var rows = (res && res.rows) || [];
-        return rows.slice().reverse().slice(0, 8);
+        // API helper returns oldest→newest; interaction list shows newest first
+        return rows.slice().reverse();
       } catch (e) {
         return [];
       }
@@ -1428,17 +1431,92 @@
     return text.slice(0, Math.max(1, maxLen - 1)).trim() + '…';
   }
 
+  var HISTORY_PAGE_SIZE = 10;
+  var cardUi = {
+    historyPage: 1,
+    customer: null,
+    extras: null,
+    kind: 'lead'
+  };
+
+  function rememberCardState(c, kind, extras, opts) {
+    opts = opts || {};
+    if (c) cardUi.customer = c;
+    if (kind) cardUi.kind = kind;
+    if (extras) {
+      var prevLen = (cardUi.extras && cardUi.extras.history && cardUi.extras.history.length) || 0;
+      var nextLen = (extras.history && extras.history.length) || 0;
+      cardUi.extras = extras;
+      if (opts.resetPage || prevLen !== nextLen) {
+        cardUi.historyPage = 1;
+      }
+    }
+  }
+
+  function rerenderCardFromState() {
+    if (!cardUi.customer) return;
+    var kind = cardUi.kind || 'lead';
+    var extras = cardUi.extras || {};
+    setMountHtml(kind === 'lead' ? renderLead(cardUi.customer, kind, extras) : renderCustomer(cardUi.customer, kind, extras));
+    if (kind === 'lead') bindLeadCardActions(cardUi.customer, detectMount());
+    bindHistoryPager();
+  }
+
+  function bindHistoryPager() {
+    var prev = document.getElementById('mb-hist-prev');
+    var next = document.getElementById('mb-hist-next');
+    if (prev) {
+      prev.onclick = function () {
+        if (cardUi.historyPage <= 1) return;
+        cardUi.historyPage -= 1;
+        rerenderCardFromState();
+        try {
+          var sec = document.getElementById('mb-interaction-history');
+          if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (eScroll) { /* ignore */ }
+      };
+    }
+    if (next) {
+      next.onclick = function () {
+        var total = (cardUi.extras && cardUi.extras.history && cardUi.extras.history.length) || 0;
+        var totalPages = Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE) || 1);
+        if (cardUi.historyPage >= totalPages) return;
+        cardUi.historyPage += 1;
+        rerenderCardFromState();
+        try {
+          var sec = document.getElementById('mb-interaction-history');
+          if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (eScroll2) { /* ignore */ }
+      };
+    }
+  }
+
   function renderHistorySection(history) {
-    var html = '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">' +
+    var html = '<div id="mb-interaction-history" style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">' +
       esc(t('Interaction history', 'היסטוריית אינטראקציות')) + '</div>';
-    if (!history || !history.length) {
+    history = history || [];
+    if (!history.length) {
       return html +
         '<div style="background:#fff;border-radius:16px;padding:18px 15px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:8px;text-align:center;color:#9aa3b0;font-size:13px;font-weight:600;">' +
         esc(t('No interactions yet', 'אין אינטראקציות עדיין')) +
         '</div>';
     }
-    html += '<div style="background:#fff;border-radius:16px;padding:6px 15px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:8px;">';
-    history.forEach(function (row, i, arr) {
+
+    var pageSize = HISTORY_PAGE_SIZE;
+    var total = history.length;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+    var page = Math.min(Math.max(1, Number(cardUi.historyPage) || 1), totalPages);
+    cardUi.historyPage = page;
+    var start = (page - 1) * pageSize;
+    var pageRows = history.slice(start, start + pageSize);
+    var from = total ? (start + 1) : 0;
+    var to = Math.min(start + pageRows.length, total);
+    var canPrev = page > 1;
+    var canNext = page < totalPages;
+    var showPager = total > pageSize;
+
+    html += '<div style="background:#fff;border-radius:16px;padding:6px 15px' + (showPager ? ' 12px' : '') + ';box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:8px;">';
+    pageRows.forEach(function (row, i, arr) {
       var kind = historyKind(row);
       var meta = historyIconMeta(kind);
       var titleMap = {
@@ -1456,7 +1534,7 @@
       var who = stripHtmlText(row.user_name || '');
       html +=
         '<div style="display:flex;align-items:flex-start;gap:11px;padding:12px 0;' +
-        (i === arr.length - 1 ? '' : 'border-bottom:1px solid #f0f2f5;') + '">' +
+        (i === arr.length - 1 && !showPager ? '' : 'border-bottom:1px solid #f0f2f5;') + '">' +
         '<div style="width:32px;height:32px;border-radius:9px;background:' + meta.bg + ';color:' + meta.color + ';display:flex;align-items:center;justify-content:center;flex:none;">' +
         meta.svg + '</div>' +
         '<div style="flex:1;min-width:0;overflow:hidden;">' +
@@ -1469,6 +1547,33 @@
         esc([who, when].filter(Boolean).join(' · ')) + '</div>' +
         '</div></div>';
     });
+
+    if (showPager) {
+      var prevBg = canPrev ? '#1d60a2' : '#e9ecf0';
+      var nextBg = canNext ? '#1d60a2' : '#e9ecf0';
+      var prevColor = canPrev ? '#fff' : '#9aa3b0';
+      var nextColor = canNext ? '#fff' : '#9aa3b0';
+      html +=
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 4px 4px;">' +
+        '<button type="button" id="mb-hist-prev" ' + (canPrev ? '' : 'disabled ') +
+        'style="padding:9px 14px;border:none;border-radius:10px;background:' + prevBg + ';color:' + prevColor +
+        ';font-size:13px;font-weight:800;cursor:' + (canPrev ? 'pointer' : 'not-allowed') +
+        ';opacity:' + (canPrev ? '1' : '0.7') + ';font-family:inherit;">' +
+        esc(t('‹ Prev', '‹ הקודם')) + '</button>' +
+        '<div style="text-align:center;flex:1;min-width:0;">' +
+        '<div style="font-size:12.5px;font-weight:800;color:#1f2a3a;">' +
+        esc(from + '–' + to + t(' of ', ' מתוך ') + total) + '</div>' +
+        '<div style="font-size:11.5px;font-weight:700;color:#8a93a3;margin-top:2px;">' +
+        esc(t('Page ', 'עמוד ') + page + ' / ' + totalPages) + '</div>' +
+        '</div>' +
+        '<button type="button" id="mb-hist-next" ' + (canNext ? '' : 'disabled ') +
+        'style="padding:9px 14px;border:none;border-radius:10px;background:' + nextBg + ';color:' + nextColor +
+        ';font-size:13px;font-weight:800;cursor:' + (canNext ? 'pointer' : 'not-allowed') +
+        ';opacity:' + (canNext ? '1' : '0.7') + ';font-family:inherit;">' +
+        esc(t('Next ›', 'הבא ›')) + '</button>' +
+        '</div>';
+    }
+
     html += '</div>';
     return html;
   }
@@ -1637,6 +1742,7 @@
       actionTile(noteUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bd8324" stroke-width="1.8"><path d="M6 2.5h8L19 7v14.5H6z"/><path d="M14 2.5V7h5M9 12h6M9 16h4"/></svg>', t('Add note', 'הוסף הערה')) +
       actionTile(inventoryUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a6473" stroke-width="1.8"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"/><path d="M4 6.5 12 11l8-4.5M12 11v9"/></svg>', t('Inventory', 'מלאי')) +
       actionTile(docsUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M9 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><rect x="7" y="7" width="13" height="14" rx="2"/><path d="M11 12h6M11 16h6"/></svg>', t('All documents', 'כל המסמכים')) +
+      actionTile(chatUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5z"/><path d="M8 10.5h8M8 13.5h5"/></svg>', t('Chat', 'צ׳אט')) +
       '</div>' +
 
       renderInterestSection(interests, note) +
@@ -1733,6 +1839,7 @@
       actionTile(quoteUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#50439d" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>', t('Quote', 'הצעת מחיר')) +
       actionTile(orderUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bd8324" stroke-width="1.8"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M9 2v4M15 2v4M8 11l2 2 3.5-3.5M8 16h6"/></svg>', t('Order', 'הזמנה')) +
       actionTile(docsUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a6473" stroke-width="1.8"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><rect x="7" y="7" width="13" height="14" rx="2"/><path d="M11 12h6M11 16h6"/></svg>', t('Document', 'מסמכים')) +
+      actionTile(chatUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5z"/><path d="M8 10.5h8M8 13.5h5"/></svg>', t('Chat', 'צ׳אט')) +
       '</div>' +
 
       renderPlansSection(plans) +
@@ -1745,9 +1852,7 @@
         ? '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:18px 2px 11px;">' + esc(t('Notes', 'הערות')) + '</div>' +
           '<div style="background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:8px;">' +
           '<div style="font-size:13.5px;color:#3a4452;line-height:1.6;white-space:pre-wrap;">' + esc(notes) + '</div></div>'
-        : '') +
-
-      '<a href="' + esc(chatUrl) + '" style="display:none;" aria-hidden="true"></a>'
+        : '')
     );
   }
 
@@ -1829,14 +1934,18 @@
       hideMock();
       publishCustomer(c, kind);
       // Paint core card first, then enrich with products / tickets / missions / history
+      rememberCardState(c, kind, {}, { resetPage: !silent });
       setMountHtml(kind === 'lead' ? renderLead(c, kind, {}) : renderCustomer(c, kind, {}));
       if (kind === 'lead') bindLeadCardActions(c, mount);
+      bindHistoryPager();
       var extrasId = c.customer_id || c.id || customerId;
       try {
         var extras = await fetchCustomerExtras(extrasId);
         if (mount._activeLoadId !== loadId) return;
+        rememberCardState(c, kind, extras, { resetPage: !silent });
         setMountHtml(kind === 'lead' ? renderLead(c, kind, extras) : renderCustomer(c, kind, extras));
         if (kind === 'lead') bindLeadCardActions(c, mount);
+        bindHistoryPager();
 
         // After saving a note, history can lag one beat — one silent retry
         var noteFlag = '';
@@ -1848,8 +1957,10 @@
             try {
               var extras2 = await fetchCustomerExtras(extrasId);
               if (mount._activeLoadId !== loadId) return;
+              rememberCardState(c, kind, extras2, { resetPage: false });
               setMountHtml(kind === 'lead' ? renderLead(c, kind, extras2) : renderCustomer(c, kind, extras2));
               if (kind === 'lead') bindLeadCardActions(c, mount);
+              bindHistoryPager();
             } catch (eRetry) { /* ignore */ }
           }, 600);
         }

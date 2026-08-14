@@ -244,14 +244,14 @@ mbCss('./common.css');
   <label class="soc-label" data-no-i18n="true">{{ relatedProductLabel }}</label>
   <div class="soc-sku-row">
     <input id="soc-sku-input" class="soc-field ds-input" type="text" autocomplete="off" inputmode="text"
-      value="{{ productSku }}" placeholder="Scan or type SKU"
+      value="{{ productSku }}" placeholder="{{ skuPlaceholder }}"
       oninput="{{ onSkuInput }}" onkeydown="{{ onSkuKeydown }}" onblur="{{ onSkuBlur }}"/>
-    <button type="button" class="soc-scan-btn" onclick="{{ openScanner }}" aria-label="Scan barcode" title="Scan barcode">
+    <button type="button" class="soc-scan-btn" onclick="{{ openScanner }}" aria-label="{{ scanBarcodeLabel }}" title="{{ scanBarcodeLabel }}">
       <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="22"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M14 8v8M17 8v8"/></svg>
     </button>
   </div>
   <sc-if hint-placeholder-val="{{ false }}" value="{{ productLookupLoading }}">
-    <div style="margin-top:8px; font-size:12px; color:#7b8595; font-weight:600;">Looking up product…</div>
+    <div style="margin-top:8px; font-size:12px; color:#7b8595; font-weight:600;" data-no-i18n="true">{{ productLookupLabel }}</div>
   </sc-if>
   <sc-if hint-placeholder-val="{{ false }}" value="{{ hasProductScanError }}">
     <div style="margin-top:8px; font-size:12px; color:#a3302e; font-weight:600;">{{ productScanError }}</div>
@@ -347,7 +347,7 @@ mbCss('./common.css');
     <input readonly value="{{ fullAddress }}" class="soc-field ds-input" />
   </sc-if>
   <sc-if hint-placeholder-val="{{ true }}" value="{{ noFullAddress }}">
-    <div class="soc-field" style="display:flex; align-items:center; border-style:dashed; color:#9aa3b0; background:#fafbfc; height:auto; min-height:48px;">Filled fields will appear here</div>
+    <div class="soc-field" style="display:flex; align-items:center; border-style:dashed; color:#9aa3b0; background:#fafbfc; height:auto; min-height:48px;" data-no-i18n="true">{{ filledFieldsHint }}</div>
   </sc-if>
 </div>
 
@@ -403,11 +403,11 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ false }}" value="{{ scannerOpen }}">
   <div class="soc-scanner-overlay">
     <div style="flex:none; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-      <div style="font-size:16px; font-weight:800; color:#fff;">Scan barcode / SKU</div>
+      <div style="font-size:16px; font-weight:800; color:#fff;" data-no-i18n="true">{{ scannerTitle }}</div>
       <button type="button" onclick="{{ closeScanner }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:16px; cursor:pointer;">✕</button>
     </div>
     <div id="soc-qr-reader"></div>
-    <div style="flex:none; padding:14px 16px 20px; text-align:center; font-size:12.5px; color:#9fb0c8; font-weight:600;">Point the camera at the product barcode</div>
+    <div style="flex:none; padding:14px 16px 20px; text-align:center; font-size:12.5px; color:#9fb0c8; font-weight:600;" data-no-i18n="true">{{ scannerHint }}</div>
   </div>
 </sc-if>
 
@@ -1575,6 +1575,12 @@ class Component extends DCLogic {
       deliveryAddressLabel: this.isEn() ? 'Delivery address' : 'כתובת למשלוח',
       photoOptionalLabel: this.isEn() ? '(optional)' : '(אופציונלי)',
       photoAttachLabel: this.isEn() ? 'Attach a photo' : 'צרף תמונה',
+      filledFieldsHint: this.isEn() ? 'Filled fields will appear here' : 'השדות שמולאו יופיעו כאן',
+      skuPlaceholder: this.isEn() ? 'Scan or type SKU' : 'סרוק או הקלד מק״ט',
+      scanBarcodeLabel: this.isEn() ? 'Scan barcode' : 'סרוק ברקוד',
+      productLookupLabel: this.isEn() ? 'Looking up product…' : 'מחפש מוצר…',
+      scannerTitle: this.isEn() ? 'Scan barcode / SKU' : 'סרוק ברקוד / מק״ט',
+      scannerHint: this.isEn() ? 'Point the camera at the product barcode' : 'כוון את המצלמה לברקוד המוצר',
       assignFieldLabel: this.isEn()
         ? 'Service member'
         : 'נציג שירות',

@@ -141,18 +141,18 @@ mbCss('./common.css');
 <button type="button" onclick="{{ v.openWhatsApp }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#e8f8ef; color:#25b35e; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="WhatsApp">
 <svg fill="#25b35e" height="20" viewBox="0 0 24 24" width="20"><path d="M20.5 3.5A11 11 0 0 0 3.2 17.7L2 22l4.4-1.15A11 11 0 1 0 20.5 3.5zm-8.5 17a9 9 0 0 1-4.6-1.3l-.3-.18-2.7.7.72-2.63-.2-.31A9 9 0 1 1 12 20.5zm4.9-6.7c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.61.14-.18.27-.7.88-.86 1.06-.16.18-.32.2-.59.07-.27-.14-1.14-.42-2.17-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.55.12-.12.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.47-.84-2.01-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29s.98 2.66 1.12 2.84c.14.18 1.93 2.95 4.68 4.13.65.28 1.16.45 1.56.57.65.21 1.25.18 1.72.11.53-.08 1.6-.65 1.83-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"></path></svg>
 </button>
-<button type="button" onclick="{{ v.openMap }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="Map">
+<button type="button" onclick="{{ v.openMap }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="{{ v.mapTitle }}">
 <svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
 </button>
-<button type="button" onclick="{{ v.openCard }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#1d60a2; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer;">
-                  Customer card
+<button type="button" onclick="{{ v.openCard }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#1d60a2; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer;" data-no-i18n="true">
+                  {{ v.cardLabel }}
                   <svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="m14 7-5 5 5 5"></path></svg>
 </button>
 </div>
 <div style="display:flex; gap:8px; margin-top:8px;">
-<button type="button" onclick="{{ v.closeCall }}" style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; font-size:13.5px; font-weight:700; cursor:pointer;">
+<button type="button" onclick="{{ v.closeCall }}" style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border:none; border-radius:11px; background:#eaf7ef; color:#2e8a63; font-size:13.5px; font-weight:700; cursor:pointer;" data-no-i18n="true">
 <svg fill="none" height="15" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M20 6 9 17l-5-5"></path></svg>
-                  close ticket
+                  {{ v.closeLabel }}
                 </button>
 </div>
 </sc-if>
@@ -165,7 +165,7 @@ mbCss('./common.css');
 <button type="button" onclick="{{ v.openWhatsApp }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#e8f8ef; color:#25b35e; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="WhatsApp">
 <svg fill="#25b35e" height="20" viewBox="0 0 24 24" width="20"><path d="M20.5 3.5A11 11 0 0 0 3.2 17.7L2 22l4.4-1.15A11 11 0 1 0 20.5 3.5zm-8.5 17a9 9 0 0 1-4.6-1.3l-.3-.18-2.7.7.72-2.63-.2-.31A9 9 0 1 1 12 20.5zm4.9-6.7c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.61.14-.18.27-.7.88-.86 1.06-.16.18-.32.2-.59.07-.27-.14-1.14-.42-2.17-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.55.12-.12.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.47-.84-2.01-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29s.98 2.66 1.12 2.84c.14.18 1.93 2.95 4.68 4.13.65.28 1.16.45 1.56.57.65.21 1.25.18 1.72.11.53-.08 1.6-.65 1.83-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"></path></svg>
 </button>
-<button type="button" onclick="{{ v.openMap }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="Map">
+<button type="button" onclick="{{ v.openMap }}" style="flex:none; width:42px; height:42px; border:none; border-radius:11px; background:#eef3fd; color:#1d60a2; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;" title="{{ v.mapTitle }}">
 <svg fill="none" height="20" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
 </button>
 <button type="button" onclick="{{ v.viewCall }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border:none; border-radius:11px; background:#c0392b; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(192,57,43,.28);">
@@ -1402,6 +1402,9 @@ class Component extends DCLogic {
       phoneHref: phone ? ('tel:' + phone) : '#',
       chatHref: chatHref,
       mapHref: this.buildMapHref(ticket) || '#',
+      mapTitle: this.t('Map', 'מפה'),
+      cardLabel: this.t('Customer card', 'כרטיס לקוח'),
+      closeLabel: this.t('close ticket', 'סגור טיקט'),
       viewLabel: this.t('View', 'צפייה'),
       openWhatsApp: function (e) { self.openBiz1WhatsAppChat(ticket, e); },
       openMap: function (e) { self.openMap(ticket, e); },

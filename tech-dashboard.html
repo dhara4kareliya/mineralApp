@@ -110,18 +110,18 @@ mbCss('./common.css');
 </div>
 <!-- open tickets by installation (to do) -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
-<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Detail by type of installation</span>
+<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ openTicketsSectionLabel }}</span>
 <span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ openTicketsCountLabel }}</span>
 </div>
 <div style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsLoading }}">
 <div class="mb-inline-loader">
 <div class="mb-page-loader__spin" aria-hidden="true"></div>
-<div class="mb-page-loader__label">Loading…</div>
+<div class="mb-page-loader__label" data-no-i18n="true">{{ loadingLabel }}</div>
 </div>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsEmpty }}">
-<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;">No open tickets</div>
+<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;" data-no-i18n="true">{{ openTicketsEmptyLabel }}</div>
 </sc-if>
 <sc-for as="ot" hint-placeholder-count="0" list="{{ openTickets }}">
 <div style="padding:12px 0; border-bottom:1px solid {{ ot.border }};">
@@ -147,12 +147,12 @@ mbCss('./common.css');
 </sc-for>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showOpenTicketsPager }}">
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; padding:12px 4px 4px; border-top:1px solid #f0f2f5;">
-<button type="button" onclick="{{ prevOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openPrevBg }}; color:{{ openPrevColor }}; font-size:13px; font-weight:800; cursor:{{ openPrevCursor }}; opacity:{{ openPrevOpacity }}; font-family:inherit;">‹ Prev</button>
+<button type="button" onclick="{{ prevOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openPrevBg }}; color:{{ openPrevColor }}; font-size:13px; font-weight:800; cursor:{{ openPrevCursor }}; opacity:{{ openPrevOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openPrevLabel }}</button>
 <div style="text-align:center; flex:1; min-width:0;">
 <div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ openTicketsRangeLabel }}</div>
 <div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ openTicketsPageLabel }}</div>
 </div>
-<button type="button" onclick="{{ nextOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openNextBg }}; color:{{ openNextColor }}; font-size:13px; font-weight:800; cursor:{{ openNextCursor }}; opacity:{{ openNextOpacity }}; font-family:inherit;">Next ›</button>
+<button type="button" onclick="{{ nextOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openNextBg }}; color:{{ openNextColor }}; font-size:13px; font-weight:800; cursor:{{ openNextCursor }}; opacity:{{ openNextOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openNextLabel }}</button>
 </div>
 </sc-if>
 </div>
@@ -717,6 +717,9 @@ class Component extends DCLogic {
       openTicketsCountLabel: st.loadingOpenTickets
         ? ''
         : (totalOpen + ' ' + this.t('open tickets', 'קריאות פתוחות')),
+      openTicketsSectionLabel: this.t('Detail by type of installation', 'פירוט לפי סוג התקנה'),
+      openTicketsEmptyLabel: this.t('No open tickets', 'אין קריאות פתוחות'),
+      loadingLabel: this.t('Loading…', 'טוען…'),
       showOpenTicketsPager: !st.loadingOpenTickets && totalOpen > 0,
       openTicketsRangeLabel: totalOpen
         ? (from + '–' + to + ' ' + this.t('of', 'מתוך') + ' ' + totalOpen)
@@ -724,6 +727,8 @@ class Component extends DCLogic {
       openTicketsPageLabel: this.t('Page ', 'עמוד ') + page + ' / ' + totalPages,
       prevOpenTickets: function () { self.prevOpenTickets(); },
       nextOpenTickets: function () { self.nextOpenTickets(); },
+      openPrevLabel: this.t('‹ Prev', '‹ הקודם'),
+      openNextLabel: this.t('Next ›', 'הבא ›'),
       openPrevBg: canPrev ? '#1d60a2' : '#e9ecf0',
       openNextBg: canNext ? '#1d60a2' : '#e9ecf0',
       openPrevColor: canPrev ? '#fff' : '#9aa3b0',

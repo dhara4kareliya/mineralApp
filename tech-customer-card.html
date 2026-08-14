@@ -132,7 +132,7 @@ mbCss('./common.css');
 </div>
 <div>
 <div style="font-size:14px; font-weight:700; color:#1f2a3a;">{{ p.name }}</div>
-<div style="font-size:11.5px; color:#9aa3b0; margin-top:1px;">{{ p.date }} installed</div>
+<div style="font-size:11.5px; color:#9aa3b0; margin-top:1px;" data-no-i18n="true">{{ p.dateLabel }}</div>
 </div>
 </div>
 <span style="font-size:11px; font-weight:700; color:{{ p.tagColor }}; background:{{ p.tagBg }}; padding:4px 9px; border-radius:99px;">{{ p.tag }}</span>
@@ -230,8 +230,11 @@ class Component extends DCLogic {
   };
 
   renderVals() {
+    var isEn = typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+    var installedSuffix = isEn ? ' installed' : ' הותקן';
     const products = this.PRODUCTS.map((p, i) => ({
       name: p.name, date: p.date, tag: p.tag, tagColor: p.tagColor, tagBg: p.tagBg,
+      dateLabel: (p.date || '') + installedSuffix,
       iconBg: this.PCOL[p.kind].iconBg, iconColor: this.PCOL[p.kind].iconColor,
       isFilter: p.kind === 'filter', isDrop: p.kind === 'drop', isShield: p.kind === 'shield',
       border: i === this.PRODUCTS.length - 1 ? 'transparent' : '#f0f2f5',

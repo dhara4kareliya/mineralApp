@@ -68,8 +68,8 @@ mbCss('./common.css');
               password <span style="color:#c0392b;">*</span>
 </label>
 <div style="position:relative;">
-<input autocomplete="current-password" class="ds-input" oninput="{{ onPassword }}" placeholder="Enter a password" style="width:100%; padding-block:13px; padding-inline-start:46px; padding-inline-end:13px; border:1.5px solid {{ passBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="{{ passwordType }}" value="{{ password }}"/>
-<button aria-label="Show or hide password" onclick="{{ togglePassword }}" style="position:absolute; inset-inline-start:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:9px; background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#9aa3b0;" type="button">
+<input autocomplete="current-password" class="ds-input" oninput="{{ onPassword }}" placeholder="Enter a password" style="width:100%; padding-block:13px; padding-inline-start:13px; padding-inline-end:46px; border:1.5px solid {{ passBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:start; background:#fff;" type="{{ passwordType }}" value="{{ password }}"/>
+<button aria-label="Show or hide password" onclick="{{ togglePassword }}" style="position:absolute; inset-inline-end:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:9px; background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#9aa3b0;" type="button">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showPassword }}">
 <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><path d="m1 1 22 22"></path></svg>
 </sc-if>

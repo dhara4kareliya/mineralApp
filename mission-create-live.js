@@ -39,6 +39,11 @@
       : true;
   }
 
+  function uiT(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    return isEn() ? en : he;
+  }
+
   function formatDisplayDate(d) {
     if (!d || Number.isNaN(d.getTime())) return '—';
     return pad(d.getDate()) + '-' + pad(d.getMonth() + 1) + '-' + d.getFullYear() +
@@ -156,12 +161,12 @@
 
     var timePreview = document.getElementById('mb-time-preview');
     if (timePreview) {
-      timePreview.textContent = 'Task set for: ' + formatted + '  (at ' + clockOnly + ')';
+      timePreview.textContent = uiT('Task set for: ', 'המשימה נקבעה ל: ') + formatted + uiT(' (at ', ' (בשעה ') + clockOnly + ')';
     }
 
     var preview = document.getElementById('mb-date-preview');
     if (preview) {
-      preview.textContent = 'Date to do: ' + formatted;
+      preview.textContent = uiT('Date to do: ', 'תאריך לביצוע: ') + formatted;
     }
   }
 

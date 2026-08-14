@@ -148,7 +148,7 @@ mbCss('./common.css');
 <svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M6 2.5h8L19 7v14.5H6z"></path><path d="M14 2.5V7h5M9 12h6M9 16h4"></path></svg>
             A preliminary note <span style="color:#9aa3b0; font-weight:500;">(optional)</span>
 </label>
-<textarea class="ds-input" oninput="{{ onComments }}" value="{{ comments }}" placeholder='For example: "Interested in a primary filter, also talking about a water softener"' style="width:100%; min-height:92px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:left; resize:none; background:#fff; line-height:1.6;"></textarea>
+<textarea class="ds-input" oninput="{{ onComments }}" value="{{ comments }}" placeholder="{{ commentsPlaceholder }}" style="width:100%; min-height:92px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; font-size:14px; color:#1f2a3a; text-align:start; resize:none; background:#fff; line-height:1.6;"></textarea>
 </div>
 </div>
 <!-- submit -->
@@ -307,6 +307,9 @@ class Component extends DCLogic {
       area: this.state.area || '',
       areas: areas,
       comments: String(this.state.comments == null ? '' : this.state.comments),
+      commentsPlaceholder: isEn
+        ? 'For example: "Interested in a primary filter, also talking about a water softener"'
+        : 'לדוגמה: "מעוניין במסנן ראשי, גם מדברים על מרכך מים"',
       submitting: !!this.state.submitting,
       error: this.state.error || '',
       sources, statuses,
@@ -323,8 +326,11 @@ class Component extends DCLogic {
 
   async submit() {
     if (this.state.submitting) return;
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
     if (!this.state.name || !this.state.phone) {
-      alert('Please fill the required fields (name and phone)');
+      alert(isEn
+        ? 'Please fill the required fields (name and phone)'
+        : 'נא למלא את השדות החובה (שם וטלפון)');
       return;
     }
     this.setState({ submitting: true, error: '' });
@@ -334,7 +340,7 @@ class Component extends DCLogic {
       var areaText = this.areaLabel(areaVal);
       var noteParts = [];
       if (this.state.comments) noteParts.push(String(this.state.comments));
-      if (areaText) noteParts.push('Area: ' + areaText);
+      if (areaText) noteParts.push((isEn ? 'Area: ' : 'אזור: ') + areaText);
 
       const payload = {
         name: this.state.name,
@@ -357,17 +363,17 @@ class Component extends DCLogic {
       
       const res = await MineralBarApp.createCustomer(payload);
       if (res && res.ok) {
-        alert('Lead added successfully!');
+        alert(isEn ? 'Lead added successfully!' : 'הליד נוסף בהצלחה!');
         window.location.href = 'leads-list.html?refresh=' + Date.now();
       } else {
-        const err = (res && res.raw && res.raw.message) || 'Failed to add lead';
+        const err = (res && res.raw && res.raw.message) || (isEn ? 'Failed to add lead' : 'הוספת ליד נכשלה');
         this.setState({ error: err });
-        alert('Error: ' + err);
+        alert((isEn ? 'Error: ' : 'שגיאה: ') + err);
       }
     } catch (e) {
       const err = String(e.message || e);
       this.setState({ error: err });
-      alert('Error: ' + err);
+      alert((isEn ? 'Error: ' : 'שגיאה: ') + err);
     } finally {
       this.setState({ submitting: false });
     }
