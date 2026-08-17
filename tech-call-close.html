@@ -49,7 +49,8 @@ mbCss('./common.css');
     text-align: right !important;
   }
   /* Cash amount is always LTR digits + ₪ on the right — avoid icon/text overlap */
-  #cash-amount-input.ds-input {
+  #cash-amount-input.ds-input,
+  #spare-price-input.ds-input {
     direction: ltr !important;
     text-align: left !important;
   }
@@ -172,6 +173,8 @@ mbCss('./common.css');
 </div>
 </div>
 
+<!-- 2–3. description + photos (hidden for no-answer / not-performed) -->
+<div style="display:{{ workMediaDisplay }};">
 <!-- 2. description + chips -->
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 9px;">{{ labelSummary }} <span style="color:#c0392b;">*</span></div>
 <textarea id="work-summary-input" class="ds-input" oninput="{{ onSummary }}" placeholder="{{ summaryPh }}" style="width:100%; min-height:96px; padding:13px; border:1.5px solid {{ summaryBorder }}; border-radius:13px; font-size:14px; color:#1f2a3a; resize:none; background:#fff; margin-bottom:6px;"></textarea>
@@ -204,6 +207,7 @@ mbCss('./common.css');
 <input accept="image/*" id="extra-photo-input" type="file"/>
 </label>
 </div>
+</div>
 
 <!-- 4. digital service / customer details -->
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 10px;">{{ labelDigitalForm }} <span style="color:#c0392b;">*</span></div>
@@ -232,10 +236,25 @@ mbCss('./common.css');
 </label>
 <input class="ds-input" readonly="" value="{{ customerId }}" placeholder="{{ customerIdPlaceholder }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#f6f8fa; cursor:default;"/>
 </div>
+<!-- warranty months (default 0) + installer -->
+<div style="display:flex; gap:11px; padding-top:11px;">
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelWarrantyMonths }}</label>
+<select id="warranty-months-select" class="ds-input" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;">
+<sc-for as="w" hint-placeholder-count="4" list="{{ warrantyOptions }}">
+<option value="{{ w.id }}">{{ w.label }}</option>
+</sc-for>
+</select>
+</div>
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelInstaller }}</label>
+<input id="installer-name-input" class="ds-input" oninput="{{ onInstallerName }}" value="{{ installerName }}" placeholder="{{ installerPh }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#f6f8fa;"/>
+</div>
+</div>
 </div>
 
-<!-- spare parts / work detail -->
-<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; overflow:hidden;">
+<!-- spare parts / work detail (hidden for no-answer) -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; overflow:hidden; display:{{ workDetailsDisplay }};">
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelSpares }} <span style="font-size:11.5px; color:#9aa3b0; font-weight:600;">({{ optionalLabel }})</span></div>
 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px; min-width:0;">
 <select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; max-height:220px; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff; overflow-y:auto;">
@@ -244,14 +263,27 @@ mbCss('./common.css');
 <option value="{{ p.id }}">{{ p.name }}</option>
 </sc-for>
 </select>
-<div style="display:flex; align-items:center; gap:8px; min-width:0;">
-<input id="spare-qty-input" class="ds-input" inputmode="numeric" oninput="{{ onQty }}" style="width:64px; flex:none; box-sizing:border-box; padding:11px 8px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;" value="{{ qty }}"/>
-<button type="button" onclick="{{ addSpare }}" style="flex:1; min-width:0; padding:11px 14px; border:none; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap;">{{ addPart }}</button>
+<div style="display:flex; align-items:flex-end; gap:8px; min-width:0;">
+<div style="width:64px; flex:none;">
+<input id="spare-qty-input" class="ds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="width:100%; box-sizing:border-box; padding:11px 6px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;"/>
+<div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:4px; text-align:center;">{{ labelQty }}</div>
+</div>
+<div style="flex:1; min-width:0;">
+<div style="position:relative;">
+<input id="spare-price-input" class="ds-input" readonly="" tabindex="-1" placeholder="0" style="width:100%; box-sizing:border-box; direction:ltr; text-align:left; padding:11px 28px 11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; background:#f6f8fa; cursor:default;"/>
+<span aria-hidden="true" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:12px; font-weight:700; pointer-events:none;">₪</span>
+</div>
+<div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:4px;">{{ labelPrice }}</div>
+</div>
+<button type="button" onclick="{{ addSpare }}" style="flex:none; padding:11px 14px; border:none; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; margin-bottom:18px;">{{ addPart }}</button>
 </div>
 </div>
 <sc-for as="s" hint-placeholder-count="0" list="{{ spares }}">
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid #f0f2f5; min-width:0;">
-<div style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">{{ s.name }} × {{ s.qty }}</div>
+<div style="min-width:0; overflow:hidden;">
+<div style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ s.name }} × {{ s.qty }}</div>
+<div style="font-size:12px; color:#7b8595; font-weight:600; margin-top:2px; display:{{ s.priceDisplay }};">{{ s.priceLabel }}</div>
+</div>
 <button type="button" onclick="{{ s.remove }}" style="border:none; background:none; color:#c0392b; font-size:12.5px; font-weight:700; cursor:pointer; flex:none;">{{ removePart }}</button>
 </div>
 </sc-for>
@@ -288,8 +320,8 @@ mbCss('./common.css');
 </div>
 </button>
 
-<!-- signature -->
-<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+<!-- signature (hidden for no-answer) -->
+<div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; display:{{ signatureDisplay }};">
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
 <div style="font-size:14px; font-weight:800; color:#16223a;">{{ labelSignature }} <span style="color:#c0392b;">*</span></div>
 <button type="button" onclick="{{ clearSig }}" style="padding:6px 10px; border:none; border-radius:9px; background:#f4f5f7; color:#5a6473; font-size:12px; font-weight:700; cursor:pointer;">{{ clearSigLabel }}</button>
@@ -358,6 +390,16 @@ mbCss('./common.css');
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewReason }}</div>
 </div>
 </sc-if>
+
+<div style="margin-bottom:14px; display:{{ viewWarrantyDisplay }};">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelWarrantyMonths }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewWarranty }}</div>
+</div>
+
+<div style="margin-bottom:14px; display:{{ viewInstallerDisplay }};">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelInstaller }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewInstaller }}</div>
+</div>
 
 <div style="margin-bottom:14px;">
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelSummary }}</div>
@@ -457,7 +499,7 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showActions }}">
 <div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px;" data-no-i18n="true">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showForm }}">
-<button type="button" id="submit-close-btn" onclick="{{ submit }}" disabled="{{ submitDisabled }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
+<button type="button" id="submit-close-btn" onclick="{{ submitClose }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
 <span id="submit-close-label">{{ submitLabel }}</span>
         </button>
 </sc-if>
@@ -505,6 +547,10 @@ class Component extends DCLogic {
     cash: null,
     cashAmount: '',
     viewCashLabel: '',
+    warrantyMonths: '0',
+    installerName: '',
+    viewWarranty: '',
+    viewInstaller: '',
     terms: false,
     sendCopy: true,
     waSent: false,
@@ -598,9 +644,115 @@ class Component extends DCLogic {
     return !!(s && s.reason);
   }
 
+  /** Work description + device photos are irrelevant for no-answer / not-performed. */
+  skipWorkMedia() {
+    var id = this.state.closeStatus;
+    return id === 'noanswer' || id === 'notdone';
+  }
+
+  needsWorkMedia() {
+    return !this.skipWorkMedia();
+  }
+
+  /** Spare parts / cash + customer signature are irrelevant when there was no answer. */
+  skipWorkDetails() {
+    return this.state.closeStatus === 'noanswer';
+  }
+
+  needsSignature() {
+    return !this.skipWorkDetails();
+  }
+
   closeStatusLabelOf(id) {
     var s = this.statusDefs().find(function (x) { return x.id === id; });
     return (s && s.label) || '';
+  }
+
+  warrantyOptionsList() {
+    return [
+      { id: '0', label: this.t('0 months', '0 חודשים') },
+      { id: '12', label: this.t('12 months', '12 חודשים') },
+      { id: '24', label: this.t('24 months', '24 חודשים') },
+      { id: '36', label: this.t('3 years', '3 שנים') }
+    ];
+  }
+
+  warrantyLabelOf(months) {
+    var id = String(months == null || months === '' ? '0' : months);
+    var hit = this.warrantyOptionsList().find(function (x) { return x.id === id; });
+    if (hit) return hit.label;
+    var n = parseInt(id, 10);
+    if (!isFinite(n) || n < 0) n = 0;
+    return n + ' ' + this.t('months', 'חודשים');
+  }
+
+  resolveInstallerName() {
+    try {
+      var u = (window.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser()) || null;
+      if (!u) return '';
+      return String(
+        u.name || u.full_name || u.display_name || u.user_name ||
+        [u.first_name, u.last_name].filter(Boolean).join(' ') ||
+        u.email || ''
+      ).trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  readSparePrice() {
+    var el = document.getElementById('spare-price-input');
+    var raw = String((el && el.value) || this._sparePriceValue || '').replace(/[^0-9.]/g, '');
+    return raw;
+  }
+
+  formatSparePrice(price) {
+    var n = String(price == null ? '' : price).replace(/[^0-9.]/g, '');
+    if (!n) return '';
+    return n + ' ₪';
+  }
+
+  formatMoney(n) {
+    var num = Number(n);
+    if (!isFinite(num) || num <= 0) return '';
+    var r = Math.round(num * 100) / 100;
+    return String(r % 1 === 0 ? r : r.toFixed(2));
+  }
+
+  qtyNumber() {
+    var raw = this._qtyValue != null ? this._qtyValue : (this.state.qty != null ? this.state.qty : '1');
+    var el = document.getElementById('spare-qty-input');
+    if (el && document.activeElement === el) raw = el.value;
+    var n = parseInt(String(raw || '').replace(/[^0-9]/g, ''), 10);
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+
+  unitNumber() {
+    var n = parseFloat(String(this._spareUnitPrice || '').replace(/[^0-9.]/g, ''));
+    return isFinite(n) ? n : 0;
+  }
+
+  refreshSpareTotal() {
+    var total = this.qtyNumber() * this.unitNumber();
+    var shown = this.formatMoney(total);
+    this._sparePriceValue = shown;
+    var priceEl = document.getElementById('spare-price-input');
+    if (priceEl && priceEl.value !== shown) priceEl.value = shown;
+  }
+
+  bindSpareInputs() {
+    var self = this;
+    var qtyEl = document.getElementById('spare-qty-input');
+    if (qtyEl && qtyEl.getAttribute('data-bound') !== '1') {
+      qtyEl.setAttribute('data-bound', '1');
+      qtyEl.addEventListener('input', function (e) { self.onQty(e); });
+      qtyEl.addEventListener('keydown', function (e) { e.stopPropagation(); });
+    }
+    var wsel = document.getElementById('warranty-months-select');
+    if (wsel && wsel.getAttribute('data-bound') !== '1') {
+      wsel.setAttribute('data-bound', '1');
+      wsel.addEventListener('change', function (e) { self.onWarrantyMonths(e); });
+    }
   }
 
   reasonOptionsList() {
@@ -649,6 +801,18 @@ class Component extends DCLogic {
     this.updateSubmitEnabled();
   }
 
+  onWarrantyMonths(e) {
+    var val = String((e && e.target && e.target.value) || '0');
+    this._warrantyMonths = val;
+    this.state.warrantyMonths = val;
+  }
+
+  onInstallerName(e) {
+    var val = String((e && e.target && e.target.value) || '');
+    this._installerNameValue = val;
+    this.state.installerName = val;
+  }
+
   addChip(label) {
     var el = document.getElementById('work-summary-input');
     var cur = String((el && el.value) || this.state.summary || '').trim();
@@ -673,12 +837,12 @@ class Component extends DCLogic {
     if (this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) {
       m.push(this.t('Reason details', 'פירוט הסיבה'));
     }
-    if (summary.length < 2) m.push(this.t('Work description', 'תיאור הביצוע'));
-    if (st.cash === 'yes' && !(parseInt(st.cashAmount, 10) > 0)) {
+    if (this.needsWorkMedia() && summary.length < 2) m.push(this.t('Work description', 'תיאור הביצוע'));
+    if (this.needsSignature() && st.cash === 'yes' && !(parseInt(st.cashAmount, 10) > 0)) {
       m.push(this.t('Cash amount', 'סכום המזומן'));
     }
     if (!st.terms) m.push(this.t('Customer approval', 'אישור תנאים'));
-    if (!hasSig) m.push(this.t('Digital Signature', 'חתימת הלקוח'));
+    if (this.needsSignature() && !hasSig) m.push(this.t('Digital Signature', 'חתימת הלקוח'));
     return m;
   }
 
@@ -748,8 +912,13 @@ class Component extends DCLogic {
       lines.push(String(summary));
     }
     (s.spares || []).forEach(function (sp) {
-      lines.push('- ' + (sp.name || ('#' + sp.id)) + ' x' + (sp.qty || 1));
+      var line = '- ' + (sp.name || ('#' + sp.id)) + ' x' + (sp.qty || 1);
+      if (sp.price) line += ' · ' + sp.price + ' ₪';
+      lines.push(line);
     });
+    var wMonths = String(s.warrantyMonths != null && s.warrantyMonths !== '' ? s.warrantyMonths : '0');
+    lines.push((en ? 'Warranty: ' : 'אחריות: ') + this.warrantyLabelOf(wMonths));
+    if (s.installerName) lines.push((en ? 'Installer: ' : 'מתקין: ') + s.installerName);
     if (s.cash === 'yes') {
       lines.push((en ? 'Cash collected: ' : 'מזומן שנגבה: ') + (s.cashAmount || '0') + ' ₪');
     }
@@ -1215,7 +1384,13 @@ class Component extends DCLogic {
             closeStatus: close0.id || this.state.closeStatus || '',
             closeStatusLabel: close0.label || this.state.closeStatusLabel || '',
             viewReason: this.parseClosingReason(liveTicket) || this.state.viewReason || '',
-            viewCashLabel: this.parseCashFromTicket(liveTicket).label || this.state.viewCashLabel || ''
+            viewCashLabel: this.parseCashFromTicket(liveTicket).label || this.state.viewCashLabel || '',
+            warrantyMonths: this.parseWarrantyMonths(liveTicket) || this.state.warrantyMonths || '0',
+            viewWarranty: (function () {
+              var wm = this.parseWarrantyMonths(liveTicket);
+              return wm !== '' ? this.warrantyLabelOf(wm) : (this.state.viewWarranty || '');
+            }.call(this)),
+            viewInstaller: this.parseInstallerName(liveTicket) || this.state.viewInstaller || this.state.installerName || ''
           });
         }
       } catch (eSoft) {
@@ -1248,6 +1423,10 @@ class Component extends DCLogic {
         cash: null,
         cashAmount: '',
         viewCashLabel: '',
+        warrantyMonths: '0',
+        installerName: this.resolveInstallerName() || this.state.installerName || '',
+        viewWarranty: '',
+        viewInstaller: '',
         terms: false,
         sendCopy: true,
         waSent: false,
@@ -1298,7 +1477,14 @@ class Component extends DCLogic {
             closeStatus: closeInfo.id || '',
             closeStatusLabel: closeInfo.label || '',
             viewReason: this.parseClosingReason(ticket) || '',
-            viewCashLabel: this.parseCashFromTicket(ticket).label || ''
+            viewCashLabel: this.parseCashFromTicket(ticket).label || '',
+            warrantyMonths: this.parseWarrantyMonths(ticket) || '0',
+            viewWarranty: (function () {
+              var wm = this.parseWarrantyMonths(ticket);
+              return wm !== '' ? this.warrantyLabelOf(wm) : '';
+            }.call(this)),
+            installerName: this.parseInstallerName(ticket) || '',
+            viewInstaller: this.parseInstallerName(ticket) || ''
           });
         } else {
           var linkedForm = await this.resolveLinkedProducts(ticket);
@@ -1312,7 +1498,9 @@ class Component extends DCLogic {
             customerAddress: this.pickAddress(ticket) || this.state.customerAddress,
             customerId: this.pickCustomerId(ticket) || customerIdQ || this.state.customerId,
             ticketName: name || subject || ('#' + tid),
-            linkedProducts: linkedForm
+            linkedProducts: linkedForm,
+            installerName: this.state.installerName || this.resolveInstallerName() || '',
+            warrantyMonths: this.state.warrantyMonths != null && this.state.warrantyMonths !== '' ? this.state.warrantyMonths : '0'
           });
           if (!silent) {
             this.scheduleBind(200);
@@ -1722,15 +1910,87 @@ class Component extends DCLogic {
     var lines = String(msgs || '').split('\n');
     var spares = [];
     lines.forEach(function (line) {
-      var mm = line.match(/^-\s*(.+?)\s*x(\d+)\s*$/i);
-      if (mm) spares.push({ id: 'x' + spares.length, name: mm[1], qty: Number(mm[2]) || 1 });
+      var mm = String(line || '').trim().match(/^-\s*(.+?)\s*x(\d+)(?:\s*[·.]\s*(\d+(?:\.\d+)?)\s*(?:₪|ILS)?)?\s*$/i);
+      if (mm) spares.push({ id: 'x' + spares.length, name: mm[1], qty: Number(mm[2]) || 1, price: mm[3] || '' });
     });
     return spares;
+  }
+
+  currentWarrantyMonths() {
+    if (this._warrantyMonths != null && this._warrantyMonths !== '') return String(this._warrantyMonths);
+    var el = document.getElementById('warranty-months-select');
+    if (el && String(el.value || '') !== '') return String(el.value);
+    if (this.state.warrantyMonths != null && this.state.warrantyMonths !== '') return String(this.state.warrantyMonths);
+    return '0';
+  }
+
+  parseExtraFields(ticket) {
+    var ef = ticket && (ticket.extra_fields != null ? ticket.extra_fields : ticket.extra_fields_json);
+    if (typeof ef === 'string') {
+      try { ef = JSON.parse(ef); } catch (e) { ef = null; }
+    }
+    if (Array.isArray(ef)) {
+      var obj = {};
+      ef.forEach(function (row) {
+        if (!row || typeof row !== 'object') return;
+        var k = row.key || row.name || row.field || row.id;
+        var v = row.value != null ? row.value : row.val;
+        if (k != null) obj[String(k)] = v;
+      });
+      return obj;
+    }
+    if (ef && typeof ef === 'object') return ef;
+    return {};
+  }
+
+  parseWarrantyMonths(ticket) {
+    var cf = this.parseCustomFields(ticket);
+    var extra = this.parseExtraFields(ticket);
+    var candidates = [
+      cf.warranty_months, cf.warrantyMonths, cf['cf-warranty_months'],
+      extra.warranty_months, extra.warrantyMonths,
+      ticket && ticket.warranty_months
+    ];
+    var raw = '';
+    var i;
+    for (i = 0; i < candidates.length; i++) {
+      if (candidates[i] == null || String(candidates[i]).trim() === '') continue;
+      var onlyNum = String(candidates[i]).trim();
+      if (/^\d+$/.test(onlyNum) || /^\d+\s*(months?|חודש|חודשים)?$/i.test(onlyNum) || /^3\s*years?/i.test(onlyNum) || onlyNum.indexOf('שנים') >= 0) {
+        raw = onlyNum;
+        break;
+      }
+    }
+    if (!raw) {
+      var text = this.ticketNotesText(ticket);
+      var m = text.match(/Warranty months:\s*([^\n]+)/i)
+        || text.match(/אחריות(?:\s*\([^)]+\))?\s*[:：]\s*([^\n]+)/);
+      if (m && m[1]) raw = String(m[1]).trim();
+    }
+    if (!raw) return '';
+    var n = parseInt(String(raw).replace(/[^\d]/g, ''), 10);
+    if (!isFinite(n) || n < 0) return '';
+    if (n === 3 && /year|שנ/i.test(raw)) n = 36;
+    return String(n);
+  }
+
+  parseInstallerName(ticket) {
+    var cf = this.parseCustomFields(ticket);
+    var raw = cf.installer_name != null ? cf.installer_name
+      : (cf.installerName != null ? cf.installerName : (cf.technician_name != null ? cf.technician_name : ''));
+    raw = String(raw != null ? raw : '').trim();
+    if (!raw) {
+      var m = this.ticketNotesText(ticket).match(/Installer:\s*([^\n]+)/i);
+      if (m && m[1]) raw = String(m[1]).trim();
+    }
+    return raw;
   }
 
   bindDom() {
     this.bindPhotos();
     this.bindSignature();
+    this.bindSpareInputs();
+    this.bindSubmitButton();
     this.syncPhotoPreviews();
     this.syncExtraPhotos();
     this.syncSummaryInput();
@@ -1765,6 +2025,22 @@ class Component extends DCLogic {
       var cv = this._cashAmountValue != null ? this._cashAmountValue : (this.state.cashAmount || '');
       if (cashEl.value !== String(cv)) cashEl.value = String(cv);
     }
+    var wsel = document.getElementById('warranty-months-select');
+    if (wsel && document.activeElement !== wsel) {
+      var wwant = this.currentWarrantyMonths();
+      if (wsel.value !== wwant) wsel.value = wwant;
+    }
+    var inst = document.getElementById('installer-name-input');
+    if (inst && document.activeElement !== inst) {
+      var iv = this._installerNameValue != null ? this._installerNameValue : (this.state.installerName || '');
+      if (inst.value !== String(iv)) inst.value = String(iv);
+    }
+    var qtyEl = document.getElementById('spare-qty-input');
+    if (qtyEl && document.activeElement !== qtyEl) {
+      var qv = this._qtyValue != null ? String(this._qtyValue) : String(this.state.qty != null && this.state.qty !== '' ? this.state.qty : '1');
+      if (qtyEl.value !== qv) qtyEl.value = qv;
+    }
+    this.refreshSpareTotal();
   }
 
   updateSubmitEnabled() {
@@ -1773,18 +2049,36 @@ class Component extends DCLogic {
     var st = this.state;
     var canSubmit = this.canFormSubmit();
     // Only style/label text — never replace button.innerHTML (breaks DC insertBefore)
-    btn.disabled = !canSubmit || !!st.busy;
+    // Do not set the HTML disabled attribute — disabled="false" still blocks clicks.
+    if (canSubmit && !st.busy) btn.removeAttribute('disabled');
+    else btn.setAttribute('disabled', 'disabled');
     btn.style.background = canSubmit ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0';
     btn.style.color = canSubmit ? '#fff' : '#9aa3b0';
     btn.style.cursor = canSubmit ? 'pointer' : 'not-allowed';
     btn.style.boxShadow = canSubmit ? '0 6px 16px rgba(44,138,96,.32)' : 'none';
     btn.style.opacity = st.busy ? '0.75' : '1';
+    btn.style.pointerEvents = (canSubmit && !st.busy) ? 'auto' : 'none';
     var label = document.getElementById('submit-close-label');
     if (label && !st.busy) {
       label.textContent = canSubmit
         ? this.t('Confirm & close ticket', 'אשר וסגור קריאה')
         : this.t('Complete required fields to close', 'השלם שדות חובה לסגירה');
     }
+  }
+
+  bindSubmitButton() {
+    var btn = document.getElementById('submit-close-btn');
+    if (!btn || btn.getAttribute('data-bound') === '1') return;
+    btn.setAttribute('data-bound', '1');
+    var self = this;
+    btn.addEventListener('click', function (e) {
+      try {
+        if (e && e.preventDefault) e.preventDefault();
+        if (e && e.stopPropagation) e.stopPropagation();
+      } catch (err) { /* ignore */ }
+      if (!self.canFormSubmit()) return;
+      self.submit();
+    });
   }
 
   bindPhotos() {
@@ -2036,14 +2330,22 @@ class Component extends DCLogic {
   }
 
   onProductPick(e) {
-    // Avoid setState here — it recreates the signature canvas
+    // Avoid setState here — it recreates the signature canvas / resets qty
     this.state.productId = String((e && e.target && e.target.value) || '');
+    var id = this.state.productId;
+    var product = (this.state.products || []).find(function (p) { return String(p.id) === String(id); });
+    var unit = product && product.price != null ? String(product.price).replace(/[^0-9.]/g, '') : '';
+    this._spareUnitPrice = unit;
+    this.refreshSpareTotal();
   }
 
   onQty(e) {
-    var v = String((e && e.target && e.target.value) || '').replace(/[^0-9]/g, '');
-    // Keep local — avoid re-render while typing qty
-    this.state.qty = v || '1';
+    var el = (e && e.target) || document.getElementById('spare-qty-input');
+    var v = String((el && el.value) || '').replace(/[^0-9]/g, '');
+    if (el && el.value !== v) el.value = v;
+    this._qtyValue = v;
+    this.state.qty = v;
+    this.refreshSpareTotal();
   }
 
   addSpare() {
@@ -2057,17 +2359,30 @@ class Component extends DCLogic {
     var product = (this.state.products || []).find(function (p) { return String(p.id) === String(id); });
     if (!product) {
       var opt = select && select.options && select.options[select.selectedIndex];
-      product = { id: id, name: (opt && opt.text) || ('#' + id) };
+      product = { id: id, name: (opt && opt.text) || ('#' + id), price: this._spareUnitPrice || '' };
     }
-    var qtyRaw = (qtyEl && qtyEl.value) || this.state.qty || '1';
-    var qty = Math.max(1, parseInt(qtyRaw, 10) || 1);
+    var qty = this.qtyNumber() || 1;
+    var unit = this.unitNumber() || parseFloat(String(product.price != null ? product.price : '').replace(/[^0-9.]/g, '')) || 0;
+    var total = this.formatMoney(unit * qty);
+    var unitStr = this.formatMoney(unit);
     var spares = (this.state.spares || []).slice();
     var existing = spares.find(function (s) { return String(s.id) === String(id); });
-    if (existing) existing.qty += qty;
-    else spares.push({ id: product.id, name: product.name, qty: qty });
+    if (existing) {
+      existing.qty += qty;
+      existing.unitPrice = unitStr || existing.unitPrice || '';
+      existing.price = this.formatMoney((parseFloat(existing.unitPrice || unit) || 0) * existing.qty);
+    } else {
+      spares.push({ id: product.id, name: product.name, qty: qty, unitPrice: unitStr, price: total });
+    }
+    this._spareUnitPrice = '';
+    this._sparePriceValue = '';
+    this._qtyValue = '1';
+    this.state.qty = '1';
     this.setState({ spares: spares, productId: '', qty: '1', formError: '' });
     if (select) select.value = '';
     if (qtyEl) qtyEl.value = '1';
+    var priceEl = document.getElementById('spare-price-input');
+    if (priceEl) priceEl.value = '';
     var self = this;
     setTimeout(function () {
       self.bindDom();
@@ -2117,6 +2432,14 @@ class Component extends DCLogic {
     var summary = String((summaryEl && summaryEl.value) || st.summary || '').trim();
     var reasonOtherEl = document.getElementById('close-reason-other');
     if (reasonOtherEl) this.state.reasonOther = String(reasonOtherEl.value || '');
+    var installerEl = document.getElementById('installer-name-input');
+    if (installerEl) {
+      this.state.installerName = String(installerEl.value || '').trim();
+      this._installerNameValue = this.state.installerName;
+    }
+    var warrantyMonths = this.currentWarrantyMonths();
+    this._warrantyMonths = warrantyMonths;
+    this.state.warrantyMonths = warrantyMonths;
     var missing = this.formMissing();
     if (missing.length) {
       this.setState({
@@ -2139,38 +2462,44 @@ class Component extends DCLogic {
     try {
       var tid = st.ticketId;
       var media = { before: '', after: '', extras: [], signature: '' };
+      var includeWorkMedia = this.needsWorkMedia();
 
-      if (st.beforeDataUrl && String(st.beforeDataUrl).indexOf('data:') === 0) {
-        media.before = await this.uploadOne(tid, st.beforeDataUrl, 'ticket-' + tid + '-before-1.jpg');
-        if (!media.before) throw new Error(this.t('Photo upload failed', 'העלאת התמונה נכשלה'));
-      } else if (st.beforeDataUrl) {
-        media.before = st.beforeDataUrl;
-      }
-
-      if (st.afterDataUrl && String(st.afterDataUrl).indexOf('data:') === 0) {
-        media.after = await this.uploadOne(tid, st.afterDataUrl, 'ticket-' + tid + '-after-1.jpg');
-        if (!media.after) throw new Error(this.t('Photo upload failed', 'העלאת התמונה נכשלה'));
-      } else if (st.afterDataUrl) {
-        media.after = st.afterDataUrl;
-      }
-
-      var extras = st.extraPhotos || [];
-      for (var ei = 0; ei < extras.length; ei++) {
-        var ex = extras[ei];
-        var exUrl = '';
-        if (ex && ex.dataUrl && String(ex.dataUrl).indexOf('data:') === 0) {
-          exUrl = await this.uploadOne(tid, ex.dataUrl, 'ticket-' + tid + '-extra-' + (ei + 1) + '.jpg');
-        } else if (ex && ex.dataUrl) {
-          exUrl = ex.dataUrl;
+      if (includeWorkMedia) {
+        if (st.beforeDataUrl && String(st.beforeDataUrl).indexOf('data:') === 0) {
+          media.before = await this.uploadOne(tid, st.beforeDataUrl, 'ticket-' + tid + '-before-1.jpg');
+          if (!media.before) throw new Error(this.t('Photo upload failed', 'העלאת התמונה נכשלה'));
+        } else if (st.beforeDataUrl) {
+          media.before = st.beforeDataUrl;
         }
-        if (exUrl) media.extras.push(exUrl);
+
+        if (st.afterDataUrl && String(st.afterDataUrl).indexOf('data:') === 0) {
+          media.after = await this.uploadOne(tid, st.afterDataUrl, 'ticket-' + tid + '-after-1.jpg');
+          if (!media.after) throw new Error(this.t('Photo upload failed', 'העלאת התמונה נכשלה'));
+        } else if (st.afterDataUrl) {
+          media.after = st.afterDataUrl;
+        }
+
+        var extras = st.extraPhotos || [];
+        for (var ei = 0; ei < extras.length; ei++) {
+          var ex = extras[ei];
+          var exUrl = '';
+          if (ex && ex.dataUrl && String(ex.dataUrl).indexOf('data:') === 0) {
+            exUrl = await this.uploadOne(tid, ex.dataUrl, 'ticket-' + tid + '-extra-' + (ei + 1) + '.jpg');
+          } else if (ex && ex.dataUrl) {
+            exUrl = ex.dataUrl;
+          }
+          if (exUrl) media.extras.push(exUrl);
+        }
       }
 
-      var canvas = document.getElementById('sig-canvas');
-      var sigData = this._sigDataUrl || (canvas ? canvas.toDataURL('image/png') : '');
-      if (!sigData) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
-      media.signature = await this.uploadOne(tid, sigData, 'ticket-' + tid + '-signature.png');
-      if (!media.signature) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
+      var includeWorkDetails = this.needsSignature();
+      if (includeWorkDetails) {
+        var canvas = document.getElementById('sig-canvas');
+        var sigData = this._sigDataUrl || (canvas ? canvas.toDataURL('image/png') : '');
+        if (!sigData) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
+        media.signature = await this.uploadOne(tid, sigData, 'ticket-' + tid + '-signature.png');
+        if (!media.signature) throw new Error(this.t('Signature upload failed', 'העלאת החתימה נכשלה'));
+      }
 
       var statusLabel = st.closeStatusLabel || this.closeStatusLabelOf(st.closeStatus) || st.closeStatus;
       var reasonText = '';
@@ -2186,9 +2515,9 @@ class Component extends DCLogic {
       }
       var lines = ['Closing status: ' + statusLabel];
       if (st.customerId) lines.push('Customer ID: ' + st.customerId);
-      if (st.cash === 'yes') lines.push('Cash collected: ' + (st.cashAmount || '0') + ' ILS');
-      else if (st.cash === 'no') lines.push('Cash collected: no');
-      if (st.cash === 'yes' || st.cash === 'no') {
+      if (includeWorkDetails && st.cash === 'yes') lines.push('Cash collected: ' + (st.cashAmount || '0') + ' ILS');
+      else if (includeWorkDetails && st.cash === 'no') lines.push('Cash collected: no');
+      if (includeWorkDetails && (st.cash === 'yes' || st.cash === 'no')) {
         lines.push('CASH_META:' + JSON.stringify({
           collected: st.cash,
           amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9]/g, '') : ''
@@ -2198,14 +2527,21 @@ class Component extends DCLogic {
       if (st.sendCopy) lines.push('Send copy to customer: yes');
       else lines.push('Send copy to customer: no');
       if (reasonText) lines.push('Follow-up reason: ' + reasonText);
-      lines.push('Work summary: ' + summary);
-      (st.spares || []).forEach(function (s) {
-        lines.push('- ' + s.name + ' x' + s.qty);
-      });
+      lines.push('Warranty months: ' + warrantyMonths);
+      lines.push('Warranty: ' + this.warrantyLabelOf(warrantyMonths));
+      if (st.installerName) lines.push('Installer: ' + st.installerName);
+      if (includeWorkMedia && summary) lines.push('Work summary: ' + summary);
+      if (includeWorkDetails) {
+        (st.spares || []).forEach(function (s) {
+          var spareLine = '- ' + s.name + ' x' + s.qty;
+          if (s.price) spareLine += ' · ' + s.price + ' ILS';
+          lines.push(spareLine);
+        });
+      }
       if (media.before) lines.push('Before photo attached.');
       if (media.after) lines.push('After photo attached.');
       if (media.extras && media.extras.length) lines.push('Extra photos: ' + media.extras.length);
-      lines.push('Client signature saved.');
+      if (media.signature) lines.push('Client signature saved.');
       lines.push('BIZ1_MEDIA:' + JSON.stringify(media));
       var messages = lines.join('\n');
 
@@ -2220,7 +2556,9 @@ class Component extends DCLogic {
         custom_fields: {
           closing_status: st.closeStatus || statusLabel,
           cash_collected: st.cash === 'yes' ? 'yes' : (st.cash === 'no' ? 'no' : ''),
-          cash_amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9.]/g, '') : ''
+          cash_amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9.]/g, '') : '',
+          warranty_months: warrantyMonths,
+          installer_name: String(st.installerName || '').trim()
         }
       };
       if (reasonText) {
@@ -2228,14 +2566,15 @@ class Component extends DCLogic {
         payload.custom_fields.followup_reason = reasonText;
         if (reasonId) payload.custom_fields.closing_reason_id = reasonId;
       }
-      // Only keep cash fields when user selected Yes/No
-      if (!st.cash) {
+      if (!payload.custom_fields.installer_name) delete payload.custom_fields.installer_name;
+      // Only keep cash fields when user selected Yes/No and work details apply
+      if (!includeWorkDetails || !st.cash) {
         delete payload.custom_fields.cash_collected;
         delete payload.custom_fields.cash_amount;
       } else if (st.cash === 'no') {
         delete payload.custom_fields.cash_amount;
       }
-      if ((st.spares || []).length) {
+      if (includeWorkDetails && (st.spares || []).length) {
         payload.product_id = st.spares.map(function (s) { return s.id; }).join(',');
       }
 
@@ -2270,6 +2609,9 @@ class Component extends DCLogic {
         viewCashLabel: st.cash === 'yes'
           ? (this.t('Yes', 'כן') + (st.cashAmount ? (' · ' + st.cashAmount + ' ₪') : ''))
           : (st.cash === 'no' ? this.t('No', 'לא') : ''),
+        viewWarranty: this.warrantyLabelOf(warrantyMonths),
+        viewInstaller: String(st.installerName || '').trim(),
+        warrantyMonths: warrantyMonths,
         beforeUrl: media.before,
         afterUrl: media.after,
         signatureUrl: media.signature,
@@ -2281,7 +2623,7 @@ class Component extends DCLogic {
         waError: wantWhatsApp && !waSent ? waError : '',
         linkedProducts: (st.spares && st.spares.length)
           ? st.spares.map(function (s) {
-            return { id: String(s.id || ''), name: s.name || ('#' + s.id), sku: '', type: '', price: '' };
+            return { id: String(s.id || ''), name: s.name || ('#' + s.id), sku: '', type: '', price: s.price || '' };
           })
           : (st.linkedProducts || [])
       });
@@ -2339,10 +2681,10 @@ class Component extends DCLogic {
     var showForm = !st.loading && st.mode === 'form';
     var showView = !st.loading && st.mode === 'view';
     var hasSig = !!(st.hasStroke || this._hasStroke || this._sigDataUrl);
-    var summaryOk = String(st.summary || '').trim().length >= 2;
+    var summaryOk = this.skipWorkMedia() || String(st.summary || '').trim().length >= 2;
     var statusOk = !!st.closeStatus;
     var reasonOk = !this.needsReason() || (!!st.reason && (st.reason !== 'e' || String(st.reasonOther || '').trim().length >= 2));
-    var p3Ok = hasSig && !!st.terms;
+    var p3Ok = !!st.terms && (this.skipWorkDetails() || hasSig);
     var canSubmit = this.canFormSubmit();
     var segOn = '#1d60a2';
     var segOff = 'rgba(255,255,255,.18)';
@@ -2432,6 +2774,16 @@ class Component extends DCLogic {
       customerId: st.customerId || '',
       ticketSubject: st.ticketSubject || st.ticketName || '—',
 
+      labelWarrantyMonths: this.t('Warranty (months)', 'אחריות (חודשים)'),
+      warrantyOptions: this.warrantyOptionsList(),
+      labelInstaller: this.t('The name of the installer', 'שם המתקין'),
+      installerPh: this.t('Installer name', 'שם המתקין'),
+      installerName: this._installerNameValue != null ? this._installerNameValue : (st.installerName || ''),
+      onInstallerName: (e) => this.onInstallerName(e),
+
+      workMediaDisplay: this.skipWorkMedia() ? 'none' : 'block',
+      workDetailsDisplay: this.skipWorkDetails() ? 'none' : 'block',
+      signatureDisplay: this.skipWorkDetails() ? 'none' : 'block',
       labelSummary: this.t('Work description', 'תיאור הביצוע'),
       summaryPh: this.t('Detail what was done — parts replaced, tests performed, recommendations…', 'פרט מה בוצע בקריאה — חלקים שהוחלפו, בדיקות שנערכו, המלצות...'),
       onSummary: (e) => this.onSummary(e),
@@ -2445,19 +2797,24 @@ class Component extends DCLogic {
       selectProduct: this.t('Select product…', 'בחר מוצר…'),
       addPart: this.t('Add', 'הוסף'),
       removePart: this.t('Remove', 'הסר'),
+      labelPrice: this.t('Value', 'שווי'),
+      labelQty: this.t('Qty', 'כמות'),
       products: (st.products || []).map(p => ({
         id: p.id,
         name: p.name
       })),
       onProductPick: (e) => this.onProductPick(e),
-      qty: st.qty || '1',
-      onQty: (e) => this.onQty(e),
       addSpare: () => this.addSpare(),
-      spares: (st.spares || []).map(s => ({
-        name: s.name,
-        qty: s.qty,
-        remove: () => this.removeSpare(s.id)
-      })),
+      spares: (st.spares || []).map(s => {
+        var priceLabel = self.formatSparePrice(s.price);
+        return {
+          name: s.name,
+          qty: s.qty,
+          priceLabel: priceLabel,
+          priceDisplay: priceLabel ? 'block' : 'none',
+          remove: function () { self.removeSpare(s.id); }
+        };
+      }),
 
       labelPhotos: this.t('Device photos', 'תמונות המכשיר'),
       beforePhoto: this.t('Above the sink', 'מעל הכיור'),
@@ -2516,8 +2873,7 @@ class Component extends DCLogic {
 
       busy: !!st.busy,
       canSubmit: canSubmit,
-      submitDisabled: !canSubmit || !!st.busy,
-      submit: () => this.submit(),
+      submitClose: () => this.submit(),
       submitLabel: st.busy
         ? this.t('Saving…', 'שומר…')
         : (canSubmit
@@ -2548,8 +2904,15 @@ class Component extends DCLogic {
       hasViewCash: !!st.viewCashLabel,
       viewCashDisplay: st.viewCashLabel ? 'block' : 'none',
       viewCash: st.viewCashLabel || '',
+      viewWarranty: st.viewWarranty || (st.warrantyMonths !== '' && st.warrantyMonths != null ? this.warrantyLabelOf(st.warrantyMonths) : ''),
+      viewWarrantyDisplay: (st.mode === 'view' && (st.viewWarranty || st.warrantyMonths != null)) ? 'block' : 'none',
+      viewInstaller: st.viewInstaller || st.installerName || '',
+      viewInstallerDisplay: (st.viewInstaller || st.installerName) ? 'block' : 'none',
       hasViewSpares: !!(st.spares && st.spares.length),
-      viewSpares: (st.spares || []).map(s => ({ label: s.name + ' × ' + s.qty })),
+      viewSpares: (st.spares || []).map(s => {
+        var priceLabel = self.formatSparePrice(s.price);
+        return { label: s.name + ' × ' + s.qty + (priceLabel ? (' · ' + priceLabel) : '') };
+      }),
       hasLinkedProduct: !!(st.linkedProducts && st.linkedProducts.length),
       noLinkedProduct: !(st.linkedProducts && st.linkedProducts.length),
       noLinkedProductLabel: this.t('No product linked to this ticket', 'לא משויך מוצר לטיקט זה'),

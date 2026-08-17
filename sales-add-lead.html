@@ -84,27 +84,43 @@ mbCss('./common.css');
 </div>
 </div>
 </div>
-<!-- Address -->
+<!-- Address (same fields as add customer) -->
 <div style="padding:18px 16px; border-bottom:1px solid #eef0f3;">
 <div style="font-size:14px; color:#8a93a3; font-weight:700; margin-bottom:12px;">Address</div>
 <div style="margin-bottom:14px;">
 <label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
 <svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M12 21c5-5.5 7.5-9 7.5-12a7.5 7.5 0 0 0-15 0c0 3 2.5 6.5 7.5 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>
-              Residential address
+              City
             </label>
-<input class="ds-input" oninput="{{ onAddress }}" value="{{ address }}" placeholder="Street, number, city" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:right; background:#fff;"/>
+<input class="ds-input" oninput="{{ onCity }}" value="{{ city }}" placeholder="City" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
 </div>
-<div>
-<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
-<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><path d="M12 21c5-5.5 7.5-9 7.5-12a7.5 7.5 0 0 0-15 0c0 3 2.5 6.5 7.5 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>
-              area
-            </label>
-<select class="ds-input" value="{{ area }}" onchange="{{ onArea }}" style="width:100%; padding:13px 40px 13px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; text-align:right; background:#fff;">
-<option value="">Select a region</option>
-<sc-for as="a" hint-placeholder-count="4" list="{{ areas }}">
-<option value="{{ a.value }}">{{ a.label }}</option>
-</sc-for>
-</select>
+<div style="display:flex; gap:11px; margin-bottom:14px;">
+<div style="flex:1.4;">
+<label style="display:block; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">Street</label>
+<input class="ds-input" oninput="{{ onStreet }}" value="{{ street }}" placeholder="Street" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">Building number</label>
+<input class="ds-input" oninput="{{ onBuilding }}" value="{{ building }}" placeholder="Building number" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
+</div>
+</div>
+<div style="display:flex; gap:9px;">
+<div style="flex:1;">
+<label style="display:block; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">Floor</label>
+<input class="ds-input" oninput="{{ onFloor }}" value="{{ floor }}" placeholder="Floor" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">Apartment</label>
+<input class="ds-input" oninput="{{ onApartment }}" value="{{ apartment }}" placeholder="Apartment" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">Entrance</label>
+<input class="ds-input" oninput="{{ onEntrance }}" value="{{ entrance }}" placeholder="Entrance" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">Area</label>
+<input class="ds-input" oninput="{{ onArea }}" value="{{ area }}" placeholder="Area" style="width:100%; padding:13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
+</div>
 </div>
 </div>
 <!-- Lead source -->
@@ -140,6 +156,19 @@ mbCss('./common.css');
 </sc-for>
 </div>
 </div>
+<div>
+<label style="display:flex; align-items:center; gap:7px; font-size:13.5px; color:#46505f; font-weight:600; margin-bottom:7px;">
+<svg fill="none" height="15" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"></path></svg>
+              Responsible salesperson <span style="color:#c0392b;">*</span>
+            </label>
+<select class="ds-input" value="{{ salespersonId }}" onchange="{{ onSalesperson }}" style="width:100%; padding:13px 40px 13px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;">
+<option value="">{{ salespersonPlaceholder }}</option>
+<sc-for as="sp" hint-placeholder-count="3" list="{{ salespeople }}">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ sp.selected }}"><option value="{{ sp.id }}" selected>{{ sp.label }}</option></sc-if>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ !sp.selected }}"><option value="{{ sp.id }}">{{ sp.label }}</option></sc-if>
+</sc-for>
+</select>
+</div>
 </div>
 <!-- Comments -->
 <div style="padding:18px 16px 22px;">
@@ -169,18 +198,13 @@ mbCss('./common.css');
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { 
-    name: '', phone: '', email: '', address: '', area: '',
-    source: 'site', status: '', statusesData: [], comments: '',
+  state = {
+    name: '', phone: '', email: '',
+    city: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '',
+    source: 'site', status: '', statusesData: [],
+    comments: '', salespersonId: '', teamMembers: [],
     submitting: false, error: ''
   };
-
-  AREAS = [
-    { value: 'coordinator', labelHe: 'רכז', labelEn: 'coordinator' },
-    { value: 'north', labelHe: 'צפון', labelEn: 'north' },
-    { value: 'south', labelHe: 'דרום', labelEn: 'south' },
-    { value: 'jerusalem', labelHe: 'ירושלים', labelEn: 'Jerusalem' }
-  ];
 
   inputValue(e) {
     if (e && e.target) return e.target.value;
@@ -191,9 +215,45 @@ class Component extends DCLogic {
   onName(e) { this.setState({ name: this.inputValue(e) }); }
   onPhone(e) { this.setState({ phone: this.inputValue(e) }); }
   onEmail(e) { this.setState({ email: this.inputValue(e) }); }
-  onAddress(e) { this.setState({ address: this.inputValue(e) }); }
+  onCity(e) { this.setState({ city: this.inputValue(e) }); }
+  onStreet(e) { this.setState({ street: this.inputValue(e) }); }
+  onBuilding(e) { this.setState({ building: this.inputValue(e) }); }
+  onFloor(e) { this.setState({ floor: this.inputValue(e) }); }
+  onApartment(e) { this.setState({ apartment: this.inputValue(e) }); }
+  onEntrance(e) { this.setState({ entrance: this.inputValue(e) }); }
   onArea(e) { this.setState({ area: this.inputValue(e) }); }
   onComments(e) { this.setState({ comments: this.inputValue(e) }); }
+  onSalesperson(e) { this.setState({ salespersonId: this.inputValue(e) }); }
+
+  isEn() {
+    return typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    if (typeof window.mbT === 'function') return window.mbT(en, he);
+    return this.isEn() ? en : he;
+  }
+
+  memberId(m) {
+    return String((m && (m.id || m.user_id || m.member_id || m.team_member_id)) || '').trim();
+  }
+
+  loggedInMember(team) {
+    var meEmail = '';
+    try {
+      meEmail = ((window.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
+    } catch (e) { meEmail = ''; }
+    var meUser = {};
+    try {
+      meUser = (window.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser()) || {};
+    } catch (e2) { meUser = {}; }
+    var meUserId = String(meUser.id || meUser.user_id || meUser.member_id || '').trim();
+    return (team || []).find(function (m) {
+      var email = String(m.email || '').toLowerCase();
+      var id = String(m.id || m.user_id || m.member_id || m.team_member_id || '').trim();
+      return (meEmail && email === meEmail) || (meUserId && id === meUserId);
+    }) || (team && team[0]) || null;
+  }
   goBack() {
     if (typeof window.mbGoEntryBack === 'function') {
       window.mbGoEntryBack(null, { fallback: 'leads-list.html', selfRe: /sales-add-lead/i });
@@ -208,20 +268,27 @@ class Component extends DCLogic {
     }
 
     this.loadStatuses();
-    window.addEventListener('mineralbar:ready', () => this.loadStatuses());
+    this.loadTeamMembers();
+    window.addEventListener('mineralbar:ready', () => {
+      this.loadStatuses();
+      this.loadTeamMembers();
+    });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.loadStatuses(), { keys: /status|lead|customer|socket\.nudge/i, delay: 400 });
     }
-    window.addEventListener('mineralbar:language-changed', () => this.loadStatuses());
+    window.addEventListener('mineralbar:language-changed', () => {
+      this.loadStatuses();
+      this.loadTeamMembers();
+    });
   }
 
   SOURCES = [
-    { id: 'fb', label: 'פייסבוק', icon: 'iFb' },
-    { id: 'ig', label: 'אינסטגרם', icon: 'iIg' },
-    { id: 'site', label: 'אתר', icon: 'iGlobe' },
-    { id: 'ref', label: 'הפניה', icon: 'iRef' },
-    { id: 'call', label: 'שיחה נכנסת', icon: 'iPhone' },
-    { id: 'other', label: 'אחר', icon: 'iDoc' },
+    { id: 'fb', labelHe: 'פייסבוק', labelEn: 'Facebook', icon: 'iFb' },
+    { id: 'ig', labelHe: 'אינסטגרם', labelEn: 'Instagram', icon: 'iIg' },
+    { id: 'site', labelHe: 'אתר', labelEn: 'Website', icon: 'iGlobe' },
+    { id: 'ref', labelHe: 'הפניה', labelEn: 'Referral', icon: 'iRef' },
+    { id: 'call', labelHe: 'שיחה נכנסת', labelEn: 'Incoming call', icon: 'iPhone' },
+    { id: 'other', labelHe: 'אחר', labelEn: 'Other', icon: 'iDoc' },
   ];
 
   leadsFolderId() {
@@ -233,11 +300,27 @@ class Component extends DCLogic {
     return 1;
   }
 
-  areaLabel(value) {
-    var found = this.AREAS.find(function (a) { return a.value === value; });
-    if (!found) return value || '';
-    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
-    return isEn ? found.labelEn : found.labelHe;
+  loadTeamMembers() {
+    var team = [];
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getTeamMembers === 'function') {
+        team = MineralBarApp.getTeamMembers() || [];
+      }
+    } catch (e) { team = []; }
+    var me = this.loggedInMember(team);
+    var current = String(this.state.salespersonId || '').trim();
+    var stillValid = current && team.some((m) => this.memberId(m) === current);
+    var nextId = stillValid ? current : (me ? this.memberId(me) : '');
+    this.setState({ teamMembers: team, salespersonId: nextId });
+  }
+
+  statusRowLabel(row, isEn) {
+    if (!row) return '';
+    return String(
+      isEn
+        ? (row.name_en || row.name_for || row.name_he || row.name || row.label || '')
+        : (row.name_he || row.name_for || row.name_en || row.name || row.label || '')
+    ).trim();
   }
 
   async loadStatuses() {
@@ -246,32 +329,48 @@ class Component extends DCLogic {
         ? window.MineralBarApp.getClient()
         : null;
       if (!client || !client.getToken || !client.getToken()) return;
-      const res = await client.request('Statuses.List', { type: 'status', limit: 25 });
-      let rows = (res && (res.data || res.output || res.rows || res.list)) || [];
-      if (!Array.isArray(rows)) rows = [];
-      const isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
-      const statusesData = rows.map(row => ({
-        id: String(row.status_id || row.id || row.data_id || ''),
-        label: isEn
-          ? (row.name_en || row.name_for || row.name_he)
-          : (row.name_he || row.name_for || row.name_en)
-      })).filter(row => row.id && row.label);
-      const selectedExists = statusesData.some(row => row.id === String(this.state.status));
+      var folderId = this.leadsFolderId();
+      var attempts = [
+        { type: 'status', folder_id: folderId, limit: 100 },
+        { type: 'internal_status', folder_id: folderId, limit: 100 },
+        { type: 'customer_status', folder_id: folderId, limit: 100 },
+        { type: 'status', limit: 100 }
+      ];
+      var rows = [];
+      for (var i = 0; i < attempts.length; i++) {
+        try {
+          const res = await client.request('Statuses.List', attempts[i]);
+          var list = (res && (res.data || res.output || res.rows || res.list)) || [];
+          if (Array.isArray(list) && list.length) {
+            rows = list;
+            break;
+          }
+        } catch (eType) { /* try next Statuses.List shape */ }
+      }
+      const isEn = this.isEn();
+      const statusesData = rows.map(function (row) {
+        var id = String(row.status_id || row.id || row.data_id || '').trim();
+        var label = this.statusRowLabel(row, isEn);
+        return { id: id, label: label };
+      }.bind(this)).filter(function (row) { return row.id && row.label; });
+      var current = String(this.state.status || '');
+      var selectedExists = statusesData.some(function (row) { return row.id === current; });
       this.setState({
-        statusesData,
-        status: selectedExists ? this.state.status : (statusesData[0] ? statusesData[0].id : '')
+        statusesData: statusesData,
+        status: selectedExists ? current : (statusesData[0] ? statusesData[0].id : '')
       });
     } catch (e) {
       console.error('[sales-add-lead] Statuses.List failed', e);
-      this.setState({ error: (e && e.message) || 'Failed to load statuses' });
+      this.setState({ statusesData: [] });
     }
   }
 
   renderVals() {
+    const isEn = this.isEn();
     const sources = this.SOURCES.map(s => {
       const on = s.id === this.state.source;
       return {
-        label: s.label,
+        label: isEn ? s.labelEn : s.labelHe,
         pick: () => this.setState({ source: s.id }),
         iFb: s.icon === 'iFb', iIg: s.icon === 'iIg', iGlobe: s.icon === 'iGlobe',
         iRef: s.icon === 'iRef', iPhone: s.icon === 'iPhone', iDoc: s.icon === 'iDoc',
@@ -282,7 +381,7 @@ class Component extends DCLogic {
       };
     });
 
-    const statuses = this.state.statusesData.map(st => {
+    const statuses = (this.state.statusesData || []).map(st => {
       const on = String(st.id) === String(this.state.status);
       return {
         label: st.label,
@@ -293,84 +392,235 @@ class Component extends DCLogic {
       };
     });
 
-    const isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
-    const areas = this.AREAS.map(a => ({
-      value: a.value,
-      label: isEn ? a.labelEn : a.labelHe
-    }));
+    const me = this.loggedInMember(this.state.teamMembers);
+    const meId = this.memberId(me);
+    const salespeople = (this.state.teamMembers || []).map((m) => {
+      var id = this.memberId(m);
+      if (!id) return null;
+      var label = m.name || m.full_name || m.email || ('#' + id);
+      if (meId && id === meId) label += isEn ? ' (me)' : ' (אני)';
+      var selectedId = String(this.state.salespersonId || '');
+      return { id: id, label: label, selected: id === selectedId };
+    }).filter(Boolean);
 
-    return { 
+    var salespersonPlaceholder = salespeople.length
+      ? this.t('Select', 'בחר')
+      : this.t('Loading team members...', 'טוען אנשי צוות...');
+
+    return {
       name: this.state.name || '',
       phone: this.state.phone || '',
       email: this.state.email || '',
-      address: this.state.address || '',
+      city: this.state.city || '',
+      street: this.state.street || '',
+      building: this.state.building || '',
+      floor: this.state.floor || '',
+      apartment: this.state.apartment || '',
+      entrance: this.state.entrance || '',
       area: this.state.area || '',
-      areas: areas,
       comments: String(this.state.comments == null ? '' : this.state.comments),
       commentsPlaceholder: isEn
         ? 'For example: "Interested in a primary filter, also talking about a water softener"'
         : 'לדוגמה: "מעוניין במסנן ראשי, גם מדברים על מרכך מים"',
       submitting: !!this.state.submitting,
       error: this.state.error || '',
-      sources, statuses,
+      sources, statuses, salespeople,
+      salespersonId: this.state.salespersonId || '',
+      salespersonPlaceholder: salespersonPlaceholder,
       onName: (e) => this.onName(e),
       onPhone: (e) => this.onPhone(e),
       onEmail: (e) => this.onEmail(e),
-      onAddress: (e) => this.onAddress(e),
+      onCity: (e) => this.onCity(e),
+      onStreet: (e) => this.onStreet(e),
+      onBuilding: (e) => this.onBuilding(e),
+      onFloor: (e) => this.onFloor(e),
+      onApartment: (e) => this.onApartment(e),
+      onEntrance: (e) => this.onEntrance(e),
       onArea: (e) => this.onArea(e),
       onComments: (e) => this.onComments(e),
+      onSalesperson: (e) => this.onSalesperson(e),
       goBack: () => this.goBack(),
       submit: () => this.submit()
     };
   }
 
+  composedAddress(isEn) {
+    var street = String(this.state.street || '').trim();
+    var building = String(this.state.building || '').trim();
+    var floor = String(this.state.floor || '').trim();
+    var apartment = String(this.state.apartment || '').trim();
+    var entrance = String(this.state.entrance || '').trim();
+    var area = String(this.state.area || '').trim();
+    var city = String(this.state.city || '').trim();
+    var parts = [];
+    var streetLine = [street, building].filter(Boolean).join(' ');
+    if (streetLine) parts.push(streetLine);
+    if (entrance) parts.push((isEn ? 'Entrance ' : 'כניסה ') + entrance);
+    if (floor) parts.push((isEn ? 'Floor ' : 'קומה ') + floor);
+    if (apartment) parts.push((isEn ? 'Apt ' : 'דירה ') + apartment);
+    if (area) parts.push(area);
+    if (city && parts.indexOf(city) === -1) parts.push(city);
+    return parts.join(', ');
+  }
+
+  phoneDigits(v) {
+    return String(v == null ? '' : v).replace(/\D/g, '');
+  }
+
+  isAlreadyExistsError(err) {
+    var msg = '';
+    if (err && err.message) msg += ' ' + err.message;
+    if (err && err.raw && err.raw.message) msg += ' ' + err.raw.message;
+    msg += ' ' + String(err || '');
+    return /already exists|already exist|כבר קיים|קיים במערכת|duplicate/i.test(msg);
+  }
+
+  existingIdFromError(err) {
+    var raw = (err && err.raw) || {};
+    var out = raw.output || raw.data || {};
+    return String(
+      raw.customer_id || raw.cust_id || raw.exist_id || raw.existing_id || raw.insert_id || raw.id ||
+      out.customer_id || out.cust_id || out.id || ''
+    ).trim();
+  }
+
+  rowMatchesPhone(row, digits) {
+    if (!digits) return false;
+    var cands = [row.phone, row.mobile, row.cellphone, row.tel, row.second_phone];
+    for (var i = 0; i < cands.length; i++) {
+      var d = this.phoneDigits(cands[i]);
+      if (d && (d === digits || d.slice(-9) === digits.slice(-9))) return true;
+    }
+    return false;
+  }
+
+  async findExistingByPhone(phone) {
+    var digits = this.phoneDigits(phone);
+    if (!digits || !window.MineralBarApp || typeof MineralBarApp.listCustomers !== 'function') return null;
+    var folders = [this.leadsFolderId()];
+    try {
+      if (MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.CUSTOMERS != null) {
+        folders.push(Number(MineralBarApp.FOLDERS.CUSTOMERS) || 2);
+      }
+    } catch (e) { folders.push(2); }
+    var leadsFolder = this.leadsFolderId();
+    for (var i = 0; i < folders.length; i++) {
+      var folderId = folders[i];
+      try {
+        var res = await MineralBarApp.listCustomers({
+          folder_id: folderId,
+          length: 50,
+          start: 0,
+          draw: 1,
+          search: { value: phone },
+          value: phone
+        });
+        var rows = (res && (res.rows || res.data)) || [];
+        var hit = null;
+        for (var r = 0; r < rows.length; r++) {
+          if (this.rowMatchesPhone(rows[r], digits)) { hit = rows[r]; break; }
+        }
+        if (!hit && rows.length === 1) hit = rows[0];
+        if (hit) {
+          var id = String(hit.customer_id || hit.cust_id || hit.id || '').trim();
+          if (!id) continue;
+          var isLead = Number(folderId) === Number(leadsFolder);
+          return { id: id, name: hit.name || hit.customer_name || '', isLead: isLead };
+        }
+      } catch (e2) { /* try next folder */ }
+    }
+    return null;
+  }
+
+  openExistingRecord(found, isEn) {
+    var name = found.name ? (' — ' + found.name) : '';
+    if (found.isLead) {
+      alert(isEn
+        ? ('A lead with this phone already exists' + name + '. Opening it.')
+        : ('ליד עם מספר טלפון זה כבר קיים' + name + '. פותחים אותו.'));
+      window.location.href = 'lead-card.html?customer_id=' + encodeURIComponent(found.id) +
+        '&cust_id=' + encodeURIComponent(found.id) + '&id=' + encodeURIComponent(found.id);
+    } else {
+      alert(isEn
+        ? ('A customer with this phone already exists' + name + '. Opening the record.')
+        : ('לקוח עם מספר טלפון זה כבר קיים' + name + '. פותחים את הכרטיס.'));
+      window.location.href = 'service-customer-card.html?customer_id=' + encodeURIComponent(found.id) +
+        '&cust_id=' + encodeURIComponent(found.id) + '&id=' + encodeURIComponent(found.id);
+    }
+  }
   async submit() {
     if (this.state.submitting) return;
-    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    var isEn = this.isEn();
     if (!this.state.name || !this.state.phone) {
       alert(isEn
         ? 'Please fill the required fields (name and phone)'
         : 'נא למלא את השדות החובה (שם וטלפון)');
       return;
     }
+    var salespersonId = String(this.state.salespersonId || '').trim();
+    if (!salespersonId) {
+      salespersonId = this.memberId(this.loggedInMember(this.state.teamMembers));
+    }
+    if (!salespersonId) {
+      alert(this.t('Please select a responsible salesperson.', 'יש לבחור איש מכירות אחראי.'));
+      return;
+    }
     this.setState({ submitting: true, error: '' });
     try {
       var folderId = this.leadsFolderId();
-      var areaVal = String(this.state.area || '').trim();
-      var areaText = this.areaLabel(areaVal);
-      var noteParts = [];
-      if (this.state.comments) noteParts.push(String(this.state.comments));
-      if (areaText) noteParts.push((isEn ? 'Area: ' : 'אזור: ') + areaText);
+      var statusId = String(this.state.status || '').trim();
+      var city = String(this.state.city || '').trim();
+      var address = this.composedAddress(isEn);
 
-      const payload = {
+      var payload = {
         name: this.state.name,
         phone: this.state.phone,
-        mobile: this.state.phone,
-        email: this.state.email,
-        address: this.state.address,
-        source: this.state.source,
-        note: noteParts.join('\n'),
+        email: this.state.email || '',
+        address: address,
+        city: city,
+        source: this.state.source || '',
+        note: this.state.comments || '',
         folder_id: folderId,
-        folder: folderId,
-        status_id: this.state.status,
-        force: '0'
+        user_id: /^\d+$/.test(salespersonId) ? Number(salespersonId) : salespersonId,
+        customer_manager: salespersonId,
+        team_member_id: salespersonId
       };
-      if (areaVal) {
-        payload.city = areaText;
-        payload.city_name = areaText;
-        payload.extra_fields = { area: areaVal, region: areaText };
+      if (statusId) {
+        payload.status_id = /^\d+$/.test(statusId) ? Number(statusId) : statusId;
       }
-      
+
       const res = await MineralBarApp.createCustomer(payload);
       if (res && res.ok) {
-        alert(isEn ? 'Lead added successfully!' : 'הליד נוסף בהצלחה!');
         window.location.href = 'leads-list.html?refresh=' + Date.now();
       } else {
-        const err = (res && res.raw && res.raw.message) || (isEn ? 'Failed to add lead' : 'הוספת ליד נכשלה');
-        this.setState({ error: err });
-        alert((isEn ? 'Error: ' : 'שגיאה: ') + err);
+        var failMsg = (res && res.raw && res.raw.message) || (isEn ? 'Failed to add lead' : 'הוספת ליד נכשלה');
+        var failErr = { message: failMsg, raw: res && res.raw };
+        if (this.isAlreadyExistsError(failErr) || this.isAlreadyExistsError(res && res.raw)) {
+          var existing = await this.findExistingByPhone(this.state.phone);
+          if (!existing && this.existingIdFromError(failErr)) {
+            existing = { id: this.existingIdFromError(failErr), name: '', isLead: true };
+          }
+          if (existing) {
+            this.openExistingRecord(existing, isEn);
+            return;
+          }
+        }
+        this.setState({ error: failMsg });
+        alert((isEn ? 'Error: ' : 'שגיאה: ') + failMsg);
       }
     } catch (e) {
+      if (this.isAlreadyExistsError(e)) {
+        try {
+          var found = await this.findExistingByPhone(this.state.phone);
+          if (!found && this.existingIdFromError(e)) {
+            found = { id: this.existingIdFromError(e), name: '', isLead: true };
+          }
+          if (found) {
+            this.openExistingRecord(found, isEn);
+            return;
+          }
+        } catch (e2) { /* ignore lookup failure */ }
+      }
       const err = String(e.message || e);
       this.setState({ error: err });
       alert((isEn ? 'Error: ' : 'שגיאה: ') + err);

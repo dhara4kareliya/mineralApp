@@ -19,26 +19,61 @@
     return lang === 'en' ? en : he;
   }
 
+  function pad2(n) {
+    n = Number(n) || 0;
+    return n < 10 ? '0' + n : String(n);
+  }
+
   function todayKey() {
     var d = new Date();
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  /** Normalize due date to YYYY-MM-DD (handles MySQL datetime, ISO, and DD-MM-YYYY). */
+  function missionDayKey(m) {
+    var raw = String((m && (m.date_to_do_format || m.date_to_do || m.due_date)) || '').trim();
+    if (!raw || raw === '—' || raw === '-') return '';
+    var ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (ymd) return ymd[1] + '-' + ymd[2] + '-' + ymd[3];
+    var dmy = raw.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);
+    if (dmy && Number(dmy[2]) >= 1 && Number(dmy[2]) <= 12) {
+      return dmy[3] + '-' + pad2(dmy[2]) + '-' + pad2(dmy[1]);
+    }
+    var parsed = new Date(raw.indexOf('T') !== -1 ? raw : raw.replace(' ', 'T'));
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.getFullYear() + '-' + pad2(parsed.getMonth() + 1) + '-' + pad2(parsed.getDate());
+    }
+    return '';
   }
 
   function isOverdue(m, today) {
-    if (m.project_column === 'completed' || m.is_done || Number(m.done) === 1) return false;
-    var when = m.date_to_do_format ? m.date_to_do_format.split('T')[0] : (m.date_to_do || '');
+    if (isMissionDone(m)) return false;
+    var when = missionDayKey(m);
     return when && when < today;
   }
 
   function formatWhen(m, today) {
-    var when = m.date_to_do_format ? m.date_to_do_format.split('T')[0] : (m.date_to_do || '');
+    var when = missionDayKey(m);
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
     if (!when) return isEn ? 'No date' : 'ללא תאריך';
     if (when === today) return isEn ? 'Today' : 'היום';
     if (when < today) return (isEn ? 'Overdue' : 'באיחור') + ' · ' + when.split('-').reverse().join('/');
     return when.split('-').reverse().join('/');
+  }
+
+  function matchesChipFilter(m, filterType, today) {
+    var done = isMissionDone(m);
+    if (filterType === 'done_tasks') return done;
+    if (filterType === 'private_tasks') {
+      return Boolean(m.private || m.private_mission === true || Number(m.private_mission) === 1);
+    }
+    if (done) return false;
+    var day = missionDayKey(m);
+    if (filterType === 'today_tasks') return day === today;
+    if (filterType === 'priority_tasks') return !!day && day < today;
+    // Upcoming = today + later + undated (API "upcoming" is after-today only, so 30-min tasks vanished).
+    if (filterType === 'upcoming_tasks') return !day || day >= today;
+    return true;
   }
 
   function priorityFromMission(mission, today) {
@@ -359,7 +394,7 @@
   var advancedFilters = {
     status: 'everything',   // today | late | everything | completed
     priority: 'all',        // all | urgent | regular | low
-    association: 'my',      // my | all | <userId>
+    association: 'all',     // all | my | <userId>
     sortBy: 'date_to_do',   // date_to_do | priority | date_created
     sortDir: 'asc'          // asc | desc
   };
@@ -369,7 +404,7 @@
     return {
       status: 'everything',
       priority: 'all',
-      association: 'my',
+      association: 'all',
       sortBy: 'date_to_do',
       sortDir: 'asc'
     };
@@ -377,7 +412,7 @@
 
   function isAdvancedFilterActive() {
     return advancedFilters.priority !== 'all' ||
-      advancedFilters.association !== 'my' ||
+      advancedFilters.association !== 'all' ||
       advancedFilters.sortBy !== 'date_to_do' ||
       advancedFilters.sortDir !== 'asc';
   }
@@ -574,6 +609,12 @@
       draw: 1,
       include_counts: 1
     };
+    // Upcoming is filtered client-side from open tasks (API upcoming = after today only).
+    if (filterType === 'upcoming_tasks') {
+      params.type = 'show_all_together_tasks';
+      params.length = 200;
+      params.start = 0;
+    }
     // Priority is filtered client-side — pull a larger page so results aren't truncated.
     if (advancedFilters.priority && advancedFilters.priority !== 'all') {
       params.length = 200;
@@ -870,16 +911,33 @@
       var today = todayKey();
       var groups = result.groups || [];
       var flatRows = result.rows || [];
+      if (!flatRows.length) {
+        groups.forEach(function (g) {
+          (g.rows || []).forEach(function (r) { flatRows.push(r); });
+        });
+      }
+
+      function applyChipRows(rows) {
+        if (!filterType || filterType === 'show_all_together_tasks') return rows || [];
+        return (rows || []).filter(function (m) {
+          return matchesChipFilter(m, filterType, today);
+        });
+      }
+
+      flatRows = applyChipRows(flatRows);
+      groups = groups.map(function (g) {
+        return Object.assign({}, g, { rows: applyChipRows(g.rows || []) });
+      }).filter(function (g) {
+        return g.rows && g.rows.length;
+      });
 
       // Client-side priority filter (API may not support priority param)
       flatRows = filterRowsByPriority(flatRows, today);
       groups = groups.map(function (g) {
         return Object.assign({}, g, { rows: filterRowsByPriority(g.rows || [], today) });
       }).filter(function (g) {
-        return (g.rows && g.rows.length) || Number(g.total) > 0;
+        return g.rows && g.rows.length;
       });
-      // Drop empty groups after priority filter
-      groups = groups.filter(function (g) { return g.rows && g.rows.length; });
 
       // Client-side sort fallback
       function sortRows(rows) {
@@ -897,8 +955,8 @@
             bv = rank[priorityFromMission(b, today)] || 0;
             return (av - bv) * dir;
           } else {
-            av = (a.date_to_do_format ? String(a.date_to_do_format).split('T')[0] : (a.date_to_do || '')) || '9999-99-99';
-            bv = (b.date_to_do_format ? String(b.date_to_do_format).split('T')[0] : (b.date_to_do || '')) || '9999-99-99';
+            av = missionDayKey(a) || '9999-99-99';
+            bv = missionDayKey(b) || '9999-99-99';
           }
           if (av < bv) return -1 * dir;
           if (av > bv) return 1 * dir;
@@ -911,8 +969,9 @@
       });
 
       var total = Number(result.total) || flatRows.length || 0;
-      // When priority filter is active, show filtered count on this page
-      if (advancedFilters.priority && advancedFilters.priority !== 'all') {
+      // When a client-side chip/priority filter is active, count what is actually shown
+      if ((filterType && filterType !== 'show_all_together_tasks') ||
+          (advancedFilters.priority && advancedFilters.priority !== 'all')) {
         var filteredCount = 0;
         groups.forEach(function (g) { filteredCount += (g.rows && g.rows.length) || 0; });
         if (!filteredCount) filteredCount = flatRows.length;

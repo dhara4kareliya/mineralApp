@@ -267,18 +267,20 @@ mbCss('./common.css');
   </sc-if>
 </div>
 
-<div style="display:flex; gap:11px; margin-bottom:14px;">
-  <div style="flex:1; min-width:0;">
-    <label class="soc-label">Due date</label>
-    <input type="date" min="{{ dueDateMin }}" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="soc-field ds-input" placeholder="Select due date" />
-  </div>
-  <div style="flex:1; min-width:0;">
-    <label class="soc-label">URGENCY</label>
-    <div class="soc-field" style="display:flex; align-items:center; gap:6px; height:48px; padding:0 12px;">
-      <sc-for as="s" hint-placeholder-count="5" list="{{ stars }}">
-        <svg onclick="{{ s.pick }}" fill="currentColor" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20" style="color:{{ s.color }}; cursor:pointer;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-      </sc-for>
-    </div>
+<div style="margin-bottom:14px;">
+  <label class="soc-label">Due date</label>
+  <input type="date" min="{{ dueDateMin }}" oninput="{{ onDueDate }}" value="{{ dueDate }}" class="soc-field ds-input" placeholder="Select due date" />
+</div>
+
+<div style="margin-bottom:14px;">
+  <label class="soc-label"><span class="req">*</span>Priority</label>
+  <div style="display:flex; gap:9px;">
+    <sc-for as="p" hint-placeholder-count="3" list="{{ priorityOpts }}">
+      <button type="button" onclick="{{ p.pick }}"
+        style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:12px 8px; border-radius:12px; cursor:pointer; background:{{ p.bg }}; border:1.6px solid {{ p.border }}; color:{{ p.color }}; font-size:13.5px; font-weight:700;">
+        <span style="width:7px; height:7px; border-radius:50%; background:{{ p.dot }}; flex:none;"></span>{{ p.label }}
+      </button>
+    </sc-for>
   </div>
 </div>
 
@@ -383,6 +385,16 @@ mbCss('./common.css');
   </select>
 </div>
 
+<div class="soc-section-title" data-no-i18n="true">{{ takeCashLabel }}</div>
+<div style="display:flex; gap:9px; margin-bottom:18px;">
+  <sc-for as="o" hint-placeholder-count="2" list="{{ cashOpts }}">
+    <button type="button" onclick="{{ o.pick }}"
+      style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:12px; border-radius:12px; cursor:pointer; background:{{ o.bg }}; border:1.6px solid {{ o.border }}; color:{{ o.color }}; font-size:13.5px; font-weight:700;">
+      {{ o.label }}
+    </button>
+  </sc-for>
+</div>
+
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
   <div role="alert" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:#fbeeed; color:#a3302e; font-size:12.5px; font-weight:600;">{{ errorMsg }}</div>
 </sc-if>
@@ -418,7 +430,7 @@ mbCss('./common.css');
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = {
-    callType: 'tech', charge: true, cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', urgency: 0, dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '',
+    callType: 'tech', charge: false, priority: 'normal', cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '',
     products: [], productId: '', productSku: '', productName: '', productScanError: '', productLookupLoading: false, scannerOpen: false,
     productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '', langTick: 0
   };
@@ -1355,7 +1367,11 @@ class Component extends DCLogic {
       if (this.state.apartment) customFields.apartment = String(this.state.apartment).trim();
       if (this.state.entrance) customFields.entrance = String(this.state.entrance).trim();
       if (this.state.phone2) customFields.second_phone = this.state.phone2;
-      if (this.state.urgency) customFields.urgency = this.state.urgency;
+      var prio = String(this.state.priority || 'normal').toLowerCase();
+      if (prio !== 'high' && prio !== 'low') prio = 'normal';
+      customFields.priority = prio;
+      customFields.urgency = prio;
+      customFields.take_cash = this.state.charge ? 'yes' : 'no';
       if (product && (product.product_name || product.name)) {
         customFields.product_name = product.product_name || product.name;
       }
@@ -1380,7 +1396,6 @@ class Component extends DCLogic {
       if (realProductId && realProductId !== '0' && /^\d+$/.test(realProductId)) {
         payload.product_id = realProductId;
       }
-      if (this.state.urgency) payload.rating = String(this.state.urgency);
       if (this.state.dueDate) payload.due_date = this.dueDateUtc();
       if (this.state.fromTime) {
         payload.ticket_from_time = this.state.fromTime + ':00';
@@ -1484,6 +1499,12 @@ class Component extends DCLogic {
     });
   }
   toggleCharge() { this.setState(s => ({ charge: !s.charge })); }
+  setCharge(val) { this.setState({ charge: !!val }); }
+  pickPrio(id) {
+    var val = String(id || 'normal').toLowerCase();
+    if (val !== 'high' && val !== 'low') val = 'normal';
+    this.setState({ priority: val });
+  }
 
   renderVals() {
     void this.state.langTick;
@@ -1522,13 +1543,42 @@ class Component extends DCLogic {
       }
     }
     const fullAddress = this.buildFullAddress(this.state);
-    const stars = [1, 2, 3, 4, 5].map(v => {
-      const active = v <= this.state.urgency;
+    const prioId = String(this.state.priority || 'normal').toLowerCase();
+    const priorityOpts = [
+      { id: 'normal', label: this.isEn() ? 'Normal' : 'רגיל', dot: '#1d60a2' },
+      { id: 'high', label: this.isEn() ? 'High' : 'דחוף', dot: '#c0392b' },
+      { id: 'low', label: this.isEn() ? 'Low' : 'נמוכה', dot: '#8a93a3' }
+    ].map(function (p) {
+      var on = prioId === p.id;
       return {
-        color: active ? '#bd8324' : '#d1d5db',
-        pick: () => this.setState({ urgency: v })
+        id: p.id,
+        label: p.label,
+        dot: p.dot,
+        pick: function () { this.pickPrio(p.id); }.bind(this),
+        bg: on ? '#eaf2fb' : '#fff',
+        border: on ? '#aecbe9' : '#e4e8ee',
+        color: on ? '#194f84' : '#5a6473'
       };
-    });
+    }.bind(this));
+    const cashYes = !!this.state.charge;
+    const cashOpts = [
+      {
+        id: 'yes',
+        label: this.isEn() ? 'Yes' : 'כן',
+        pick: () => this.setCharge(true),
+        bg: cashYes ? '#eaf2fb' : '#fff',
+        border: cashYes ? '#1d60a2' : '#e4e8ee',
+        color: cashYes ? '#194f84' : '#5a6473'
+      },
+      {
+        id: 'no',
+        label: this.isEn() ? 'No' : 'לא',
+        pick: () => this.setCharge(false),
+        bg: !cashYes ? '#eaf2fb' : '#fff',
+        border: !cashYes ? '#1d60a2' : '#e4e8ee',
+        color: !cashYes ? '#194f84' : '#5a6473'
+      }
+    ];
     
     const teamMembersList = this.state.teamMembers.map(m => ({
       id: m.id || m.user_id,
@@ -1588,6 +1638,7 @@ class Component extends DCLogic {
       dueDate: this.state.dueDate,
       dueDateMin: this.todayDateKey(),
       onDueDate: e => this.onDueDate(e),
+      priorityOpts,
       fromTime: this.state.fromTime, onFromTime: e => this.setState({ fromTime: e.target.value }),
       toTime: this.state.toTime, onToTime: e => this.setState({ toTime: e.target.value }),
       teamMembers: teamMembersList, onTeamMember: e => this.setState({ teamMemberId: e.target.value }),
@@ -1606,7 +1657,6 @@ class Component extends DCLogic {
       openScanner: () => this.openScanner(),
       closeScanner: () => this.closeScanner(),
       clearProduct: () => this.clearProduct(),
-      stars,
       callTypes,
       closeUrl,
       onClose: (e) => {
@@ -1625,6 +1675,8 @@ class Component extends DCLogic {
       custAddress: fullAddress || '',
       charge,
       toggleCharge: () => this.toggleCharge(),
+      cashOpts,
+      takeCashLabel: this.isEn() ? 'Take cash from the customer?' : 'האם לגבות מזומן מהלקוח?',
       createTicket: () => this.createTicket(),
       submitDisabled: this.state.submitting,
       submitLabel: this.state.submitting ? 'Creating ticket...' : 'Create Ticket',

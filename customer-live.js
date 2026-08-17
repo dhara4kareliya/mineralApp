@@ -1017,9 +1017,49 @@
     return map[kind] || map.note;
   }
 
+  function teamMemberNameById(id) {
+    var sid = String(id == null ? '' : id).trim();
+    if (!sid) return '';
+    var team = [];
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getTeamMembers === 'function') {
+        team = MineralBarApp.getTeamMembers() || [];
+      }
+    } catch (e) { team = []; }
+    for (var i = 0; i < team.length; i++) {
+      var m = team[i] || {};
+      var mid = String(m.id || m.user_id || m.member_id || m.team_member_id || '').trim();
+      if (mid && mid === sid) {
+        return stripHtmlText(m.name || m.full_name || m.user_name || m.email || '');
+      }
+    }
+    return '';
+  }
+
+  function pickSalesperson(c) {
+    c = c || {};
+    var ef = {};
+    if (c.extra_fields && typeof c.extra_fields === 'object' && !Array.isArray(c.extra_fields)) {
+      ef = c.extra_fields;
+    } else if (typeof c.extra_fields === 'string') {
+      try { ef = JSON.parse(c.extra_fields) || {}; } catch (e) { ef = {}; }
+    }
+    var id = c.user_id || c.customer_manager || c.team_member_id || c.assign_member_id ||
+      c.assigned_user_id || c.manager_id || c.assigned_to ||
+      (ef && (ef.user_id || ef.customer_manager || ef.team_member_id));
+    var fromId = teamMemberNameById(id);
+    if (fromId) return fromId;
+    return stripHtmlText(
+      c.customer_manager_name || c.assigned_name || c.manager_name ||
+      c.team_member_name || c.agent_name || c.joined_user_name ||
+      c.user_name || c.owner_name || ''
+    );
+  }
+
   function pickOwner(c) {
     return stripHtmlText(
-      c.owner_name || c.user_name || c.assigned_name || c.manager_name ||
+      c.owner_name || c.room_customer_name || c.property_owner ||
+      c.user_name || c.assigned_name || c.manager_name ||
       c.team_member_name || c.agent_name || c.created_by_name || ''
     );
   }
@@ -1662,6 +1702,7 @@
     var city = stripHtmlText(c.city || c.city_name || '');
     var address = stripHtmlText(c.address || c.full_address || c.exact_address || '');
     var region = pickRegion(c) || city;
+    var salesperson = pickSalesperson(c);
     var owner = pickOwner(c);
     var source = pickSource(c);
     var created = fmtShortDate(c.date_created || c.created_at || c.opendate || c.date);
@@ -1698,7 +1739,8 @@
     var rows = [];
     if (phone) rows.push({ label: t('Phone', 'טלפון'), value: phone, icon: iconPhone(), accent: true, href: telHref(phoneRaw) });
     if (email) rows.push({ label: t('Email', 'אימייל'), value: email, icon: iconMail(), accent: true, href: 'mailto:' + email });
-    if (owner) rows.push({ label: t('Owner', 'בעלים'), value: owner, icon: iconPerson() });
+    if (salesperson) rows.push({ label: t('Responsible salesperson', 'איש מכירות אחראי'), value: salesperson, icon: iconPerson() });
+    if (owner && owner !== salesperson) rows.push({ label: t('Owner', 'בעלים'), value: owner, icon: iconPerson() });
     if (source) rows.push({ label: t('Source', 'מקור'), value: source, icon: iconGlobe() });
     if (region) rows.push({ label: t('Area', 'אזור'), value: region, icon: iconPin() });
     if (address && address !== region) rows.push({ label: t('Address', 'כתובת'), value: address, icon: iconPin() });

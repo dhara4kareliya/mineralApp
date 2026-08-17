@@ -51,8 +51,10 @@
   }
 
   function formatDateToDoPayload(d) {
-    // Same format shown in the UI preview: DD-MM-YYYY HH:mm
-    return formatDisplayDate(d);
+    // MySQL DATETIME for missions.date_to_do_format: YYYY-MM-DD HH:mm:ss (local).
+    if (!d || Number.isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':00';
   }
 
   function addDays(base, days) {
@@ -171,8 +173,9 @@
   }
 
   function buildDateToDoPayload() {
-    // Always send the concrete preview date+time (e.g. 01-08-2026 10:25).
-    return formatDateToDoPayload(resolveDueDateTime());
+    var formatted = formatDateToDoPayload(resolveDueDateTime());
+    if (formatted) return formatted;
+    return formatDateToDoPayload(new Date(Date.now() + 30 * 60 * 1000));
   }
 
   function buildTimeMissionPayload() {
@@ -1081,6 +1084,9 @@
       var createdMissionId = null;
       try {
         var duePayload = buildDateToDoPayload();
+        if (!duePayload) {
+          throw new Error('Could not determine a valid due date.');
+        }
         var timePayload = buildTimeMissionPayload();
         var bizDate = duePayload;
 

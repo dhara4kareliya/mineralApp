@@ -175,6 +175,13 @@
                     <span style="font-size:15px; font-weight:800; color:{{ ticketStateColor }};">{{ ticketStateLabel }}</span>
                   </div>
                 </div>
+                <div
+                  style="flex:1; min-width:96px; background:{{ cashBg }}; border:1.4px solid {{ cashBorder }}; border-radius:14px; padding:12px 13px;">
+                  <div style="font-size:11px; color:{{ cashColor }}; font-weight:700; opacity:.85;">{{ cashTitle }}</div>
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
+                    <span style="font-size:15px; font-weight:800; color:{{ cashColor }};">{{ cashLabel }}</span>
+                  </div>
+                </div>
               </div>
               <!-- closing status + reason (from Ticket.Edit custom_fields) -->
               <sc-if hint-placeholder-val="{{ false }}" value="{{ hasClosingInfo }}">
@@ -189,6 +196,12 @@
                     <div style="padding-top:12px; border-top:1px solid #f0f2f5;">
                       <div style="font-size:11px; color:#9aa3b0; font-weight:700; margin-bottom:4px;">{{ closingReasonTitle }}</div>
                       <div style="font-size:14px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ closingReason }}</div>
+                    </div>
+                  </sc-if>
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasWarrantyMonths }}">
+                    <div style="padding-top:12px; border-top:1px solid #f0f2f5;">
+                      <div style="font-size:11px; color:#9aa3b0; font-weight:700; margin-bottom:4px;">{{ warrantyMonthsTitle }}</div>
+                      <div style="font-size:14px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ warrantyMonthsLabel }}</div>
                     </div>
                   </sc-if>
                 </div>
@@ -595,6 +608,54 @@
         if (m && m[1]) raw = String(m[1]).trim();
       }
       return raw;
+    }
+
+    parseWarrantyMonthsLabel(ticket, isEn) {
+      var cf = this.parseCustomFields(ticket);
+      var ef = ticket && (ticket.extra_fields != null ? ticket.extra_fields : ticket.extra_fields_json);
+      if (typeof ef === 'string') {
+        try { ef = JSON.parse(ef); } catch (e0) { ef = null; }
+      }
+      if (!ef || typeof ef !== 'object') ef = {};
+      var candidates = [cf.warranty_months, cf.warrantyMonths, ef.warranty_months, ef.warrantyMonths, ticket && ticket.warranty_months];
+      var raw = '';
+      for (var i = 0; i < candidates.length; i++) {
+        if (candidates[i] != null && String(candidates[i]).trim() !== '') {
+          raw = String(candidates[i]).trim();
+          break;
+        }
+      }
+      if (!raw) {
+        var m = this.ticketNotesText(ticket).match(/Warranty months:\s*([^\n]+)/i)
+          || this.ticketNotesText(ticket).match(/Warranty:\s*([^\n]+)/i)
+          || this.ticketNotesText(ticket).match(/אחריות(?:\s*\([^)]+\))?\s*[:：]\s*([^\n]+)/);
+        if (m && m[1]) raw = String(m[1]).trim();
+      }
+      if (!raw) return '';
+      var n = parseInt(String(raw).replace(/[^\d]/g, ''), 10);
+      if (!isFinite(n) || n < 0) return '';
+      if (n === 3 && /year|שנ/i.test(raw)) n = 36;
+      if (n === 36) return isEn ? '3 years' : '3 שנים';
+      if (n === 0) return isEn ? '0 months' : '0 חודשים';
+      return n + (isEn ? ' months' : ' חודשים');
+    }
+
+    isTakeCashYes(ticket) {
+      var cf = this.parseCustomFields(ticket);
+      var ef = ticket && (ticket.extra_fields != null ? ticket.extra_fields : ticket.extra_fields_json);
+      if (typeof ef === 'string') {
+        try { ef = JSON.parse(ef); } catch (e0) { ef = null; }
+      }
+      if (!ef || typeof ef !== 'object') ef = {};
+      var raw = cf.take_cash || cf.takeCash || cf.collect_cash ||
+        ef.take_cash || ef.takeCash || (ticket && ticket.take_cash) || '';
+      raw = String(raw == null ? '' : raw).toLowerCase().trim();
+      if (!raw) {
+        var m = this.ticketNotesText(ticket).match(/Take cash(?: from the customer)?:\s*([^\n]+)/i)
+          || this.ticketNotesText(ticket).match(/גביית מזומן\s*[:：]\s*([^\n]+)/);
+        if (m && m[1]) raw = String(m[1]).toLowerCase().trim();
+      }
+      return raw === 'yes' || raw === '1' || raw === 'true' || raw === 'כן' || raw === 'y';
     }
 
     extractProductIds(ticket) {
@@ -1209,6 +1270,7 @@
       const photoCountLabel = hasPhotos ? (photos.length + (isEn ? ' Pictures' : ' תמונות')) : (isEn ? 'None' : 'אין');
       const closingStatusLabel = this.parseClosingStatusLabel(t, isEn);
       const closingReason = this.parseClosingReason(t);
+      const warrantyMonthsLabel = this.parseWarrantyMonthsLabel(t, isEn);
 
       let repName = '';
       let hasRep = false;
@@ -1287,6 +1349,8 @@
         descText = t.subject || '';
       }
 
+      const takeCashYes = this.isTakeCashYes(t);
+
       return {
         callId: '#SRV-' + t.ticket_id,
         assignTechLink: 'service-assign-tech.html?ticket_id=' + encodeURIComponent(t.ticket_id || t.id || '') +
@@ -1306,8 +1370,13 @@
         ticketStateColor: ticketStateColor,
         ticketStateBg: ticketStateBg,
         ticketStateBorder: ticketStateBorder,
+        cashTitle: isEn ? 'Cash' : 'מזומן',
+        cashLabel: takeCashYes ? (isEn ? 'Yes' : 'כן') : (isEn ? 'No' : 'לא'),
+        cashColor: takeCashYes ? '#2e8a63' : '#5a6473',
+        cashBg: takeCashYes ? '#e6f4ec' : '#f6f7f9',
+        cashBorder: takeCashYes ? '#c2e6d1' : '#e2e6ec',
 
-        hasClosingInfo: !!closingStatusLabel,
+        hasClosingInfo: !!(closingStatusLabel || warrantyMonthsLabel),
         closingSectionTitle: isEn ? 'Closing details' : 'פרטי סגירה',
         closingStatusTitle: isEn ? 'Closing status' : 'סטטוס סיום',
         closingStatusLabel: closingStatusLabel,
@@ -1315,6 +1384,9 @@
         closingReasonTitle: isEn ? 'Follow-up reason' : 'סיבת המשך טיפול',
         closingReason: closingReason,
         closingReasonMb: closingReason ? '12px' : '0',
+        hasWarrantyMonths: !!warrantyMonthsLabel,
+        warrantyMonthsTitle: isEn ? 'Warranty (months)' : 'אחריות (חודשים)',
+        warrantyMonthsLabel: warrantyMonthsLabel,
 
         custInitials: custInitials, custName: name, custAddress: t.address || '---',
         customerLink: customerLink,

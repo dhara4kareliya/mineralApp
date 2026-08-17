@@ -303,9 +303,41 @@
 
                 <div class="dc-scroll"
                   style="flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; padding:0 18px 12px;">
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ sortLabel }}</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                    <sc-for as="o" hint-placeholder-count="3" list="{{ sortOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+
+                  <div style="height:1px; background:#f0f2f5; margin:0 0 18px;"></div>
+
                   <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">Status</div>
                   <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
                     <sc-for as="o" hint-placeholder-count="3" list="{{ statusOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ badgeFilterLabel }}</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                    <sc-for as="o" hint-placeholder-count="2" list="{{ badgeOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ regionFilterLabel }}</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                    <sc-for as="o" hint-placeholder-count="4" list="{{ regionOpts }}">
                       <button onclick="{{ o.pick }}"
                         style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
                         {{ o.label }}
@@ -319,6 +351,16 @@
                       <button onclick="{{ o.pick }}"
                         style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
                         <span style="width:7px; height:7px; border-radius:50%; background:{{ o.dot }};"></span>
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ typeFilterLabel }}</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                    <sc-for as="o" hint-placeholder-count="10" list="{{ typeOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
                         {{ o.label }}
                       </button>
                     </sc-for>
@@ -362,6 +404,10 @@ class Component extends DCLogic {
     filterPrio: '',
     filterStatus: '',
     filterDate: '',
+    filterRegion: '',
+    filterType: '',
+    filterBadge: '',
+    sort: 'wait',
     langTick: 0,
   };
 
@@ -392,6 +438,33 @@ class Component extends DCLogic {
     { id: 'open', label: 'Open', labelHe: 'פתוח' },
     { id: 'closed', label: 'Close', labelHe: 'סגור' },
     { id: 'assign', label: 'Assign', labelHe: 'משויך' },
+  ];
+  SORTS = [
+    { id: 'wait', labelEn: 'Waiting time', labelHe: 'זמן המתנה' },
+    { id: 'date', labelEn: 'Date', labelHe: 'תאריך' },
+    { id: 'name', labelEn: 'Name', labelHe: 'שם' },
+  ];
+  BADGE_LIST = [
+    { id: '', labelEn: 'All', labelHe: 'הכל' },
+    { id: 'scheduled', labelEn: 'Schedule', labelHe: 'מתוזמן' },
+  ];
+  REGIONS = [
+    { id: 'center', labelEn: 'Center', labelHe: 'מרכז', keys: /מרכז|center|tel.?aviv|תל.?אביב|פתח.?תקווה|רחובות|ראשון|רמת.?גן|הרצליה/i },
+    { id: 'north', labelEn: 'North', labelHe: 'צפון', keys: /צפון|north|חיפה|נהריה|haifa|עכו|טבריה|כרמיאל/i },
+    { id: 'south', labelEn: 'South', labelHe: 'דרום', keys: /דרום|south|באר.?שבע|beer.?sheva|אשדוד|אשקלון|אילת/i },
+    { id: 'jerusalem', labelEn: 'Jerusalem', labelHe: 'ירושלים', keys: /ירושלים|jerusalem/i },
+  ];
+  CALL_TYPES = [
+    { id: 'center', labelHe: 'התקנת מרכך מים', labelEn: 'Installing a water softener' },
+    { id: 'tech', labelHe: 'שירות טכני', labelEn: 'Technical service' },
+    { id: 'bidet', labelHe: 'התקנת בידה חשמלי', labelEn: 'Electric bidet installation' },
+    { id: 'mainbar', labelHe: 'התקנת בר ראשי', labelEn: 'Installing a main bar' },
+    { id: 'mainfilter', labelHe: 'התקנת סנן ראשי', labelEn: 'Installing a main filter' },
+    { id: 'waterbar', labelHe: 'התקנת בר מים', labelEn: 'Installing a water bar' },
+    { id: 'under', labelHe: 'מערכת תת כיורית', labelEn: 'Under-sink system' },
+    { id: 'filter', labelHe: 'החלפת סנן', labelEn: 'Filter replacement' },
+    { id: 'undergrind', labelHe: 'תת כיורי + טוחן', labelEn: 'Under sink + grinder' },
+    { id: 'disposal', labelHe: 'התקנת טוחן אשפה', labelEn: 'Installing a garbage disposer' },
   ];
 
   STAT_TONE = {
@@ -461,6 +534,41 @@ class Component extends DCLogic {
     return this.t(n + ' days ago', 'לפני ' + n + ' ימים');
   }
 
+  resolveRegion(t) {
+    var blob = [
+      t && t.city, t && t.city_name, t && t.area, t && t.region,
+      t && t.address, t && t.zone, t && t.district
+    ].filter(Boolean).join(' ');
+    var list = this.REGIONS || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].keys && list[i].keys.test(blob)) return list[i].id;
+    }
+    return '';
+  }
+
+  resolveCallType(subject) {
+    var s = String(subject || '').toLowerCase().trim();
+    if (!s) return '';
+    var list = this.CALL_TYPES || [];
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      if (s === row.id) return row.id;
+      if (row.labelHe && s.indexOf(String(row.labelHe).toLowerCase()) >= 0) return row.id;
+      if (row.labelEn && s.indexOf(String(row.labelEn).toLowerCase()) >= 0) return row.id;
+    }
+    if (/technical|טכני/.test(s)) return 'tech';
+    if (/softener|מרכך/.test(s)) return 'center';
+    if (/bidet|בידה/.test(s)) return 'bidet';
+    if (/main.?bar|בר ראשי/.test(s)) return 'mainbar';
+    if (/main.?filter|סנן ראשי/.test(s)) return 'mainfilter';
+    if (/water.?bar|בר מים/.test(s)) return 'waterbar';
+    if (/under.?sink|תת.?כיור/.test(s) && /grind|טוחן/.test(s)) return 'undergrind';
+    if (/under.?sink|תת.?כיור/.test(s)) return 'under';
+    if (/filter|סנן/.test(s)) return 'filter';
+    if (/dispos|טוחן אשפה/.test(s)) return 'disposal';
+    return '';
+  }
+
   resolvePrio(t) {
     var raw = String(
       (t && (t.priority || t.prio || t.ticket_priority)) ||
@@ -499,6 +607,10 @@ class Component extends DCLogic {
       filterPrio: '',
       filterStatus: '',
       filterDate: '',
+      filterRegion: '',
+      filterType: '',
+      filterBadge: '',
+      sort: 'wait',
       tab: '',
       ticketStatus: 'open',
     });
@@ -517,6 +629,9 @@ class Component extends DCLogic {
       patch.tab = '';
     }
     this.setState(patch);
+  }
+  setSort(id) {
+    this.setState({ sort: id || 'wait' });
   }
   onFilterDate(e) {
     var val = (e && e.target && e.target.value) || '';
@@ -624,6 +739,10 @@ class Component extends DCLogic {
         if (c.isDoneFlag || !c.isAssigned) return false;
       }
 
+      if (st.filterBadge && c.badge !== st.filterBadge) return false;
+      if (st.filterRegion && c.region !== st.filterRegion) return false;
+      if (st.filterType && c.typeId !== st.filterType) return false;
+
       if (dateKey) {
         var openKey = c.openDateKey || '';
         var dueKey = c.dueDateKey || '';
@@ -643,8 +762,17 @@ class Component extends DCLogic {
       return true;
     });
 
-    // Always old → new
-    list = this.sortOldToNew(list);
+    if (st.sort === 'date') {
+      list = [...list].sort(function (a, b) {
+        return (Number(b.ts) || 0) - (Number(a.ts) || 0);
+      });
+    } else if (st.sort === 'name') {
+      list = [...list].sort(function (a, b) {
+        return String(a.name || '').localeCompare(String(b.name || ''), 'he');
+      });
+    } else {
+      list = this.sortOldToNew(list);
+    }
     return list;
   }
 
@@ -761,6 +889,10 @@ class Component extends DCLogic {
             age = this.ageLabel(wait);
           }
 
+          if (!closed && sid !== 3 && !t.ticket_from_time && !t.from_time && !t.due_date && wait === 0) {
+            badge = 'new';
+          }
+
           let prio = this.resolvePrio(t);
           
           let descText = '';
@@ -802,7 +934,8 @@ class Component extends DCLogic {
             isDoneFlag: closed,
             isAssigned: isAssigned,
             address: t.address || '',
-            region: t.city_id && t.city_id !== 'undefined' ? t.city_id : 'Center',
+            region: this.resolveRegion(t),
+            typeId: this.resolveCallType(t.subject),
             prio: prio,
             desc: descText,
             ts: t.open_date ? new Date(t.open_date).getTime() / 1000 : 0,
@@ -941,11 +1074,45 @@ class Component extends DCLogic {
         ...this.chip(on),
       };
     });
+    const sortOpts = this.SORTS.map(s => {
+      const on = (st.sort || 'wait') === s.id;
+      return {
+        label: this.t(s.labelEn, s.labelHe),
+        pick: () => this.setSort(s.id),
+        ...this.chip(on),
+      };
+    });
+    const badgeOpts = this.BADGE_LIST.map(s => {
+      const current = st.filterBadge || '';
+      const on = current === (s.id || '');
+      return {
+        label: this.t(s.labelEn, s.labelHe),
+        pick: () => this.setState({ filterBadge: s.id || '' }),
+        ...this.chip(on),
+      };
+    });
+    const regionOpts = this.REGIONS.map(s => {
+      const on = st.filterRegion === s.id;
+      return {
+        label: this.t(s.labelEn, s.labelHe),
+        pick: () => this.setFilter('filterRegion', s.id),
+        ...this.chip(on),
+      };
+    });
+    const typeOpts = this.CALL_TYPES.map(s => {
+      const on = st.filterType === s.id;
+      return {
+        label: this.t(s.labelEn, s.labelHe),
+        pick: () => this.setFilter('filterType', s.id),
+        ...this.chip(on),
+      };
+    });
 
     const isFiltOpen = st.ticketStatus === 'open';
     const isFiltClosed = st.ticketStatus === 'closed';
     const hasFilterDate = !!(st.filterDate && String(st.filterDate).trim());
-    const hasActiveFilters = !!(st.filterPrio || st.filterStatus || hasFilterDate);
+    const defaultSort = !st.sort || st.sort === 'wait';
+    const hasActiveFilters = !!(st.filterPrio || st.filterStatus || hasFilterDate || st.filterRegion || st.filterType || st.filterBadge || !defaultSort);
 
     return {
       loading,
@@ -964,6 +1131,14 @@ class Component extends DCLogic {
       filtersOpen: st.filtersOpen,
       statusOpts,
       prioOpts,
+      sortOpts,
+      badgeOpts,
+      regionOpts,
+      typeOpts,
+      sortLabel: this.t('Sort by', 'מיון לפי'),
+      badgeFilterLabel: this.t('Call status', 'סטטוס קריאה'),
+      regionFilterLabel: this.t('Area', 'אזור'),
+      typeFilterLabel: this.t('Call type', 'סוג קריאה'),
       filterDate: st.filterDate || '',
       hasFilterDate,
       dateFilterLabel: this.t('Filter by date', 'סינון לפי תאריך'),

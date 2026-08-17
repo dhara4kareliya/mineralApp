@@ -203,8 +203,11 @@
   }
 
   function pickCity(row) {
+    row = row || {};
+    var ef = parseExtraFields(row);
     var city = stripHtmlText(
-      row.city || row.city_name || row.town || row.address_city || row.region || ''
+      row.city || row.city_name || row.town || row.address_city || row.region ||
+      (ef && (ef.city || ef.city_name || ef.area)) || ''
     );
     if (city && city.toLowerCase() !== 'null' && city.toLowerCase() !== 'undefined') return city;
     return '';
@@ -212,13 +215,17 @@
 
   function pickFullAddress(row) {
     row = row || {};
+    var ef = parseExtraFields(row);
     var address = stripHtmlText(
-      row.address || row.full_address || row.exact_address || row.street || row.street_name || ''
+      row.address || row.full_address || row.exact_address ||
+      row.street || row.street_name || (ef && (ef.street || ef.address)) || ''
     );
-    var entrance = stripHtmlText(row.entrance || row.entry || row.knisa || '');
-    var floor = stripHtmlText(row.floor || row.floor_number || row.koma || '');
-    var apt = stripHtmlText(row.apartment || row.apt || row.flat || row.dira || '');
-    var local = stripHtmlText(row.local || row.locality || row.neighborhood || '');
+    var building = stripHtmlText(row.building || row.house || row.house_number || (ef && (ef.building || ef.house)) || '');
+    if (address && building && address.indexOf(building) === -1) address = [address, building].filter(Boolean).join(' ');
+    var entrance = stripHtmlText(row.entrance || row.entry || row.knisa || (ef && ef.entrance) || '');
+    var floor = stripHtmlText(row.floor || row.floor_number || row.koma || (ef && ef.floor) || '');
+    var apt = stripHtmlText(row.apartment || row.apt || row.flat || row.dira || (ef && ef.apartment) || '');
+    var local = stripHtmlText(row.local || row.locality || row.neighborhood || row.area || (ef && ef.area) || '');
     var city = pickCity(row);
 
     // API often returns a composed address (street, Entrance…, Floor…, Apt…, city)

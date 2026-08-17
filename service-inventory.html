@@ -113,6 +113,19 @@ mbCss('./common.css');
     display: flex;
     align-items: center;
   }
+  .inv-view-only input,
+  .inv-view-only textarea,
+  .inv-view-only select {
+    cursor: default;
+  }
+  .inv-view-only select,
+  .inv-view-only input[type="checkbox"] {
+    pointer-events: none;
+  }
+  .inv-view-only .premium-input:focus {
+    border-color: #e2e8f0;
+    box-shadow: none;
+  }
 
   html[dir="ltr"] .form-label,
   html[dir="ltr"] .premium-input {
@@ -535,24 +548,21 @@ mbCss('./common.css');
         <div class="inv-product-sheet-head">
           <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px;"></div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
-            <div style="font-size:19px; font-weight:800; color:#1f2a3a;">Edit product</div>
-            <button onclick="{{ onDeleteClick }}" style="background:none; border:none; color:#c0392b; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:8px;">
-              <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
-            </button>
+            <div style="font-size:19px; font-weight:800; color:#1f2a3a;">View product</div>
           </div>
         </div>
-        <div class="dc-scroll inv-product-sheet-body">
+        <div class="dc-scroll inv-product-sheet-body inv-view-only">
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Basic Info</div>
         
         <label class="form-label">Product name *</label>
-        <input class="gv-in premium-input" type="text" placeholder="Enter product name..." value="{{ editName }}" oninput="{{ onEditNameChange }}"/>
+        <input class="gv-in premium-input" type="text" readonly placeholder="Enter product name..." value="{{ editName }}"/>
         
         <label class="form-label">English label</label>
-        <input class="gv-in premium-input" type="text" placeholder="Enter English label..." value="{{ editEnname }}" oninput="{{ onEditEnnameChange }}"/>
+        <input class="gv-in premium-input" type="text" readonly placeholder="Enter English label..." value="{{ editEnname }}"/>
 
         <label class="form-label">Suppliers</label>
         <div style="position:relative; margin-bottom:16px;">
-          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditSupplierChange }}">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
             <option value="">Select supplier</option>
             <sc-for as="sup" list="{{ suppliers }}">
               <option value="{{ sup.id }}" selected="{{ sup.editSelected }}">{{ sup.name }}</option>
@@ -564,42 +574,28 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">SKU</label>
-            <input class="gv-in premium-input" type="text" placeholder="Insert product SKU" value="{{ editSku }}" oninput="{{ onEditSkuChange }}" style="margin-bottom:8px;"/>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:16px; cursor:pointer;">
-              <input type="checkbox" checked="{{ editGenerateSku }}" onchange="{{ onEditGenerateSkuChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <input class="gv-in premium-input" type="text" readonly placeholder="Insert product SKU" value="{{ editSku }}" style="margin-bottom:8px;"/>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:16px;">
+              <input type="checkbox" checked="{{ editGenerateSku }}" tabindex="-1" style="accent-color:#1d60a2; width:16px; height:16px;" />
               <span>Generate SKU</span>
             </label>
           </div>
           <div style="flex:1;">
             <label class="form-label">Internal product SKU</label>
-            <input class="gv-in premium-input" type="text" placeholder="Insert internal product SKU" value="{{ editInternalSku }}" oninput="{{ onEditInternalSkuChange }}"/>
+            <input class="gv-in premium-input" type="text" readonly placeholder="Insert internal product SKU" value="{{ editInternalSku }}"/>
           </div>
         </div>
 
-        <div style="display:flex; gap:12px;">
-          <div style="flex:1;">
-            <label class="form-label">Category</label>
-            <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditCategoryChange }}">
-                <option value="">Select Category</option>
-                <sc-for as="cat" list="{{ selectableCategories }}">
-                  <option value="{{ cat.id }}" selected="{{ cat.selected }}">{{ cat.name }}</option>
-                </sc-for>
-              </select>
-              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
-            </div>
-          </div>
-          <div style="flex:1;">
-            <label class="form-label">Sub Category</label>
-            <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditSubCatChange }}">
-                <option value="0">-- Select Sub Category --</option>
-                <sc-for as="sub" list="{{ editSubCategories }}">
-                  <option value="{{ sub.id }}" selected="{{ sub.selected }}">{{ sub.name }}</option>
-                </sc-for>
-              </select>
-              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
-            </div>
+        <div style="margin-bottom:0;">
+          <label class="form-label">Category</label>
+          <div style="position:relative;">
+            <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
+              <option value="">Select Category</option>
+              <sc-for as="cat" list="{{ selectableCategories }}">
+                <option value="{{ cat.id }}" selected="{{ cat.selected }}">{{ cat.name }}</option>
+              </sc-for>
+            </select>
+            <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
           </div>
         </div>
 
@@ -607,7 +603,7 @@ mbCss('./common.css');
           <div style="flex:1;">
             <label class="form-label">Type</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditTypeChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
                 <sc-for as="t" list="{{ productTypes }}">
                   <option value="{{ t.value }}" selected="{{ t.editSelected }}">{{ t.label }}</option>
                 </sc-for>
@@ -615,25 +611,14 @@ mbCss('./common.css');
               <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
             </div>
           </div>
-          <div style="flex:1;">
-            <label class="form-label">Company</label>
-            <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditCompanyChange }}">
-                <option value="">Company</option>
-                <sc-for as="co" list="{{ companies }}">
-                  <option value="{{ co.id }}" selected="{{ co.editSelected }}">{{ co.name }}</option>
-                </sc-for>
-              </select>
-              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
-            </div>
-          </div>
+          <div style="flex:1;"></div>
         </div>
 
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Team member</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditTeamMemberChange }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
                 <option value="">Select Team Member</option>
                 <sc-for as="tm" list="{{ teamMembers }}">
                   <option value="{{ tm.id }}" selected="{{ tm.editSelected }}">{{ tm.name }}</option>
@@ -648,12 +633,11 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px; align-items:flex-start;">
           <div style="flex:1.2;">
             <label class="form-label">Storage Place</label>
-            <input class="gv-in premium-input" type="text" placeholder="Storage Place" value="{{ editStoragePlace }}" oninput="{{ onEditStoragePlaceChange }}" style="margin-bottom:8px;"/>
+            <input class="gv-in premium-input" type="text" readonly placeholder="Storage Place" value="{{ editStoragePlace }}" style="margin-bottom:8px;"/>
             <div style="display:flex; flex-wrap:wrap; gap:6px; min-height:8px; margin-bottom:8px;">
               <sc-for as="chip" list="{{ editSelectedStorageChips }}">
                 <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
                   {{ chip.name }}
-                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">&times;</button>
                 </span>
               </sc-for>
             </div>
@@ -661,7 +645,7 @@ mbCss('./common.css');
           <div style="flex:1;">
             <label class="form-label">Select Storage</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditStorageSelect }}">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
                 <option value="">All</option>
                 <sc-for as="st" list="{{ storages }}">
                   <option value="{{ st.id }}">{{ st.name }}</option>
@@ -676,7 +660,6 @@ mbCss('./common.css');
           <div style="flex:1; min-width:0;">
             <label class="form-label">Main Image</label>
             <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
-              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onEditImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
               <sc-if value="{{ hasEditImage }}">
                 <img src="{{ editImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
                 <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ editImageName }}</div>
@@ -692,7 +675,6 @@ mbCss('./common.css');
           <div style="flex:1; min-width:0;">
             <label class="form-label">Secondary Image</label>
             <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
-              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onEditSubImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
               <sc-if value="{{ hasEditSubImage }}">
                 <img src="{{ editSubImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
                 <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ editSubImageName }}</div>
@@ -710,15 +692,15 @@ mbCss('./common.css');
         <sc-if value="{{ isEditSubscription }}">
           <div style="background:#f8fafc; border:1px solid #e4e8ee; border-radius:14px; padding:14px; margin-bottom:16px;">
             <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Subscription</div>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:12px; cursor:pointer;">
-              <input type="checkbox" checked="{{ editEndless }}" onchange="{{ onEditEndlessChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:12px;">
+              <input type="checkbox" checked="{{ editEndless }}" tabindex="-1" style="accent-color:#1d60a2; width:16px; height:16px;" />
               <span>Endless</span>
             </label>
             <div style="display:flex; gap:12px;">
               <div style="flex:1;">
                 <label class="form-label">Months</label>
                 <div style="position:relative;">
-                  <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditMonthsChange }}">
+                  <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
                     <sc-for as="m" list="{{ editMonthOptions }}">
                       <option value="{{ m.value }}" selected="{{ m.selected }}">{{ m.label }}</option>
                     </sc-for>
@@ -728,7 +710,7 @@ mbCss('./common.css');
               </div>
               <div style="flex:1;">
                 <label class="form-label">Price After</label>
-                <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Price After" value="{{ editPriceAfter }}" oninput="{{ onEditPriceAfterChange }}"/>
+                <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="Price After" value="{{ editPriceAfter }}"/>
               </div>
             </div>
           </div>
@@ -737,11 +719,11 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Stock qty</label>
-            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ editStockQty }}" oninput="{{ onEditStockChange }}"/>
+            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0" value="{{ editStockQty }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Min stock</label>
-            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ editMinStock }}" oninput="{{ onEditMinStockChange }}"/>
+            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0" value="{{ editMinStock }}"/>
           </div>
         </div>
 
@@ -750,22 +732,22 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Price</label>
-            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Insert product price" value="{{ editPrice }}" oninput="{{ onEditPriceChange }}"/>
+            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="Insert product price" value="{{ editPrice }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Cost price</label>
-            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ editCost }}" oninput="{{ onEditCostChange }}"/>
+            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0.00" value="{{ editCost }}"/>
           </div>
         </div>
 
         <label class="form-label">Discount price</label>
-        <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ editDiscountPrice }}" oninput="{{ onEditDiscountChange }}"/>
+        <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0.00" value="{{ editDiscountPrice }}"/>
 
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Options</div>
         
         <label class="form-label">Status</label>
         <div style="position:relative; margin-bottom:16px;">
-          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditStatusChange }}">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
             <option value="1" selected="{{ editStatusActive }}">Active</option>
             <option value="0" selected="{{ editStatusInactive }}">Inactive</option>
           </select>
@@ -773,12 +755,11 @@ mbCss('./common.css');
         </div>
 
         <label class="form-label">Product details</label>
-        <textarea class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" value="{{ editDesc }}" oninput="{{ onEditDescChange }}"></textarea>
+        <textarea class="premium-input" rows="6" readonly style="min-height:140px; height:140px; resize:none; line-height:1.5;" placeholder="Insert product details" value="{{ editDesc }}"></textarea>
         
         </div>
         <div class="inv-product-sheet-actions">
           <button onclick="{{ closeDetail }}" style="flex:1; padding:14px; border:1.6px solid #cbd5e0; border-radius:12px; background:#fff; color:#2d3748; font-size:15px; font-weight:700; cursor:pointer;">Cancel</button>
-          <button onclick="{{ updateStock }}" style="flex:1.5; padding:14px; border:none; border-radius:12px; background:#1d60a2; color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(29,96,162,0.24);">Save changes</button>
         </div>
       </div>
     </div>
@@ -2641,9 +2622,9 @@ class Component extends DCLogic {
       closeAdd: () => this.setState({ addOpen: false }),
       createProduct: () => this.createProduct(),
       closeDetail: () => this.setState({ detailOpen: false }),
-      updateStock: () => this.saveProductChanges(),
-      confirmDeleteOpen: s.confirmDeleteOpen,
-      onDeleteClick: () => this.onDeleteClick(),
+      updateStock: () => {},
+      confirmDeleteOpen: false,
+      onDeleteClick: () => {},
       closeConfirmDelete: () => this.setState({ confirmDeleteOpen: false }),
       executeDelete: () => this.executeDelete()
     };

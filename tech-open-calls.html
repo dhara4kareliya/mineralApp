@@ -72,7 +72,7 @@ mbCss('./common.css');
 </div>
 </div>
 </sc-if>
-<!-- search by customer name -->
+<!-- search by name or phone -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showSearch }}">
 <div style="position:relative; margin-bottom:14px;">
 <svg fill="none" height="18" stroke="#8a93a3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="position:absolute; inset-inline-start:13px; top:50%; transform:translateY(-50%); pointer-events:none; z-index:1;" viewbox="0 0 24 24" width="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
@@ -99,6 +99,18 @@ mbCss('./common.css');
 <svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="13"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
                   {{ c.address }}
                 </div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ c.hasCustId }}">
+<div style="display:inline-flex; align-items:center; gap:4px; font-size:12.5px; color:#7b8595; margin-top:5px;">
+<svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="13"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  {{ c.custNumberLabel }} {{ c.cust_id }}
+                </div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ c.hasWaitLabel }}">
+<div style="display:inline-flex; align-items:center; gap:5px; margin-top:7px; font-size:11.5px; font-weight:700; color:{{ c.waitColor }}; background:{{ c.waitBg }}; padding:4px 9px; border-radius:99px;">
+<svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                  {{ c.waitLabel }}
+                </div>
+</sc-if>
 </div>
 <div style="display:inline-flex; align-items:center; gap:4px; background:{{ c.badgeBg }}; color:{{ c.badgeColor }}; font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap; flex:none;">
 <span style="width:6px; height:6px; border-radius:50%; background:{{ c.badgeColor }};"></span>{{ c.badge }}
@@ -193,10 +205,45 @@ class Component extends DCLogic {
     this.setState({ searchQuery: '' });
   }
 
+  phoneDigits(raw) {
+    return String(raw || '').replace(/\D/g, '');
+  }
+
   matchesCustomerSearch(call, query) {
     if (!query) return true;
+    var q = String(query).toLowerCase().trim();
+    var qDigits = this.phoneDigits(query);
     var name = String((call && call.custName) || '').toLowerCase();
-    return name.indexOf(query) !== -1;
+    var subject = String((call && call.name) || '').toLowerCase();
+    var phone = this.phoneDigits(call && call.phone);
+    var custId = String((call && (call.cust_id || call.customer_id)) || '').toLowerCase();
+    var hitName = name.indexOf(q) !== -1 || subject.indexOf(q) !== -1;
+    var hitPhone = qDigits.length >= 2 && phone.indexOf(qDigits) !== -1;
+    var hitCust = !!custId && (custId.indexOf(q) !== -1 || (qDigits.length >= 2 && custId.indexOf(qDigits) !== -1));
+    return hitName || hitPhone || hitCust;
+  }
+
+  daysOpen(openRaw) {
+    if (!openRaw) return 0;
+    var open = new Date(openRaw);
+    if (isNaN(open.getTime())) return 0;
+    var now = new Date();
+    open.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.round((now.getTime() - open.getTime()) / (1000 * 60 * 60 * 24)));
+  }
+
+  waitTone(d) {
+    if (d > 3) return { color: '#c0392b', bg: '#fbeeed', accent: '#c0392b', rank: 0 };
+    if (d >= 1) return { color: '#bd8324', bg: '#fdf1dd', accent: '#e0a13c', rank: 1 };
+    return { color: '#2e8a63', bg: '#e6f4ec', accent: '#2e8a63', rank: 2 };
+  }
+
+  waitLabel(d) {
+    var n = Number(d) || 0;
+    if (n <= 0) return this.t('Opened today', 'נפתח היום');
+    if (n === 1) return this.t('1 day since opened', 'יום 1 מאז הפתיחה');
+    return this.t(n + ' days since opened', n + ' ימים מאז הפתיחה');
   }
 
   isEn() {
@@ -305,9 +352,9 @@ class Component extends DCLogic {
               address = (item.city_id && item.city_id !== 'undefined') ? item.city_id : '';
             }
 
-            var dateStr = item.due_date || item.open_date || '';
+            var dateStr = item.open_date || item.created_at || item.due_date || '';
             var timeVal = '12:00';
-            if (dateStr && dateStr.includes('T')) {
+            if (dateStr && String(dateStr).includes('T')) {
               try {
                 var dObj = new Date(dateStr);
                 var hrs = String(dObj.getHours()).padStart(2, '0');
@@ -316,15 +363,28 @@ class Component extends DCLogic {
                 var month = String(dObj.getMonth() + 1).padStart(2, '0');
                 timeVal = day + '/' + month + ' · ' + hrs + ':' + mins;
               } catch (e) {
-                var timeParts = dateStr.split('T')[1] || '';
+                var timeParts = String(dateStr).split('T')[1] || '';
                 if (timeParts) timeVal = timeParts.substring(0, 5);
               }
             }
 
             var custName = item.customer_name || item.joined_customer_name || '';
+            var phone =
+              item.mobile ||
+              item.phone ||
+              item.cust_phone ||
+              item.customer_phone ||
+              item.cellular ||
+              (item.custom_fields && (item.custom_fields.phone || item.custom_fields.mobile)) ||
+              '';
             var typeVal = item.type || '';
             var ticketStatus = 'open';
             if (st === 'overdue' || st === 'delayed' || st === 'late') ticketStatus = 'overdue';
+            var wait = self.daysOpen(item.open_date || item.created_at || item.date || '');
+            var custId = item.cust_id || item.customer_id || item.contactus_id || item.customerId || '';
+            if (item.custom_fields && (item.custom_fields.cust_id || item.custom_fields.customer_id)) {
+              custId = custId || item.custom_fields.cust_id || item.custom_fields.customer_id;
+            }
 
             openTickets.push({
               id: item.id,
@@ -333,6 +393,9 @@ class Component extends DCLogic {
               time: timeVal,
               type: typeVal,
               custName: custName,
+              cust_id: custId ? String(custId) : '',
+              phone: phone,
+              wait: wait,
               lastMsg: lastMsg,
               status: ticketStatus,
               isClosed: false
@@ -489,9 +552,14 @@ class Component extends DCLogic {
     const hasOpen = openCount > 0;
     const allClosed = !loading && !hasOpen;
     const self = this;
-    const filteredOpen = searchQ
+    const filteredOpen = (searchQ
       ? openOnly.filter(function (c) { return self.matchesCustomerSearch(c, searchQ); })
-      : openOnly;
+      : openOnly).slice().sort(function (a, b) {
+        var wa = Number(a.wait) || 0;
+        var wb = Number(b.wait) || 0;
+        if (wb !== wa) return wb - wa;
+        return String(a.name || '').localeCompare(String(b.name || ''), 'he');
+      });
     const fallbackCall = this.t('Service call', 'קריאת שירות');
     const fallbackAddr = this.t('No address listed', 'לא צוינה כתובת');
     const fallbackCust = this.t('Customer', 'לקוח');
@@ -511,27 +579,36 @@ class Component extends DCLogic {
     var todayDate = mm + '/' + dd + '/' + yy;
 
     const ST = {
-      overdue: { accent: '#c0392b', badge: this.t('Overdue', 'באיחור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
-      open: { accent: '#e0a13c', badge: this.t('Waiting', 'ממתינה'), badgeBg: '#fdf1dd', badgeColor: '#bd8324' },
-      closed: { accent: '#c0392b', badge: this.t('Closed', 'סגור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
+      overdue: { badge: this.t('Overdue', 'באיחור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
+      open: { badge: this.t('Waiting', 'ממתינה'), badgeBg: '#fdf1dd', badgeColor: '#bd8324' },
+      closed: { badge: this.t('Closed', 'סגור'), badgeBg: '#fbeeed', badgeColor: '#c0392b' },
     };
 
     const calls = loading ? [] : filteredOpen.map(c => {
       const custName = c.custName || fallbackCust;
       const preview = this.cleanMessagePreview(c.lastMsg || c.customerDetail || '');
       const stMeta = ST[c.status] || ST.open;
+      const wt = this.waitTone(c.wait);
+      const waitLabel = this.waitLabel(c.wait);
       return {
         name: c.name || fallbackCall,
         address: c.address || fallbackAddr,
         time: c.time,
         type: c.type || fallbackCall,
         customerDetail: custName,
+        cust_id: c.cust_id || '',
+        hasCustId: !!(c.cust_id && String(c.cust_id).trim()),
+        custNumberLabel: this.t('Customer number:', 'מספר לקוח:'),
         preview: preview,
         hasPreview: !!preview,
-        accent: stMeta.accent,
+        accent: wt.accent,
         badge: stMeta.badge,
-        badgeBg: stMeta.badgeBg,
-        badgeColor: stMeta.badgeColor,
+        badgeBg: wt.bg,
+        badgeColor: wt.color,
+        waitLabel: waitLabel,
+        hasWaitLabel: true,
+        waitColor: wt.color,
+        waitBg: wt.bg,
         btnLabel: this.t('Ticket details', 'פרטי קריאה'),
         action: () => this.openTicketDetails(c.id),
         defer: () => this.openDefer(c.id),
@@ -580,11 +657,11 @@ class Component extends DCLogic {
       searchQuery,
       hasSearchQuery,
       searchPadEnd: hasSearchQuery ? '40px' : '14px',
-      searchPlaceholder: this.t('Search by customer name...', 'חיפוש לפי שם לקוח...'),
+      searchPlaceholder: this.t('Search by name, phone or customer number...', 'חיפוש לפי שם, טלפון או מספר לקוח...'),
       onSearch: (e) => this.onSearch(e),
       clearSearch: () => this.clearSearch(),
       showNoSearchResults,
-      noSearchResultsLabel: this.t('No tickets found for this customer', 'לא נמצאו טיקטים עבור לקוח זה'),
+      noSearchResultsLabel: this.t('No tickets found for this name, phone or customer number', 'לא נמצאו טיקטים עבור שם, טלפון או מספר לקוח זה'),
 
       deferOpen: st.deferTarget !== null,
       cancelDefer: () => this.cancelDefer(),

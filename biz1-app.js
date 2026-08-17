@@ -858,7 +858,9 @@
     };
 
     var due = p.date_to_do || p.due_date;
-    if (due != null && due !== '') payload.date_to_do = due;
+    if (due != null && due !== '') {
+      payload.date_to_do = toMysqlDateTimeString(due) || String(due).trim();
+    }
 
     if (p.days_after_ads != null && p.days_after_ads !== '') {
       payload.days_after_ads = Number(p.days_after_ads);
@@ -1152,13 +1154,58 @@
     return { meta: meta };
   }
 
+  function padDatePart(valueToPad) {
+    return valueToPad < 10 ? '0' + valueToPad : String(valueToPad);
+  }
+
+  function parseMissionDateTime(value) {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    var raw = String(value == null ? '' : value).trim();
+    if (!raw || raw === '—' || raw === '-') return null;
+
+    // UI payload historically used DD-MM-YYYY HH:mm. Native Date.parse treats
+    // dash dates as invalid (or as MM-DD-YYYY), which produced '' for MySQL.
+    var dmy = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (dmy) {
+      var day = Number(dmy[1]);
+      var month = Number(dmy[2]);
+      var year = Number(dmy[3]);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        var parsedDmy = new Date(
+          year, month - 1, day,
+          Number(dmy[4] || 0), Number(dmy[5] || 0), Number(dmy[6] || 0), 0
+        );
+        if (!Number.isNaN(parsedDmy.getTime())) return parsedDmy;
+      }
+    }
+
+    var iso = raw.indexOf('T') !== -1 || /Z$/i.test(raw) ? raw : raw.replace(' ', 'T');
+    var parsed = new Date(iso);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+
+    var ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (ymd) {
+      var parsedYmd = new Date(
+        Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]),
+        Number(ymd[4] || 0), Number(ymd[5] || 0), Number(ymd[6] || 0), 0
+      );
+      if (!Number.isNaN(parsedYmd.getTime())) return parsedYmd;
+    }
+    return null;
+  }
+
+  function toMysqlDateTimeString(value) {
+    var date = parseMissionDateTime(value);
+    if (!date) return '';
+    return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate()) +
+      ' ' + padDatePart(date.getHours()) + ':' + padDatePart(date.getMinutes()) + ':' +
+      padDatePart(date.getSeconds());
+  }
+
   function toUtcDateTimeString(value) {
-    if (value == null || value === '') return '';
-    var date = value instanceof Date ? value : new Date(String(value).replace(' ', 'T'));
-    if (Number.isNaN(date.getTime())) return String(value).trim();
-    function pad(valueToPad) { return valueToPad < 10 ? '0' + valueToPad : String(valueToPad); }
-    return date.getUTCFullYear() + '-' + pad(date.getUTCMonth() + 1) + '-' + pad(date.getUTCDate()) +
-      ' ' + pad(date.getUTCHours()) + ':' + pad(date.getUTCMinutes()) + ':' + pad(date.getUTCSeconds());
+    return toMysqlDateTimeString(value);
   }
 
   function comparableMissionValue(field, value) {
@@ -1264,7 +1311,8 @@
       'sub_list_data_name', 'internal_sub_status_list', 'tag', 'extra_fields',
       'parent_customer_id', 'parent_cust_IIId', 'room_customer_name',
       'customer_add_from_email', 'extension', 'data_value_for_socket',
-      'checkUnique', 'upsert', 'glob_check_already_or_not', 'force', 'followup'
+      'checkUnique', 'upsert', 'glob_check_already_or_not', 'force', 'followup',
+      'user_id'
     ];
 
     // Name (official: name)
@@ -1318,6 +1366,12 @@
 
     var statusVal = p.status_id || p.status;
     if (statusVal !== undefined && statusVal !== '') payload.status_id = statusVal;
+
+    var assignId = p.user_id || p.team_member_id || p.customer_manager || p.assign_member_id;
+    if (assignId !== undefined && assignId !== '') {
+      var assignNum = Number(assignId);
+      if (Number.isFinite(assignNum) && assignNum > 0) payload.user_id = assignNum;
+    }
 
     if (p.sub_list_data !== undefined && p.sub_list_data !== '') payload.sub_list_data = p.sub_list_data;
     if (p.sub_list_data_name !== undefined && p.sub_list_data_name !== '') payload.sub_list_data_name = p.sub_list_data_name;
@@ -1401,19 +1455,25 @@
     if (!mid) return { ok: false, skipped: true };
 
     var client = getClient();
+    var midNum = Number(mid);
+    var idVal = (Number.isFinite(midNum) && midNum > 0) ? midNum : mid;
     var routes = ['Customer.Edit', 'Customer.Update'];
     var payloads = [
-      { customer_manager: mid },
-      { shared_with: mid },
-      { user_id: mid }
+      { user_id: idVal },
+      { team_member_id: idVal },
+      { assign_member_id: idVal },
+      { customer_manager: idVal },
+      { assigned_user_id: idVal },
+      { shared_with: String(mid) },
+      { user_id: String(mid) }
     ];
 
     for (var r = 0; r < routes.length; r++) {
       for (var i = 0; i < payloads.length; i++) {
         try {
-          var body = Object.assign({ customer_id: cid }, payloads[i]);
+          var body = Object.assign({ customer_id: cid, cust_id: cid, id: cid }, payloads[i]);
           var raw = await client.request(routes[r], body);
-          if (raw && (Number(raw.success) === 1 || raw.success === true)) {
+          if (raw && (Number(raw.success) === 1 || raw.success === true || raw.output || raw.data)) {
             return { ok: true, route: routes[r], raw: raw };
           }
         } catch (e) {
