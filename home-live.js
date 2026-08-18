@@ -77,9 +77,70 @@
     return { text: t('Open', 'פתוח'), color: '#7b8595' };
   }
 
+  function isFollowupLead(row) {
+    if (!row) return false;
+    var status = [
+      row.sub_list_data_name, row.internal_status_name, row.status_label,
+      row.status_name, row.status_text, row.status
+    ].map(function (v) { return String(v == null ? '' : v); }).join(' ').toLowerCase();
+    if (/follow|פולוא|מעקב/.test(status)) return true;
+    if (row.followup) {
+      var ts = new Date(row.followup).getTime();
+      if (!isNaN(ts) && ts <= Date.now()) return true;
+    }
+    return false;
+  }
+
+  function isDcTemplate(el) {
+    return !!(el && el.closest && el.closest('x-dc'));
+  }
+
+  /** All matching ids — DC/React can clone the template, so getElementById hits the hidden one. */
+  function liveNodes(id) {
+    var nodes = document.querySelectorAll('[id="' + String(id).replace(/"/g, '') + '"]');
+    var visible = [];
+    var i;
+    for (i = 0; i < nodes.length; i++) {
+      if (!isDcTemplate(nodes[i])) visible.push(nodes[i]);
+    }
+    return visible.length ? visible : Array.prototype.slice.call(nodes);
+  }
+
+  var _lastPaint = {};
+
   function setText(id, text) {
-    var el = document.getElementById(id);
-    if (el) el.textContent = text;
+    text = String(text);
+    if (text !== '…') _lastPaint[id] = text;
+    var nodes = liveNodes(id);
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = text;
+    if (id === 'mb-pipe-followup') {
+      var badges = document.querySelectorAll('[data-pipe-count="followup"]');
+      for (var j = 0; j < badges.length; j++) {
+        if (isDcTemplate(badges[j]) && nodes.length) continue;
+        badges[j].textContent = text;
+      }
+    }
+  }
+
+  function repaintCounts() {
+    Object.keys(_lastPaint).forEach(function (id) {
+      var text = _lastPaint[id];
+      var nodes = liveNodes(id);
+      for (var i = 0; i < nodes.length; i++) nodes[i].textContent = text;
+    });
+    if (_lastPaint['mb-pipe-followup'] != null) {
+      var badges = document.querySelectorAll('[data-pipe-count="followup"]');
+      for (var j = 0; j < badges.length; j++) {
+        if (isDcTemplate(badges[j])) continue;
+        badges[j].textContent = _lastPaint['mb-pipe-followup'];
+      }
+    }
+  }
+
+  function scheduleRepaint() {
+    [0, 80, 250, 800, 1800].forEach(function (ms) {
+      setTimeout(repaintCounts, ms);
+    });
   }
 
   function greetingName() {
@@ -262,7 +323,7 @@
       setText('mb-stat-closed', '…');
       setText('mb-stat-leads', '…');
       setText('mb-stat-followup', '…');
-      setText('mb-stat-chats', '…');
+      setText('mb-stat-followups', '…');
       setText('mb-pipe-leads', '…');
       setText('mb-pipe-followup', '…');
 
@@ -284,7 +345,12 @@
       var results = await Promise.all([
         MineralBarApp.countCustomers(MineralBarApp.FOLDERS.LEADS).catch(function () { return { count: 0 }; }),
         MineralBarApp.countMissions({}).catch(function () { return { count: 0 }; }),
-        MineralBarApp.listChatConversations({ page: 1, limit: 1 }).catch(function () { return { total: 0 }; }),
+        MineralBarApp.listCustomers({
+          folder_id: MineralBarApp.FOLDERS.LEADS,
+          length: 100,
+          start: 0,
+          draw: 1
+        }).catch(function () { return { rows: [] }; }),
         MineralBarApp.listMissions({ length: 100, start: 0, draw: 1 }).catch(function () { return { rows: [], total: 0 }; })
       ]);
 
@@ -294,7 +360,8 @@
 
       var leadsCount = Number(results[0].count) || 0;
       var missionTotal = Number(results[1].count) || Number(results[3].total) || 0;
-      var chatTotal = Number(results[2].total != null ? results[2].total : results[2].rows && results[2].rows.length) || 0;
+      var leadRows = results[2].rows || results[2].data || [];
+      var followupCount = leadRows.filter(isFollowupLead).length;
 
       var rows = results[3].rows || [];
       if (!rows.length && results[3].groups) {
@@ -323,14 +390,15 @@
         : t('Total tasks', 'סה״כ משימות'));
       setText('mb-stat-leads', String(leadsCount));
       setText('mb-stat-leads-sub', t('Folder 1 · Leads', 'תיקייה 1 · לידים'));
-      setText('mb-stat-followup', String((todayCount + overdueCount) || openEstimate || missionTotal));
+      setText('mb-stat-followup', String((todayCount + overdueCount) || openEstimate || 0));
       setText('mb-stat-followup-sub', overdueCount
         ? (todayCount + ' ' + t('today', 'היום') + ' · ' + overdueCount + ' ' + t('overdue', 'באיחור'))
         : (todayCount + ' ' + t('for today', 'להיום')));
-      setText('mb-stat-chats', String(chatTotal));
-      setText('mb-stat-chats-sub', t('Open conversations', 'שיחות פתוחות'));
+      setText('mb-stat-followups', String(followupCount));
+      setText('mb-stat-followups-sub', t('Follow-up', 'פולואפ'));
       setText('mb-pipe-leads', String(leadsCount));
-      setText('mb-pipe-followup', String(openEstimate || missionTotal));
+      setText('mb-pipe-followup', String(followupCount));
+      scheduleRepaint();
 
       renderMissions(prioritized, missionTotal, today);
     } catch (err) {
@@ -348,16 +416,24 @@
     }
   }
 
+  function homeReady() {
+    var homes = liveNodes('mb-live-home');
+    if (!homes.length) return false;
+    // Wait until DC replaces <x-dc> with the visible React tree
+    if (document.querySelector('x-dc') && !document.getElementById('dc-root')) return false;
+    return true;
+  }
+
   function start(opts) {
     opts = opts || {};
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-    if (!document.getElementById('mb-live-home')) {
-      // DC may not have mounted yet
+    if (!homeReady()) {
       if (!window.__mbHomeMountTries) window.__mbHomeMountTries = 0;
-      if (window.__mbHomeMountTries++ < 12) {
-        setTimeout(function () { start(opts); }, 50);
+      if (window.__mbHomeMountTries++ < 50) {
+        setTimeout(function () { start(opts); }, 80);
+        return;
       }
-      return;
+      if (!document.getElementById('mb-live-home')) return;
     }
     window.__mbHomeMountTries = 0;
     if (_homeBooted && !opts.force) return;

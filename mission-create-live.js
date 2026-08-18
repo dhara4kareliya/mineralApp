@@ -647,6 +647,57 @@
     window.location.href = getBackUrl();
   }
 
+  function isMissionDone(mission) {
+    if (!mission) return false;
+    if (mission.is_done || Number(mission.done) === 1) return true;
+    var col = String(mission.project_column || mission.status || '').toLowerCase();
+    return col === 'completed' || col === 'done' || col === 'col_done' || col === 'col_completed';
+  }
+
+  function setDoneHeaderState(alreadyDone) {
+    var doneBtn = document.getElementById('mb-btn-mark-done');
+    var doneBadge = document.getElementById('mb-task-done-badge');
+    var doneLabel = uiT('Close task', 'סגור משימה');
+    if (doneBtn) {
+      doneBtn.textContent = doneLabel;
+      doneBtn.style.display = alreadyDone ? 'none' : 'inline-flex';
+    }
+    if (doneBadge) {
+      doneBadge.textContent = uiT('Done', 'בוצע');
+      doneBadge.style.display = alreadyDone ? 'inline-flex' : 'none';
+    }
+  }
+
+  function wireMarkDone() {
+    var doneBtn = document.getElementById('mb-btn-mark-done');
+    if (!doneBtn || doneBtn.dataset.wired === '1') return;
+    doneBtn.dataset.wired = '1';
+    doneBtn.addEventListener('click', async function () {
+      if (!editingMissionId) return;
+      var doneLabel = uiT('Close task', 'סגור משימה');
+      doneBtn.disabled = true;
+      doneBtn.textContent = uiT('Closing…', 'סוגר…');
+      showStatus('loading', uiT('Closing task…', 'סוגר משימה…'));
+      try {
+        if (window.MineralBarApp && MineralBarApp.doneMission) {
+          await MineralBarApp.doneMission(editingMissionId);
+        } else {
+          await MineralBarApp.getClient().request('Mission.Done', { id: editingMissionId });
+        }
+        setDoneHeaderState(true);
+        showStatus('ok', uiT('Task closed. Redirecting…', 'המשימה נסגרה. מעביר…'));
+        setTimeout(function () {
+          goBackToEntryScreen();
+        }, 500);
+      } catch (err) {
+        console.error('[mission-create] Mission.Done failed', err);
+        showStatus('error', uiT('Failed to close task', 'סגירת משימה נכשלה') + ': ' + ((err && err.message) || err));
+        doneBtn.disabled = false;
+        doneBtn.textContent = doneLabel;
+      }
+    });
+  }
+
   function wireBackNavigation() {
     var closeBtn = document.getElementById('mb-mission-close');
     if (!closeBtn) return;
@@ -699,6 +750,7 @@
 
     var headerTitle = document.getElementById('mb-form-header-title');
     if (headerTitle) headerTitle.textContent = 'Edit task';
+    setDoneHeaderState(false);
 
     var submitBtn = document.getElementById('mb-create-mission');
     if (submitBtn) submitBtn.textContent = 'Update task';
@@ -810,6 +862,7 @@
       if (privateCb) {
         privateCb.checked = Boolean(m.private || Number(m.private_mission) === 1);
       }
+      setDoneHeaderState(isMissionDone(m));
 
       // 9. Advanced Checkboxes
       var emailMeCb = document.getElementById('mb-email-me');
@@ -1209,6 +1262,7 @@
     if (started) return;
     started = true;
     wireBackNavigation();
+    wireMarkDone();
     wireSchedulePills();
     wirePriorityPills();
     wireProjectColumnLiveUpdate();

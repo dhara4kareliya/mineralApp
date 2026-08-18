@@ -112,11 +112,15 @@
               <div id="mb-form-header-title" style="font-size:20px; font-weight:800; color:var(--text-title);">Add a task</div>
             </div>
             
-            <!-- Private Toggle Badge -->
-            <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px; border:1px solid var(--border-panel); background:var(--bg-panel); font-size:12.5px; font-weight:700; color:var(--text-sub); cursor:pointer; user-select:none;">
-              <input id="mb-task-private" type="checkbox" style="accent-color:var(--color-primary); width:15px; height:15px;" />
-              <span>Private</span>
-            </label>
+            <div style="display:flex; align-items:center; gap:8px; flex:none;">
+              <button type="button" id="mb-btn-mark-done" style="display:none; flex:none; padding:7px 14px; border:none; border-radius:99px; background:#2e8a63; color:#fff; font-size:12.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(46,138,99,0.28);">Close task</button>
+              <span id="mb-task-done-badge" style="display:none; flex:none; padding:7px 14px; border-radius:99px; background:#e6f4ec; color:#2e8a63; font-size:12.5px; font-weight:800;">Done</span>
+              <!-- Private Toggle Badge -->
+              <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px; border:1px solid var(--border-panel); background:var(--bg-panel); font-size:12.5px; font-weight:700; color:var(--text-sub); cursor:pointer; user-select:none;">
+                <input id="mb-task-private" type="checkbox" style="accent-color:var(--color-primary); width:15px; height:15px;" />
+                <span>Private</span>
+              </label>
+            </div>
           </div>
 
           <!-- Linked Customer Box (Shown when customer_id query param exists) -->

@@ -112,13 +112,12 @@ mbCss('./common.css');
           <div style="background:#eff1f5; border-radius:16px; padding:16px 16px 15px; text-align:right;">
             <div style="font-size:13.5px; font-weight:600; color:#8a93a3;">משימות פתוחות</div>
             <div id="mb-stat-followup" style="font-size:42px; font-weight:800; color:#bd8324; line-height:1.15; margin:2px 0;">…</div>
-            <!-- <div id="m|b-stat-followup-sub" style="font-size:13px; font-weight:600; color:#9aa3b0;">פולואפ</div> -->
-            <div style="font-size:13.5px; font-weight:600; color:#8a93a3;">משימות פתוחות</div>
+            <div id="mb-stat-followup-sub" style="font-size:13px; font-weight:600; color:#9aa3b0;">משימות</div>
           </div>
           <div style="background:#eff1f5; border-radius:16px; padding:16px 16px 15px; text-align:right;">
             <div style="font-size:13.5px; font-weight:600; color:#8a93a3;">פולואפ</div>
-            <div id="mb-pipe-followup" style="font-size:42px; font-weight:800; color:#1f2a3a; line-height:1.15; margin:2px 0;">…</div>
-            <div id="mb-stat-chats-sub1" style="font-size:13px; font-weight:600; color:#9aa3b0;">פולואפ</div>
+            <div id="mb-stat-followups" style="font-size:42px; font-weight:800; color:#bd8324; line-height:1.15; margin:2px 0;">…</div>
+            <div id="mb-stat-followups-sub" style="font-size:13px; font-weight:600; color:#9aa3b0;">פולואפ</div>
           </div>
         </div>
 
@@ -128,12 +127,12 @@ mbCss('./common.css');
           <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#eaf2fb; color:#1d60a2; flex:none; user-select:none;">
             <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.4 2.7-5.5 6-5.5 1 0 1.9.2 2.7.5"></path><path d="M17 8v6M14 11h6"></path></svg>
             <span style="font-size:13.5px; font-weight:700;">ליד חדש</span>
-            <span style="font-size:12.5px; font-weight:800; background:#cfe0f2; color:#1d60a2; border-radius:99px; padding:1px 8px;"><span id="mb-pipe-leads">…</span></span>
+            <span style="font-size:12.5px; font-weight:800; background:#cfe0f2; color:#1d60a2; border-radius:99px; padding:1px 8px;"><span id="mb-pipe-leads" data-pipe-count="leads">…</span></span>
           </div>
           <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#fdf1dd; color:#bd8324; flex:none; user-select:none;">
             <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
             <span style="font-size:13.5px; font-weight:700;">פולואפ</span>
-            <span style="font-size:12.5px; font-weight:800; background:#f0ddb3; color:#bd8324; border-radius:99px; padding:1px 8px;"><span id="mb-pipe-followup">…</span></span>
+            <span style="font-size:12.5px; font-weight:800; background:#f0ddb3; color:#bd8324; border-radius:99px; padding:1px 8px;"><span id="mb-pipe-followup" class="js-pipe-followup" data-pipe-count="followup">…</span></span>
           </div>
           <div style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:99px; background:#eef0fb; color:#50439d; flex:none; text-decoration:none; user-select:none;">
             <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg>

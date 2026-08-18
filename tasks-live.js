@@ -61,8 +61,15 @@
     return when.split('-').reverse().join('/');
   }
 
+  function isAutoCreatedMission(m) {
+    if (!m) return false;
+    var by = m.create_by;
+    return by === 0 || by === '0';
+  }
+
   function matchesChipFilter(m, filterType, today) {
     var done = isMissionDone(m);
+    if (filterType === 'auto_tasks') return isAutoCreatedMission(m);
     if (filterType === 'done_tasks') return done;
     if (filterType === 'private_tasks') {
       return Boolean(m.private || m.private_mission === true || Number(m.private_mission) === 1);
@@ -70,6 +77,7 @@
     if (done) return false;
     var day = missionDayKey(m);
     if (filterType === 'today_tasks') return day === today;
+    if (filterType === 'overdue_tasks') return isOverdue(m, today);
     if (filterType === 'priority_tasks') return !!day && day < today;
     // Upcoming = today + later + undated (API "upcoming" is after-today only, so 30-min tasks vanished).
     if (filterType === 'upcoming_tasks') return !day || day >= today;
@@ -152,7 +160,9 @@
       '<div class="task-row-card" data-mission="' + esc(JSON.stringify(m)) + '" style="border-right:4px solid ' + groupColor + '; overflow:hidden; width:100%; max-width:100%; box-sizing:border-box;">' +
       '<div style="flex:1; min-width:0; overflow:hidden;">' +
       '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">' +
-      '<div class="task-row-title" style="display:flex; align-items:center; gap:6px; flex:1; min-width:0; overflow:hidden;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:' + dotColor + '; flex:none;"></span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(title) + '</span></div>' +
+      '<div class="task-row-title" style="display:flex; align-items:center; gap:6px; flex:1; min-width:0; overflow:hidden;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:' + dotColor + '; flex:none;"></span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(title) + '</span>' +
+      (isAutoCreatedMission(m) ? '<span style="flex:none; font-size:10px; font-weight:800; color:#6a4fa0; background:#f3eefb; padding:2px 6px; border-radius:6px;">' + esc(uiT('Auto', 'אוטומטי')) + '</span>' : '') +
+      '</div>' +
       (priLabel !== '--'
         ? '<span style="background:' + priBg + ';color:' + priColor + ';font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;flex:none;">' + esc(priLabel) + '</span>'
         : '') +
@@ -200,12 +210,13 @@
     var priBg = tag ? tag.bg : '#fef3c7';
     var priColor = tag ? tag.color : '#b45309';
 
-    var doneLabel = uiT('Done', 'בוצע');
+    var doneLabel = uiT('Close task', 'סגור משימה');
+    var closedLabel = uiT('Done', 'בוצע');
     var titleRow =
       '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px;">' +
         '<div style="font-size:20px; font-weight:900; color:var(--text-title); line-height:1.35; flex:1; min-width:0;">' + esc(title) + '</div>' +
         (alreadyDone
-          ? '<span style="flex:none; padding:8px 14px; border-radius:99px; background:#e6f4ec; color:#2e8a63; font-size:13px; font-weight:800;">' + esc(doneLabel) + '</span>'
+          ? '<span style="flex:none; padding:8px 14px; border-radius:99px; background:#e6f4ec; color:#2e8a63; font-size:13px; font-weight:800;">' + esc(closedLabel) + '</span>'
           : '<button type="button" id="mb-btn-mark-done" style="flex:none; padding:8px 16px; border:none; border-radius:99px; background:#2e8a63; color:#fff; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(46,138,99,0.28);">' + esc(doneLabel) + '</button>') +
       '</div>';
 
@@ -444,16 +455,16 @@
 
   function statusToType(status) {
     if (status === 'today') return 'today_tasks';
-    if (status === 'late') return 'priority_tasks';
+    if (status === 'late') return 'overdue_tasks';
     if (status === 'completed') return 'done_tasks';
     return 'show_all_together_tasks';
   }
 
   function typeToStatus(type) {
     if (type === 'today_tasks') return 'today';
-    if (type === 'priority_tasks') return 'late';
+    if (type === 'overdue_tasks' || type === 'priority_tasks') return 'late';
     if (type === 'done_tasks') return 'completed';
-    if (type === 'upcoming_tasks' || type === 'private_tasks') return 'everything';
+    if (type === 'upcoming_tasks' || type === 'private_tasks' || type === 'auto_tasks') return 'everything';
     return 'everything';
   }
 
@@ -609,11 +620,14 @@
       draw: 1,
       include_counts: 1
     };
-    // Upcoming is filtered client-side from open tasks (API upcoming = after today only).
-    if (filterType === 'upcoming_tasks') {
+    // Upcoming / overdue / automatic are filtered client-side from open (and done, for auto) tasks.
+    if (filterType === 'upcoming_tasks' || filterType === 'overdue_tasks' || filterType === 'auto_tasks') {
       params.type = 'show_all_together_tasks';
-      params.length = 200;
+      params.length = 25;
       params.start = 0;
+    }
+    if (filterType === 'auto_tasks') {
+      params.show_done_mission = 1;
     }
     // Priority is filtered client-side — pull a larger page so results aren't truncated.
     if (advancedFilters.priority && advancedFilters.priority !== 'all') {
@@ -640,7 +654,7 @@
     currentFilterType = statusToType(advancedFilters.status);
     // Keep quick chips in sync for today/late/completed/everything; leave Upcoming/Private if user used chips
     if (advancedFilters.status === 'everything' &&
-        (currentFilterType === 'upcoming_tasks' || currentFilterType === 'private_tasks')) {
+        (currentFilterType === 'upcoming_tasks' || currentFilterType === 'private_tasks' || currentFilterType === 'auto_tasks')) {
       /* keep */
     }
     syncTopChips(currentFilterType);
@@ -879,6 +893,29 @@
 
   var _tasksLoadInFlight = null;
 
+  async function listMissionsForChip(filterType) {
+    var params = buildListParams(filterType);
+    var first = await MineralBarApp.listMissions(params);
+    if (filterType !== 'auto_tasks') return first;
+    var rows = (first.rows || []).slice();
+    var totalHint = Number(first.total) || 0;
+    var page = 25;
+    var guard = 0;
+    while (rows.length < totalHint && guard < 20) {
+      guard += 1;
+      var next = await MineralBarApp.listMissions(Object.assign({}, params, {
+        start: rows.length,
+        length: page,
+        include_counts: 0
+      }));
+      var more = next.rows || [];
+      if (!more.length) break;
+      rows = rows.concat(more);
+      if (more.length < page) break;
+    }
+    return Object.assign({}, first, { rows: rows });
+  }
+
   async function loadTasks(typeParam, opts) {
     opts = opts || {};
     var silent = !!opts.silent;
@@ -907,7 +944,7 @@
 
     var run = (async function () {
     try {
-      var result = await MineralBarApp.listMissions(buildListParams(filterType));
+      var result = await listMissionsForChip(filterType);
       var today = todayKey();
       var groups = result.groups || [];
       var flatRows = result.rows || [];
@@ -930,6 +967,14 @@
       }).filter(function (g) {
         return g.rows && g.rows.length;
       });
+      if (filterType === 'auto_tasks') {
+        groups = [{
+          id: 'auto',
+          label: uiT('Automatic', 'אוטומטי'),
+          rows: flatRows.slice(),
+          total: flatRows.length
+        }];
+      }
 
       // Client-side priority filter (API may not support priority param)
       flatRows = filterRowsByPriority(flatRows, today);

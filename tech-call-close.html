@@ -13,7 +13,8 @@ mbScripts([
   './page-boot.js',
   './live-sync.js',
   './i18n-translations.js',
-  './common-header-footer.js'
+  './common-header-footer.js',
+  './service-form-pdf.js'
 ]);
 mbCss('./common.css');
 </script>
@@ -136,8 +137,8 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showForm }}">
 <div data-no-i18n="true">
 <!-- 1. closing status -->
-<div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 10px;">{{ labelCloseStatus }} <span style="color:#c0392b;">*</span></div>
-<div style="display:flex; flex-direction:column; gap:9px; margin-bottom:14px;">
+<div id="close-status-section" style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 10px;">{{ labelCloseStatus }} <span style="color:#c0392b;">*</span></div>
+<div style="display:flex; flex-direction:column; gap:9px; margin-bottom:8px;">
 <sc-for as="s" hint-placeholder-count="5" list="{{ statuses }}">
 <button type="button" onclick="{{ s.pick }}" style="display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:13px; cursor:pointer; text-align:inherit; background:{{ s.bg }}; border:1.6px solid {{ s.border }}; font-family:inherit;">
 <div style="width:36px; height:36px; border-radius:10px; background:{{ s.iconBg }}; color:{{ s.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
@@ -157,6 +158,7 @@ mbCss('./common.css');
 </button>
 </sc-for>
 </div>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin:0 2px 14px; display:{{ statusErrorDisplay }};">{{ statusErrorText }}</div>
 
 <!-- reason for follow-up (display toggle — no sc-if mount/unmount) -->
 <div style="margin-bottom:20px; display:{{ reasonDisplay }};">
@@ -167,9 +169,11 @@ mbCss('./common.css');
 <option value="{{ r.id }}">{{ r.label }}</option>
 </sc-for>
 </select>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ reasonErrorDisplay }};">{{ reasonErrorText }}</div>
 <div style="display:{{ otherDisplay }};">
 <label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin:9px 2px 6px;">{{ labelReasonOther }} <span style="color:#c0392b;">*</span></label>
 <input id="close-reason-other" class="ds-input" oninput="{{ onReasonOther }}" placeholder="{{ reasonOtherPh }}" style="width:100%; padding:11px 13px; border:1.5px solid {{ otherBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;" value="{{ reasonOther }}"/>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ otherErrorDisplay }};">{{ otherErrorText }}</div>
 </div>
 </div>
 
@@ -178,6 +182,7 @@ mbCss('./common.css');
 <!-- 2. description + chips -->
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 9px;">{{ labelSummary }} <span style="color:#c0392b;">*</span></div>
 <textarea id="work-summary-input" class="ds-input" oninput="{{ onSummary }}" placeholder="{{ summaryPh }}" style="width:100%; min-height:96px; padding:13px; border:1.5px solid {{ summaryBorder }}; border-radius:13px; font-size:14px; color:#1f2a3a; resize:none; background:#fff; margin-bottom:6px;"></textarea>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin:-2px 2px 8px; display:{{ summaryErrorDisplay }};">{{ summaryErrorText }}</div>
 <div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:20px;">
 <sc-for as="c" hint-placeholder-count="4" list="{{ chips }}">
 <button type="button" onclick="{{ c.add }}" style="background:#fff; border:1px solid #dde2ea; color:#5a6473; font-size:12px; font-weight:600; padding:6px 12px; border-radius:99px; cursor:pointer; font-family:inherit;">+ {{ c.label }}</button>
@@ -301,6 +306,7 @@ mbCss('./common.css');
 <input id="cash-amount-input" class="ds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" oninput="{{ onCashAmount }}" placeholder="0" style="width:100%; box-sizing:border-box; direction:ltr; text-align:left; padding:11px 40px 11px 14px; border:1.5px solid {{ cashAmountBorder }}; border-radius:11px; font-size:14px; font-weight:700; color:#2e8a63; background:#eaf7ef;"/>
 <span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-size:14px; font-weight:700; pointer-events:none; line-height:1; z-index:1;">₪</span>
 </div>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ cashErrorDisplay }};">{{ cashErrorText }}</div>
 <div style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#bd8324; margin-top:8px;">
 <svg fill="none" height="13" stroke="#bd8324" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="13" style="flex:none;"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
 <span>{{ cashReminder }}</span>
@@ -309,7 +315,7 @@ mbCss('./common.css');
 </div>
 
 <!-- terms acknowledgment -->
-<button type="button" onclick="{{ toggleTerms }}" style="width:100%; display:flex; align-items:flex-start; gap:11px; background:#fff; border:1.5px solid {{ termsBorder }}; border-radius:14px; padding:14px; cursor:pointer; margin-bottom:14px; text-align:inherit; font-family:inherit;">
+<button type="button" id="close-terms-btn" onclick="{{ toggleTerms }}" style="width:100%; display:flex; align-items:flex-start; gap:11px; background:#fff; border:1.5px solid {{ termsBorder }}; border-radius:14px; padding:14px; cursor:pointer; margin-bottom:6px; text-align:inherit; font-family:inherit;">
 <div style="width:22px; height:22px; border-radius:6px; border:1.7px solid {{ termsCheckBorder }}; background:{{ termsCheckBg }}; flex:none; display:flex; align-items:center; justify-content:center; margin-top:1px;">
 <svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewBox="0 0 24 24" width="13" style="display:{{ termsCheckIcon }};"><path d="M20 6 9 17l-5-5"></path></svg>
 </div>
@@ -319,6 +325,7 @@ mbCss('./common.css');
 <span style="font-size:11.5px; color:#1d60a2; font-weight:700; display:inline-block; margin-top:5px;">{{ termsLink }}</span>
 </div>
 </button>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin:0 2px 14px; display:{{ termsErrorDisplay }};">{{ termsErrorText }}</div>
 
 <!-- signature (hidden for no-answer) -->
 <div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; display:{{ signatureDisplay }};">
@@ -329,6 +336,7 @@ mbCss('./common.css');
 <div class="sig-wrap" style="border-color:{{ sigBorder }};">
 <canvas height="320" id="sig-canvas" width="700"></canvas>
 </div>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ sigErrorDisplay }};">{{ sigErrorText }}</div>
 <div style="font-size:11.5px; color:#9aa3b0; font-weight:600; text-align:center; margin-top:6px;">{{ tapSign }}</div>
 </div>
 
@@ -349,10 +357,6 @@ mbCss('./common.css');
 </div>
 <svg fill="#25b35e" height="22" viewBox="0 0 24 24" width="22" style="flex:none;"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg>
 </button>
-
-<sc-if hint-placeholder-val="{{ false }}" value="{{ showFormError }}">
-<div style="margin-bottom:12px; color:#c0392b; font-size:13px; font-weight:700; text-align:center;">{{ formError }}</div>
-</sc-if>
 </div>
 </sc-if>
 
@@ -499,6 +503,7 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showActions }}">
 <div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px;" data-no-i18n="true">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showForm }}">
+<div id="close-form-error" style="display:{{ formErrorDisplay }}; background:#fbeeed; border:1.5px solid #f1c9c4; border-radius:12px; padding:11px 13px; margin-bottom:10px; color:#a3302e; font-size:13px; font-weight:700; white-space:pre-line; text-align:start; line-height:1.45;">{{ formError }}</div>
 <button type="button" id="submit-close-btn" onclick="{{ submitClose }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
 <span id="submit-close-label">{{ submitLabel }}</span>
         </button>
@@ -528,6 +533,7 @@ class Component extends DCLogic {
     customerPhone: '',
     customerAddress: '',
     customerId: '',
+    customerTz: '',
     mode: 'form', // form | view
     summary: '',
     closeStatus: '',
@@ -554,6 +560,7 @@ class Component extends DCLogic {
     terms: false,
     sendCopy: true,
     waSent: false,
+    waNotes: false,
     waError: '',
     beforeUrl: '',
     afterUrl: '',
@@ -607,6 +614,39 @@ class Component extends DCLogic {
     id = String(id || '').trim();
     if (!id || id === '0' || id === 'null' || id === 'undefined') return '';
     return id;
+  }
+
+  pickCustomerTz(obj) {
+    var o = obj || {};
+    var nested = o.customer || o.output || o.data || o;
+    var list = [o, nested, nested && nested.customer];
+    var keys = ['tz', 'id_number', 'identity', 'id_card', 'csv_id', 'passport'];
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      if (!row || typeof row !== 'object') continue;
+      for (var k = 0; k < keys.length; k++) {
+        var val = String(row[keys[k]] || '').trim();
+        if (val && val !== '0' && val.toLowerCase() !== 'null') return val;
+      }
+    }
+    return '';
+  }
+
+  async resolveCustomerTz(st) {
+    var s = st || this.state || {};
+    var existing = String(s.customerTz || this.state.customerTz || '').trim();
+    if (existing) return existing;
+    var cid = String(s.customerId || '').trim();
+    if (!cid || cid === '0' || !window.MineralBarApp || typeof MineralBarApp.getCustomer !== 'function') return '';
+    try {
+      var res = await MineralBarApp.getCustomer(cid);
+      var tz = this.pickCustomerTz(res && (res.customer || res));
+      if (tz) this.state.customerTz = tz;
+      return tz;
+    } catch (eTz) {
+      console.warn('[tech-call-close] customer tz lookup failed', eTz);
+      return '';
+    }
   }
 
   statusDefs() {
@@ -824,6 +864,25 @@ class Component extends DCLogic {
     this.updateSubmitEnabled();
   }
 
+  highlightFirstMissing() {
+    var st = this.state || {};
+    var summaryEl = document.getElementById('work-summary-input');
+    var summary = String((summaryEl && summaryEl.value) || st.summary || '').trim();
+    var hasSig = !!(this._hasStroke || st.hasStroke || this._sigDataUrl);
+    var el = null;
+    if (!st.closeStatus) el = document.getElementById('close-status-section');
+    else if (this.needsReason() && !st.reason) el = document.getElementById('close-reason-select');
+    else if (this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) {
+      el = document.getElementById('close-reason-other');
+    } else if (this.needsWorkMedia() && summary.length < 2) el = summaryEl;
+    else if (this.needsSignature() && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) {
+      el = document.getElementById('cash-amount-input');
+    } else if (!st.terms) el = document.getElementById('close-terms-btn');
+    else if (this.needsSignature() && !hasSig) el = document.getElementById('sig-canvas');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try { if (el && el.focus) el.focus(); } catch (e) { /* ignore */ }
+  }
+
   formMissing() {
     var st = this.state;
     var summaryEl = document.getElementById('work-summary-input');
@@ -962,27 +1021,153 @@ class Component extends DCLogic {
     var s = st || this.state || {};
     var tid = String(s.ticketId || '').replace(/^#/, '');
     var L = links || {};
-    var formUrl = typeof links === 'string' ? links : L.formUrl;
-    var ticketUrl = L.ticketUrl || '';
+    var pdfUrl = typeof links === 'string' ? links : (L.pdfUrl || L.formUrl || '');
+    var googleUrl = L.googleUrl || (window.ServiceFormPdf && ServiceFormPdf.GOOGLE_REVIEW_URL) || '';
+    var fileName = L.fileName || ('service-form-ticket-' + tid + '.pdf');
     var lines = [];
+    if (pdfUrl) {
+      lines.push(fileName);
+      lines.push(String(pdfUrl));
+      lines.push('');
+    }
     if (this.isEn()) {
       lines.push('Hi' + (s.customerName ? (' ' + s.customerName) : '') + ',');
       lines.push('Your service ticket #' + tid + ' was completed.');
       if (statusLabel) lines.push('Status: ' + statusLabel);
       if (summary) lines.push('Summary: ' + summary);
-      lines.push('');
-      lines.push('Tap the link to view the ticket / service form:');
+      if (!pdfUrl) lines.push('The service form PDF could not be uploaded.');
+      if (googleUrl) {
+        lines.push('');
+        lines.push('We would appreciate a Google rating ⭐');
+        lines.push(String(googleUrl));
+      }
     } else {
       lines.push('שלום' + (s.customerName ? (' ' + s.customerName) : '') + ',');
       lines.push('קריאת השירות #' + tid + ' הושלמה.');
       if (statusLabel) lines.push('סטטוס: ' + statusLabel);
       if (summary) lines.push('סיכום: ' + summary);
-      lines.push('');
-      lines.push('לצפייה בטיקט / טופס השירות לחצו על הקישור:');
+      if (!pdfUrl) lines.push('לא ניתן היה להעלות את טופס השירות ב-PDF.');
+      if (googleUrl) {
+        lines.push('');
+        lines.push('נשמח לדירוג בגוגל ⭐');
+        lines.push(String(googleUrl));
+      }
     }
-    if (formUrl) lines.push(String(formUrl));
-    if (ticketUrl && ticketUrl !== formUrl) lines.push(String(ticketUrl));
-    return lines.filter(Boolean).join('\n');
+    return lines.filter(function (line, idx, arr) {
+      return line !== '' || (arr[idx - 1] !== '');
+    }).join('\n');
+  }
+
+  async uploadServiceFormPdf(st, summary, statusLabel, media) {
+    var s = st || this.state || {};
+    var customerId = String(s.customerId || '').trim();
+    var tid = String(s.ticketId || '').replace(/^#/, '');
+    if (!customerId || customerId === '0') return '';
+    if (!window.ServiceFormPdf || typeof ServiceFormPdf.buildPdfFile !== 'function') return '';
+    if (!window.MineralBarApp || typeof MineralBarApp.uploadCustomerFile !== 'function') return '';
+    var tz = await this.resolveCustomerTz(s);
+    var data = ServiceFormPdf.collectFormData(s, summary, media, {
+      customerTz: tz,
+      signatureDataUrl: this._sigDataUrl || '',
+      lang: this.isEn() ? 'en' : 'he'
+    });
+    var fileName = 'service-form-ticket-' + tid + '.pdf';
+    var file = await ServiceFormPdf.buildPdfFile(data, fileName);
+    var uploaded = await MineralBarApp.uploadCustomerFile(customerId, file, { file_name: fileName });
+    var url = (uploaded && (uploaded.url || uploaded.path)) || '';
+    if (url && !/^https?:\/\//i.test(url) && MineralBarApp.resolveFileUrl) {
+      url = MineralBarApp.resolveFileUrl(url);
+    }
+    return url || '';
+  }
+
+  async sendInternalNote(customerId, msg, extra) {
+    if (!window.MineralBarApp) return false;
+    var payload = Object.assign({
+      customer_id: customerId,
+      cust_id: customerId,
+      msg: msg,
+      message: msg,
+      from: 'send_notes'
+    }, extra || {});
+    if (typeof MineralBarApp.sendCustomerNote === 'function') {
+      await MineralBarApp.sendCustomerNote(customerId, msg, extra || {});
+      return true;
+    }
+    if (typeof MineralBarApp.sendCustomerMessage === 'function') {
+      await MineralBarApp.sendCustomerMessage(payload);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Send WhatsApp with the official service-form PDF link.
+   * If WhatsApp fails, save the same copy as an internal note.
+   */
+  async sendTicketCopyWhatsApp(st, summary, statusLabel, media) {
+    var s = st || this.state || {};
+    if (!s.sendCopy) return { whatsapp: false, notes: false };
+    var customerId = String(s.customerId || '').trim();
+    if (!customerId || customerId === '0') {
+      throw new Error(this.t('Missing customer_id', 'חסר מזהה לקוח'));
+    }
+    if (!window.MineralBarApp || typeof MineralBarApp.sendCustomerMessage !== 'function') {
+      throw new Error(this.t('SDK not ready', 'המערכת עדיין לא מוכנה'));
+    }
+
+    var pdfUrl = '';
+    try {
+      pdfUrl = await this.uploadServiceFormPdf(s, summary, statusLabel, media);
+    } catch (eUp) {
+      console.warn('[tech-call-close] service form PDF upload failed', eUp);
+    }
+
+    var googleUrl = (window.ServiceFormPdf && ServiceFormPdf.GOOGLE_REVIEW_URL) || '';
+    var fileName = 'service-form-ticket-' + String(s.ticketId || '').replace(/^#/, '') + '.pdf';
+    var msg = this.buildTicketWhatsAppMessage(s, summary, statusLabel, {
+      pdfUrl: pdfUrl,
+      googleUrl: googleUrl,
+      fileName: fileName
+    });
+
+    var payload = {
+      customer_id: customerId,
+      cust_id: customerId,
+      msg: msg,
+      message: msg,
+      from: 'send_whatsapp'
+    };
+    if (s.customerPhone) {
+      payload.phone = s.customerPhone;
+      payload.chart_selected_phone_no = s.customerPhone;
+    }
+
+    try {
+      await MineralBarApp.sendCustomerMessage(payload);
+      return { whatsapp: true, notes: false, pdfUrl: pdfUrl };
+    } catch (eWa) {
+      console.warn('[tech-call-close] WhatsApp copy failed — saving internal note', eWa);
+      var notePrefix = this.isEn()
+        ? 'WhatsApp send failed — copy saved as an internal note.'
+        : 'שליחת וואטסאפ נכשלה — העותק נשמר כהערה פנימית.';
+      var noteMsg = notePrefix + '\n\n' + msg;
+      try {
+        await this.sendInternalNote(customerId, noteMsg, s.customerPhone ? {
+          phone: s.customerPhone,
+          chart_selected_phone_no: s.customerPhone
+        } : {});
+        return {
+          whatsapp: false,
+          notes: true,
+          pdfUrl: pdfUrl,
+          error: (eWa && eWa.message) || this.t('WhatsApp send failed', 'שליחת וואטסאפ נכשלה')
+        };
+      } catch (eNotes) {
+        console.warn('[tech-call-close] notes fallback failed', eNotes);
+        throw eWa;
+      }
+    }
   }
 
   async resolveMessengerMetaId(customerId) {
@@ -999,81 +1184,6 @@ class Component extends DCLogic {
     } catch (e) {
       console.warn('[tech-call-close] resolve messenger_meta_id failed', e);
       return '';
-    }
-  }
-
-  /**
-   * Send short WhatsApp text + clickable ticket/form link via Chat.SendCustomer.
-   */
-  async sendTicketCopyWhatsApp(st, summary, statusLabel, media) {
-    var s = st || this.state || {};
-    if (!s.sendCopy) return false;
-    var customerId = String(s.customerId || '').trim();
-    if (!customerId || customerId === '0') {
-      throw new Error(this.t('Missing customer_id', 'חסר מזהה לקוח'));
-    }
-    if (!window.MineralBarApp || typeof MineralBarApp.sendCustomerMessage !== 'function') {
-      throw new Error(this.t('SDK not ready', 'המערכת עדיין לא מוכנה'));
-    }
-
-    var tid = String(s.ticketId || '').replace(/^#/, '');
-    var ticketUrl = this.buildTicketViewLink(tid);
-    var formUrl = '';
-
-    // Upload text service form → https link customer can tap (html upload is blocked by API)
-    try {
-      var docText = this.buildServiceFormDocumentText(s, summary, statusLabel, media);
-      if (ticketUrl) docText = docText + '\n\nOpen ticket: ' + ticketUrl;
-      var fileName = 'service-form-ticket-' + tid + '.txt';
-      var blob = new Blob([docText], { type: 'text/plain;charset=utf-8' });
-      var file = new File([blob], fileName, { type: 'text/plain' });
-      if (typeof MineralBarApp.uploadCustomerFile === 'function') {
-        var uploaded = await MineralBarApp.uploadCustomerFile(customerId, file, {
-          file_name: fileName
-        });
-        formUrl = (uploaded && (uploaded.url || uploaded.path)) || '';
-        if (formUrl && !/^https?:\/\//i.test(formUrl) && MineralBarApp.resolveFileUrl) {
-          formUrl = MineralBarApp.resolveFileUrl(formUrl);
-        }
-      }
-    } catch (eUp) {
-      console.warn('[tech-call-close] service form upload failed', eUp);
-    }
-
-    var msg = this.buildTicketWhatsAppMessage(s, summary, statusLabel, {
-      formUrl: formUrl,
-      ticketUrl: ticketUrl
-    });
-    if (!formUrl && !ticketUrl) {
-      msg = msg + '\n\n' + this.buildServiceFormDocumentText(s, summary, statusLabel, media);
-    }
-
-    var payload = {
-      customer_id: customerId,
-      cust_id: customerId,
-      msg: msg,
-      message: msg,
-      from: 'send_whatsapp'
-    };
-    if (s.customerPhone) {
-      payload.phone = s.customerPhone;
-      payload.chart_selected_phone_no = s.customerPhone;
-    }
-
-    try {
-      await MineralBarApp.sendCustomerMessage(payload);
-      return true;
-    } catch (eWa) {
-      // WhatsApp 24h window / template required — still drop text+link into Biz1 customer chat
-      var errText = String((eWa && eWa.message) || '');
-      if (/24\s*שעות|מתבנית|template|לא שלח/i.test(errText)) {
-        try {
-          await MineralBarApp.sendCustomerMessage(Object.assign({}, payload, { from: 'send_notes' }));
-        } catch (eNotes) {
-          console.warn('[tech-call-close] notes fallback failed', eNotes);
-        }
-      }
-      throw eWa;
     }
   }
 
@@ -1378,6 +1488,7 @@ class Component extends DCLogic {
             customerPhone: this.pickPhone(liveTicket) || this.state.customerPhone,
             customerAddress: this.pickAddress(liveTicket) || this.state.customerAddress,
             customerId: this.pickCustomerId(liveTicket) || this.state.customerId,
+            customerTz: this.pickCustomerTz(liveTicket) || this.state.customerTz,
             ticketName: name || subject0 || this.state.ticketName,
             spares: (spares0 && spares0.length) ? spares0 : (this.state.spares || []),
             linkedProducts: linked0,
@@ -1471,6 +1582,7 @@ class Component extends DCLogic {
             customerPhone: this.pickPhone(ticket) || phoneQ || this.state.customerPhone,
             customerAddress: this.pickAddress(ticket) || this.state.customerAddress,
             customerId: this.pickCustomerId(ticket) || customerIdQ || this.state.customerId,
+            customerTz: this.pickCustomerTz(ticket) || this.state.customerTz,
             ticketName: name || subject || ('#' + tid),
             spares: this.parseSparesFromMessages(ticket),
             linkedProducts: linkedProducts,
@@ -1497,6 +1609,7 @@ class Component extends DCLogic {
             customerPhone: this.pickPhone(ticket) || phoneQ || this.state.customerPhone,
             customerAddress: this.pickAddress(ticket) || this.state.customerAddress,
             customerId: this.pickCustomerId(ticket) || customerIdQ || this.state.customerId,
+            customerTz: this.pickCustomerTz(ticket) || this.state.customerTz,
             ticketName: name || subject || ('#' + tid),
             linkedProducts: linkedForm,
             installerName: this.state.installerName || this.resolveInstallerName() || '',
@@ -2048,16 +2161,16 @@ class Component extends DCLogic {
     if (!btn) return;
     var st = this.state;
     var canSubmit = this.canFormSubmit();
-    // Only style/label text — never replace button.innerHTML (breaks DC insertBefore)
-    // Do not set the HTML disabled attribute — disabled="false" still blocks clicks.
-    if (canSubmit && !st.busy) btn.removeAttribute('disabled');
-    else btn.setAttribute('disabled', 'disabled');
+    // Keep the button clickable when fields are missing so submit can show validation.
+    // Only block clicks while saving.
+    if (st.busy) btn.setAttribute('disabled', 'disabled');
+    else btn.removeAttribute('disabled');
     btn.style.background = canSubmit ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0';
     btn.style.color = canSubmit ? '#fff' : '#9aa3b0';
-    btn.style.cursor = canSubmit ? 'pointer' : 'not-allowed';
+    btn.style.cursor = st.busy ? 'not-allowed' : 'pointer';
     btn.style.boxShadow = canSubmit ? '0 6px 16px rgba(44,138,96,.32)' : 'none';
     btn.style.opacity = st.busy ? '0.75' : '1';
-    btn.style.pointerEvents = (canSubmit && !st.busy) ? 'auto' : 'none';
+    btn.style.pointerEvents = st.busy ? 'none' : 'auto';
     var label = document.getElementById('submit-close-label');
     if (label && !st.busy) {
       label.textContent = canSubmit
@@ -2076,7 +2189,7 @@ class Component extends DCLogic {
         if (e && e.preventDefault) e.preventDefault();
         if (e && e.stopPropagation) e.stopPropagation();
       } catch (err) { /* ignore */ }
-      if (!self.canFormSubmit()) return;
+      if (self.state && self.state.busy) return;
       self.submit();
     });
   }
@@ -2428,6 +2541,7 @@ class Component extends DCLogic {
 
   async submit() {
     var st = this.state;
+    if (st.busy || this._closingTicket) return;
     var summaryEl = document.getElementById('work-summary-input');
     var summary = String((summaryEl && summaryEl.value) || st.summary || '').trim();
     var reasonOtherEl = document.getElementById('close-reason-other');
@@ -2445,8 +2559,13 @@ class Component extends DCLogic {
       this.setState({
         attempted: true,
         summary: summary,
-        formError: this.t('Missing:', 'חסר:') + ' ' + missing.join(' · ')
+        formError: ''
       });
+      this.restoreAfterUi();
+      var self = this;
+      setTimeout(function () {
+        self.highlightFirstMissing();
+      }, 80);
       return;
     }
     if (!st.ticketId) {
@@ -2458,6 +2577,7 @@ class Component extends DCLogic {
       return;
     }
 
+    this._closingTicket = true;
     this.setState({ busy: true, formError: '', summary: summary });
     try {
       var tid = st.ticketId;
@@ -2589,11 +2709,22 @@ class Component extends DCLogic {
       // Unchecked → send nothing.
       var wantWhatsApp = !!st.sendCopy;
       var waSent = false;
+      var waNotes = false;
       var waError = '';
       if (wantWhatsApp) {
         try {
-          await this.sendTicketCopyWhatsApp(st, summary, statusLabel, media);
-          waSent = true;
+          var waResult = await this.sendTicketCopyWhatsApp(st, summary, statusLabel, media);
+          waSent = !!(waResult && waResult.whatsapp);
+          waNotes = !!(waResult && waResult.notes);
+          if (!waSent) {
+            waError = (waResult && waResult.error) || this.t('WhatsApp send failed', 'שליחת וואטסאפ נכשלה');
+            if (waNotes) {
+              waError = this.t(
+                'WhatsApp send failed — copy saved as an internal note.',
+                'שליחת וואטסאפ נכשלה — העותק נשמר כהערה פנימית.'
+              );
+            }
+          }
         } catch (eWa) {
           console.warn('[tech-call-close] WhatsApp copy failed', eWa);
           waError = (eWa && eWa.message) || this.t('WhatsApp send failed', 'שליחת וואטסאפ נכשלה');
@@ -2620,6 +2751,7 @@ class Component extends DCLogic {
         afterDataUrl: media.after,
         sendCopy: wantWhatsApp,
         waSent: waSent,
+        waNotes: waNotes,
         waError: wantWhatsApp && !waSent ? waError : '',
         linkedProducts: (st.spares && st.spares.length)
           ? st.spares.map(function (s) {
@@ -2631,6 +2763,7 @@ class Component extends DCLogic {
       this._ignoreRtUntil = Date.now() + 4000;
     } catch (e) {
       console.warn('[tech-call-close] submit failed', e);
+      this._closingTicket = false;
       this.setState({
         busy: false,
         formError: (e && e.message) || this.t('Failed to close ticket', 'סגירת הטיקט נכשלה')
@@ -2742,6 +2875,8 @@ class Component extends DCLogic {
       p4: canSubmit ? segOn : segOff,
 
       labelCloseStatus: this.t('Closing status', 'סטטוס סיום'),
+      statusErrorDisplay: (st.attempted && !st.closeStatus) ? 'block' : 'none',
+      statusErrorText: this.t('Please select a closing status', 'נא לבחור סטטוס סיום'),
       statuses: statuses,
       showReason: this.needsReason(),
       reasonDisplay: this.needsReason() ? 'block' : 'none',
@@ -2752,6 +2887,8 @@ class Component extends DCLogic {
       }),
       onReason: (e) => this.onReason(e),
       reasonBorder: (st.attempted && this.needsReason() && !st.reason) ? '#e8a9a4' : '#dde2ea',
+      reasonErrorDisplay: (st.attempted && this.needsReason() && !st.reason) ? 'block' : 'none',
+      reasonErrorText: this.t('Please select a follow-up reason', 'נא לבחור סיבת המשך טיפול'),
       showOther: this.needsReason() && st.reason === 'e',
       otherDisplay: (this.needsReason() && st.reason === 'e') ? 'block' : 'none',
       labelReasonOther: this.t('Specify the reason', 'פרט את הסיבה'),
@@ -2759,6 +2896,8 @@ class Component extends DCLogic {
       reasonOther: st.reasonOther || '',
       onReasonOther: (e) => this.onReasonOther(e),
       otherBorder: (st.attempted && this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
+      otherErrorDisplay: (st.attempted && this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) ? 'block' : 'none',
+      otherErrorText: this.t('Please specify the reason', 'נא לפרט את הסיבה'),
 
       labelDigitalForm: this.t('Digital service form', 'טופס שירות דיגיטלי'),
       labelCustomer: this.t('Customer name', 'שם הלקוח'),
@@ -2788,6 +2927,8 @@ class Component extends DCLogic {
       summaryPh: this.t('Detail what was done — parts replaced, tests performed, recommendations…', 'פרט מה בוצע בקריאה — חלקים שהוחלפו, בדיקות שנערכו, המלצות...'),
       onSummary: (e) => this.onSummary(e),
       summaryBorder: (st.attempted && !summaryOk) ? '#e8a9a4' : '#dde2ea',
+      summaryErrorDisplay: (st.attempted && !summaryOk) ? 'block' : 'none',
+      summaryErrorText: this.t('Please describe the work performed', 'נא לתאר את הביצוע'),
       chips: chipLabels.map(function (label) {
         return { label: label, add: function () { self.addChip(label); } };
       }),
@@ -2829,6 +2970,8 @@ class Component extends DCLogic {
       tapSign: this.t('Tap to sign', 'הקש לחתימה'),
       clearSig: () => this.clearSig(),
       sigBorder: (st.attempted && !hasSig) ? '#e8a9a4' : '#dde2ea',
+      sigErrorDisplay: (st.attempted && this.needsSignature() && !hasSig) ? 'block' : 'none',
+      sigErrorText: this.t('Customer signature is required', 'נדרשת חתימת הלקוח'),
 
       labelCashQ: this.t('Cash collected?', 'נגבה מזומן?'),
       labelViewCash: this.t('Cash collected', 'מזומן שנגבה'),
@@ -2845,6 +2988,8 @@ class Component extends DCLogic {
       labelCashAmount: this.t('Amount collected in cash', 'סכום שנגבה במזומן'),
       onCashAmount: (e) => this.onCashAmount(e),
       cashAmountBorder: (st.attempted && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) ? '#e8a9a4' : '#cdeeda',
+      cashErrorDisplay: (st.attempted && this.needsSignature() && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) ? 'block' : 'none',
+      cashErrorText: this.t('Please enter the cash amount', 'נא להזין את סכום המזומן'),
       cashReminder: this.t('A reminder will be sent to the service representative to collect the cash.', 'תישלח תזכורת לנציגת השירות לאיסוף המזומן'),
 
       labelTerms: this.t('The customer has read and approved', 'הלקוח קרא ואישר'),
@@ -2853,6 +2998,8 @@ class Component extends DCLogic {
       toggleTerms: () => this.toggleTerms(),
       termsOk: !!st.terms,
       termsBorder: (st.attempted && !st.terms) ? '#e8a9a4' : '#e4e8ee',
+      termsErrorDisplay: (st.attempted && !st.terms) ? 'block' : 'none',
+      termsErrorText: this.t('Customer approval is required', 'נדרש אישור הלקוח'),
       termsCheckBorder: st.terms ? '#2e8a63' : '#cbd3de',
       termsCheckBg: st.terms ? '#2e8a63' : '#fff',
       termsCheckIcon: st.terms ? 'block' : 'none',
@@ -2870,6 +3017,7 @@ class Component extends DCLogic {
 
       showFormError: !!st.formError,
       formError: st.formError || '',
+      formErrorDisplay: st.formError ? 'block' : 'none',
 
       busy: !!st.busy,
       canSubmit: canSubmit,
@@ -2881,20 +3029,25 @@ class Component extends DCLogic {
           : this.t('Complete required fields to close', 'השלם שדות חובה לסגירה')),
       submitBg: canSubmit ? 'linear-gradient(#33a571,#2c8a60)' : '#e9ecf0',
       submitColor: canSubmit ? '#fff' : '#9aa3b0',
-      submitCursor: canSubmit ? 'pointer' : 'not-allowed',
+      submitCursor: st.busy ? 'not-allowed' : 'pointer',
       submitOpacity: st.busy ? '0.75' : '1',
       submitShadow: canSubmit ? '0 6px 16px rgba(44,138,96,.32)' : 'none',
 
       successTitle: this.t('Ticket completed', 'הטיקט הושלם'),
-      successBody: st.waError
-        ? (this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.') +
-          ' ' + String(st.waError))
-        : (st.waSent
-          ? this.t(
-            'Work signed off. Service form was sent to the customer on WhatsApp.',
-            'העבודה נחתמה. טופס השירות נשלח ללקוח בוואטסאפ.'
-          )
-          : this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.')),
+      successBody: st.waNotes
+        ? this.t(
+          'Work signed off. WhatsApp send failed — copy saved as an internal note.',
+          'העבודה נחתמה. שליחת וואטסאפ נכשלה — העותק נשמר כהערה פנימית.'
+        )
+        : (st.waError
+          ? (this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.') +
+            ' ' + String(st.waError))
+          : (st.waSent
+            ? this.t(
+              'Work signed off. Service form was sent to the customer on WhatsApp.',
+              'העבודה נחתמה. טופס השירות נשלח ללקוח בוואטסאפ.'
+            )
+            : this.t('Work signed off and saved to the ticket.', 'העבודה נחתמה ונשמרה בטיקט.'))),
       labelCompleted: this.t('Completed work', 'עבודה שהושלמה'),
       viewSummary: st.viewSummary || st.summary || '—',
       hasCloseStatus: !!(st.closeStatusLabel || st.closeStatus),

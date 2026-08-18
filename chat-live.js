@@ -452,11 +452,19 @@
       }
       var safeHref = esc(href);
       var isImg = /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(href);
-      var isAudio = /\.(mp3|wav|m4a|aac|ogg|flac)(\?|$)/i.test(href);
-      var isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(href);
+      var isPdf = /\.pdf(\?|$)/i.test(href);
+      var isAudio = /\.(mp3|wav|m4a|aac|ogg|flac|opus|weba)(\?|$)/i.test(href) ||
+        /(^|[\/._-])voice[-_].+\.webm(\?|$)/i.test(href);
+      var isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(href) && !isAudio;
       if (isImg) {
         return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:block; margin:4px 0;">' +
           '<img src="' + safeHref + '" alt="" style="max-width:100%; max-height:220px; border-radius:12px; display:block;"/>' +
+          '</a>';
+      }
+      if (isPdf) {
+        return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:8px; margin:6px 0; padding:10px 12px; border:1.5px solid #dbe7f5; border-radius:12px; background:#f4f8fd; color:#1d60a2; text-decoration:none; font-weight:800; font-size:13.5px;">' +
+          '<span style="font-size:18px; line-height:1;">📄</span>' +
+          '<span style="word-break:break-word;">' + chatT('Open service form PDF', 'פתח טופס שירות PDF') + '</span>' +
           '</a>';
       }
       // mp3/mp4: player only — do not show the raw CDN URL under the media
@@ -946,6 +954,8 @@
       img.alt = nameEl.textContent;
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
       thumb.appendChild(img);
+    } else if (pendingAttachment.kind === 'voice') {
+      thumb.innerHTML = '<svg fill="none" height="22" stroke="#e24b4b" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path></svg>';
     } else if (pendingAttachment.kind === 'music') {
       thumb.innerHTML = '<svg fill="none" height="22" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
     } else if (pendingAttachment.kind === 'video') {
@@ -982,6 +992,220 @@
     renderPendingAttachment();
   }
 
+  var VOICE_MAX_MS = 120000;
+  var voiceRec = {
+    stream: null,
+    recorder: null,
+    chunks: [],
+    startedAt: 0,
+    timer: null,
+    mime: '',
+    ext: 'webm',
+    sendOnStop: false,
+    stopping: false
+  };
+
+  function pickVoiceMime() {
+    var cands = [
+      { mime: 'audio/webm;codecs=opus', ext: 'webm' },
+      { mime: 'audio/webm', ext: 'webm' },
+      { mime: 'audio/mp4', ext: 'm4a' },
+      { mime: 'audio/ogg;codecs=opus', ext: 'ogg' },
+      { mime: 'audio/ogg', ext: 'ogg' },
+      { mime: 'audio/aac', ext: 'aac' }
+    ];
+    if (typeof MediaRecorder === 'undefined') return null;
+    for (var i = 0; i < cands.length; i++) {
+      try {
+        if (!MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(cands[i].mime)) {
+          return cands[i];
+        }
+      } catch (e0) { /* ignore */ }
+    }
+    return { mime: '', ext: 'webm' };
+  }
+
+  function formatVoiceTime(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function setVoiceRecordingUi(on) {
+    var screen = document.getElementById('mb-chat-screen');
+    var bar = document.getElementById('mb-chat-record-bar');
+    if (screen) {
+      if (on) screen.classList.add('mb-recording');
+      else screen.classList.remove('mb-recording');
+    }
+    if (bar) {
+      if (on) bar.classList.add('mb-open');
+      else bar.classList.remove('mb-open');
+    }
+    if (on) setAttachMenuOpen(false);
+  }
+
+  function stopVoiceTracks() {
+    if (voiceRec.stream) {
+      try {
+        voiceRec.stream.getTracks().forEach(function (t) {
+          try { t.stop(); } catch (e1) { /* ignore */ }
+        });
+      } catch (e2) { /* ignore */ }
+    }
+    voiceRec.stream = null;
+  }
+
+  function clearVoiceTimer() {
+    if (voiceRec.timer) {
+      try { clearInterval(voiceRec.timer); } catch (e0) { /* ignore */ }
+    }
+    voiceRec.timer = null;
+  }
+
+  function resetVoiceRecord() {
+    clearVoiceTimer();
+    stopVoiceTracks();
+    voiceRec.recorder = null;
+    voiceRec.chunks = [];
+    voiceRec.startedAt = 0;
+    voiceRec.sendOnStop = false;
+    voiceRec.stopping = false;
+    voiceRec.mime = '';
+    voiceRec.ext = 'webm';
+    setVoiceRecordingUi(false);
+    var timeEl = document.getElementById('mb-chat-record-time');
+    if (timeEl) timeEl.textContent = '0:00';
+  }
+
+  function blobToVoiceFile(blob, ext, mime) {
+    var d = new Date();
+    var pad = function (n) { return n < 10 ? '0' + n : String(n); };
+    var name = 'voice-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+      '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()) + '.' + (ext || 'webm');
+    var type = mime || blob.type || 'audio/webm';
+    try {
+      return new File([blob], name, { type: type, lastModified: Date.now() });
+    } catch (e0) {
+      try { blob.name = name; } catch (e1) { /* ignore */ }
+      return blob;
+    }
+  }
+
+  function finishVoiceRecord(sendIt) {
+    if (!voiceRec.recorder || voiceRec.stopping) return;
+    voiceRec.sendOnStop = !!sendIt;
+    voiceRec.stopping = true;
+    try {
+      if (voiceRec.recorder.state === 'recording' || voiceRec.recorder.state === 'paused') {
+        voiceRec.recorder.stop();
+        return;
+      }
+    } catch (e0) { /* fall through */ }
+    resetVoiceRecord();
+  }
+
+  function cancelVoiceRecord() {
+    voiceRec.sendOnStop = false;
+    if (voiceRec.recorder && !voiceRec.stopping) {
+      finishVoiceRecord(false);
+      return;
+    }
+    resetVoiceRecord();
+  }
+
+  async function startVoiceRecord() {
+    if (isSending || voiceRec.recorder || voiceRec.stopping) return;
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function' || typeof MediaRecorder === 'undefined') {
+      showToast(chatT('Recording is not supported here', 'הקלטה אינה נתמכת כאן'), 'error');
+      return;
+    }
+    var picked = pickVoiceMime();
+    if (!picked) {
+      showToast(chatT('Recording is not supported here', 'הקלטה אינה נתמכת כאן'), 'error');
+      return;
+    }
+
+    var stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      showToast(chatT('Microphone permission is required', 'נדרשת הרשאת מיקרופון'), 'error');
+      return;
+    }
+
+    var recorder;
+    try {
+      recorder = picked.mime
+        ? new MediaRecorder(stream, { mimeType: picked.mime })
+        : new MediaRecorder(stream);
+    } catch (err2) {
+      try { recorder = new MediaRecorder(stream); } catch (err3) {
+        try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (eStop) { /* ignore */ }
+        showToast(chatT('Recording is not supported here', 'הקלטה אינה נתמכת כאן'), 'error');
+        return;
+      }
+    }
+
+    voiceRec.stream = stream;
+    voiceRec.recorder = recorder;
+    voiceRec.chunks = [];
+    voiceRec.startedAt = Date.now();
+    voiceRec.sendOnStop = false;
+    voiceRec.stopping = false;
+    voiceRec.mime = recorder.mimeType || picked.mime || 'audio/webm';
+    voiceRec.ext = picked.ext || 'webm';
+    if (/mp4|m4a|aac/i.test(voiceRec.mime)) voiceRec.ext = 'm4a';
+    else if (/ogg/i.test(voiceRec.mime)) voiceRec.ext = 'ogg';
+    else if (/webm/i.test(voiceRec.mime)) voiceRec.ext = 'webm';
+
+    recorder.ondataavailable = function (ev) {
+      if (ev && ev.data && ev.data.size) voiceRec.chunks.push(ev.data);
+    };
+    recorder.onerror = function () {
+      showToast(chatT('Recording failed', 'ההקלטה נכשלה'), 'error');
+      resetVoiceRecord();
+    };
+    recorder.onstop = function () {
+      var sendIt = !!voiceRec.sendOnStop;
+      var chunks = voiceRec.chunks.slice();
+      var mime = voiceRec.mime;
+      var ext = voiceRec.ext;
+      var elapsed = Date.now() - (voiceRec.startedAt || Date.now());
+      resetVoiceRecord();
+      if (!sendIt) return;
+      var blob = new Blob(chunks, { type: mime || 'audio/webm' });
+      if (!blob.size || elapsed < 400) {
+        showToast(chatT('Recording too short', 'ההקלטה קצרה מדי'), 'error');
+        return;
+      }
+      var file = blobToVoiceFile(blob, ext, mime);
+      setPendingAttachment(file, 'voice');
+      go();
+    };
+
+    try {
+      recorder.start(250);
+    } catch (errStart) {
+      try { recorder.start(); } catch (errStart2) {
+        showToast(chatT('Recording failed', 'ההקלטה נכשלה'), 'error');
+        resetVoiceRecord();
+        return;
+      }
+    }
+
+    setVoiceRecordingUi(true);
+    var timeEl = document.getElementById('mb-chat-record-time');
+    if (timeEl) timeEl.textContent = '0:00';
+    voiceRec.timer = setInterval(function () {
+      var elapsed = Date.now() - voiceRec.startedAt;
+      var el = document.getElementById('mb-chat-record-time');
+      if (el) el.textContent = formatVoiceTime(elapsed);
+      if (elapsed >= VOICE_MAX_MS) finishVoiceRecord(true);
+    }, 200);
+  }
+
   async function sendMessage(p, elId) {
     if (isSending) return;
     var input = document.getElementById('mb-chat-input');
@@ -1011,8 +1235,16 @@
     try {
       var finalMsg = textMsg;
       if (attachSnapshot) {
-        showToast(chatT('Uploading file…', 'מעלה קובץ…'));
-        localId = appendLocalMessage((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n…', true);
+        var isVoice = attachSnapshot.kind === 'voice' || /^voice[-_]/i.test(attachSnapshot.name || '');
+        showToast(isVoice
+          ? chatT('Sending voice message…', 'שולח הודעה קולית…')
+          : chatT('Uploading file…', 'מעלה קובץ…'));
+        localId = appendLocalMessage(
+          isVoice
+            ? ((textMsg ? (textMsg + '\n') : '') + '…')
+            : ((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n…'),
+          true
+        );
         if (!window.MineralBarApp || typeof MineralBarApp.uploadCustomerFile !== 'function') {
           throw new Error(chatT('File upload failed', 'העלאת הקובץ נכשלה'));
         }
@@ -1027,7 +1259,9 @@
           url = MineralBarApp.resolveFileUrl(url);
         }
         if (!url) throw new Error(chatT('File upload failed', 'העלאת הקובץ נכשלה'));
-        finalMsg = (attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n' + url;
+        finalMsg = isVoice
+          ? ((textMsg ? (textMsg + '\n') : '') + url)
+          : ((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n' + url);
         currentMessages = currentMessages.map(function (row) {
           if (row._localId !== localId) return row;
           return Object.assign({}, row, { message: finalMsg });
@@ -1040,7 +1274,11 @@
       await MineralBarApp.sendCustomerMessage(buildSendPayload(p, finalMsg));
       // Remove optimistic bubble before refresh so it cannot appear twice with the server copy
       if (localId) removeLocalMessage(localId);
-      if (attachSnapshot) showToast(chatT('File sent', 'הקובץ נשלח'));
+      if (attachSnapshot) {
+        showToast(attachSnapshot.kind === 'voice'
+          ? chatT('Voice message sent', 'הודעה קולית נשלחה')
+          : chatT('File sent', 'הקובץ נשלח'));
+      }
       suppressThreadReload(5000);
       await loadThread('mb-live-chat', p, { silent: true });
     } catch (err) {
@@ -1125,6 +1363,11 @@
   window.mbChatSendMediaUrls = sendMediaUrls;
 
   function openAttachPicker(kind) {
+    if (kind === 'record') {
+      setAttachMenuOpen(false);
+      startVoiceRecord();
+      return;
+    }
     var id = kind === 'image' ? 'mb-chat-file-image'
       : (kind === 'music' ? 'mb-chat-file-music' : 'mb-chat-file-doc');
     var input = document.getElementById(id);
@@ -1177,7 +1420,23 @@
     }
     if (e.target.closest('#mb-chat-attach-btn')) {
       e.preventDefault();
+      if (voiceRec.recorder) return;
       setAttachMenuOpen(!isAttachMenuOpen());
+      return;
+    }
+    if (e.target.closest('#mb-chat-mic-btn')) {
+      e.preventDefault();
+      startVoiceRecord();
+      return;
+    }
+    if (e.target.closest('#mb-chat-record-cancel')) {
+      e.preventDefault();
+      cancelVoiceRecord();
+      return;
+    }
+    if (e.target.closest('#mb-chat-record-send')) {
+      e.preventDefault();
+      finishVoiceRecord(true);
       return;
     }
     var attachOpt = e.target.closest('.mb-attach-opt');
@@ -1222,7 +1481,7 @@
     var name = String(file.name || '').toLowerCase();
     var type = String(file.type || '').toLowerCase();
     if (type.indexOf('image/') === 0 || /\.(png|jpe?g|gif|webp|bmp|heic|heif)$/i.test(name)) return 'image';
-    if (type.indexOf('audio/') === 0 || /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(name)) return 'music';
+    if (type.indexOf('audio/') === 0 || /\.(mp3|wav|m4a|aac|ogg|flac|opus|weba)$/i.test(name)) return 'music';
     if (type.indexOf('video/') === 0 || /\.(mp4|webm|mov|m4v)$/i.test(name)) return 'video';
     return 'file';
   }
@@ -1494,6 +1753,12 @@
   window.addEventListener('mineralbar:ready', function () {
     wireChatBackButton();
     start();
+  });
+  window.addEventListener('pagehide', function () {
+    cancelVoiceRecord();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && voiceRec.recorder) cancelVoiceRecord();
   });
   window.addEventListener('mineralbar:language-changed', function () {
     if (!document.getElementById('mb-live-chat')) return;

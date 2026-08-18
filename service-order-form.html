@@ -44,7 +44,10 @@ mbCss('./common.css');
 </div>
 <div style="display:flex; align-items:center; justify-content:space-between;">
 <div style="width:38px;"></div>
-<div style="font-size:18px; font-weight:800; color:#fff;">order form</div>
+<div style="text-align:center;" data-no-i18n="true">
+<div style="font-size:18px; font-weight:800; color:#fff;">{{ pageTitle }}</div>
+<div style="font-size:11.5px; color:#9fb0c8; margin-top:1px;">{{ loginLabel }}</div>
+</div>
 <a href="{{ backToCustomerUrl }}" style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.12); color:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none;">
 <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M18 6 6 18M6 6l12 12"></path></svg>
 </a>
@@ -352,6 +355,38 @@ class Component extends DCLogic {
     this.setState({ products: updated });
   }
 
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
+
+  loginHeader() {
+    var user = {};
+    var email = '';
+    var role = '';
+    try {
+      if (window.MineralBarApp) {
+        user = (MineralBarApp.getUser && MineralBarApp.getUser()) || {};
+        email = (MineralBarApp.getEmail && MineralBarApp.getEmail()) || user.email || '';
+        role = (MineralBarApp.getRole && MineralBarApp.getRole()) || '';
+      }
+    } catch (e0) { /* ignore */ }
+    var name = String(
+      user.name || user.full_name || user.display_name || user.user_name ||
+      [user.first_name, user.last_name].filter(Boolean).join(' ') ||
+      (email ? String(email).split('@')[0] : '')
+    ).trim();
+    var roleMap = this.isEn()
+      ? { sales: 'Sales', service: 'Service', tech: 'Technician' }
+      : { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' };
+    var roleLabel = roleMap[role] || '';
+    if (name && roleLabel) return name + ' · ' + roleLabel;
+    return name || roleLabel || '';
+  }
+
   getInitials(name) {
     var p = String(name || '').trim().split(/[\s@._-]+/).filter(Boolean);
     if (!p.length) return '?';
@@ -417,6 +452,8 @@ class Component extends DCLogic {
     } catch (eBack) { /* ignore */ }
 
     return {
+      pageTitle: this.t('Order form', 'טופס הזמנה'),
+      loginLabel: this.loginHeader(),
       name: s.name || '…',
       phone: s.phone || '',
       tz: s.tz || s.customer_id || '',

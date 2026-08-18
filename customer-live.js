@@ -811,8 +811,44 @@
     });
   }
 
+  async function openLeadStatusSheetFromQuery() {
+    bindLeadStatusSheetChrome();
+    var sheet = document.getElementById('mb-lead-status-sheet');
+    if (!sheet) return;
+    var id = qsParam();
+    if (!id) {
+      showLeadStatusToast(t('Missing customer', 'חסר לקוח'), 'error');
+      return;
+    }
+    sheet.style.display = 'block';
+    var container = document.getElementById('mb-lead-folders-container');
+    if (container) {
+      container.innerHTML = '<div style="padding:12px 0;color:#9aa3b0;font-size:13px;font-weight:600;">' +
+        esc(t('Loading…', 'טוען…')) + '</div>';
+    }
+    try {
+      if (!window.MineralBarApp || typeof MineralBarApp.getCustomer !== 'function') {
+        throw new Error('API unavailable');
+      }
+      var res = await MineralBarApp.getCustomer(id);
+      var c = (res && res.customer) || {};
+      if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) c = c.data;
+      if (!c || !(c.customer_id || c.id)) c = Object.assign({ customer_id: id, id: id }, c);
+      window.__mbLeadCardCustomer = c;
+      openLeadStatusSheet(c);
+    } catch (err) {
+      showLeadStatusToast(t('Could not load customer', 'לא ניתן לטעון לקוח'), 'error');
+      closeLeadStatusSheet();
+    }
+  }
+
   window.mbOpenLeadStatusSheet = function () {
-    if (window.__mbLeadCardCustomer) openLeadStatusSheet(window.__mbLeadCardCustomer);
+    bindLeadStatusSheetChrome();
+    if (window.__mbLeadCardCustomer) {
+      openLeadStatusSheet(window.__mbLeadCardCustomer);
+      return Promise.resolve();
+    }
+    return openLeadStatusSheetFromQuery();
   };
   window.mbCloseLeadStatusSheet = closeLeadStatusSheet;
 

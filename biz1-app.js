@@ -1840,13 +1840,18 @@
     }
 
     // Some channels return success:1 + socket_event but message text is a failure
-    // e.g. "שליחת האימייל נכשלה...!"
-    if (/נכשל|failed|failure|error|לא נשלח|permission.?denied/i.test(returnText)) {
+    // e.g. "שליחת האימייל נכשלה...!" OR WhatsApp 24h window / template required
+    // (message is NOT stored on the customer thread in that case).
+    var waWindowFail = /24\s*שעות|מתבנית|template messages|לא שלח אליך/i.test(returnText);
+    if (
+      /נכשל|failed|failure|error|לא נשלח|permission.?denied/i.test(returnText) ||
+      (fromVal === 'send_whatsapp' && waWindowFail)
+    ) {
       var softFail = new Error(returnText || 'שליחת הודעה נכשלה');
       softFail.route = 'Chat.SendCustomer';
       softFail.status = raw && raw.status;
       softFail.raw = raw;
-      softFail.code = 'SEND_FAILED_MESSAGE';
+      softFail.code = waWindowFail ? 'WHATSAPP_WINDOW' : 'SEND_FAILED_MESSAGE';
       throw softFail;
     }
 
