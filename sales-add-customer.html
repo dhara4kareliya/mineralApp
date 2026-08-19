@@ -372,9 +372,18 @@ mbCss('./common.css');
     select.disabled = true;
 
     try {
-      var res = await client.request('Statuses.List', { type: 'status', limit: 25 });
+      var res = await client.request('CustomerStatuses.List', {
+        limit: 100,
+        length: 100,
+        start: 0
+      });
       var rows = (res && (res.data || res.output || res.rows || res.list)) || [];
       if (!Array.isArray(rows)) rows = [];
+      rows = rows.slice().sort(function (a, b) {
+        var ao = Number(a && a.status_order != null ? a.status_order : 9999);
+        var bo = Number(b && b.status_order != null ? b.status_order : 9999);
+        return (isFinite(ao) ? ao : 9999) - (isFinite(bo) ? bo : 9999);
+      });
 
       select.innerHTML = '';
       var placeholder = document.createElement('option');
@@ -382,6 +391,7 @@ mbCss('./common.css');
       placeholder.textContent = isEn ? '--select status option--' : '--בחר סטטוס--';
       select.appendChild(placeholder);
 
+      var openingId = '';
       rows.forEach(function (row) {
         var id = row.status_id || row.id || row.data_id;
         var label = isEn
@@ -392,15 +402,18 @@ mbCss('./common.css');
         option.value = String(id);
         option.textContent = String(label);
         select.appendChild(option);
+        if (!openingId && /new|חדש/i.test(String(label))) openingId = String(id);
       });
 
       if (currentValue && Array.from(select.options).some(function (option) {
         return option.value === currentValue;
       })) {
         select.value = currentValue;
+      } else if (openingId) {
+        select.value = openingId;
       }
     } catch (e) {
-      console.error('[sales-add-customer] Statuses.List failed', e);
+      console.error('[sales-add-customer] CustomerStatuses.List failed', e);
       select.innerHTML = '';
       var failed = document.createElement('option');
       failed.value = '';

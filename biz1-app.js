@@ -42,7 +42,7 @@
     'רשימת לידים': { routes: ['Customer.List', 'Customer.Count'], folder_id: FOLDERS.LEADS, status: 'live' },
     'לקוחות': { routes: ['Customer.List', 'Customer.Count'], folder_id: FOLDERS.CUSTOMERS, status: 'live' },
     'כרטיס ליד / כרטיס לקוח': { routes: ['Customer.Get'], status: 'live' },
-    'הוספת ליד / לקוח': { routes: ['Customer.Add', 'Statuses.List'], status: 'partial' },
+    'הוספת ליד / לקוח': { routes: ['Customer.Add', 'CustomerStatuses.List'], status: 'partial' },
     'משימות': { routes: ['Mission.List', 'Mission.Count', 'Mission.Create', 'Mission.Get', 'Mission.Update', 'Mission.Done'], status: 'live' },
     'צור משימה': { routes: ['Mission.Create', 'Mission.Get'], status: 'live' },
     'קריאות שירות / טכנאי': { routes: ['Ticket.List', 'Ticket.Count', 'Ticket.Get', 'Ticket.Add', 'Ticket.Edit'], status: 'partial' },
@@ -936,6 +936,8 @@
       err.raw = raw;
       throw err;
     }
+    try { sessionStorage.setItem('mb_missions_dirty', String(Date.now())); } catch (e0) {}
+    try { notifyLiveReload({ key: 'mission.created', group: 'missions' }); } catch (e1) {}
     return {
       id: createdId || null,
       message: raw.message || 'Task added',

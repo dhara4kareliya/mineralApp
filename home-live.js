@@ -43,7 +43,15 @@
   }
 
   function isDone(m) {
-    return !!(m.is_done || Number(m.done) === 1);
+    if (!m) return false;
+    if (m.is_done || Number(m.done) === 1 || Number(m.is_complete) === 1) return true;
+    var st = String(m.status || m.mission_status || m.state || m.status_name || '').toLowerCase();
+    return st === 'done' || st === 'complete' || st === 'completed' || st === 'closed' ||
+      st === 'בוצע' || st === 'הושלם' || st === 'סגור';
+  }
+
+  function isOpen(m) {
+    return !isDone(m);
   }
 
   function isOverdue(m, today) {
@@ -221,7 +229,7 @@
     if (!missionsEl) return;
     if (!prioritized.length) {
       missionsEl.innerHTML =
-        '<div style="padding:18px 2px;font-size:13.5px;font-weight:600;color:#9aa3b0;">' + esc(t('No open tasks right now', 'אין משימות פתוחות כרגע')) + '</div>' +
+        '<div style="padding:18px 2px;font-size:13.5px;font-weight:600;color:#9aa3b0;">' + esc(t('No tasks due today or overdue', 'אין משימות להיום או באיחור')) + '</div>' +
         '<a href="sales-tasks.html" style="display:inline-block;margin-top:6px;font-size:13px;font-weight:800;color:#1d60a2;text-decoration:none;">' + esc(t('All tasks', 'לכל המשימות')) + ' ←</a>';
       return;
     }
@@ -295,17 +303,69 @@
 
   var _homeBooted = false;
   var _homeInFlight = null;
+  var _homeQueued = null;
+
+  function flattenMissionRows(res) {
+    var rows = (res && res.rows) ? res.rows.slice() : [];
+    if (!rows.length && res && res.groups) {
+      res.groups.forEach(function (g) {
+        if (g.id === 'done' || g.key === 'done') return;
+        (g.rows || []).forEach(function (r) { rows.push(r); });
+      });
+    }
+    return rows;
+  }
+
+  async function listAllMissionsForHome() {
+    // Mission.List hard-caps at 25 rows even if length>25. Count the API
+    // total_record (open), and page by 25 so today's new task is in the list.
+    var pageSize = 25;
+    var start = 0;
+    var all = [];
+    var seen = {};
+    var apiTotal = 0;
+    for (var page = 0; page < 20; page++) {
+      var res = await MineralBarApp.listMissions({
+        length: pageSize,
+        start: start,
+        draw: 1,
+        show_done_mission: 0,
+        include_counts: 1
+      });
+      if (!apiTotal) apiTotal = Number(res.total) || 0;
+      var rows = flattenMissionRows(res);
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var id = String(r.mission_id || r.id || '');
+        var key = id || ('row-' + start + '-' + i);
+        if (seen[key]) continue;
+        seen[key] = true;
+        all.push(r);
+      }
+      if (rows.length < pageSize) break;
+      start += rows.length;
+      if (apiTotal && start >= apiTotal) break;
+    }
+    return { rows: all, total: apiTotal || all.length };
+  }
 
   async function loadHome(opts) {
     opts = opts || {};
-    var silent = !!opts.silent;
-    if (_homeInFlight) return _homeInFlight;
+    if (_homeInFlight) {
+      _homeQueued = { silent: true };
+      return _homeInFlight;
+    }
 
     _homeInFlight = (async function () {
       try {
         await loadHomeBody(opts);
       } finally {
         _homeInFlight = null;
+      }
+      if (_homeQueued) {
+        var next = _homeQueued;
+        _homeQueued = null;
+        return loadHome(next);
       }
     })();
     return _homeInFlight;
@@ -351,7 +411,7 @@
           start: 0,
           draw: 1
         }).catch(function () { return { rows: [] }; }),
-        MineralBarApp.listMissions({ length: 100, start: 0, draw: 1 }).catch(function () { return { rows: [], total: 0 }; })
+        listAllMissionsForHome().catch(function () { return { rows: [], total: 0 }; })
       ]);
 
       // Re-query after await — DC/React can replace nodes while requests are in flight
@@ -363,26 +423,24 @@
       var leadRows = results[2].rows || results[2].data || [];
       var followupCount = leadRows.filter(isFollowupLead).length;
 
-      var rows = results[3].rows || [];
-      if (!rows.length && results[3].groups) {
-        results[3].groups.forEach(function (g) {
-          (g.rows || []).forEach(function (r) { rows.push(r); });
-        });
-      }
+      var rows = flattenMissionRows(results[3]);
+      try { sessionStorage.removeItem('mb_missions_dirty'); } catch (e2) {}
 
-      var openMissions = rows.filter(function (m) { return !isDone(m); });
+      var openMissions = rows.filter(isOpen);
       var doneCount = rows.filter(isDone).length;
-      var overdueCount = openMissions.filter(function (m) { return isOverdue(m, today); }).length;
-      var todayCount = openMissions.filter(function (m) { return isToday(m, today); }).length;
-      var openEstimate = openMissions.length;
+      var dueNowMissions = openMissions.filter(function (m) {
+        return isToday(m, today) || isOverdue(m, today);
+      });
+      var openEstimate = dueNowMissions.length;
 
-      var prioritized = openMissions.slice().sort(function (a, b) {
-        // Today first, then overdue, then the rest
-        var ao = isToday(a, today) ? 0 : (isOverdue(a, today) ? 1 : 2);
-        var bo = isToday(b, today) ? 0 : (isOverdue(b, today) ? 1 : 2);
+      var prioritized = dueNowMissions.slice().sort(function (a, b) {
+        var ao = isToday(a, today) ? 0 : 1;
+        var bo = isToday(b, today) ? 0 : 1;
         if (ao !== bo) return ao - bo;
-        return String(missionDayKey(a)).localeCompare(String(missionDayKey(b)));
-      }).slice(0, 5);
+        return String(missionDayKey(a) + String(a.date_to_do || '')).localeCompare(
+          String(missionDayKey(b) + String(b.date_to_do || ''))
+        );
+      }).slice(0, 20);
 
       setText('mb-stat-closed', String(missionTotal));
       setText('mb-stat-closed-sub', doneCount
@@ -390,17 +448,15 @@
         : t('Total tasks', 'סה״כ משימות'));
       setText('mb-stat-leads', String(leadsCount));
       setText('mb-stat-leads-sub', t('Folder 1 · Leads', 'תיקייה 1 · לידים'));
-      setText('mb-stat-followup', String((todayCount + overdueCount) || openEstimate || 0));
-      setText('mb-stat-followup-sub', overdueCount
-        ? (todayCount + ' ' + t('today', 'היום') + ' · ' + overdueCount + ' ' + t('overdue', 'באיחור'))
-        : (todayCount + ' ' + t('for today', 'להיום')));
+      setText('mb-stat-followup', String(openEstimate || 0));
+      setText('mb-stat-followup-sub', t('Open tasks', 'משימות פתוחות'));
       setText('mb-stat-followups', String(followupCount));
       setText('mb-stat-followups-sub', t('Follow-up', 'פולואפ'));
       setText('mb-pipe-leads', String(leadsCount));
       setText('mb-pipe-followup', String(followupCount));
       scheduleRepaint();
 
-      renderMissions(prioritized, missionTotal, today);
+      renderMissions(prioritized, openEstimate, today);
     } catch (err) {
       if (silent) {
         console.warn('[HomeLive] silent refresh failed — keeping dashboard', err);
@@ -436,12 +492,18 @@
       if (!document.getElementById('mb-live-home')) return;
     }
     window.__mbHomeMountTries = 0;
-    if (_homeBooted && !opts.force) return;
+    var dirty = false;
+    try { dirty = !!sessionStorage.getItem('mb_missions_dirty'); } catch (e0) {}
+    if (_homeBooted && !opts.force && !dirty) return;
     _homeBooted = true;
     loadHome(opts.silent ? { silent: true } : {});
   }
 
   window.addEventListener('mineralbar:ready', function () { setTimeout(start, 40); });
+  window.addEventListener('pageshow', function () {
+    if (!document.getElementById('mb-live-home')) return;
+    loadHome({ silent: true });
+  });
   window.addEventListener('mineralbar:language-changed', function () {
     // Re-render live strings in the selected language (DOM translator skips #mb-live-*)
     if (document.getElementById('mb-live-home')) start({ force: true, silent: true });

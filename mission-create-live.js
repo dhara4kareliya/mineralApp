@@ -1224,7 +1224,7 @@
 
         saveSucceeded = true;
         setTimeout(function() {
-          goBackToEntryScreen();
+          window.location.href = getBackUrl();
         }, 600);
       } catch (err) {
         console.error('Task save failed', err);

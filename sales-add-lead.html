@@ -329,38 +329,32 @@ class Component extends DCLogic {
         ? window.MineralBarApp.getClient()
         : null;
       if (!client || !client.getToken || !client.getToken()) return;
-      var folderId = this.leadsFolderId();
-      var attempts = [
-        { type: 'status', folder_id: folderId, limit: 100 },
-        { type: 'internal_status', folder_id: folderId, limit: 100 },
-        { type: 'customer_status', folder_id: folderId, limit: 100 },
-        { type: 'status', limit: 100 }
-      ];
-      var rows = [];
-      for (var i = 0; i < attempts.length; i++) {
-        try {
-          const res = await client.request('Statuses.List', attempts[i]);
-          var list = (res && (res.data || res.output || res.rows || res.list)) || [];
-          if (Array.isArray(list) && list.length) {
-            rows = list;
-            break;
-          }
-        } catch (eType) { /* try next Statuses.List shape */ }
-      }
+      const res = await client.request('CustomerStatuses.List', {
+        limit: 100,
+        length: 100,
+        start: 0
+      });
+      var rows = (res && (res.data || res.output || res.rows || res.list)) || [];
+      if (!Array.isArray(rows)) rows = [];
       const isEn = this.isEn();
       const statusesData = rows.map(function (row) {
         var id = String(row.status_id || row.id || row.data_id || '').trim();
         var label = this.statusRowLabel(row, isEn);
-        return { id: id, label: label };
+        var order = Number(row.status_order != null ? row.status_order : 9999);
+        return { id: id, label: label, order: isFinite(order) ? order : 9999 };
       }.bind(this)).filter(function (row) { return row.id && row.label; });
+      statusesData.sort(function (a, b) { return a.order - b.order; });
       var current = String(this.state.status || '');
       var selectedExists = statusesData.some(function (row) { return row.id === current; });
+      var opening = statusesData.find(function (row) {
+        return /new|חדש/i.test(row.label);
+      });
       this.setState({
         statusesData: statusesData,
-        status: selectedExists ? current : (statusesData[0] ? statusesData[0].id : '')
+        status: selectedExists ? current : ((opening && opening.id) || (statusesData[0] ? statusesData[0].id : ''))
       });
     } catch (e) {
-      console.error('[sales-add-lead] Statuses.List failed', e);
+      console.error('[sales-add-lead] CustomerStatuses.List failed', e);
       this.setState({ statusesData: [] });
     }
   }

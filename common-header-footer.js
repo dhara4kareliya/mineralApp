@@ -119,6 +119,7 @@
     "לידים פעילים": "Active leads",
     "תיקייה 1": "Folder 1",
     "משימות פתוחות": "Open tasks",
+    "להיום": "Due today",
     "פולואפ": "Follow-up",
     "שיחות": "Conversations",
     "שיחות פתוחות": "Open conversations",
