@@ -157,6 +157,53 @@ mbCss('./common.css');
 </sc-if>
 </div>
 
+<!-- detailed field purchase orders -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
+<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ ordersSectionLabel }}</span>
+<span style="font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ ordersCountLabel }}</span>
+</div>
+<div style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+<sc-if hint-placeholder-val="{{ false }}" value="{{ ordersLoading }}">
+<div class="mb-inline-loader">
+<div class="mb-page-loader__spin" aria-hidden="true"></div>
+<div class="mb-page-loader__label" data-no-i18n="true">{{ loadingLabel }}</div>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ ordersEmpty }}">
+<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;" data-no-i18n="true">{{ ordersEmptyLabel }}</div>
+</sc-if>
+<sc-for as="od" hint-placeholder-count="0" list="{{ fieldOrders }}">
+<div style="padding:12px 0; border-bottom:1px solid {{ od.border }};">
+<div style="display:flex; align-items:flex-start; gap:11px;">
+<div style="width:34px; height:34px; border-radius:9px; background:{{ od.iconBg }}; color:{{ od.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M7 3h8l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M15 3v5h5"></path></svg>
+</div>
+<div style="flex:1; min-width:0;">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+<span style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ od.name }}</span>
+<span style="display:inline-flex; align-items:center; gap:4px; background:{{ od.badgeBg }}; color:{{ od.badgeColor }}; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; white-space:nowrap; flex:none;">{{ od.amount }}</span>
+</div>
+<div style="font-size:12px; color:#5a6473; font-weight:600; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ od.items }}</div>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:5px;">
+<span style="font-size:11px; color:#9aa3b0; font-weight:600;">{{ od.meta }}</span>
+<button type="button" onclick="{{ od.open }}" style="border:none; background:none; color:#1d60a2; font-size:12px; font-weight:800; cursor:pointer; padding:0; font-family:inherit; flex:none;">{{ od.actionLabel }}</button>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showOrdersPager }}">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; padding:12px 4px 4px; border-top:1px solid #f0f2f5;">
+<button type="button" onclick="{{ prevOrders }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ ordersPrevBg }}; color:{{ ordersPrevColor }}; font-size:13px; font-weight:800; cursor:{{ ordersPrevCursor }}; opacity:{{ ordersPrevOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openPrevLabel }}</button>
+<div style="text-align:center; flex:1; min-width:0;">
+<div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ ordersRangeLabel }}</div>
+<div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ ordersPageLabel }}</div>
+</div>
+<button type="button" onclick="{{ nextOrders }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ ordersNextBg }}; color:{{ ordersNextColor }}; font-size:13px; font-weight:800; cursor:{{ ordersNextCursor }}; opacity:{{ ordersNextOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openNextLabel }}</button>
+</div>
+</sc-if>
+</div>
+
 <div style="text-align:center; padding:4px 0; color:#b6bdc8; font-size:12px; font-weight:600;">{{ updatedLabel }}</div>
 </div>
 </div>
@@ -169,7 +216,9 @@ class Component extends DCLogic {
     loadingDocs: true,
     loadingWeeks: true,
     loadingOpenTickets: true,
+    loadingOrders: true,
     openTickets: [],
+    fieldOrders: [],
     weekTickets: [0, 0, 0, 0],
     salesTotal: 0,
     salesAvg: 0,
@@ -180,6 +229,8 @@ class Component extends DCLogic {
     monthPickerOpen: false,
     openTicketsPage: 1,
     openTicketsPageSize: 5,
+    fieldOrdersPage: 1,
+    fieldOrdersPageSize: 5,
     langTick: 0
   };
 
@@ -385,7 +436,7 @@ class Component extends DCLogic {
     }
     var client = this.getClient();
     if (!client) {
-      this.setState({ loadingDocs: false, loadingWeeks: false, loadingOpenTickets: false });
+      this.setState({ loadingDocs: false, loadingWeeks: false, loadingOpenTickets: false, loadingOrders: false });
       return;
     }
     var self = this;
@@ -394,7 +445,8 @@ class Component extends DCLogic {
         await Promise.all([
           self.loadDocuments(client, null, null, silent),
           self.loadWeekTickets(client, null, null, silent),
-          self.loadOpenTickets(client, silent)
+          self.loadOpenTickets(client, silent),
+          self.loadFieldOrders(client, silent)
         ]);
         self._booted = true;
         self.ensureChrome();
@@ -601,6 +653,193 @@ class Component extends DCLogic {
     this.setState({ openTicketsPage: Math.min(totalPages, cur + 1) });
   }
 
+  resolveUserId() {
+    try {
+      var u = (window.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser()) || null;
+      if (!u && window.MineralBarApp && MineralBarApp.getUserBasic) {
+        var basic = MineralBarApp.getUserBasic();
+        u = (basic && ((basic.data && basic.data.user) || basic.user || basic)) || null;
+      }
+      if (!u) return 0;
+      return Number(u.id || u.user_id || u.member_id || u.team_member_id || u.userid || 0) || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  collectDocFields(doc) {
+    var bag = {};
+    function walk(obj, depth) {
+      if (!obj || depth > 4) return;
+      if (Array.isArray(obj)) {
+        obj.forEach(function (x) { walk(x, depth + 1); });
+        return;
+      }
+      if (typeof obj !== 'object') return;
+      Object.keys(obj).forEach(function (k) {
+        var v = obj[k];
+        if (v && typeof v === 'object' && !Array.isArray(v) && (v.value != null || v.val != null || v.field_value != null)) {
+          bag[k] = v.value != null ? v.value : (v.val != null ? v.val : v.field_value);
+          if (v.name) bag[String(v.name)] = bag[k];
+        } else if (v == null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+          bag[k] = v;
+        } else {
+          walk(v, depth + 1);
+        }
+      });
+    }
+    walk(doc, 0);
+    walk(doc && doc.extra_detail, 0);
+    walk(doc && doc.order_all_fields, 0);
+    walk(doc && doc.custom_fields, 0);
+    walk(doc && doc.items_extra_fields, 0);
+    return bag;
+  }
+
+  pickDocField(bag, names) {
+    bag = bag || {};
+    for (var i = 0; i < names.length; i++) {
+      var want = String(names[i] || '').toLowerCase();
+      if (!want) continue;
+      if (bag[names[i]] != null && bag[names[i]] !== '') return bag[names[i]];
+      var keys = Object.keys(bag);
+      for (var k = 0; k < keys.length; k++) {
+        if (String(keys[k] || '').toLowerCase() === want && bag[keys[k]] != null && bag[keys[k]] !== '') {
+          return bag[keys[k]];
+        }
+      }
+    }
+    return '';
+  }
+
+  isYesValue(raw) {
+    var s = String(raw == null ? '' : raw).toLowerCase().trim();
+    return s === 'yes' || s === '1' || s === 'true' || s === 'כן' || s === 'y';
+  }
+
+  isFieldPurchaseForUser(doc, userId) {
+    if (!doc) return false;
+    var bag = this.collectDocFields(doc);
+    var purchased = this.pickDocField(bag, [
+      'EntryPurchasedInField', 'entry_purchased_in_field', 'purchased_in_field', 'PurchasedInField'
+    ]);
+    if (purchased !== '' && !this.isYesValue(purchased)) return false;
+    var techRaw = this.pickDocField(bag, [
+      'EntryPurchaseTechnician', 'entry_purchase_technician', 'PurchaseTechnician'
+    ]);
+    var ids = [
+      techRaw,
+      doc.created_by_user_id,
+      doc.team_member_id,
+      doc.second_team_member
+    ].map(function (x) { return Number(x) || 0; }).filter(Boolean);
+    if (userId && ids.length && ids.indexOf(Number(userId)) === -1) return false;
+    if (Number(doc.paid) === 0 || doc.paid === '0' || doc.paid === false) return false;
+    if (Number(doc.is_canceled) === 1 || Number(doc.canceled_status) === 1) return false;
+    return true;
+  }
+
+  formatOrderItems(doc) {
+    var items = (doc && Array.isArray(doc.items)) ? doc.items : [];
+    var names = items.map(function (it) {
+      return String((it && (it.item_name || it.name || it.product_name)) || '').trim();
+    }).filter(Boolean);
+    return names.join(' · ');
+  }
+
+  formatOrderAmount(doc) {
+    var n = Number(doc && (doc.final_amount != null ? doc.final_amount : doc.total));
+    if (!isFinite(n)) n = 0;
+    var coin = String((doc && doc.coin) || '₪');
+    return Math.round(n).toLocaleString('en-US') + coin;
+  }
+
+  formatOrderWhen(doc) {
+    var dateStr = (doc && (doc.date_created || doc.inserted_date || doc.default_date || doc.due_date)) || '';
+    if (!dateStr) return '';
+    try {
+      var d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return this.pad(d.getDate()) + '/' + this.pad(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(-2);
+      }
+    } catch (e0) { /* ignore */ }
+    return String(dateStr).slice(0, 10);
+  }
+
+  cleanPdfUrl(url) {
+    var s = String(url || '').trim();
+    if (!s) return '';
+    try { s = decodeURIComponent(s); } catch (e1) { /* keep */ }
+    s = s.replace(/^["']+|["']+$/g, '').replace(/%22$/i, '');
+    return s;
+  }
+
+  async loadFieldOrders(client, silent) {
+    if (!silent) this.setState({ loadingOrders: true });
+    var userId = this.resolveUserId();
+    try {
+      var payload = {
+        type: 'purchase_orders',
+        paid: 1,
+        length: 50,
+        start: 0,
+        draw: 1,
+        EntryPurchasedInField: 'yes',
+        EntryPurchaseTechnician: userId || ''
+      };
+      if (userId) payload.team_member_id = userId;
+      var res = await client.request('Documents.List', payload);
+      var rows = this.extractRows(res);
+      var orders = [];
+      for (var i = 0; i < rows.length; i++) {
+        var doc = rows[i];
+        if (!this.isFieldPurchaseForUser(doc, userId)) continue;
+        var cid = String(doc.cust_id || doc.customer_id || '');
+        orders.push({
+          id: String(doc.id || doc.last_documents_id || ''),
+          name: doc.name || doc.company_name || ('#' + (doc.id || '')),
+          items: this.formatOrderItems(doc) || this.t('Purchase order', 'הזמנת רכש'),
+          amount: this.formatOrderAmount(doc),
+          when: this.formatOrderWhen(doc),
+          pdfUrl: this.cleanPdfUrl(doc.pdf_url),
+          customerId: cid
+        });
+      }
+      this.setState({ loadingOrders: false, fieldOrders: orders, fieldOrdersPage: 1 });
+    } catch (e) {
+      console.error('[TechDashboard] Documents.List field orders failed', e);
+      this.setState({ loadingOrders: false, fieldOrders: [], fieldOrdersPage: 1 });
+    }
+  }
+
+  openFieldOrder(order) {
+    if (!order) return;
+    if (order.pdfUrl) {
+      window.open(order.pdfUrl, '_blank', 'noopener');
+      return;
+    }
+    if (order.customerId) {
+      window.location.href = 'all-documents.html?customer_id=' + encodeURIComponent(order.customerId) +
+        '&cust_id=' + encodeURIComponent(order.customerId) +
+        '&back=' + encodeURIComponent('tech-dashboard.html');
+      return;
+    }
+  }
+
+  prevOrders() {
+    if ((Number(this.state.fieldOrdersPage) || 1) <= 1) return;
+    this.setState({ fieldOrdersPage: Math.max(1, (Number(this.state.fieldOrdersPage) || 1) - 1) });
+  }
+
+  nextOrders() {
+    var pageSize = Math.max(1, Number(this.state.fieldOrdersPageSize) || 5);
+    var total = (this.state.fieldOrders || []).length;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+    var cur = Number(this.state.fieldOrdersPage) || 1;
+    if (cur >= totalPages) return;
+    this.setState({ fieldOrdersPage: Math.min(totalPages, cur + 1) });
+  }
+
   renderVals() {
     var st = this.state;
     var isEn = this.isEn();
@@ -701,6 +940,35 @@ class Component extends DCLogic {
       };
     }.bind(this));
 
+    var allOrders = st.fieldOrders || [];
+    var orderPageSize = Math.max(1, Number(st.fieldOrdersPageSize) || 5);
+    var totalOrders = allOrders.length;
+    var orderPages = Math.max(1, Math.ceil(totalOrders / orderPageSize) || 1);
+    var orderPage = Math.min(Math.max(1, Number(st.fieldOrdersPage) || 1), orderPages);
+    var orderStart = (orderPage - 1) * orderPageSize;
+    var pageOrders = allOrders.slice(orderStart, orderStart + orderPageSize);
+    var orderFrom = totalOrders ? (orderStart + 1) : 0;
+    var orderTo = Math.min(orderStart + pageOrders.length, totalOrders);
+    var canPrevOrders = orderPage > 1;
+    var canNextOrders = orderPage < orderPages;
+    var fieldOrders = pageOrders.map(function (o, i) {
+      return {
+        name: o.name,
+        items: o.items || '',
+        amount: o.amount || '',
+        meta: [o.when, this.t('Field order', 'הזמנת שטח')].filter(Boolean).join(' · '),
+        badgeBg: '#e9f5ee',
+        badgeColor: '#2e8a63',
+        iconBg: '#eaf2fb',
+        iconColor: '#1d60a2',
+        border: i === pageOrders.length - 1 ? 'transparent' : '#f0f2f5',
+        actionLabel: this.t('View', 'צפייה'),
+        open: (function (ord) {
+          return function () { self.openFieldOrder(ord); };
+        })(o)
+      };
+    }.bind(this));
+
     return {
       monthLabel: monthLabel,
       monthShort: monthShort,
@@ -737,6 +1005,29 @@ class Component extends DCLogic {
       openNextCursor: canNext ? 'pointer' : 'not-allowed',
       openPrevOpacity: canPrev ? '1' : '0.7',
       openNextOpacity: canNext ? '1' : '0.7',
+      fieldOrders: fieldOrders,
+      ordersLoading: !!st.loadingOrders,
+      ordersEmpty: !st.loadingOrders && totalOrders === 0,
+      ordersSectionLabel: this.t('Purchase orders', 'הזמנות רכש'),
+      ordersCountLabel: st.loadingOrders
+        ? ''
+        : (totalOrders + ' ' + this.t('orders', 'הזמנות')),
+      ordersEmptyLabel: this.t('No field purchase orders', 'אין הזמנות שנרכשו בשטח'),
+      showOrdersPager: !st.loadingOrders && totalOrders > 0,
+      ordersRangeLabel: totalOrders
+        ? (orderFrom + '–' + orderTo + ' ' + this.t('of', 'מתוך') + ' ' + totalOrders)
+        : '',
+      ordersPageLabel: this.t('Page ', 'עמוד ') + orderPage + ' / ' + orderPages,
+      prevOrders: function () { self.prevOrders(); },
+      nextOrders: function () { self.nextOrders(); },
+      ordersPrevBg: canPrevOrders ? '#1d60a2' : '#e9ecf0',
+      ordersNextBg: canNextOrders ? '#1d60a2' : '#e9ecf0',
+      ordersPrevColor: canPrevOrders ? '#fff' : '#9aa3b0',
+      ordersNextColor: canNextOrders ? '#fff' : '#9aa3b0',
+      ordersPrevCursor: canPrevOrders ? 'pointer' : 'not-allowed',
+      ordersNextCursor: canNextOrders ? 'pointer' : 'not-allowed',
+      ordersPrevOpacity: canPrevOrders ? '1' : '0.7',
+      ordersNextOpacity: canNextOrders ? '1' : '0.7',
       salesTotal: st.loadingDocs ? '…' : this.fmt(st.salesTotal),
       salesAvg: st.loadingDocs ? '…' : this.fmt(st.salesAvg),
       closedTickets: st.loadingDocs ? '…' : String(st.closedTickets || 0),
