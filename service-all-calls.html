@@ -189,20 +189,6 @@
                     </svg>
                     {{ c.wait }}
                   </span>
-                  <!-- Department Name Pill -->
-                  <sc-if hint-placeholder-val="{{ false }}" value="{{ c.department }}">
-                    <span
-                      style="display:inline-flex; align-items:center; gap:4px; background:#f0f7f4; color:#2e8a63; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:7px;">
-                      <svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-width="2" viewbox="0 0 24 24" width="12">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                      </svg>
-                      {{ c.department }}
-                    </span>
-                  </sc-if>
                 </div>
                 <!-- product + price (same as My schedule) -->
                 <sc-if hint-placeholder-val="{{ false }}" value="{{ c.hasProduct }}">
@@ -211,8 +197,11 @@
                     <div style="min-width:0; flex:1;">
                       <div style="font-size:11px; color:#8a93a3; font-weight:700; margin-bottom:2px;">{{ c.productLabel }}</div>
                       <sc-for as="p" hint-placeholder-count="1" list="{{ c.productItems }}">
-                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-top:4px;">
-                          <div style="font-size:13px; color:#1f2a3a; font-weight:700; line-height:1.35; word-break:break-word; min-width:0;">{{ p.label }}</div>
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-top:6px;">
+                          <div style="min-width:0; flex:1;">
+                            <div style="font-size:13px; color:#1f2a3a; font-weight:700; line-height:1.35; word-break:break-word;">{{ p.label }}</div>
+                            <div style="font-size:12px; color:#7b8595; font-weight:600; line-height:1.4; margin-top:2px; word-break:break-word;">{{ c.productDescLabel }}: {{ p.desc }}</div>
+                          </div>
                           <div style="font-size:13px; color:#1d60a2; font-weight:800; line-height:1.35; white-space:nowrap; flex:none; direction:ltr;">{{ p.price }}</div>
                         </div>
                       </sc-for>
@@ -875,6 +864,18 @@ class Component extends DCLogic {
     return this.formatProductPrice(raw, obj.coin || obj.currency || '₪');
   }
 
+  pickProductDescription(obj) {
+    if (!obj || typeof obj !== 'object') return '';
+    return String(
+      obj.discription ||
+      obj.description ||
+      obj.desc ||
+      obj.product_description ||
+      obj.details ||
+      ''
+    ).trim();
+  }
+
   catalogProductEntry(p) {
     if (!p) return null;
     var name = String(p.product_name || p.name || p.title || '').trim();
@@ -883,7 +884,12 @@ class Component extends DCLogic {
         : (p.sale_price != null ? p.sale_price
           : (p.price != null ? p.price
             : (p.cost != null ? p.cost : ''))));
-    return { name: name, priceRaw: raw, price: this.formatProductPrice(raw, p.coin || p.currency || '₪') };
+    return {
+      name: name,
+      priceRaw: raw,
+      price: this.formatProductPrice(raw, p.coin || p.currency || '₪'),
+      desc: this.pickProductDescription(p)
+    };
   }
 
   unwrapProductRecord(raw) {
@@ -957,7 +963,7 @@ class Component extends DCLogic {
     if (!ticket) return out;
     var subject = String(ticket.subject || ticket.topic || '').trim();
     var self = this;
-    function push(name, id, price) {
+    function push(name, id, price, desc) {
       name = String(name || '').trim();
       if (!name || name === 'undefined' || name === 'null') return;
       if (subject && name === subject) return;
@@ -966,26 +972,42 @@ class Component extends DCLogic {
         if (String(out[i].label || '').toLowerCase() === key) {
           if (!out[i].price && price) out[i].price = price;
           if (!out[i].id && id) out[i].id = String(id);
+          if (!out[i].desc && desc) out[i].desc = desc;
           return;
         }
       }
-      out.push({ label: name, id: id ? String(id) : '', price: price || '' });
+      out.push({ label: name, id: id ? String(id) : '', price: price || '', desc: desc || '' });
     }
     [ticket.products, ticket.product_list, ticket.linked_products].forEach(function (list) {
       if (!Array.isArray(list)) return;
       list.forEach(function (item) {
         if (!item) return;
         if (typeof item === 'object') {
-          push(item.product_name || item.name || item.title || item.label, item.id || item.product_id, self.pickProductPrice(item, true));
+          push(
+            item.product_name || item.name || item.title || item.label,
+            item.id || item.product_id,
+            self.pickProductPrice(item, true),
+            self.pickProductDescription(item)
+          );
         } else if (typeof item === 'string' && !/^\d+$/.test(String(item).trim())) {
-          push(item, '', '');
+          push(item, '', '', '');
         }
       });
     });
     if (ticket.product && typeof ticket.product === 'object' && !Array.isArray(ticket.product)) {
-      push(ticket.product.product_name || ticket.product.name, ticket.product.id || ticket.product.product_id, self.pickProductPrice(ticket.product, true));
+      push(
+        ticket.product.product_name || ticket.product.name,
+        ticket.product.id || ticket.product.product_id,
+        self.pickProductPrice(ticket.product, true),
+        self.pickProductDescription(ticket.product)
+      );
     }
-    push(ticket.product_name || ticket.joined_product_name || ticket.item_name, ticket.product_id || ticket['a-product_id'], self.pickProductPrice(ticket, false));
+    push(
+      ticket.product_name || ticket.joined_product_name || ticket.item_name,
+      ticket.product_id || ticket['a-product_id'],
+      self.pickProductPrice(ticket, false),
+      self.pickProductDescription(ticket)
+    );
     var cf = ticket.custom_fields;
     if (typeof cf === 'string') { try { cf = JSON.parse(cf); } catch (e1) { cf = null; } }
     if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
@@ -994,17 +1016,18 @@ class Component extends DCLogic {
         if (!/product/i.test(k)) return;
         var v = cf[k];
         if (v == null) return;
-        if (typeof v === 'object') push(v.product_name || v.name || v.label, v.id || v.product_id, self.pickProductPrice(v, true));
-        else if (/name|title|label/i.test(k)) {
+        if (typeof v === 'object') {
+          push(v.product_name || v.name || v.label, v.id || v.product_id, self.pickProductPrice(v, true), self.pickProductDescription(v));
+        } else if (/name|title|label/i.test(k)) {
           var s = String(v).trim();
-          if (s && !/^\d+$/.test(s)) push(s, cfId, self.pickProductPrice(cf, true));
+          if (s && !/^\d+$/.test(s)) push(s, cfId, self.pickProductPrice(cf, true), self.pickProductDescription(cf));
         }
       });
     }
     var aId = ticket['a-product_id'] || ticket.product_id || '';
     Object.keys(ticket).forEach(function (k) {
       if (!/^a-.*product.*name/i.test(k) && k !== 'a-product_name') return;
-      push(ticket[k], aId, '');
+      push(ticket[k], aId, '', '');
     });
     return out;
   }
@@ -1071,7 +1094,7 @@ class Component extends DCLogic {
       self.extractTicketProductIds(ticket).forEach(function (id) { idsNeeded[id] = true; });
       self.extractTicketProducts(ticket).forEach(function (p) {
         if (p.id) idsNeeded[String(p.id)] = true;
-        if (p.label && !p.price) namesNeeded[p.label] = true;
+        if (p.label && (!p.price || !p.desc)) namesNeeded[p.label] = true;
       });
     });
     var idList = Object.keys(idsNeeded);
@@ -1079,7 +1102,7 @@ class Component extends DCLogic {
     var nameList = Object.keys(namesNeeded);
     for (var n = 0; n < nameList.length && n < 20; n++) {
       var already = this._catalogByName[nameList[n].toLowerCase().replace(/\s+/g, ' ')];
-      if (already && already.price) continue;
+      if (already && already.price && already.desc) continue;
       await this.fetchCatalogByName(client, nameList[n]);
     }
     return list.map(function (t) {
@@ -1090,13 +1113,23 @@ class Component extends DCLogic {
       if (!parts.length && ids.length) {
         ids.forEach(function (id) {
           var cat0 = self._catalogById[id];
-          parts.push({ label: (cat0 && cat0.name) || ('#' + id), id: id, price: (cat0 && cat0.price) || '' });
+          parts.push({
+            label: (cat0 && cat0.name) || ('#' + id),
+            id: id,
+            price: (cat0 && cat0.price) || '',
+            desc: (cat0 && cat0.desc) || ''
+          });
         });
       }
       var resolved = parts.map(function (p) {
         var cat = (p.id && self._catalogById[String(p.id)]) ||
           self._catalogByName[String(p.label || '').toLowerCase().replace(/\s+/g, ' ')];
-        return { label: p.label || (cat && cat.name) || '', id: p.id || '', price: p.price || (cat && cat.price) || '' };
+        return {
+          label: p.label || (cat && cat.name) || '',
+          id: p.id || '',
+          price: p.price || (cat && cat.price) || '',
+          desc: p.desc || (cat && cat.desc) || ''
+        };
       }).filter(function (p) { return p.label; });
       if (!resolved.length) return t;
       return Object.assign({}, t, { _scheduleProducts: resolved });
@@ -1107,7 +1140,16 @@ class Component extends DCLogic {
     var parts = (ticket && Array.isArray(ticket._scheduleProducts) && ticket._scheduleProducts.length)
       ? ticket._scheduleProducts
       : this.extractTicketProducts(ticket);
-    return (parts || []).map(function (p) { return { label: p.label, price: p.price || '' }; });
+    var multi = (parts || []).length > 1;
+    return (parts || []).map(function (p, idx) {
+      var name = p.label || '';
+      var pDesc = String(p.desc || '').trim();
+      return {
+        label: multi ? ((idx + 1) + '. ' + name) : name,
+        price: p.price || '',
+        desc: pDesc || '--'
+      };
+    });
   }
 
   async loadTickets() {
@@ -1234,7 +1276,8 @@ class Component extends DCLogic {
             phone: t.mobile || t.phone || t.cust_phone || t.customer_phone || '',
             productItems: productItems,
             hasProduct: productItems.length > 0,
-            productLabel: self.t('Product', 'מוצר')
+            productLabel: self.t('Product', 'מוצר'),
+            productDescLabel: self.t('Description', 'תיאור')
           };
         });
       this.setState({ loading: false });
@@ -1334,6 +1377,7 @@ class Component extends DCLogic {
         cust_id: c.cust_id,
         hasProduct: !!c.hasProduct,
         productLabel: c.productLabel || this.t('Product', 'מוצר'),
+        productDescLabel: c.productDescLabel || this.t('Description', 'תיאור'),
         productItems: c.productItems || [],
         goCard: () => { window.location.href = 'service-call-details.html?ticket_id=' + c.id.replace('#SRV-', '') + '&back=' + encodeURIComponent('service-all-calls.html'); },
         goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id + '&back=' + encodeURIComponent('service-all-calls.html'); },
