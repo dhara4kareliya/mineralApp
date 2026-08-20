@@ -105,8 +105,8 @@
       cashYes: 'כן',
       cashNo: 'לא',
       cashMaybe: 'כן / לא',
-      cashAsked: 'האם נגבה מזומן?',
-      cashAmount: 'מה הסכום שנגבה במזומן:',
+      cashAsked: 'האם נגבו דמי שירות?',
+      cashAmount: 'מה סכום דמי השירות שנגבו:',
       productInstalled: function (name, value) {
         return 'הותקן מוצר ' + name + ' בשווי ' + value;
       },
@@ -141,8 +141,8 @@
       cashYes: 'Yes',
       cashNo: 'No',
       cashMaybe: 'Yes / No',
-      cashAsked: 'Was cash collected?',
-      cashAmount: 'Cash amount collected:',
+      cashAsked: 'Was a service fee collected?',
+      cashAmount: 'Service fee amount collected:',
       productInstalled: function (name, value) {
         return 'Product installed: ' + name + '  value ' + value;
       },

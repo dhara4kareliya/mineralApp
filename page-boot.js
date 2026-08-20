@@ -319,14 +319,24 @@
     }
   }
 
+  function socketDebugEnabled() {
+    try {
+      var q = new URLSearchParams(location.search || '');
+      if (q.get('socketdebug') === '1' || q.get('debug') === 'socket') return true;
+      if (localStorage.getItem('mb_socket_debug') === '1') return true;
+    } catch (e0) { /* ignore */ }
+    return false;
+  }
+
   function bootUi() {
     var user = MineralBarApp.getUser() || {};
     var role = MineralBarApp.getRole();
     var email = MineralBarApp.getEmail() || user.email || '';
+    var showSocketDebug = socketDebugEnabled();
 
-    // Visible on-screen socket debug (so logs are obvious without Console filters)
+    // On-screen socket debug only when explicitly enabled (?socketdebug=1).
     var dbg = document.getElementById('mb-socket-debug');
-    if (!dbg) {
+    if (showSocketDebug && !dbg) {
       dbg = document.createElement('div');
       dbg.id = 'mb-socket-debug';
       dbg.style.cssText = [
@@ -339,14 +349,18 @@
         'white-space:pre-wrap', 'word-break:break-word'
       ].join(';');
       document.body.appendChild(dbg);
+    } else if (!showSocketDebug && dbg && dbg.parentNode) {
+      dbg.parentNode.removeChild(dbg);
+      dbg = null;
     }
     function dbgLine(msg) {
       var t = new Date().toLocaleTimeString();
+      try { console.log('[SocketTest] UI', msg); } catch (e0) { /* ignore */ }
+      if (!dbg) return;
       var prev = String(dbg.textContent || '')
         .replace(/\[SocketDebug\] waiting for connect…\n?/g, '')
         .replace(/^\s+|\s+$/g, '');
       dbg.textContent = '[' + t + '] ' + msg + (prev ? '\n' + prev.split('\n').slice(0, 12).join('\n') : '');
-      try { console.log('[SocketTest] UI', msg); } catch (e0) { /* ignore */ }
     }
     window.addEventListener('mineralbar:socket-debug', function (ev) {
       var d = (ev && ev.detail) || {};
@@ -379,6 +393,8 @@
       var rt0 = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
       if (rt0 && rt0.connected) dbgLine('socket already up status=' + (rt0.status || ''));
     } catch (eRt) { /* ignore */ }
+
+    if (showSocketDebug) {
     var chip = document.createElement('div');
     chip.id = 'mb-sdk-chip';
     chip.setAttribute('dir', 'rtl');
@@ -430,6 +446,10 @@
             (MineralBarApp.getRealtimeState() || {}).registered);
       }
     });
+    } else {
+      var oldChip = document.getElementById('mb-sdk-chip');
+      if (oldChip && oldChip.parentNode) oldChip.parentNode.removeChild(oldChip);
+    }
 
     // Smart socket -> page update behavior for all pages.
     // Pages can opt-out by setting: <body data-live-refresh="off">

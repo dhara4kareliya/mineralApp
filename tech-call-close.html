@@ -334,7 +334,7 @@ mbCss('./common.css');
 </button>
 <!-- cash collected -->
 <div style="display:flex; align-items:center; justify-content:space-between; background:#f7f9fc; border-radius:12px; padding:11px 13px; margin-top:13px; gap:10px;">
-<span style="font-size:13.5px; color:#5a6473; font-weight:600;">{{ labelCashQ }}</span>
+<span style="font-size:13.5px; color:#5a6473; font-weight:600;" data-no-i18n="true">{{ labelCashQ }}</span>
 <div style="display:flex; gap:0; background:#fff; border-radius:9px; padding:3px; border:1px solid #e4e8ee; flex:none;">
 <button type="button" onclick="{{ setCashYes }}" style="padding:6px 16px; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; background:{{ cashYesBg }}; color:{{ cashYesColor }}; font-family:inherit;">{{ labelYes }}</button>
 <button type="button" onclick="{{ setCashNo }}" style="padding:6px 16px; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; background:{{ cashNoBg }}; color:{{ cashNoColor }}; font-family:inherit;">{{ labelNo }}</button>
@@ -457,7 +457,7 @@ mbCss('./common.css');
 </div>
 
 <div style="margin-bottom:14px; display:{{ viewCashDisplay }};">
-<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelViewCash }}</div>
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;" data-no-i18n="true">{{ labelViewCash }}</div>
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewCash }}</div>
 </div>
 
@@ -1387,7 +1387,7 @@ class Component extends DCLogic {
     lines.push((en ? 'Warranty: ' : 'אחריות: ') + this.warrantyLabelOf(wMonths));
     if (s.installerName) lines.push((en ? 'Installer: ' : 'מתקין: ') + s.installerName);
     if (s.cash === 'yes') {
-      lines.push((en ? 'Cash collected: ' : 'מזומן שנגבה: ') + (s.cashAmount || '0') + ' ₪');
+      lines.push((en ? 'Service fee collected: ' : 'נגבו דמי שירות: ') + (s.cashAmount || '0') + ' ₪');
     }
     if (s.terms) {
       lines.push(en
@@ -1902,14 +1902,16 @@ class Component extends DCLogic {
         } catch (eMeta) { /* ignore */ }
       }
       if (!collected) {
-        if (/Cash collected:\s*no\b/i.test(text) || /מזומן[^:\n]*:\s*לא/i.test(text)) {
+        if (/Cash collected:\s*no\b/i.test(text) || /Service fee collected:\s*no\b/i.test(text) || /מזומן[^:\n]*:\s*לא/i.test(text) || /דמי שירות[^:\n]*:\s*לא/i.test(text)) {
           collected = 'no';
-        } else if (/Cash collected:\s*yes\b/i.test(text)) {
+        } else if (/Cash collected:\s*yes\b/i.test(text) || /Service fee collected:\s*yes\b/i.test(text)) {
           collected = 'yes';
         } else {
           var mAmt = text.match(/Cash collected:\s*(\d+)/i)
+            || text.match(/Service fee collected:\s*(\d+)/i)
             || text.match(/Cash amount:\s*(\d+)/i)
             || text.match(/מזומן שנגבה:\s*(\d+)/i)
+            || text.match(/נגבו דמי שירות:\s*(\d+)/i)
             || text.match(/סכום שנגבה במזומן:\s*(\d+)/i);
           if (mAmt) {
             collected = 'yes';
@@ -1918,8 +1920,10 @@ class Component extends DCLogic {
         }
       } else if (collected === 'yes' && !amount) {
         var mOnly = text.match(/Cash collected:\s*(\d+)/i)
+          || text.match(/Service fee collected:\s*(\d+)/i)
           || text.match(/Cash amount:\s*(\d+)/i)
-          || text.match(/מזומן שנגבה:\s*(\d+)/i);
+          || text.match(/מזומן שנגבה:\s*(\d+)/i)
+          || text.match(/נגבו דמי שירות:\s*(\d+)/i);
         if (mOnly) amount = mOnly[1];
       }
     }
@@ -3151,8 +3155,8 @@ class Component extends DCLogic {
       }
       var lines = ['Closing status: ' + statusLabel];
       if (st.customerId) lines.push('Customer ID: ' + st.customerId);
-      if (includeWorkDetails && st.cash === 'yes') lines.push('Cash collected: ' + (st.cashAmount || '0') + ' ILS');
-      else if (includeWorkDetails && st.cash === 'no') lines.push('Cash collected: no');
+      if (includeWorkDetails && st.cash === 'yes') lines.push('Service fee collected: ' + (st.cashAmount || '0') + ' ILS');
+      else if (includeWorkDetails && st.cash === 'no') lines.push('Service fee collected: no');
       if (includeWorkDetails && (st.cash === 'yes' || st.cash === 'no')) {
         lines.push('CASH_META:' + JSON.stringify({
           collected: st.cash,
@@ -3512,8 +3516,8 @@ class Component extends DCLogic {
       sigErrorDisplay: (st.attempted && this.needsSignature() && !hasSig) ? 'block' : 'none',
       sigErrorText: this.t('Customer signature is required', 'נדרשת חתימת הלקוח'),
 
-      labelCashQ: this.t('Cash collected?', 'נגבה מזומן?'),
-      labelViewCash: this.t('Cash collected', 'מזומן שנגבה'),
+      labelCashQ: this.t('Service fee collected?', 'נגבו דמי שירות?'),
+      labelViewCash: this.t('Service fee collected', 'נגבו דמי שירות'),
       labelYes: this.t('Yes', 'כן'),
       labelNo: this.t('No', 'לא'),
       setCashYes: () => this.setCash('yes'),

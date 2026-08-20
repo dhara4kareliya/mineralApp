@@ -867,6 +867,7 @@
     "Detail by type of installation": "פירוט לפי סוג התקנה",
     "Tickets to do": "קריאות לביצוע",
     "No open tickets": "אין קריאות פתוחות",
+    "No closed tickets": "אין קריאות סגורות",
     "View all open tickets ›": "כל הקריאות הפתוחות ›",
     "24 regulations": "24 התקנות",
     "Updated today · 06/18/26": "עודכן היום · 18/06/26",
@@ -1512,7 +1513,8 @@
     "Urgency": "דחיפות",
     "Status": "סטטוס",
     "High": "גבוה",
-    "Take cash from the customer?": "האם לגבות מזומן מהלקוח?",
+    "Take cash from the customer?": "האם לגבות דמי שירות מהלקוח?",
+    "Take service fee from the customer?": "האם לגבות דמי שירות מהלקוח?",
     "Yes": "כן",
     "No": "לא",
     "Topic": "נושא",
@@ -1611,6 +1613,7 @@
     "Scheduled for": "מתוזמן ל־",
     "Last updated by": "עודכן לאחרונה על ידי",
     "Service fees": "דמי שירות",
+    "Service fee": "דמי שירות",
     "Search for conversation...": "חיפוש שיחה...",
     "Unknown API error": "שגיאת API לא ידועה",
     "No conversations currently": "אין שיחות כרגע",
@@ -1643,6 +1646,7 @@
     "This document has no downloadable PDF": "למסמך זה אין PDF להורדה",
     "No PDF file was returned for this document": "לא הוחזר קובץ PDF עבור מסמך זה",
     "PDF download failed": "הורדת ה-PDF נכשלה",
+    "Sending on WhatsApp…": "שולח בוואטסאפ…",
     "Document sent by WhatsApp": "המסמך נשלח ב-WhatsApp",
     "Document sent by email": "המסמך נשלח בדוא״ל",
     "Document could not be sent": "לא ניתן היה לשלוח את המסמך",
@@ -2225,8 +2229,10 @@
     "Call type": "סוג קריאה",
     "Cancellation / chargeback": "ביטול / חיוב חוזר",
     "Cash amount": "סכום המזומן",
-    "Cash collected": "מזומן שנגבה",
-    "Cash collected?": "נגבה מזומן?",
+    "Cash collected": "נגבו דמי שירות",
+    "Cash collected?": "נגבו דמי שירות?",
+    "Service fee collected": "נגבו דמי שירות",
+    "Service fee collected?": "נגבו דמי שירות?",
     "CHANNELS": "ערוצים",
     "Chat send is unavailable": "שליחת הצ׳אט אינה זמינה",
     "Choosing a technician": "בחירת טכנאי",
@@ -2512,6 +2518,9 @@
     "he": enToHe
   };
 
+  heToEn["נגבו דמי שירות"] = "Service fee collected";
+  heToEn["נגבו דמי שירות?"] = "Service fee collected?";
+  heToEn["דמי שירות"] = "Service fee";
   heToEn["פתח טופס שירות PDF"] = "Open service form PDF";
   heToEn["שליחת וואטסאפ נכשלה — העותק נשמר כהערה פנימית."] = "WhatsApp send failed — copy saved as an internal note.";
   heToEn["העבודה נחתמה. שליחת וואטסאפ נכשלה — העותק נשמר כהערה פנימית."] = "Work signed off. WhatsApp send failed — copy saved as an internal note.";

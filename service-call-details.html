@@ -177,7 +177,7 @@
                 </div>
                 <div
                   style="flex:1; min-width:96px; background:{{ cashBg }}; border:1.4px solid {{ cashBorder }}; border-radius:14px; padding:12px 13px;">
-                  <div style="font-size:11px; color:{{ cashColor }}; font-weight:700; opacity:.85;">{{ cashTitle }}</div>
+                  <div style="font-size:11px; color:{{ cashColor }}; font-weight:700; opacity:.85;" data-no-i18n="true">{{ cashTitle }}</div>
                   <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
                     <span style="font-size:15px; font-weight:800; color:{{ cashColor }};">{{ cashLabel }}</span>
                   </div>
@@ -1398,7 +1398,7 @@
         ticketStateColor: ticketStateColor,
         ticketStateBg: ticketStateBg,
         ticketStateBorder: ticketStateBorder,
-        cashTitle: isEn ? 'Cash' : 'מזומן',
+        cashTitle: isEn ? 'Service fee' : 'דמי שירות',
         cashLabel: takeCashYes ? (isEn ? 'Yes' : 'כן') : (isEn ? 'No' : 'לא'),
         cashColor: takeCashYes ? '#2e8a63' : '#5a6473',
         cashBg: takeCashYes ? '#e6f4ec' : '#f6f7f9',

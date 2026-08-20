@@ -35,10 +35,11 @@
         html,
         body {
           margin: 0;
-          direction: rtl;
           font-family: 'Heebo', sans-serif;
           -webkit-font-smoothing: antialiased;
         }
+        html[dir="rtl"], html[dir="rtl"] body { direction: rtl; }
+        html[dir="ltr"], html[dir="ltr"] body { direction: ltr; }
 
         button,
         select {
@@ -47,6 +48,28 @@
 
         .dc-scroll::-webkit-scrollbar {
           width: 0;
+        }
+        .svc-calls-scroll {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+        .svc-calls-loader {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 180px;
+          padding: 20px 16px;
+        }
+        .svc-calls-empty {
+          text-align: center;
+          padding: 36px 16px 8px;
+          color: #9aa3b0;
+          font-size: 13.5px;
+          font-weight: 600;
+          line-height: 1.5;
         }
       </style>
     </helmet>
@@ -108,17 +131,18 @@
             <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#9aa3b0;"><span
                 style="width:7px; height:7px; border-radius:50%; background:#2e8a63;"></span>until today</span>
           </div>
-          <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 16px;">
+          <div class="dc-scroll svc-calls-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 16px;">
             <sc-if hint-placeholder-val="{{ false }}" value="{{ loading }}">
-              <div class="mb-inline-loader">
+              <div class="mb-inline-loader svc-calls-loader">
                 <div class="mb-page-loader__spin" aria-hidden="true"></div>
                 <div class="mb-page-loader__label">Loading…</div>
               </div>
             </sc-if>
+            <sc-if hint-placeholder-val="{{ true }}" value="{{ notLoading }}">
             <div style="display:flex; align-items:center; justify-content:space-between; margin:2px 2px 11px;">
               <div style="font-size:13px; color:#6a7382; font-weight:800;">{{ sectionLabel }}</div>
               <button onclick="{{ goOpen }}"
-                style="display: flex; align-items: center; gap: 5px; padding: 7px 12px; border: none; border-radius: 99px; color: #e9f0f7; font-size: 12.5px; font-weight: 800; cursor: pointer; background-color: #0c56e9">
+                style="display: flex; align-items: center; gap: 5px; padding: 7px 12px; border: none; border-radius: 99px; color: #fff; font-size: 12.5px; font-weight: 800; cursor: pointer; background-color: #1d60a2">
                 <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
                   stroke-width="2.4" viewbox="0 0 24 24" width="15">
                   <path d="M12 5v14M5 12h14"></path>
@@ -126,6 +150,9 @@
                 new ticket
               </button>
             </div>
+            <sc-if hint-placeholder-val="{{ false }}" value="{{ showEmpty }}">
+              <div class="svc-calls-empty" data-no-i18n="true">{{ emptyMsg }}</div>
+            </sc-if>
             <sc-for as="c" hint-placeholder-count="0" list="{{ calls }}">
               <div
                 style="background:#fff; border-radius:16px; padding:14px; margin-bottom:11px; box-shadow:0 1px 3px rgba(0,0,0,.05); border-right:4px solid {{ c.waitColor }};">
@@ -280,14 +307,17 @@
                 </div>
               </div>
             </sc-for>
+            <sc-if hint-placeholder-val="{{ false }}" value="{{ showBigCta }}">
             <button onclick="{{ goOpen }}"
-              style="width:100%; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26); margin-top:4px;">
+              style="width:100%; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26); margin-top:12px;">
               <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
                 stroke-width="2.2" viewbox="0 0 24 24" width="17">
                 <path d="M5 12h14M12 5v14"></path>
               </svg>
               Open a new service call
             </button>
+            </sc-if>
+            </sc-if>
           </div>
 
           <!-- ============ FILTER SHEET ============ -->
@@ -813,6 +843,9 @@ class Component extends DCLogic {
         }, 80);
       }
     });
+    setTimeout(function () {
+      if (self.state && self.state.loading) self.setState({ loading: false });
+    }, 15000);
   }
 
   onRealtimeRefresh(ev) {
@@ -1083,28 +1116,42 @@ class Component extends DCLogic {
     } catch (eList) { return null; }
   }
 
+  async ensureProductCatalog(client) {
+    if (this._catalogReady) return;
+    if (this._catalogPromise) {
+      try { await this._catalogPromise; } catch (e0) { /* ignore */ }
+      return;
+    }
+    var self = this;
+    this._catalogById = this._catalogById || {};
+    this._catalogByName = this._catalogByName || {};
+    this._catalogPromise = Promise.race([
+      client.request('Products.List', { limit: 200, length: 200, start: 0, draw: 1, active: 1 }),
+      new Promise(function (_, reject) { setTimeout(function () { reject(new Error('Products.List timeout')); }, 8000); })
+    ]).then(function (raw) {
+      var rows = self.catalogRowsFromList(raw) || [];
+      rows.forEach(function (r) {
+        var entry = self.catalogProductEntry(r);
+        if (!entry) return;
+        var id = r && (r.id != null ? r.id : r.product_id);
+        if (id != null && id !== '') self._catalogById[String(id)] = entry;
+        self.rememberCatalogName(entry);
+      });
+    }).catch(function (eCat) {
+      console.warn('[service-all-calls] product catalog skipped', eCat);
+    }).then(function () {
+      self._catalogReady = true;
+    });
+    await this._catalogPromise;
+  }
+
   async enrichTicketProductNames(client, rows) {
     var list = Array.isArray(rows) ? rows : [];
     if (!list.length) return list;
     var self = this;
     this._catalogById = this._catalogById || {};
     this._catalogByName = this._catalogByName || {};
-    var idsNeeded = {}, namesNeeded = {};
-    list.forEach(function (ticket) {
-      self.extractTicketProductIds(ticket).forEach(function (id) { idsNeeded[id] = true; });
-      self.extractTicketProducts(ticket).forEach(function (p) {
-        if (p.id) idsNeeded[String(p.id)] = true;
-        if (p.label && (!p.price || !p.desc)) namesNeeded[p.label] = true;
-      });
-    });
-    var idList = Object.keys(idsNeeded);
-    for (var i = 0; i < idList.length && i < 20; i++) await this.fetchCatalogById(client, idList[i]);
-    var nameList = Object.keys(namesNeeded);
-    for (var n = 0; n < nameList.length && n < 20; n++) {
-      var already = this._catalogByName[nameList[n].toLowerCase().replace(/\s+/g, ' ')];
-      if (already && already.price && already.desc) continue;
-      await this.fetchCatalogByName(client, nameList[n]);
-    }
+    await this.ensureProductCatalog(client);
     return list.map(function (t) {
       if (!t) return t;
       var parts = self.extractTicketProducts(t);
@@ -1152,25 +1199,9 @@ class Component extends DCLogic {
     });
   }
 
-  async loadTickets() {
-    try {
-      if (!window.MineralBarApp || !window.MineralBarApp.getClient) return;
-      const client = window.MineralBarApp.getClient();
-      if (!client || !client.getToken()) {
-        console.warn('MineralBar client not authenticated yet. Waiting for mineralbar:ready event...');
-        return;
-      }
-      if (!this.CALLS || !this.CALLS.length) this.setState({ loading: true });
-      const res = await client.request('Ticket.List', {
-        start: 0,
-        length: 100,
-        draw: 1
-      });
-      var rows = (res && (res.data || res.rows || res.output)) || [];
-      if (!Array.isArray(rows)) rows = [];
-      rows = await this.enrichTicketProductNames(client, rows);
-      var self = this;
-      this.CALLS = rows.map(t => {
+  mapTicketRows(rows) {
+    var self = this;
+    return (Array.isArray(rows) ? rows : []).map(t => {
           var productItems = self.callProductItems(t);
           let badge = 'new';
           let bucket = 'toschedule';
@@ -1280,9 +1311,40 @@ class Component extends DCLogic {
             productDescLabel: self.t('Description', 'תיאור')
           };
         });
+  }
+
+  async loadTickets() {
+    var seq = (this._loadSeq = (this._loadSeq || 0) + 1);
+    try {
+      if (!window.MineralBarApp || !window.MineralBarApp.getClient) return;
+      const client = window.MineralBarApp.getClient();
+      if (!client || !client.getToken()) {
+        console.warn('MineralBar client not authenticated yet. Waiting for mineralbar:ready event...');
+        return;
+      }
+      if (!this.CALLS || !this.CALLS.length) this.setState({ loading: true });
+      const res = await Promise.race([
+        client.request('Ticket.List', { start: 0, length: 100, draw: 1 }),
+        new Promise(function (_, reject) {
+          setTimeout(function () { reject(new Error('Ticket.List timeout')); }, 12000);
+        })
+      ]);
+      if (seq !== this._loadSeq) return;
+      var rows = (res && (res.data || res.rows || res.output)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      this.CALLS = this.mapTicketRows(rows);
       this.setState({ loading: false });
-      this.forceUpdate();
+      var self = this;
+      this.enrichTicketProductNames(client, rows).then(function (enriched) {
+        if (seq !== self._loadSeq) return;
+        self.CALLS = self.mapTicketRows(enriched);
+        if (typeof self.forceUpdate === 'function') self.forceUpdate();
+        else self.setState({ loading: false });
+      }).catch(function (eEn) {
+        console.warn('[service-all-calls] product enrich skipped', eEn);
+      });
     } catch (e) {
+      if (seq !== this._loadSeq) return;
       console.error('Failed to load tickets:', e);
       this.setState({ loading: false });
     }
@@ -1450,6 +1512,12 @@ class Component extends DCLogic {
 
     return {
       loading,
+      notLoading: !loading,
+      showEmpty: !loading && calls.length === 0,
+      showBigCta: !loading && calls.length === 0,
+      emptyMsg: st.ticketStatus === 'closed'
+        ? this.t('No closed tickets', 'אין קריאות סגורות')
+        : this.t('No open tickets', 'אין קריאות פתוחות'),
       searchOpen: st.searchOpen,
       notSearchOpen: !st.searchOpen,
       search: st.search,
@@ -1512,13 +1580,6 @@ class Component extends DCLogic {
   window.addEventListener('load', function() {
     if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
     if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
-    
-    if (typeof applyDomTranslation === 'function' && typeof getCurrentLanguage === 'function') {
-      var observer = new MutationObserver(function() {
-        applyDomTranslation(document.body, getCurrentLanguage());
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
   });
 </script>
 </body>
