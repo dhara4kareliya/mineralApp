@@ -223,6 +223,8 @@
   }
 
   function isFilterSpare(s) {
+    if (s && s.kind === 'filter') return true;
+    if (s && (s.kind === 'product' || s.kind === 'extra')) return false;
     return /סנן|סננ|filter|מסנן/i.test(String((s && s.name) || ''));
   }
 
@@ -674,11 +676,34 @@
 
   function collectFormData(st, summary, media, extra) {
     extra = extra || {};
-    var parts = splitSpares((st && st.spares) || []);
-    var products = parts.products.length ? parts.products : ((st && st.linkedProducts) || []).filter(function (p) {
-      return !isFilterSpare(p);
+    var installedName = dash(st && st.installedName);
+    var filtersName = dash(st && st.filtersName);
+    var extraRows = ((st && st.extraProducts) || []).map(function (p) {
+      return { name: p && p.name, price: p && p.value, qty: 1, kind: 'extra' };
+    }).filter(function (p) {
+      return dash(p.name) || String(p.price || '').replace(/[^\d.]/g, '');
     });
-    var filters = parts.filters;
+    var hasTypedWork = !!(installedName || String((st && st.installedValue) || '').replace(/[^\d.]/g, '') ||
+      filtersName || String((st && st.filtersValue) || '').replace(/[^\d.]/g, '') || extraRows.length);
+
+    var products;
+    var filters;
+    if (hasTypedWork) {
+      products = extraRows.slice();
+      if (installedName || String((st && st.installedValue) || '').replace(/[^\d.]/g, '')) {
+        products.unshift({ name: installedName, price: st && st.installedValue, qty: 1, kind: 'product' });
+      }
+      filters = [];
+      if (filtersName || String((st && st.filtersValue) || '').replace(/[^\d.]/g, '')) {
+        filters.push({ name: filtersName, price: st && st.filtersValue, qty: 1, kind: 'filter' });
+      }
+    } else {
+      var parts = splitSpares((st && st.spares) || []);
+      products = parts.products.length ? parts.products : ((st && st.linkedProducts) || []).filter(function (p) {
+        return !isFilterSpare(p);
+      });
+      filters = parts.filters;
+    }
     var wMonths = String((st && st.warrantyMonths) != null && st.warrantyMonths !== '' ? st.warrantyMonths : '0');
     return {
       ticketId: String((st && st.ticketId) || '').replace(/^#/, ''),

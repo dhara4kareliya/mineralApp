@@ -138,6 +138,20 @@ mbCss('./common.css');
   #mb-chat-screen.mb-chat-drag-over #mb-chat-drop-overlay {
     display: flex;
   }
+  .mb-chat-audio,
+  video.mb-chat-maybe-audio {
+    width: 100%;
+    max-width: 260px;
+    height: 40px;
+    display: block;
+    background: transparent;
+  }
+  video.mb-chat-maybe-audio.mb-is-video {
+    height: auto;
+    max-height: 220px;
+    background: #0f1828;
+    border-radius: 12px;
+  }
   .lead-folder-select {
     width: 100%;
     padding: 9px 12px;

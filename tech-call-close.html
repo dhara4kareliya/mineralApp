@@ -30,14 +30,6 @@ mbCss('./common.css');
   html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
   button, input, textarea, select { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
-  /* Native product picker: keep long lists scrollable when browser shows inline options */
-  #spare-product-select {
-    max-width: 100%;
-  }
-  #spare-product-select option {
-    padding: 8px 10px;
-    white-space: normal;
-  }
   .ds-input::placeholder { color: #aeb6c2; }
   html[dir="ltr"] .ds-input,
   [dir="ltr"] .ds-input {
@@ -50,13 +42,28 @@ mbCss('./common.css');
     text-align: right !important;
   }
   /* Cash amount is always LTR digits + ₪ on the right — avoid icon/text overlap */
-  #cash-amount-input.ds-input,
-  #spare-price-input.ds-input {
+  #cash-amount-input.ds-input {
     direction: ltr !important;
     text-align: left !important;
   }
+  /* Work-details value fields: ₪ prefix on the left, digits on the right */
+  .wd-value-input.ds-input {
+    direction: ltr !important;
+    text-align: right !important;
+    padding: 11px 13px 11px 28px !important;
+  }
   html[dir="ltr"] .page-back-icon { transform: none; }
   html[dir="rtl"] .page-back-icon { transform: scaleX(-1); }
+  .wd-product-select {
+    width: 100%;
+    max-width: 100%;
+    appearance: auto;
+    background: #fff;
+  }
+  .wd-product-select option {
+    padding: 8px 10px;
+    white-space: normal;
+  }
   .photo-slot {
     flex: 1; min-height: 118px; border-radius: 14px; border: 1.6px dashed #aebfd6;
     background: #f4f8fd; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -139,7 +146,7 @@ mbCss('./common.css');
 <!-- 1. closing status -->
 <div id="close-status-section" style="font-size:13px; color:#7b8595; font-weight:700; margin:2px 2px 10px;">{{ labelCloseStatus }} <span style="color:#c0392b;">*</span></div>
 <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:8px;">
-<sc-for as="s" hint-placeholder-count="5" list="{{ statuses }}">
+<sc-for as="s" hint-placeholder-count="8" list="{{ statuses }}">
 <button type="button" onclick="{{ s.pick }}" style="display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:13px; cursor:pointer; text-align:inherit; background:{{ s.bg }}; border:1.6px solid {{ s.border }}; font-family:inherit;">
 <div style="width:36px; height:36px; border-radius:10px; background:{{ s.iconBg }}; color:{{ s.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
 <svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="19" style="display:{{ s.showCheck }};"><path d="M20 6 9 17l-5-5"></path></svg>
@@ -147,6 +154,7 @@ mbCss('./common.css');
 <svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="19" style="display:{{ s.showPhone }};"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path><path d="m2 2 20 20"></path></svg>
 <svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="19" style="display:{{ s.showX }};"><circle cx="12" cy="12" r="9"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg>
 <svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="19" style="display:{{ s.showLab }};"><path d="M9 3h6M10 3v6l-5 8.5A2 2 0 0 0 7 21h10a2 2 0 0 0 1.7-3.5L14 9V3"></path><path d="M7.5 15h9"></path></svg>
+<svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="19" style="display:{{ s.showDot }};"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2.5" fill="currentColor"></circle></svg>
 </div>
 <div style="flex:1;">
 <div style="font-size:14px; font-weight:700; color:{{ s.text }};">{{ s.label }}</div>
@@ -165,14 +173,14 @@ mbCss('./common.css');
 <label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:7px;">{{ labelFollowReason }} <span style="color:#c0392b;">*</span></label>
 <select id="close-reason-select" class="ds-input" onchange="{{ onReason }}" style="width:100%; padding:12px 13px; border:1.5px solid {{ reasonBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;">
 <option value="">{{ reasonPlaceholder }}</option>
-<sc-for as="r" hint-placeholder-count="5" list="{{ reasonOptions }}">
+<sc-for as="r" hint-placeholder-count="8" list="{{ reasonOptions }}">
 <option value="{{ r.id }}">{{ r.label }}</option>
 </sc-for>
 </select>
 <div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ reasonErrorDisplay }};">{{ reasonErrorText }}</div>
 <div style="display:{{ otherDisplay }};">
 <label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin:9px 2px 6px;">{{ labelReasonOther }} <span style="color:#c0392b;">*</span></label>
-<input id="close-reason-other" class="ds-input" oninput="{{ onReasonOther }}" placeholder="{{ reasonOtherPh }}" style="width:100%; padding:11px 13px; border:1.5px solid {{ otherBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;" value="{{ reasonOther }}"/>
+<input id="close-reason-other" class="ds-input" oninput="{{ onReasonOther }}" placeholder="{{ reasonOtherPh }}" autocomplete="off" style="width:100%; padding:11px 13px; border:1.5px solid {{ otherBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
 <div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ otherErrorDisplay }};">{{ otherErrorText }}</div>
 </div>
 </div>
@@ -258,40 +266,72 @@ mbCss('./common.css');
 </div>
 </div>
 
-<!-- spare parts / work detail (hidden for no-answer) -->
+<!-- work details: product / filters / extra products -->
 <div style="background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px; overflow:hidden; display:{{ workDetailsDisplay }};">
-<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ labelSpares }} <span style="font-size:11.5px; color:#9aa3b0; font-weight:600;">({{ optionalLabel }})</span></div>
-<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px; min-width:0;">
-<select id="spare-product-select" class="ds-input" onchange="{{ onProductPick }}" style="width:100%; min-width:0; max-height:220px; box-sizing:border-box; padding:11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:13.5px; color:#1f2a3a; background:#fff; overflow-y:auto;">
+<div style="font-size:13px; color:#7b8595; font-weight:700; margin-bottom:12px;">{{ labelSpares }}</div>
+<div style="display:flex; gap:11px; margin-bottom:12px;">
+<div style="flex:1.6; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelProductInstalled }}</label>
+<select id="wd-installed-select" class="ds-input wd-product-select" onchange="{{ onInstalledPick }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; background:#fff;">
 <option value="">{{ selectProduct }}</option>
-<sc-for as="p" hint-placeholder-count="0" list="{{ products }}">
+<sc-for as="p" hint-placeholder-count="0" list="{{ productOptions }}">
 <option value="{{ p.id }}">{{ p.name }}</option>
 </sc-for>
 </select>
-<div style="display:flex; align-items:flex-end; gap:8px; min-width:0;">
-<div style="width:64px; flex:none;">
-<input id="spare-qty-input" class="ds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="width:100%; box-sizing:border-box; padding:11px 6px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:center; background:#fff;"/>
-<div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:4px; text-align:center;">{{ labelQty }}</div>
 </div>
 <div style="flex:1; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelValue }}</label>
 <div style="position:relative;">
-<input id="spare-price-input" class="ds-input" readonly="" tabindex="-1" placeholder="0" style="width:100%; box-sizing:border-box; direction:ltr; text-align:left; padding:11px 28px 11px 12px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; background:#f6f8fa; cursor:default;"/>
-<span aria-hidden="true" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:12px; font-weight:700; pointer-events:none;">₪</span>
-</div>
-<div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:4px;">{{ labelPrice }}</div>
-</div>
-<button type="button" onclick="{{ addSpare }}" style="flex:none; padding:11px 14px; border:none; border-radius:11px; background:#eaf2fb; color:#1d60a2; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; margin-bottom:18px;">{{ addPart }}</button>
+<input id="wd-installed-value" class="ds-input wd-value-input" inputmode="numeric" oninput="{{ onInstalledValue }}" placeholder="0" style="width:100%; padding:11px 28px 11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a;"/>
+<span aria-hidden="true" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:13px; pointer-events:none;">₪</span>
 </div>
 </div>
-<sc-for as="s" hint-placeholder-count="0" list="{{ spares }}">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid #f0f2f5; min-width:0;">
-<div style="min-width:0; overflow:hidden;">
-<div style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ s.name }} × {{ s.qty }}</div>
-<div style="font-size:12px; color:#7b8595; font-weight:600; margin-top:2px; display:{{ s.priceDisplay }};">{{ s.priceLabel }}</div>
 </div>
-<button type="button" onclick="{{ s.remove }}" style="border:none; background:none; color:#c0392b; font-size:12.5px; font-weight:700; cursor:pointer; flex:none;">{{ removePart }}</button>
+<div style="display:flex; gap:11px;">
+<div style="flex:1.6; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelFiltersReplaced }}</label>
+<select id="wd-filters-select" class="ds-input wd-product-select" onchange="{{ onFiltersPick }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; background:#fff;">
+<option value="">{{ selectProduct }}</option>
+<sc-for as="p" hint-placeholder-count="0" list="{{ filterOptions }}">
+<option value="{{ p.id }}">{{ p.name }}</option>
+</sc-for>
+</select>
+</div>
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelValue }}</label>
+<div style="position:relative;">
+<input id="wd-filters-value" class="ds-input wd-value-input" inputmode="numeric" oninput="{{ onFiltersValue }}" placeholder="0" style="width:100%; padding:11px 28px 11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a;"/>
+<span aria-hidden="true" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:13px; pointer-events:none;">₪</span>
+</div>
+</div>
+</div>
+<sc-for as="ep" hint-placeholder-count="0" list="{{ extraProducts }}">
+<div style="display:flex; gap:9px; align-items:flex-end; margin-top:12px;">
+<div style="flex:1.6; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelAnotherProduct }}</label>
+<select class="ds-input wd-product-select" data-wd-extra="{{ ep.id }}" data-wd-field="product" onchange="{{ ep.onPick }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; background:#fff;">
+<option value="">{{ selectProduct }}</option>
+<sc-for as="p" hint-placeholder-count="0" list="{{ ep.products }}">
+<option value="{{ p.id }}">{{ p.name }}</option>
+</sc-for>
+</select>
+</div>
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelValue }}</label>
+<div style="position:relative;">
+<input class="ds-input wd-value-input" data-wd-extra="{{ ep.id }}" data-wd-field="value" inputmode="numeric" oninput="{{ ep.onValue }}" placeholder="0" value="{{ ep.value }}" style="width:100%; padding:11px 28px 11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a;"/>
+<span aria-hidden="true" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#9aa3b0; font-size:13px; pointer-events:none;">₪</span>
+</div>
+</div>
+<button type="button" onclick="{{ ep.remove }}" style="width:42px; height:42px; flex:none; border:1.5px solid #f0c4bf; border-radius:11px; background:#fbeeed; color:#c0392b; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="17"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"></path></svg>
+</button>
 </div>
 </sc-for>
+<button type="button" onclick="{{ addProduct }}" style="width:100%; margin-top:12px; padding:11px; border:1.6px dashed #aebfd6; border-radius:11px; background:#f4f8fd; color:#1d60a2; font-size:13.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; font-family:inherit;">
+<svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="17"><path d="M12 5v14M5 12h14"></path></svg>
+{{ addAnotherProduct }}
+</button>
 <!-- cash collected -->
 <div style="display:flex; align-items:center; justify-content:space-between; background:#f7f9fc; border-radius:12px; padding:11px 13px; margin-top:13px; gap:10px;">
 <span style="font-size:13.5px; color:#5a6473; font-weight:600;">{{ labelCashQ }}</span>
@@ -392,6 +432,12 @@ mbCss('./common.css');
 <div style="margin-bottom:14px;">
 <div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelFollowReason }}</div>
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45;">{{ viewReason }}</div>
+</div>
+</sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasViewReasonDetails }}">
+<div style="margin-bottom:14px;">
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelReasonOther }}</div>
+<div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45; white-space:pre-wrap;">{{ viewReasonDetails }}</div>
 </div>
 </sc-if>
 
@@ -541,9 +587,17 @@ class Component extends DCLogic {
     reason: '',
     reasonOther: '',
     viewReason: '',
+    viewReasonDetails: '',
     products: [],
     productId: '',
     qty: '1',
+    installedId: '',
+    installedName: '',
+    installedValue: '',
+    filtersId: '',
+    filtersName: '',
+    filtersValue: '',
+    extraProducts: [],
     spares: [],
     linkedProducts: [],
     beforeDataUrl: '',
@@ -578,6 +632,8 @@ class Component extends DCLogic {
   _hasStroke = false;
   _bindTimer = null;
   _summaryDirty = false;
+  _statusOpts = null;
+  _reasonOpts = null;
 
   isEn() {
     return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
@@ -649,21 +705,91 @@ class Component extends DCLogic {
     }
   }
 
-  statusDefs() {
+  fallbackStatusDefs() {
     return [
       { id: 'done', label: this.t('Successfully completed', 'הושלם בהצלחה'), icon: 'check', tone: 'green' },
       {
         id: 'followup',
-        label: this.t('Follow-up required', 'דרוש המשך טיפול'),
+        label: this.t('Handle later', 'לטיפול בהמשך'),
         hint: this.t('Saturday unit / wrong model / additional sale', 'יחידת שבת / דגם שגוי / מכירה נוספת'),
         icon: 'clock',
         tone: 'amber',
         reason: true
       },
-      { id: 'noanswer', label: this.t('No answer', 'אין מענה'), icon: 'phone', tone: 'gray' },
-      { id: 'notdone', label: this.t('Not performed', 'לא בוצע'), icon: 'x', tone: 'red' },
+      { id: 'noanswer', label: this.t('No answer', 'אין מענה'), icon: 'phone', tone: 'gray', skipWorkMedia: true, skipWorkDetails: true },
+      { id: 'notdone', label: this.t('Not performed', 'לא בוצע'), icon: 'x', tone: 'red', skipWorkMedia: true },
       { id: 'lab', label: this.t('Sent to lab', 'נשלח למעבדה'), icon: 'lab', tone: 'purple' }
     ];
+  }
+
+  knownClosingLabel(id) {
+    var map = {
+      done: { en: 'Successfully completed', he: 'הושלם בהצלחה' },
+      followup: { en: 'Handle later', he: 'לטיפול בהמשך' },
+      noanswer: { en: 'No answer', he: 'אין מענה' },
+      notdone: { en: 'Not performed', he: 'לא בוצע' },
+      lab: { en: 'Sent to lab', he: 'נשלח למעבדה' }
+    };
+    return map[String(id || '').toLowerCase()] || null;
+  }
+
+  mapClosingOption(opt) {
+    var value = String((opt && (opt.value || opt.id)) || '').trim();
+    var labelEn = String((opt && (opt.labelEn || opt.label_en)) || '');
+    var labelHe = String((opt && (opt.labelHe || opt.label_he || opt.label)) || '');
+    var known = this.knownClosingLabel(value);
+    if (known) {
+      if (!labelEn || labelEn.toLowerCase() === value.toLowerCase()) labelEn = known.en;
+      if (!labelHe || labelHe.toLowerCase() === value.toLowerCase()) labelHe = known.he;
+    }
+    var label = this.isEn() ? (labelEn || labelHe || value) : (labelHe || labelEn || value);
+    var blob = [value, labelEn, labelHe, label].join(' ').toLowerCase();
+    var meta = {
+      id: value,
+      label: label,
+      icon: 'dot',
+      tone: 'gray',
+      reason: false,
+      skipWorkMedia: false,
+      skipWorkDetails: false,
+      hint: ''
+    };
+    if (/\bfollowup\b|follow.?up|handle later|לטיפול בהמשך|דרוש המשך|המשך טיפול/.test(blob)) {
+      meta.icon = 'clock';
+      meta.tone = 'amber';
+      meta.reason = true;
+      meta.hint = this.t('Saturday unit / wrong model / additional sale', 'יחידת שבת / דגם שגוי / מכירה נוספת');
+    } else if (/\bnoanswer\b|no.?answer|אין מענה/.test(blob)) {
+      meta.icon = 'phone';
+      meta.tone = 'gray';
+      meta.skipWorkMedia = true;
+      meta.skipWorkDetails = true;
+    } else if (/\bnotdone\b|not.?perform|לא בוצע/.test(blob)) {
+      meta.icon = 'x';
+      meta.tone = 'red';
+      meta.skipWorkMedia = true;
+    } else if (/\blab\b|מעבד/.test(blob)) {
+      meta.icon = 'lab';
+      meta.tone = 'purple';
+    } else if (/\bdone\b|success|completed|הושלם/.test(blob)) {
+      meta.icon = 'check';
+      meta.tone = 'green';
+    }
+    return meta;
+  }
+
+  statusDefs() {
+    var self = this;
+    var opts = this._statusOpts;
+    if (opts && opts.length) {
+      return opts.map(function (o) { return self.mapClosingOption(o); });
+    }
+    return this.fallbackStatusDefs();
+  }
+
+  statusById(id) {
+    var sid = String(id || '');
+    return this.statusDefs().find(function (x) { return String(x.id) === sid; }) || null;
   }
 
   statusTone(tone, on) {
@@ -679,14 +805,15 @@ class Component extends DCLogic {
   }
 
   needsReason() {
-    var id = this.state.closeStatus;
-    var s = this.statusDefs().find(function (x) { return x.id === id; });
+    var s = this.statusById(this.state.closeStatus);
     return !!(s && s.reason);
   }
 
   /** Work description + device photos are irrelevant for no-answer / not-performed. */
   skipWorkMedia() {
-    var id = this.state.closeStatus;
+    var s = this.statusById(this.state.closeStatus);
+    if (s) return !!s.skipWorkMedia;
+    var id = String(this.state.closeStatus || '');
     return id === 'noanswer' || id === 'notdone';
   }
 
@@ -696,6 +823,8 @@ class Component extends DCLogic {
 
   /** Spare parts / cash + customer signature are irrelevant when there was no answer. */
   skipWorkDetails() {
+    var s = this.statusById(this.state.closeStatus);
+    if (s) return !!s.skipWorkDetails;
     return this.state.closeStatus === 'noanswer';
   }
 
@@ -704,7 +833,7 @@ class Component extends DCLogic {
   }
 
   closeStatusLabelOf(id) {
-    var s = this.statusDefs().find(function (x) { return x.id === id; });
+    var s = this.statusById(id);
     return (s && s.label) || '';
   }
 
@@ -740,12 +869,6 @@ class Component extends DCLogic {
     }
   }
 
-  readSparePrice() {
-    var el = document.getElementById('spare-price-input');
-    var raw = String((el && el.value) || this._sparePriceValue || '').replace(/[^0-9.]/g, '');
-    return raw;
-  }
-
   formatSparePrice(price) {
     var n = String(price == null ? '' : price).replace(/[^0-9.]/g, '');
     if (!n) return '';
@@ -759,59 +882,330 @@ class Component extends DCLogic {
     return String(r % 1 === 0 ? r : r.toFixed(2));
   }
 
-  qtyNumber() {
-    var raw = this._qtyValue != null ? this._qtyValue : (this.state.qty != null ? this.state.qty : '1');
-    var el = document.getElementById('spare-qty-input');
-    if (el && document.activeElement === el) raw = el.value;
-    var n = parseInt(String(raw || '').replace(/[^0-9]/g, ''), 10);
-    return isFinite(n) && n > 0 ? n : 0;
-  }
-
-  unitNumber() {
-    var n = parseFloat(String(this._spareUnitPrice || '').replace(/[^0-9.]/g, ''));
-    return isFinite(n) ? n : 0;
-  }
-
-  refreshSpareTotal() {
-    var total = this.qtyNumber() * this.unitNumber();
-    var shown = this.formatMoney(total);
-    this._sparePriceValue = shown;
-    var priceEl = document.getElementById('spare-price-input');
-    if (priceEl && priceEl.value !== shown) priceEl.value = shown;
-  }
-
   bindSpareInputs() {
-    var self = this;
-    var qtyEl = document.getElementById('spare-qty-input');
-    if (qtyEl && qtyEl.getAttribute('data-bound') !== '1') {
-      qtyEl.setAttribute('data-bound', '1');
-      qtyEl.addEventListener('input', function (e) { self.onQty(e); });
-      qtyEl.addEventListener('keydown', function (e) { e.stopPropagation(); });
-    }
     var wsel = document.getElementById('warranty-months-select');
     if (wsel && wsel.getAttribute('data-bound') !== '1') {
       wsel.setAttribute('data-bound', '1');
+      var self = this;
       wsel.addEventListener('change', function (e) { self.onWarrantyMonths(e); });
+    }
+    var other = document.getElementById('close-reason-other');
+    if (other && other.getAttribute('data-bound') !== '1') {
+      other.setAttribute('data-bound', '1');
+      var selfReason = this;
+      other.addEventListener('input', function (e) { selfReason.onReasonOther(e); });
+      other.addEventListener('keydown', function (e) { e.stopPropagation(); });
+    }
+    this.ensureWorkProductOptions();
+  }
+
+  ensureWorkProductOptions() {
+    var catalog = this.catalogFor('product');
+    if (!catalog.length) return;
+    var extraSels = document.querySelectorAll('select[data-wd-field="product"]');
+    for (var i = 0; i < extraSels.length; i++) {
+      var sel = extraSels[i];
+      if (sel.options && sel.options.length > 1) continue;
+      for (var j = 0; j < catalog.length; j++) {
+        var opt = document.createElement('option');
+        opt.value = String(catalog[j].id);
+        opt.textContent = catalog[j].name || ('#' + catalog[j].id);
+        sel.appendChild(opt);
+      }
     }
   }
 
+  digitsOnly(raw) {
+    return String(raw == null ? '' : raw).replace(/[^0-9]/g, '');
+  }
+
+  priceDigits(raw) {
+    var s = String(raw == null ? '' : raw).replace(/[^0-9.]/g, '');
+    var first = s.indexOf('.');
+    if (first >= 0) s = s.slice(0, first + 1) + s.slice(first + 1).replace(/\./g, '');
+    return s;
+  }
+
+  productLabel(p) {
+    if (!p) return '';
+    var name = String(p.name || '').trim();
+    return name || (p.id ? ('#' + p.id) : '');
+  }
+
+  selectedOptionLabel(sel) {
+    if (!sel || sel.selectedIndex < 0 || !sel.options || !sel.options[sel.selectedIndex]) return '';
+    return String(sel.options[sel.selectedIndex].text || '').trim();
+  }
+
+  catalogFor(kind) {
+    var all = this.state.products || [];
+    if (kind !== 'filters') return all;
+    var filters = all.filter(function (p) {
+      return /סנן|סננ|filter|מסנן/i.test(String((p && p.name) || '') + ' ' + String((p && p.type) || ''));
+    });
+    return filters.length ? filters : all;
+  }
+
+  applyCatalogPick(sel, kind, extraId) {
+    var id = String((sel && sel.value) || '');
+    var product = id ? this.findCachedProduct(id) : null;
+    var name = product ? this.productLabel(product) : (id ? this.selectedOptionLabel(sel) : '');
+    var price = product ? this.priceDigits(product.price) : '';
+    if (kind === 'installed') {
+      this.state.installedId = id;
+      this.state.installedName = name;
+      this.state.installedValue = price;
+      this._installedName = name;
+      this._installedValue = price;
+      var instVal = document.getElementById('wd-installed-value');
+      if (instVal) instVal.value = price;
+      return;
+    }
+    if (kind === 'filters') {
+      this.state.filtersId = id;
+      this.state.filtersName = name;
+      this.state.filtersValue = price;
+      this._filtersName = name;
+      this._filtersValue = price;
+      var filVal = document.getElementById('wd-filters-value');
+      if (filVal) filVal.value = price;
+      return;
+    }
+    var list = (this.state.extraProducts || []).map(function (p) {
+      if (String(p.id) !== String(extraId)) return p;
+      return Object.assign({}, p, { productId: id, name: name, value: price });
+    });
+    this.state.extraProducts = list;
+    var valEl = document.querySelector('[data-wd-extra="' + String(extraId).replace(/"/g, '') + '"][data-wd-field="value"]');
+    if (valEl) valEl.value = price;
+  }
+
+  captureWorkDetailInputs() {
+    var instSel = document.getElementById('wd-installed-select');
+    var instVal = document.getElementById('wd-installed-value');
+    var filSel = document.getElementById('wd-filters-select');
+    var filVal = document.getElementById('wd-filters-value');
+    if (instSel) {
+      var instId = String(instSel.value || '');
+      var instProduct = instId ? this.findCachedProduct(instId) : null;
+      this.state.installedId = instId;
+      this.state.installedName = instProduct ? this.productLabel(instProduct) : (instId ? this.selectedOptionLabel(instSel) : '');
+    } else if (this.state.installedId) {
+      var cachedInst = this.findCachedProduct(this.state.installedId);
+      if (cachedInst) this.state.installedName = this.productLabel(cachedInst);
+    }
+    if (instVal) {
+      var iv = this.priceDigits(instVal.value);
+      this._installedValue = iv;
+      this.state.installedValue = iv;
+    } else if (this._installedValue != null) {
+      this.state.installedValue = this._installedValue;
+    }
+    if (filSel) {
+      var filId = String(filSel.value || '');
+      var filProduct = filId ? this.findCachedProduct(filId) : null;
+      this.state.filtersId = filId;
+      this.state.filtersName = filProduct ? this.productLabel(filProduct) : (filId ? this.selectedOptionLabel(filSel) : '');
+    } else if (this.state.filtersId) {
+      var cachedFil = this.findCachedProduct(this.state.filtersId);
+      if (cachedFil) this.state.filtersName = this.productLabel(cachedFil);
+    }
+    if (filVal) {
+      var fv = this.priceDigits(filVal.value);
+      this._filtersValue = fv;
+      this.state.filtersValue = fv;
+    } else if (this._filtersValue != null) {
+      this.state.filtersValue = this._filtersValue;
+    }
+    var extras = (this.state.extraProducts || []).slice();
+    var extraEls = document.querySelectorAll('[data-wd-extra]');
+    for (var i = 0; i < extraEls.length; i++) {
+      var el = extraEls[i];
+      var id = String(el.getAttribute('data-wd-extra') || '');
+      var field = el.getAttribute('data-wd-field');
+      for (var j = 0; j < extras.length; j++) {
+        if (String(extras[j].id) !== id) continue;
+        if (field === 'value') {
+          extras[j] = Object.assign({}, extras[j], { value: this.priceDigits(el.value) });
+        } else if (field === 'product') {
+          var pid = String(el.value || '');
+          var product = pid ? this.findCachedProduct(pid) : null;
+          extras[j] = Object.assign({}, extras[j], {
+            productId: pid,
+            name: product ? this.productLabel(product) : (pid ? this.selectedOptionLabel(el) : '')
+          });
+        }
+        break;
+      }
+    }
+    this.state.extraProducts = extras;
+  }
+
+  collectWorkSpares() {
+    this.captureWorkDetailInputs();
+    var st = this.state;
+    var items = [];
+    var instName = String(st.installedName || '').trim();
+    var instVal = this.priceDigits(st.installedValue);
+    if (instName || instVal) {
+      items.push({
+        id: st.installedId || 'installed',
+        kind: 'product',
+        name: instName || this.t('Product installed', 'מוצר שהותקן'),
+        qty: 1,
+        price: instVal
+      });
+    }
+    var filName = String(st.filtersName || '').trim();
+    var filVal = this.priceDigits(st.filtersValue);
+    if (filName || filVal) {
+      items.push({
+        id: st.filtersId || 'filters',
+        kind: 'filter',
+        name: filName || this.t('Replaced filters', 'סננים שהוחלפו'),
+        qty: 1,
+        price: filVal
+      });
+    }
+    var self = this;
+    (st.extraProducts || []).forEach(function (p, idx) {
+      var n = String((p && p.name) || '').trim();
+      var v = self.priceDigits(p && p.value);
+      if (!n && !v) return;
+      items.push({
+        id: String((p && (p.productId || p.id)) || ('extra' + idx)),
+        kind: 'extra',
+        name: n || self.t('Another product', 'מוצר נוסף'),
+        qty: 1,
+        price: v
+      });
+    });
+    return items;
+  }
+
+  onInstalledPick(e) {
+    this.applyCatalogPick(e && e.target, 'installed');
+  }
+
+  onFiltersPick(e) {
+    this.applyCatalogPick(e && e.target, 'filters');
+  }
+
+  onWorkValue(field, e) {
+    var el = e && e.target;
+    var v = this.priceDigits(el && el.value);
+    if (el && el.value !== v) el.value = v;
+    if (field === 'installedValue') {
+      this._installedValue = v;
+      this.state.installedValue = v;
+    } else if (field === 'filtersValue') {
+      this._filtersValue = v;
+      this.state.filtersValue = v;
+    }
+  }
+
+  onExtraProduct(id, field, e) {
+    var el = e && e.target;
+    if (field === 'product') {
+      this.applyCatalogPick(el, 'extra', id);
+      return;
+    }
+    var v = this.priceDigits(el && el.value);
+    if (el && el.value !== v) el.value = v;
+    var list = (this.state.extraProducts || []).map(function (p) {
+      if (String(p.id) !== String(id)) return p;
+      return Object.assign({}, p, { value: v });
+    });
+    this.state.extraProducts = list;
+  }
+
+  addProduct() {
+    this.captureWorkDetailInputs();
+    var list = (this.state.extraProducts || []).slice();
+    list.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 6), productId: '', name: '', value: '' });
+    this.setState({
+      extraProducts: list,
+      installedId: this.state.installedId || '',
+      installedName: this.state.installedName || '',
+      installedValue: this.state.installedValue || '',
+      filtersId: this.state.filtersId || '',
+      filtersName: this.state.filtersName || '',
+      filtersValue: this.state.filtersValue || ''
+    });
+    var self = this;
+    setTimeout(function () {
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+    }, 60);
+  }
+
+  removeExtraProduct(id) {
+    this.captureWorkDetailInputs();
+    this.setState({
+      extraProducts: (this.state.extraProducts || []).filter(function (p) { return String(p.id) !== String(id); }),
+      installedId: this.state.installedId || '',
+      installedName: this.state.installedName || '',
+      installedValue: this.state.installedValue || '',
+      filtersId: this.state.filtersId || '',
+      filtersName: this.state.filtersName || '',
+      filtersValue: this.state.filtersValue || ''
+    });
+    var self = this;
+    setTimeout(function () {
+      self.bindDom();
+      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
+    }, 60);
+  }
+
   reasonOptionsList() {
-    return [
-      { id: 'a', label: this.t('No Saturday unit in stock — return with unit', 'אין יחידת שבת במלאי — חזרה עם יחידה') },
-      { id: 'b', label: this.t('Wrong model / color — return for exchange', 'דגם / צבע שגוי — חזרה להחלפה') },
-      { id: 'c', label: this.t('Sold main filter / softener — additional install', 'נמכר סנן ראשי / מרכך — התקנה נוספת') },
-      { id: 'd', label: this.t('Missing part / accessory — order from supplier', 'חסר חלק / אביזר — הזמנה מהספק') },
-      { id: 'e', label: this.t('Other', 'אחר') }
-    ];
+    var self = this;
+    var opts = this._reasonOpts;
+    if (!opts || !opts.length) return [];
+    return opts.map(function (o) {
+      var id = String((o && (o.value || o.id)) || '').trim();
+      var labelEn = String((o && (o.labelEn || o.label_en || o.label)) || id);
+      var labelHe = String((o && (o.labelHe || o.label_he || o.label)) || labelEn);
+      return {
+        id: id,
+        label: self.isEn() ? (labelEn || labelHe || id) : (labelHe || labelEn || id)
+      };
+    }).filter(function (r) { return !!r.id; });
+  }
+
+  reasonLabelOf(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return '';
+    var opts = this.reasonOptionsList();
+    var hit = opts.find(function (o) {
+      return o.id === s || String(o.label).toLowerCase() === s.toLowerCase();
+    });
+    if (hit) return hit.label;
+    var src = this._reasonOpts || [];
+    var i;
+    var o;
+    var lower = s.toLowerCase();
+    for (i = 0; i < src.length; i++) {
+      o = src[i] || {};
+      if (String(o.value || '') === s
+        || String(o.labelEn || '').toLowerCase() === lower
+        || String(o.labelHe || '') === s
+        || String(o.label || '') === s) {
+        return this.isEn()
+          ? String(o.labelEn || o.label || s)
+          : String(o.labelHe || o.label || s);
+      }
+    }
+    return s;
   }
 
   pickStatus(id) {
-    var label = this.closeStatusLabelOf(id);
+    var def = this.statusById(id);
+    var keepReason = !!(def && def.reason);
     this.setState({
       closeStatus: id,
-      closeStatusLabel: label,
-      reason: id === 'followup' ? this.state.reason : '',
-      reasonOther: id === 'followup' ? this.state.reasonOther : '',
+      closeStatusLabel: (def && def.label) || this.closeStatusLabelOf(id) || id,
+      reason: keepReason ? this.state.reason : '',
+      reasonOther: keepReason ? this.state.reasonOther : '',
       formError: ''
     });
     var self = this;
@@ -835,9 +1229,11 @@ class Component extends DCLogic {
   }
 
   onReasonOther(e) {
-    var val = String((e && e.target && e.target.value) || '');
+    var el = (e && e.target) || document.getElementById('close-reason-other');
+    var val = String((el && el.value) || '');
     this._reasonOtherValue = val;
     this.state.reasonOther = val;
+    // Do not setState here — it re-renders and resets the input while typing
     this.updateSubmitEnabled();
   }
 
@@ -872,7 +1268,7 @@ class Component extends DCLogic {
     var el = null;
     if (!st.closeStatus) el = document.getElementById('close-status-section');
     else if (this.needsReason() && !st.reason) el = document.getElementById('close-reason-select');
-    else if (this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) {
+    else if (this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) {
       el = document.getElementById('close-reason-other');
     } else if (this.needsWorkMedia() && summary.length < 2) el = summaryEl;
     else if (this.needsSignature() && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) {
@@ -893,7 +1289,7 @@ class Component extends DCLogic {
     var m = [];
     if (!st.closeStatus) m.push(this.t('Closing status', 'סטטוס סיום'));
     if (this.needsReason() && !st.reason) m.push(this.t('Follow-up reason', 'סיבת המשך טיפול'));
-    if (this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) {
+    if (this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) {
       m.push(this.t('Reason details', 'פירוט הסיבה'));
     }
     if (this.needsWorkMedia() && summary.length < 2) m.push(this.t('Work description', 'תיאור הביצוע'));
@@ -916,9 +1312,21 @@ class Component extends DCLogic {
   }
 
   setCash(v) {
+    this.captureWorkDetailInputs();
     var amount = v === 'yes' ? (this._cashAmountValue != null ? this._cashAmountValue : (this.state.cashAmount || '')) : '';
     if (v !== 'yes') this._cashAmountValue = '';
-    this.setState({ cash: v, cashAmount: amount, formError: '' });
+    this.setState({
+      cash: v,
+      cashAmount: amount,
+      formError: '',
+      installedId: this.state.installedId || '',
+      installedName: this.state.installedName || '',
+      installedValue: this.state.installedValue || '',
+      filtersId: this.state.filtersId || '',
+      filtersName: this.state.filtersName || '',
+      filtersValue: this.state.filtersValue || '',
+      extraProducts: this.state.extraProducts || []
+    });
     this.restoreAfterUi();
   }
 
@@ -1275,6 +1683,15 @@ class Component extends DCLogic {
     return '';
   }
 
+  labeledField(ticket, label) {
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.readTicketLabeledField === 'function') {
+        return String(MineralBarApp.readTicketLabeledField(ticket, label) || '').trim();
+      }
+    } catch (eLab) { /* ignore */ }
+    return '';
+  }
+
   parseCustomFields(ticket) {
     var cf = ticket && ticket.custom_fields;
     if (typeof cf === 'string') {
@@ -1298,7 +1715,8 @@ class Component extends DCLogic {
   /** Reads custom_fields.closing_status, falls back to note text "Closing status: …" */
   parseClosingStatus(ticket) {
     var cf = this.parseCustomFields(ticket);
-    var raw = cf.closing_status != null ? cf.closing_status : cf.close_status;
+    var raw = this.labeledField(ticket, 'closing_status') ||
+      (cf.closing_status != null ? cf.closing_status : cf.close_status);
     raw = String(raw != null ? raw : '').trim();
     if (!raw) {
       var m = this.ticketNotesText(ticket).match(/Closing status:\s*([^\n]+)/i);
@@ -1309,15 +1727,29 @@ class Component extends DCLogic {
     var lower = raw.toLowerCase();
     var defs = this.statusDefs();
     var hit = defs.find(function (s) {
-      return s.id === lower || String(s.label).toLowerCase() === lower;
+      return String(s.id).toLowerCase() === lower || String(s.label).toLowerCase() === lower;
     });
+    if (!hit && this._statusOpts && this._statusOpts.length) {
+      hit = this._statusOpts.map(function (o) { return this.mapClosingOption(o); }, this).find(function (s) {
+        return String(s.id).toLowerCase() === lower || String(s.label).toLowerCase() === lower;
+      });
+      if (!hit) {
+        var optHit = this._statusOpts.find(function (o) {
+          return String(o.value || '').toLowerCase() === lower
+            || String(o.labelEn || '').toLowerCase() === lower
+            || String(o.labelHe || '').toLowerCase() === lower
+            || String(o.label || '').toLowerCase() === lower;
+        });
+        if (optHit) hit = this.mapClosingOption(optHit);
+      }
+    }
     if (hit) {
       id = hit.id;
       return { id: id, label: hit.label };
     }
     // Known English labels / ids
-    if (/success|completed|הושלם|done/.test(lower)) id = 'done';
-    else if (/follow|המשך|followup/.test(lower)) id = 'followup';
+    if (/success|completed|הושלם|done/.test(lower) && !/not.?perform|לא בוצע|notdone/.test(lower)) id = 'done';
+    else if (/follow|המשך|followup|handle later|לטיפול/.test(lower)) id = 'followup';
     else if (/no.?answer|אין מענה|noanswer/.test(lower)) id = 'noanswer';
     else if (/not.?perform|לא בוצע|notdone/.test(lower)) id = 'notdone';
     else if (/lab|מעבד/.test(lower)) id = 'lab';
@@ -1325,15 +1757,88 @@ class Component extends DCLogic {
     return { id: id || raw, label: label || raw };
   }
 
-  /** Reads closing_reason / followup_reason from custom_fields, else note text */
-  parseClosingReason(ticket) {
+  /** Reads follow-up dropdown + details as two separate values. */
+  parseFollowUpFields(ticket) {
+    var text = this.ticketNotesText(ticket);
+    var reason = '';
+    var details = '';
+    var meta = text.match(/REASON_META:(\{[\s\S]*?\})/);
+    if (meta) {
+      try {
+        var j = JSON.parse(meta[1]);
+        if (j && typeof j === 'object') {
+          reason = String(j.label || '').trim();
+          details = String(j.details || '').trim();
+        }
+      } catch (eMeta) { /* ignore */ }
+    }
+    if (!reason) {
+      var mReason = text.match(/Follow-up reason:\s*([^\n]+)/i);
+      if (mReason && mReason[1]) reason = String(mReason[1]).trim();
+    }
+    if (!details) {
+      var mDetails = text.match(/Follow-up details:\s*([^\n]+)/i);
+      if (mDetails && mDetails[1]) details = String(mDetails[1]).trim();
+    }
+    if (!reason) {
+      reason = this.parseFollowUpReason(ticket);
+    }
+    if (!details) {
+      details = this.parseClosingReason(ticket);
+    }
+    if (reason && !details) {
+      var split = this.splitCombinedReason(reason);
+      reason = split.reason;
+      details = split.details;
+    }
+    return { reason: this.reasonLabelOf(reason) || reason || '', details: details || '' };
+  }
+
+  splitCombinedReason(raw) {
+    var text = String(raw || '').trim();
+    if (!text) return { reason: '', details: '' };
+    var opts = this.reasonOptionsList();
+    for (var i = 0; i < opts.length; i++) {
+      var lab = String(opts[i].label || '').trim();
+      if (!lab) continue;
+      if (text === lab) return { reason: lab, details: '' };
+      if (text.indexOf(lab + ' — ') === 0) {
+        return { reason: lab, details: text.slice(lab.length + 3).trim() };
+      }
+      if (text.indexOf(lab + ' - ') === 0) {
+        return { reason: lab, details: text.slice(lab.length + 3).trim() };
+      }
+    }
+    var sep = text.indexOf(' — ');
+    if (sep < 0) sep = text.indexOf(' - ');
+    if (sep > 0) {
+      return { reason: text.slice(0, sep).trim(), details: text.slice(sep + 3).trim() };
+    }
+    return { reason: text, details: '' };
+  }
+
+  parseFollowUpReason(ticket) {
     var cf = this.parseCustomFields(ticket);
-    var raw = cf.closing_reason != null ? cf.closing_reason
-      : (cf.followup_reason != null ? cf.followup_reason
-        : (cf.close_reason != null ? cf.close_reason : ''));
+    var raw = this.labeledField(ticket, 'followup_reason') ||
+      (cf.followup_reason != null ? cf.followup_reason
+        : (cf.follow_up_reason != null ? cf.follow_up_reason : ''));
     raw = String(raw != null ? raw : '').trim();
     if (!raw) {
       var m = this.ticketNotesText(ticket).match(/Follow-up reason:\s*([^\n]+)/i);
+      if (m && m[1]) raw = String(m[1]).trim();
+    }
+    return raw;
+  }
+
+  /** Specify-the-reason free text — Ticket Custom Field closing_reason. */
+  parseClosingReason(ticket) {
+    var cf = this.parseCustomFields(ticket);
+    var raw = this.labeledField(ticket, 'closing_reason') ||
+      (cf.closing_reason != null ? cf.closing_reason
+        : (cf.close_reason != null ? cf.close_reason : ''));
+    raw = String(raw != null ? raw : '').trim();
+    if (!raw) {
+      var m = this.ticketNotesText(ticket).match(/Follow-up details:\s*([^\n]+)/i);
       if (m && m[1]) raw = String(m[1]).trim();
     }
     return raw;
@@ -1374,12 +1879,14 @@ class Component extends DCLogic {
   parseCashFromTicket(ticket) {
     var cf = this.parseCustomFields(ticket);
     var collected = String(
-      cf.cash_collected != null ? cf.cash_collected
-        : (cf.cashCollected != null ? cf.cashCollected : '')
+      this.labeledField(ticket, 'cash_collected') ||
+      (cf.cash_collected != null ? cf.cash_collected
+        : (cf.cashCollected != null ? cf.cashCollected : ''))
     ).trim().toLowerCase();
     var amount = String(
-      cf.cash_amount != null ? cf.cash_amount
-        : (cf.cashAmount != null ? cf.cashAmount : '')
+      this.labeledField(ticket, 'cash_amount') ||
+      (cf.cash_amount != null ? cf.cash_amount
+        : (cf.cashAmount != null ? cf.cashAmount : ''))
     ).replace(/[^0-9]/g, '');
 
     var text = this.ticketNotesText(ticket);
@@ -1473,6 +1980,7 @@ class Component extends DCLogic {
           var spares0 = this.parseSparesFromMessages(liveTicket);
           var linked0 = await this.resolveLinkedProducts(liveTicket);
           var close0 = this.parseClosingStatus(liveTicket);
+          var follow0 = this.parseFollowUpFields(liveTicket);
           this.setState({
             loading: false,
             mode: 'view',
@@ -1494,7 +2002,8 @@ class Component extends DCLogic {
             linkedProducts: linked0,
             closeStatus: close0.id || this.state.closeStatus || '',
             closeStatusLabel: close0.label || this.state.closeStatusLabel || '',
-            viewReason: this.parseClosingReason(liveTicket) || this.state.viewReason || '',
+            viewReason: follow0.reason || this.state.viewReason || '',
+            viewReasonDetails: follow0.details || this.state.viewReasonDetails || '',
             viewCashLabel: this.parseCashFromTicket(liveTicket).label || this.state.viewCashLabel || '',
             warrantyMonths: this.parseWarrantyMonths(liveTicket) || this.state.warrantyMonths || '0',
             viewWarranty: (function () {
@@ -1530,6 +2039,7 @@ class Component extends DCLogic {
         reason: '',
         reasonOther: '',
         viewReason: '',
+        viewReasonDetails: '',
         extraPhotos: [],
         cash: null,
         cashAmount: '',
@@ -1542,7 +2052,15 @@ class Component extends DCLogic {
         sendCopy: true,
         waSent: false,
         waError: '',
-        summary: ''
+        summary: '',
+        installedId: '',
+        installedName: '',
+        installedValue: '',
+        filtersId: '',
+        filtersName: '',
+        filtersValue: '',
+        extraProducts: [],
+        spares: []
       });
     } else if (tid && tid !== this.state.ticketId) {
       this.setState({ ticketId: tid, errorMsg: '' });
@@ -1556,6 +2074,9 @@ class Component extends DCLogic {
       if (!silent || !(this.state.products && this.state.products.length)) {
         await this.loadProducts();
       }
+      if (!silent || !(this._statusOpts && this._statusOpts.length) || !(this._reasonOpts && this._reasonOpts.length)) {
+        await this.loadClosingStatuses({ force: !silent });
+      }
       var ticket = await this.fetchTicket(tid);
       if (ticket) {
         var closed = this.isClosed(ticket);
@@ -1566,6 +2087,7 @@ class Component extends DCLogic {
         if (closed || forceView) {
           var linkedProducts = await this.resolveLinkedProducts(ticket);
           var closeInfo = this.parseClosingStatus(ticket);
+          var followInfo = this.parseFollowUpFields(ticket);
           this.setState({
             loading: false,
             mode: 'view',
@@ -1588,7 +2110,8 @@ class Component extends DCLogic {
             linkedProducts: linkedProducts,
             closeStatus: closeInfo.id || '',
             closeStatusLabel: closeInfo.label || '',
-            viewReason: this.parseClosingReason(ticket) || '',
+            viewReason: followInfo.reason || '',
+            viewReasonDetails: followInfo.details || '',
             viewCashLabel: this.parseCashFromTicket(ticket).label || '',
             warrantyMonths: this.parseWarrantyMonths(ticket) || '0',
             viewWarranty: (function () {
@@ -1662,6 +2185,9 @@ class Component extends DCLogic {
     if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return null;
     var client = MineralBarApp.getClient();
     try {
+      if (typeof MineralBarApp.listTicketCustomFields === 'function') {
+        await MineralBarApp.listTicketCustomFields().catch(function () { /* optional */ });
+      }
       if (typeof MineralBarApp.getTicket === 'function') {
         var res = await MineralBarApp.getTicket(tid);
         return this.unwrapTicket(res);
@@ -1900,6 +2426,39 @@ class Component extends DCLogic {
     return products;
   }
 
+  async loadClosingStatuses(opts) {
+    opts = opts || {};
+    var statusOpts = [];
+    var reasonOpts = [];
+    try {
+      if (opts.force && window.MineralBarApp && typeof MineralBarApp.listTicketCustomFields === 'function') {
+        await MineralBarApp.listTicketCustomFields(true).catch(function () { /* optional */ });
+      }
+      if (window.MineralBarApp && typeof MineralBarApp.listClosingStatusOptions === 'function') {
+        statusOpts = await MineralBarApp.listClosingStatusOptions();
+      } else if (window.MineralBarApp && typeof MineralBarApp.getTicketCustomField === 'function') {
+        var field = await MineralBarApp.getTicketCustomField('a-1787203258');
+        if (field && typeof MineralBarApp.collectTicketFieldOptions === 'function') {
+          statusOpts = MineralBarApp.collectTicketFieldOptions(field);
+        }
+      }
+      if (window.MineralBarApp && typeof MineralBarApp.listClosingReasonOptions === 'function') {
+        reasonOpts = await MineralBarApp.listClosingReasonOptions();
+      } else if (window.MineralBarApp && typeof MineralBarApp.listTicketLabeledFieldOptions === 'function') {
+        reasonOpts = await MineralBarApp.listTicketLabeledFieldOptions('followup_reason');
+      }
+    } catch (e) {
+      console.warn('[tech-call-close] closing custom field options failed', e);
+    }
+    if (opts.force) {
+      this._statusOpts = statusOpts || [];
+      this._reasonOpts = reasonOpts || [];
+    } else {
+      if (statusOpts && statusOpts.length) this._statusOpts = statusOpts;
+      if (reasonOpts && reasonOpts.length) this._reasonOpts = reasonOpts;
+    }
+  }
+
   async loadProducts() {
     try {
       if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return;
@@ -1975,6 +2534,8 @@ class Component extends DCLogic {
         return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
       });
       this.setState({ products: all });
+      this.scheduleBind(80);
+      this.scheduleBind(300);
     } catch (e) {
       console.warn('[tech-call-close] Products.List failed', e);
     }
@@ -2060,6 +2621,7 @@ class Component extends DCLogic {
     var cf = this.parseCustomFields(ticket);
     var extra = this.parseExtraFields(ticket);
     var candidates = [
+      this.labeledField(ticket, 'warranty_months'),
       cf.warranty_months, cf.warrantyMonths, cf['cf-warranty_months'],
       extra.warranty_months, extra.warrantyMonths,
       ticket && ticket.warranty_months
@@ -2089,8 +2651,9 @@ class Component extends DCLogic {
 
   parseInstallerName(ticket) {
     var cf = this.parseCustomFields(ticket);
-    var raw = cf.installer_name != null ? cf.installer_name
-      : (cf.installerName != null ? cf.installerName : (cf.technician_name != null ? cf.technician_name : ''));
+    var raw = this.labeledField(ticket, 'installer_name') ||
+      (cf.installer_name != null ? cf.installer_name
+        : (cf.installerName != null ? cf.installerName : (cf.technician_name != null ? cf.technician_name : '')));
     raw = String(raw != null ? raw : '').trim();
     if (!raw) {
       var m = this.ticketNotesText(ticket).match(/Installer:\s*([^\n]+)/i);
@@ -2148,12 +2711,34 @@ class Component extends DCLogic {
       var iv = this._installerNameValue != null ? this._installerNameValue : (this.state.installerName || '');
       if (inst.value !== String(iv)) inst.value = String(iv);
     }
-    var qtyEl = document.getElementById('spare-qty-input');
-    if (qtyEl && document.activeElement !== qtyEl) {
-      var qv = this._qtyValue != null ? String(this._qtyValue) : String(this.state.qty != null && this.state.qty !== '' ? this.state.qty : '1');
-      if (qtyEl.value !== qv) qtyEl.value = qv;
+    this.syncWorkDetailInputs();
+  }
+
+  syncWorkDetailInputs() {
+    function fill(id, want) {
+      var el = document.getElementById(id);
+      if (!el || document.activeElement === el) return;
+      var next = String(want == null ? '' : want);
+      if (el.value !== next) el.value = next;
     }
-    this.refreshSpareTotal();
+    fill('wd-installed-select', this.state.installedId || '');
+    fill('wd-installed-value', this._installedValue != null ? this._installedValue : this.state.installedValue);
+    fill('wd-filters-select', this.state.filtersId || '');
+    fill('wd-filters-value', this._filtersValue != null ? this._filtersValue : this.state.filtersValue);
+    var extras = this.state.extraProducts || [];
+    var extraEls = document.querySelectorAll('[data-wd-extra]');
+    for (var i = 0; i < extraEls.length; i++) {
+      var el = extraEls[i];
+      if (document.activeElement === el) continue;
+      var eid = String(el.getAttribute('data-wd-extra') || '');
+      var field = el.getAttribute('data-wd-field');
+      var row = extras.find(function (p) { return String(p.id) === eid; });
+      if (!row) continue;
+      var want = field === 'value'
+        ? String(row.value || '')
+        : String(row.productId || '');
+      if (el.value !== want) el.value = want;
+    }
   }
 
   updateSubmitEnabled() {
@@ -2442,76 +3027,6 @@ class Component extends DCLogic {
     this.updateSubmitEnabled();
   }
 
-  onProductPick(e) {
-    // Avoid setState here — it recreates the signature canvas / resets qty
-    this.state.productId = String((e && e.target && e.target.value) || '');
-    var id = this.state.productId;
-    var product = (this.state.products || []).find(function (p) { return String(p.id) === String(id); });
-    var unit = product && product.price != null ? String(product.price).replace(/[^0-9.]/g, '') : '';
-    this._spareUnitPrice = unit;
-    this.refreshSpareTotal();
-  }
-
-  onQty(e) {
-    var el = (e && e.target) || document.getElementById('spare-qty-input');
-    var v = String((el && el.value) || '').replace(/[^0-9]/g, '');
-    if (el && el.value !== v) el.value = v;
-    this._qtyValue = v;
-    this.state.qty = v;
-    this.refreshSpareTotal();
-  }
-
-  addSpare() {
-    var select = document.getElementById('spare-product-select');
-    var qtyEl = document.getElementById('spare-qty-input');
-    var id = (select && select.value) || this.state.productId || '';
-    if (!id) {
-      this.setState({ formError: this.t('Select a product first', 'קודם בחר מוצר') });
-      return;
-    }
-    var product = (this.state.products || []).find(function (p) { return String(p.id) === String(id); });
-    if (!product) {
-      var opt = select && select.options && select.options[select.selectedIndex];
-      product = { id: id, name: (opt && opt.text) || ('#' + id), price: this._spareUnitPrice || '' };
-    }
-    var qty = this.qtyNumber() || 1;
-    var unit = this.unitNumber() || parseFloat(String(product.price != null ? product.price : '').replace(/[^0-9.]/g, '')) || 0;
-    var total = this.formatMoney(unit * qty);
-    var unitStr = this.formatMoney(unit);
-    var spares = (this.state.spares || []).slice();
-    var existing = spares.find(function (s) { return String(s.id) === String(id); });
-    if (existing) {
-      existing.qty += qty;
-      existing.unitPrice = unitStr || existing.unitPrice || '';
-      existing.price = this.formatMoney((parseFloat(existing.unitPrice || unit) || 0) * existing.qty);
-    } else {
-      spares.push({ id: product.id, name: product.name, qty: qty, unitPrice: unitStr, price: total });
-    }
-    this._spareUnitPrice = '';
-    this._sparePriceValue = '';
-    this._qtyValue = '1';
-    this.state.qty = '1';
-    this.setState({ spares: spares, productId: '', qty: '1', formError: '' });
-    if (select) select.value = '';
-    if (qtyEl) qtyEl.value = '1';
-    var priceEl = document.getElementById('spare-price-input');
-    if (priceEl) priceEl.value = '';
-    var self = this;
-    setTimeout(function () {
-      self.bindDom();
-      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
-    }, 60);
-  }
-
-  removeSpare(id) {
-    this.setState({ spares: (this.state.spares || []).filter(function (s) { return String(s.id) !== String(id); }) });
-    var self = this;
-    setTimeout(function () {
-      self.bindDom();
-      if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
-    }, 60);
-  }
-
   dataUrlToFile(dataUrl, fileName) {
     var parts = String(dataUrl || '').split(',');
     var meta = parts[0] || '';
@@ -2553,6 +3068,8 @@ class Component extends DCLogic {
     }
     var warrantyMonths = this.currentWarrantyMonths();
     this._warrantyMonths = warrantyMonths;
+    var workSpares = this.collectWorkSpares();
+    this.state.spares = workSpares;
     this.state.warrantyMonths = warrantyMonths;
     var missing = this.formMissing();
     if (missing.length) {
@@ -2623,15 +3140,14 @@ class Component extends DCLogic {
 
       var statusLabel = st.closeStatusLabel || this.closeStatusLabelOf(st.closeStatus) || st.closeStatus;
       var reasonText = '';
+      var reasonDetails = '';
       var reasonId = '';
       if (this.needsReason()) {
         var reasonOpts = this.reasonOptionsList();
         var reasonRow = reasonOpts.find(function (r) { return r.id === st.reason; });
         reasonId = String(st.reason || '');
         reasonText = (reasonRow && reasonRow.label) || st.reason || '';
-        if (st.reason === 'e' && String(st.reasonOther || '').trim()) {
-          reasonText = String(st.reasonOther).trim();
-        }
+        reasonDetails = String(st.reasonOther || this._reasonOtherValue || '').trim();
       }
       var lines = ['Closing status: ' + statusLabel];
       if (st.customerId) lines.push('Customer ID: ' + st.customerId);
@@ -2647,6 +3163,14 @@ class Component extends DCLogic {
       if (st.sendCopy) lines.push('Send copy to customer: yes');
       else lines.push('Send copy to customer: no');
       if (reasonText) lines.push('Follow-up reason: ' + reasonText);
+      if (reasonDetails) lines.push('Follow-up details: ' + reasonDetails);
+      if (reasonText || reasonDetails) {
+        lines.push('REASON_META:' + JSON.stringify({
+          id: reasonId,
+          label: reasonText,
+          details: reasonDetails
+        }));
+      }
       lines.push('Warranty months: ' + warrantyMonths);
       lines.push('Warranty: ' + this.warrantyLabelOf(warrantyMonths));
       if (st.installerName) lines.push('Installer: ' + st.installerName);
@@ -2673,29 +3197,31 @@ class Component extends DCLogic {
         status: '2',
         messages: messages,
         message: messages,
-        custom_fields: {
-          closing_status: st.closeStatus || statusLabel,
-          cash_collected: st.cash === 'yes' ? 'yes' : (st.cash === 'no' ? 'no' : ''),
-          cash_amount: st.cash === 'yes' ? String(st.cashAmount || '').replace(/[^0-9.]/g, '') : '',
-          warranty_months: warrantyMonths,
-          installer_name: String(st.installerName || '').trim()
-        }
+        custom_fields: {}
       };
-      if (reasonText) {
-        payload.custom_fields.closing_reason = reasonText;
-        payload.custom_fields.followup_reason = reasonText;
-        if (reasonId) payload.custom_fields.closing_reason_id = reasonId;
+      var closeFields = {
+        closing_status: st.closeStatus || statusLabel,
+        warranty_months: warrantyMonths,
+        installer_name: String(st.installerName || '').trim()
+      };
+      if (reasonId) closeFields.followup_reason = reasonId;
+      if (reasonDetails) closeFields.closing_reason = reasonDetails;
+      if (includeWorkDetails && st.cash) {
+        closeFields.cash_collected = st.cash === 'yes' ? 'yes' : 'no';
+        if (st.cash === 'yes') {
+          closeFields.cash_amount = String(st.cashAmount || '').replace(/[^0-9.]/g, '');
+        }
       }
-      if (!payload.custom_fields.installer_name) delete payload.custom_fields.installer_name;
-      // Only keep cash fields when user selected Yes/No and work details apply
-      if (!includeWorkDetails || !st.cash) {
-        delete payload.custom_fields.cash_collected;
-        delete payload.custom_fields.cash_amount;
-      } else if (st.cash === 'no') {
-        delete payload.custom_fields.cash_amount;
+      if (window.MineralBarApp && typeof MineralBarApp.applyTicketLabeledCustomFields === 'function') {
+        await MineralBarApp.applyTicketLabeledCustomFields(payload, closeFields);
+      } else {
+        payload.custom_fields = closeFields;
       }
       if (includeWorkDetails && (st.spares || []).length) {
-        payload.product_id = st.spares.map(function (s) { return s.id; }).join(',');
+        var catalogIds = st.spares.map(function (s) { return String(s.id || ''); }).filter(function (id) {
+          return /^\d+$/.test(id) && id.length <= 10;
+        });
+        if (catalogIds.length) payload.product_id = catalogIds.join(',');
       }
 
       var client = MineralBarApp.getClient();
@@ -2737,6 +3263,7 @@ class Component extends DCLogic {
         viewSummary: summary,
         closeStatusLabel: statusLabel,
         viewReason: reasonText || '',
+        viewReasonDetails: reasonDetails || '',
         viewCashLabel: st.cash === 'yes'
           ? (this.t('Yes', 'כן') + (st.cashAmount ? (' · ' + st.cashAmount + ' ₪') : ''))
           : (st.cash === 'no' ? this.t('No', 'לא') : ''),
@@ -2753,9 +3280,12 @@ class Component extends DCLogic {
         waSent: waSent,
         waNotes: waNotes,
         waError: wantWhatsApp && !waSent ? waError : '',
+        spares: st.spares || [],
         linkedProducts: (st.spares && st.spares.length)
           ? st.spares.map(function (s) {
-            return { id: String(s.id || ''), name: s.name || ('#' + s.id), sku: '', type: '', price: s.price || '' };
+            var id = String(s.id || '');
+            var realId = /^\d+$/.test(id) && id.length <= 10 ? id : '';
+            return { id: realId, name: s.name || '', sku: '', type: '', price: s.price || '' };
           })
           : (st.linkedProducts || [])
       });
@@ -2816,7 +3346,7 @@ class Component extends DCLogic {
     var hasSig = !!(st.hasStroke || this._hasStroke || this._sigDataUrl);
     var summaryOk = this.skipWorkMedia() || String(st.summary || '').trim().length >= 2;
     var statusOk = !!st.closeStatus;
-    var reasonOk = !this.needsReason() || (!!st.reason && (st.reason !== 'e' || String(st.reasonOther || '').trim().length >= 2));
+    var reasonOk = !this.needsReason() || (!!st.reason && String(st.reasonOther || this._reasonOtherValue || '').trim().length >= 2);
     var p3Ok = !!st.terms && (this.skipWorkDetails() || hasSig);
     var canSubmit = this.canFormSubmit();
     var segOn = '#1d60a2';
@@ -2844,6 +3374,7 @@ class Component extends DCLogic {
         showPhone: s.icon === 'phone' ? 'block' : 'none',
         showX: s.icon === 'x' ? 'block' : 'none',
         showLab: s.icon === 'lab' ? 'block' : 'none',
+        showDot: (s.icon === 'dot' || !s.icon) ? 'block' : 'none',
         dotDisplay: on ? 'block' : 'none'
       };
     });
@@ -2889,14 +3420,14 @@ class Component extends DCLogic {
       reasonBorder: (st.attempted && this.needsReason() && !st.reason) ? '#e8a9a4' : '#dde2ea',
       reasonErrorDisplay: (st.attempted && this.needsReason() && !st.reason) ? 'block' : 'none',
       reasonErrorText: this.t('Please select a follow-up reason', 'נא לבחור סיבת המשך טיפול'),
-      showOther: this.needsReason() && st.reason === 'e',
-      otherDisplay: (this.needsReason() && st.reason === 'e') ? 'block' : 'none',
+      showOther: this.needsReason(),
+      otherDisplay: this.needsReason() ? 'block' : 'none',
       labelReasonOther: this.t('Specify the reason', 'פרט את הסיבה'),
       reasonOtherPh: this.t('Specify the reason', 'פרט את הסיבה'),
       reasonOther: st.reasonOther || '',
       onReasonOther: (e) => this.onReasonOther(e),
-      otherBorder: (st.attempted && this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
-      otherErrorDisplay: (st.attempted && this.needsReason() && st.reason === 'e' && String(st.reasonOther || '').trim().length < 2) ? 'block' : 'none',
+      otherBorder: (st.attempted && this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
+      otherErrorDisplay: (st.attempted && this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) ? 'block' : 'none',
       otherErrorText: this.t('Please specify the reason', 'נא לפרט את הסיבה'),
 
       labelDigitalForm: this.t('Digital service form', 'טופס שירות דיגיטלי'),
@@ -2933,29 +3464,37 @@ class Component extends DCLogic {
         return { label: label, add: function () { self.addChip(label); } };
       }),
 
-      labelSpares: this.t('Work detail / spare parts', 'פירוט עבודה'),
-      optionalLabel: this.t('optional', 'אופציונלי'),
+      labelSpares: this.t('Work details', 'פירוט עבודה'),
+      labelProductInstalled: this.t('Product installed', 'מוצר שהותקן'),
+      labelFiltersReplaced: this.t('Replaced filters', 'סננים שהוחלפו'),
+      labelValue: this.t('Value', 'שווי'),
       selectProduct: this.t('Select product…', 'בחר מוצר…'),
-      addPart: this.t('Add', 'הוסף'),
-      removePart: this.t('Remove', 'הסר'),
-      labelPrice: this.t('Value', 'שווי'),
-      labelQty: this.t('Qty', 'כמות'),
-      products: (st.products || []).map(p => ({
-        id: p.id,
-        name: p.name
-      })),
-      onProductPick: (e) => this.onProductPick(e),
-      addSpare: () => this.addSpare(),
-      spares: (st.spares || []).map(s => {
-        var priceLabel = self.formatSparePrice(s.price);
+      labelAnotherProduct: this.t('Another product', 'מוצר נוסף'),
+      addAnotherProduct: this.t('Add another product', 'הוסף מוצר נוסף'),
+      productOptions: this.catalogFor('product').map(function (p) {
+        return { id: p.id, name: p.name };
+      }),
+      filterOptions: this.catalogFor('filters').map(function (p) {
+        return { id: p.id, name: p.name };
+      }),
+      addProduct: () => this.addProduct(),
+      extraProducts: (st.extraProducts || []).map(function (p) {
         return {
-          name: s.name,
-          qty: s.qty,
-          priceLabel: priceLabel,
-          priceDisplay: priceLabel ? 'block' : 'none',
-          remove: function () { self.removeSpare(s.id); }
+          id: p.id,
+          name: p.name || '',
+          value: p.value || '',
+          products: self.catalogFor('product').map(function (opt) {
+            return { id: opt.id, name: opt.name };
+          }),
+          onPick: function (e) { self.onExtraProduct(p.id, 'product', e); },
+          onValue: function (e) { self.onExtraProduct(p.id, 'value', e); },
+          remove: function () { self.removeExtraProduct(p.id); }
         };
       }),
+      onInstalledPick: (e) => this.onInstalledPick(e),
+      onInstalledValue: (e) => this.onWorkValue('installedValue', e),
+      onFiltersPick: (e) => this.onFiltersPick(e),
+      onFiltersValue: (e) => this.onWorkValue('filtersValue', e),
 
       labelPhotos: this.t('Device photos', 'תמונות המכשיר'),
       beforePhoto: this.t('Above the sink', 'מעל הכיור'),
@@ -3054,6 +3593,8 @@ class Component extends DCLogic {
       viewCloseStatus: st.closeStatusLabel || this.closeStatusLabelOf(st.closeStatus) || '',
       hasViewReason: !!(st.viewReason),
       viewReason: st.viewReason || '',
+      hasViewReasonDetails: !!(st.viewReasonDetails),
+      viewReasonDetails: st.viewReasonDetails || '',
       hasViewCash: !!st.viewCashLabel,
       viewCashDisplay: st.viewCashLabel ? 'block' : 'none',
       viewCash: st.viewCashLabel || '',
@@ -3064,7 +3605,11 @@ class Component extends DCLogic {
       hasViewSpares: !!(st.spares && st.spares.length),
       viewSpares: (st.spares || []).map(s => {
         var priceLabel = self.formatSparePrice(s.price);
-        return { label: s.name + ' × ' + s.qty + (priceLabel ? (' · ' + priceLabel) : '') };
+        var qty = Number(s.qty);
+        var label = s.name || '';
+        if (qty > 1) label += ' × ' + qty;
+        if (priceLabel) label += (label ? ' · ' : '') + priceLabel;
+        return { label: label };
       }),
       hasLinkedProduct: !!(st.linkedProducts && st.linkedProducts.length),
       noLinkedProduct: !(st.linkedProducts && st.linkedProducts.length),

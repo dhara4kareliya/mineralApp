@@ -733,6 +733,9 @@ class Component extends DCLogic {
         var team = window.MineralBarApp.getTeamMembers();
         this.setState({ teamMembers: team || [] });
       }
+      if (typeof MineralBarApp.listTicketCustomFields === 'function') {
+        MineralBarApp.listTicketCustomFields().catch(function () { /* optional */ });
+      }
     } catch (e) {
       console.warn('[service-open-call] Failed to load ticket form options', e);
     }
@@ -985,8 +988,18 @@ class Component extends DCLogic {
       var val = payload[key];
       if (val === undefined || val === null || val === '') return;
       if (key === 'custom_fields') {
-        if (typeof val === 'object') form.append('custom_fields', JSON.stringify(val));
-        else form.append('custom_fields', String(val));
+        var cf = val;
+        if (typeof cf === 'string') {
+          try { cf = JSON.parse(cf); } catch (eCf) { cf = null; }
+        }
+        if (cf && typeof cf === 'object') {
+          Object.keys(cf).forEach(function (ck) {
+            if (!/^a-\d+$/.test(ck)) return;
+            if (cf[ck] === undefined || cf[ck] === null || cf[ck] === '') return;
+            form.append(ck, String(cf[ck]));
+          });
+          form.append('custom_fields', JSON.stringify(cf));
+        }
         return;
       }
       if (key === 'assign_member_id') {
@@ -1353,28 +1366,10 @@ class Component extends DCLogic {
       var customerId = this.getCustomerId();
       var customer = this.state.cust || {};
       var product = this.selectedProduct();
-      var customFields = {};
       var fullAddress = this.buildFullAddress(this.state);
-      var area = areaId;
-      var areaLabel = this.areaLabelOf(areaId) || areaId;
-      var city = String(this.state.city || '').trim();
-      if (area) customFields.area = area;
-      if (areaLabel) customFields.area_label = areaLabel;
-      if (city) customFields.city = city;
-      if (this.state.street) customFields.street = String(this.state.street).trim();
-      if (this.state.building) customFields.building = String(this.state.building).trim();
-      if (this.state.floor) customFields.floor = String(this.state.floor).trim();
-      if (this.state.apartment) customFields.apartment = String(this.state.apartment).trim();
-      if (this.state.entrance) customFields.entrance = String(this.state.entrance).trim();
-      if (this.state.phone2) customFields.second_phone = this.state.phone2;
       var prio = String(this.state.priority || 'normal').toLowerCase();
       if (prio !== 'high' && prio !== 'low') prio = 'normal';
-      customFields.priority = prio;
-      customFields.urgency = prio;
-      customFields.take_cash = this.state.charge ? 'yes' : 'no';
-      if (product && (product.product_name || product.name)) {
-        customFields.product_name = product.product_name || product.name;
-      }
+      var rating = prio === 'high' ? 5 : (prio === 'low' ? 1 : 3);
 
       var payload = {
         topic: topic,
@@ -1384,7 +1379,9 @@ class Component extends DCLogic {
         email: String(this.state.email || '').trim(),
         phone: String(this.state.phone || '').trim(),
         mobile: String(this.state.phone2 || '').trim(),
-        address: fullAddress
+        phone_two: String(this.state.phone2 || '').trim(),
+        address: fullAddress,
+        rating: rating
       };
       if (customerId) {
         payload.cust_id = customerId;
@@ -1405,7 +1402,9 @@ class Component extends DCLogic {
         payload.ticket_to_time = this.state.toTime + ':00';
         payload.to_time_ticket = this.state.toTime;
       }
-      if (Object.keys(customFields).length) payload.custom_fields = customFields;
+      if (window.MineralBarApp && typeof MineralBarApp.applyTicketCashField === 'function') {
+        await MineralBarApp.applyTicketCashField(payload, this.state.charge ? 'yes' : 'no');
+      }
 
       var attachFile = this.state.file || null;
       var requestBody = this.buildTicketAddForm(payload, attachFile);
@@ -1565,7 +1564,7 @@ class Component extends DCLogic {
       {
         id: 'yes',
         label: this.isEn() ? 'Yes' : 'כן',
-        pick: () => this.setCharge(true),
+        pick: function () { this.setCharge(true); }.bind(this),
         bg: cashYes ? '#eaf2fb' : '#fff',
         border: cashYes ? '#1d60a2' : '#e4e8ee',
         color: cashYes ? '#194f84' : '#5a6473'
@@ -1573,7 +1572,7 @@ class Component extends DCLogic {
       {
         id: 'no',
         label: this.isEn() ? 'No' : 'לא',
-        pick: () => this.setCharge(false),
+        pick: function () { this.setCharge(false); }.bind(this),
         bg: !cashYes ? '#eaf2fb' : '#fff',
         border: !cashYes ? '#1d60a2' : '#e4e8ee',
         color: !cashYes ? '#194f84' : '#5a6473'

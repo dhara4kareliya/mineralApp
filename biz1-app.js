@@ -1487,6 +1487,513 @@
     return { ok: false, message: 'Team member assignment is not supported by the API yet.' };
   }
 
+  var ticketCustomFieldsCache = null;
+  var ticketCustomFieldsPromise = null;
+
+  function flattenTicketCustomFieldRows(rows, acc) {
+    acc = acc || [];
+    (Array.isArray(rows) ? rows : []).forEach(function (row) {
+      if (!row || typeof row !== 'object') return;
+      var type = String(row.type || '').toLowerCase();
+      if (type === 'group' || Array.isArray(row.group_data)) {
+        flattenTicketCustomFieldRows(row.group_data, acc);
+        if (type === 'group') return;
+      }
+      acc.push(row);
+    });
+    return acc;
+  }
+
+  function ticketFieldStorageName(field) {
+    var name = String((field && (field.name || field.field_name || field.update_field_name)) || '').trim();
+    return /^a-\d+$/.test(name) ? name : '';
+  }
+
+  function ticketFieldBlob(field) {
+    if (!field) return '';
+    return [
+      field.en, field.he, field.label, field.label_en, field.label_he,
+      field.name, field.type, field.field_name
+    ].map(function (x) { return String(x == null ? '' : x).toLowerCase(); }).join(' ');
+  }
+
+  function ticketFieldLabel(field) {
+    return String((field && (field.en || field.label_en || field.label || field.he || '')) || '')
+      .toLowerCase()
+      .trim();
+  }
+
+  /* Debt checkbox (לגבייה / paid) is not the cash Yes/No radio. */
+  function isDebtCollectionField(field) {
+    if (!field) return false;
+    var en = ticketFieldLabel(field);
+    var he = String((field && field.he) || '').trim();
+    var type = String((field && field.type) || '').toLowerCase();
+    var boxEn = Array.isArray(field.checkbox_en) ? field.checkbox_en.join(' ').toLowerCase() : '';
+    if (en === 'debt' || he === 'לגבייה') return true;
+    if (type === 'checkbox' && /to_be_paid|\bpaid\b/.test(boxEn)) return true;
+    return false;
+  }
+
+  function cashFieldScore(field) {
+    if (!field || isDebtCollectionField(field)) return -1;
+    var en = ticketFieldLabel(field);
+    var he = String(field.he || '').trim();
+    var type = String(field.type || '').toLowerCase();
+    var blob = ticketFieldBlob(field);
+    var score = 0;
+    if (en === 'cash' || en === 'take_cash' || en === 'take cash' || en === 'collect_cash') score += 100;
+    if (he === 'cash' || he === 'מזומן') score += 80;
+    if (type === 'radio' && field.yes_val != null && field.no_val != null && String(field.yes_val) !== '') score += 40;
+    if (type === 'yes_no' || /^yes.?no$/.test(type)) score += 30;
+    if (/(^|[^a-z])cash([^a-z]|$)|take.?cash|collect.?cash/.test(blob)) score += 20;
+    if (/מזומן/.test(blob)) score += 20;
+    return score;
+  }
+
+  function isCashTicketField(field) {
+    return cashFieldScore(field) > 0;
+  }
+
+  function pickBestCashTicketField(fields) {
+    var best = null;
+    var bestScore = 0;
+    (Array.isArray(fields) ? fields : []).forEach(function (field) {
+      if (!ticketFieldStorageName(field)) return;
+      var score = cashFieldScore(field);
+      if (score > bestScore) {
+        bestScore = score;
+        best = field;
+      }
+    });
+    return best;
+  }
+
+  async function listTicketCustomFields(force) {
+    if (!force && ticketCustomFieldsCache) return ticketCustomFieldsCache;
+    if (!force && ticketCustomFieldsPromise) return ticketCustomFieldsPromise;
+    ticketCustomFieldsPromise = (async function () {
+      var client = getClient();
+      var all = [];
+      var start = 0;
+      for (var page = 0; page < 20; page++) {
+        var raw = await client.request('TicketCustomFields.List', {
+          start: start,
+          limit: 25,
+          length: 25
+        });
+        var rows = (raw && (raw.data || raw.rows || raw.output)) || [];
+        if (!Array.isArray(rows)) rows = [];
+        flattenTicketCustomFieldRows(rows, all);
+        var total = Number((raw && (raw.count || raw.total_record || raw.total)) || 0);
+        if (rows.length < 25 || (total && all.length >= total)) break;
+        start += 25;
+      }
+      ticketCustomFieldsCache = all;
+      return all;
+    })();
+    try {
+      return await ticketCustomFieldsPromise;
+    } finally {
+      ticketCustomFieldsPromise = null;
+    }
+  }
+
+  async function getTicketCustomField(name) {
+    name = String(name || '').trim();
+    if (!name) return null;
+    var raw = await getClient().request('TicketCustomFields.Get', {
+      name: name,
+      field_name: name,
+      update_field_name: name
+    });
+    return (raw && (raw.data || raw.output)) || null;
+  }
+
+  function splitTicketOptionList(val) {
+    if (val == null || val === '') return [];
+    if (Array.isArray(val)) {
+      return val.map(function (x) {
+        if (x == null) return '';
+        if (typeof x === 'object') {
+          return String(x.option_value || x.value || x.en || x.he || x.label || x.id || '').trim();
+        }
+        return String(x).trim();
+      });
+    }
+    var s = String(val).trim();
+    if (!s) return [];
+    if (s.charAt(0) === '[' || s.charAt(0) === '{') {
+      try {
+        return splitTicketOptionList(JSON.parse(s));
+      } catch (e) { /* fall through */ }
+    }
+    return s.split(',').map(function (x) { return String(x || '').trim(); });
+  }
+
+  function collectTicketFieldOptions(field) {
+    var out = [];
+    if (!field) return out;
+    if (field.yes_val != null && String(field.yes_val) !== '') {
+      out.push({
+        value: String(field.yes_val),
+        label: String(field.yes_name_en || field.yes_name_he || 'yes'),
+        labelEn: String(field.yes_name_en || field.yes_name_he || 'yes'),
+        labelHe: String(field.yes_name_he || field.yes_name_en || 'yes')
+      });
+    }
+    if (field.no_val != null && String(field.no_val) !== '') {
+      out.push({
+        value: String(field.no_val),
+        label: String(field.no_name_en || field.no_name_he || 'no'),
+        labelEn: String(field.no_name_en || field.no_name_he || 'no'),
+        labelHe: String(field.no_name_he || field.no_name_en || 'no')
+      });
+    }
+    var boxVal = field.checkbox_value;
+    var boxEn = field.checkbox_en || field.checkbox_he;
+    var boxHe = field.checkbox_he || field.checkbox_en;
+    if (Array.isArray(boxVal)) {
+      boxVal.forEach(function (v, i) {
+        var enLab = String((Array.isArray(boxEn) && boxEn[i] != null) ? boxEn[i] : v);
+        var heLab = String((Array.isArray(boxHe) && boxHe[i] != null) ? boxHe[i] : enLab);
+        out.push({
+          value: String(v),
+          label: enLab,
+          labelEn: enLab,
+          labelHe: heLab
+        });
+      });
+    }
+    var vals = splitTicketOptionList(field.option_value || field.option_values);
+    var en = splitTicketOptionList(field.options_en || field.option_en);
+    var he = splitTicketOptionList(field.options_he || field.option_he);
+    var n = Math.max(vals.length, en.length, he.length);
+    if (n > 0 && (vals.length || en.length || he.length)) {
+      var i;
+      var value;
+      var labelEn;
+      var labelHe;
+      for (i = 0; i < n; i++) {
+        value = (vals[i] != null && String(vals[i]) !== '') ? String(vals[i]) : String(en[i] || he[i] || '');
+        if (!value) continue;
+        labelEn = (en[i] != null && String(en[i]) !== '') ? String(en[i]) : value;
+        labelHe = (he[i] != null && String(he[i]) !== '') ? String(he[i]) : labelEn;
+        out.push({
+          value: value,
+          label: labelHe,
+          labelEn: labelEn,
+          labelHe: labelHe
+        });
+      }
+      return out;
+    }
+    var opts = field.options || field.option || field.values;
+    if (typeof opts === 'string') {
+      try { opts = JSON.parse(opts); } catch (e) { opts = String(opts).split(/[,|]/); }
+    }
+    if (Array.isArray(opts)) {
+      opts.forEach(function (o) {
+        var val = o && typeof o === 'object' ? (o.option_value || o.value || o.id || o.name) : o;
+        var labEn = o && typeof o === 'object' ? (o.en || o.label_en || o.label || o.he || val) : o;
+        var labHe = o && typeof o === 'object' ? (o.he || o.label_he || o.label || o.en || val) : o;
+        if (val == null || String(val) === '') return;
+        out.push({
+          value: String(val),
+          label: String(labHe == null ? val : labHe),
+          labelEn: String(labEn == null ? val : labEn),
+          labelHe: String(labHe == null ? val : labHe)
+        });
+      });
+    }
+    return out;
+  }
+
+  async function resolveTicketLabeledFieldDef(label) {
+    var field = null;
+    try { await listTicketCustomFields(); } catch (e) { /* fallback id */ }
+    field = findTicketFieldByLabel(label);
+    var spec = TICKET_FIELD_LABELS[label] || {};
+    var name = ticketFieldStorageName(field) || spec.fallback || '';
+    if (!name) return field;
+    try {
+      var full = await getTicketCustomField(name);
+      if (full && ticketFieldStorageName(full)) return full;
+    } catch (e2) { /* use list row */ }
+    return field;
+  }
+
+  async function resolveTicketClosingStatusField() {
+    return resolveTicketLabeledFieldDef('closing_status');
+  }
+
+  async function listTicketLabeledFieldOptions(label) {
+    var field = await resolveTicketLabeledFieldDef(label);
+    return collectTicketFieldOptions(field);
+  }
+
+  async function listClosingStatusOptions() {
+    return listTicketLabeledFieldOptions('closing_status');
+  }
+
+  async function listClosingReasonOptions() {
+    return listTicketLabeledFieldOptions('followup_reason');
+  }
+
+  function pickCashYesNoValue(field, wanted) {
+    var want = String(wanted || '').toLowerCase() === 'yes' ? 'yes' : 'no';
+    if (field && field.yes_val != null && String(field.yes_val) !== '' &&
+        field.no_val != null && String(field.no_val) !== '') {
+      return want === 'yes' ? String(field.yes_val) : String(field.no_val);
+    }
+    var opts = collectTicketFieldOptions(field);
+    var i;
+    var o;
+    var vs;
+    var ls;
+    for (i = 0; i < opts.length; i++) {
+      o = opts[i];
+      vs = String(o.value || '');
+      ls = String(o.label || '');
+      if (want === 'yes' && (/^(yes|1|true|כן)$/i.test(vs) || /^(yes|כן)$/i.test(ls))) return vs;
+      if (want === 'no' && (/^(no|0|false|לא)$/i.test(vs) || /^(no|לא)$/i.test(ls))) return vs;
+    }
+    if (opts.length >= 2) return want === 'yes' ? opts[0].value : opts[1].value;
+    if (opts.length === 1 && want === 'yes') return opts[0].value;
+    return '';
+  }
+
+  async function resolveTicketCashField() {
+    var fields = [];
+    try {
+      fields = await listTicketCustomFields();
+    } catch (e) {
+      fields = [];
+    }
+    var hit = pickBestCashTicketField(fields);
+    if (!hit) {
+      var searches = ['cash', 'מזומן'];
+      for (var i = 0; i < searches.length && !hit; i++) {
+        try {
+          var raw = await getClient().request('TicketCustomFields.List', {
+            search: searches[i],
+            limit: 25,
+            length: 25
+          });
+          var rows = flattenTicketCustomFieldRows((raw && (raw.data || raw.rows || raw.output)) || []);
+          hit = pickBestCashTicketField(rows);
+        } catch (e2) { /* try next search */ }
+      }
+    }
+    var name = ticketFieldStorageName(hit);
+    if (!name) return null;
+    try {
+      var full = await getTicketCustomField(name);
+      if (full && ticketFieldStorageName(full)) return full;
+    } catch (e3) { /* use list row */ }
+    return hit;
+  }
+
+  function cachedTicketCashFieldName() {
+    var hit = pickBestCashTicketField(ticketCustomFieldsCache || []);
+    return ticketFieldStorageName(hit);
+  }
+
+  function parseTicketFieldBag(value) {
+    if (value == null || value === '') return {};
+    if (typeof value === 'string') {
+      try { value = JSON.parse(value); } catch (e) { return {}; }
+    }
+    if (Array.isArray(value)) {
+      var fromArr = {};
+      value.forEach(function (row) {
+        if (row == null) return;
+        if (typeof row !== 'object') return;
+        var k = row.key || row.name || row.field || row.field_name || row.id;
+        var v = row.value != null ? row.value : (row.val != null ? row.val : row.option_value);
+        if (k != null && String(k) !== '') fromArr[String(k)] = v;
+      });
+      return fromArr;
+    }
+    if (typeof value === 'object') return value;
+    return {};
+  }
+
+  function ticketCustomFieldBag(ticket) {
+    var bag = {};
+    if (!ticket || typeof ticket !== 'object') return bag;
+    function merge(src) {
+      var obj = parseTicketFieldBag(src);
+      Object.keys(obj).forEach(function (k) {
+        if (obj[k] === undefined || obj[k] === null || obj[k] === '') return;
+        bag[k] = obj[k];
+      });
+    }
+    merge(ticket.custom_fields);
+    merge(ticket.extra_fields);
+    merge(ticket.extra_fields_json);
+    Object.keys(ticket).forEach(function (k) {
+      if (!/^a-\d+$/.test(k)) return;
+      if (ticket[k] === undefined || ticket[k] === null || ticket[k] === '') return;
+      bag[k] = ticket[k];
+    });
+    return bag;
+  }
+
+  function readTicketStorageValue(ticket, name) {
+    name = String(name || '').trim();
+    if (!name) return '';
+    var bag = ticketCustomFieldBag(ticket);
+    var raw = bag[name];
+    if (raw == null || raw === '') raw = bag[name + '[]'];
+    if (Array.isArray(raw)) raw = raw.length ? raw[0] : '';
+    if (raw && typeof raw === 'object') {
+      raw = raw.option_value || raw.value || raw.id || raw.name || '';
+    }
+    return raw == null ? '' : String(raw).trim();
+  }
+
+  function isCashYesValue(raw, field) {
+    if (raw == null || raw === '') return false;
+    if (Array.isArray(raw)) raw = raw.length ? raw[0] : '';
+    var s = String(raw).trim();
+    if (!s) return false;
+    if (field && field.yes_val != null && String(field.yes_val) !== '') {
+      if (s === String(field.yes_val)) return true;
+      if (field.no_val != null && String(field.no_val) !== '' && s === String(field.no_val)) return false;
+    }
+    var lower = s.toLowerCase();
+    if (/^(no|false|לא|n)$/i.test(lower)) return false;
+    return /^(yes|1|true|כן|y)$/i.test(lower);
+  }
+
+  function isTicketCashYes(ticket) {
+    var field = pickBestCashTicketField(ticketCustomFieldsCache || []);
+    var name = ticketFieldStorageName(field);
+    var raw = name ? readTicketStorageValue(ticket, name) : '';
+    if (!raw) {
+      var bag = ticketCustomFieldBag(ticket);
+      raw = bag.cash || bag.take_cash || bag.takeCash || bag.collect_cash || '';
+      if (Array.isArray(raw)) raw = raw.length ? raw[0] : '';
+      raw = raw == null ? '' : String(raw).trim();
+    }
+    if (!raw && ticket) {
+      var notes = [
+        ticket.messages, ticket.message, ticket.notes, ticket.note
+      ].map(function (v) {
+        if (v == null) return '';
+        if (typeof v === 'string') return v;
+        if (Array.isArray(v)) {
+          return v.map(function (m) {
+            return (m && (m.message || m.msg || m.text || m.note)) || '';
+          }).join('\n');
+        }
+        return String((v && (v.message || v.msg || v.text || v.note)) || '');
+      }).join('\n');
+      var m = String(notes).match(/Take cash(?: from the customer)?:\s*([^\n]+)/i)
+        || String(notes).match(/גביית מזומן\s*[:：]\s*([^\n]+)/);
+      if (m && m[1]) raw = String(m[1]).trim();
+    }
+    return isCashYesValue(raw, field);
+  }
+
+  async function applyTicketCashField(payload, yesNo) {
+    payload = payload || {};
+    var field = await resolveTicketCashField();
+    var name = ticketFieldStorageName(field);
+    if (!name) return payload;
+    var val = pickCashYesNoValue(field, yesNo);
+    if (!val) return payload;
+    if (!payload.custom_fields || typeof payload.custom_fields !== 'object') payload.custom_fields = {};
+    payload.custom_fields[name] = val;
+    payload[name] = val;
+    if (payload.cash !== undefined) delete payload.cash;
+    if (payload.take_cash !== undefined) delete payload.take_cash;
+    return payload;
+  }
+
+  var TICKET_FIELD_LABELS = {
+    closing_status: { aliases: ['closing_status', 'close_status'], fallback: 'a-1787203258', legacy: ['a-1787143997'] },
+    cash_collected: { aliases: ['cash_collected', 'cashcollected'], fallback: 'a-1787203265', legacy: ['a-1787144046'] },
+    cash_amount: { aliases: ['cash_amount', 'cashamount'], fallback: 'a-1787203267', legacy: ['a-1787144048'] },
+    warranty_months: { aliases: ['warranty_months', 'warrantymonths'], fallback: 'a-1787203262', legacy: ['a-1787143998'] },
+    installer_name: { aliases: ['installer_name', 'installername', 'technician_name'], fallback: 'a-1787203260', legacy: ['a-1787143967'] },
+    closing_reason: { aliases: ['closing_reason', 'close_reason'], fallback: 'a-1787204474', legacy: ['a-1787203994', 'a-1787203269', 'a-1787144050'] },
+    followup_reason: { aliases: ['followup_reason', 'follow_up_reason'], fallback: 'a-1787204476' }
+  };
+
+  function findTicketFieldByLabel(label) {
+    var spec = TICKET_FIELD_LABELS[label] || { aliases: [label] };
+    var aliases = (spec.aliases || [label]).map(function (a) { return String(a).toLowerCase(); });
+    var fields = ticketCustomFieldsCache || [];
+    var i;
+    var en;
+    for (i = 0; i < fields.length; i++) {
+      en = ticketFieldLabel(fields[i]);
+      if (aliases.indexOf(en) !== -1 && ticketFieldStorageName(fields[i])) return fields[i];
+    }
+    if (spec.fallback) return { name: spec.fallback, en: label };
+    return null;
+  }
+
+  function labeledFieldStorageName(label) {
+    var field = findTicketFieldByLabel(label);
+    var name = ticketFieldStorageName(field);
+    if (name) return name;
+    return (TICKET_FIELD_LABELS[label] && TICKET_FIELD_LABELS[label].fallback) || '';
+  }
+
+  function readTicketLabeledField(ticket, label) {
+    var name = labeledFieldStorageName(label);
+    var raw = name ? readTicketStorageValue(ticket, name) : '';
+    if (raw) return raw;
+    var spec = TICKET_FIELD_LABELS[label] || { aliases: [label] };
+    var extraIds = [].concat(spec.fallback || [], spec.legacy || []);
+    var i;
+    var v;
+    for (i = 0; i < extraIds.length; i++) {
+      raw = readTicketStorageValue(ticket, extraIds[i]);
+      if (raw) return raw;
+    }
+    var bag = ticketCustomFieldBag(ticket);
+    var aliases = spec.aliases || [label];
+    for (i = 0; i < aliases.length; i++) {
+      v = bag[aliases[i]];
+      if (v == null || String(v).trim() === '') continue;
+      return String(v).trim();
+    }
+    return '';
+  }
+
+  function stripTicketLabelKeys(payload) {
+    if (!payload) return payload;
+    var cf = payload.custom_fields;
+    Object.keys(TICKET_FIELD_LABELS).forEach(function (label) {
+      var aliases = (TICKET_FIELD_LABELS[label].aliases || [label]).concat([label, 'closing_reason_id']);
+      aliases.forEach(function (k) {
+        if (cf && Object.prototype.hasOwnProperty.call(cf, k)) delete cf[k];
+        if (Object.prototype.hasOwnProperty.call(payload, k) && !/^a-\d+$/.test(k)) delete payload[k];
+      });
+    });
+    return payload;
+  }
+
+  async function applyTicketLabeledCustomFields(payload, values) {
+    payload = payload || {};
+    try { await listTicketCustomFields(); } catch (e) { /* use fallback ids */ }
+    if (!payload.custom_fields || typeof payload.custom_fields !== 'object') payload.custom_fields = {};
+    Object.keys(values || {}).forEach(function (label) {
+      var val = values[label];
+      if (val == null || String(val).trim() === '') return;
+      var name = labeledFieldStorageName(label);
+      if (!name) return;
+      var stored = String(val).trim();
+      payload.custom_fields[name] = stored;
+      payload[name] = stored;
+    });
+    return stripTicketLabelKeys(payload);
+  }
+
   /** Single ticket — always pass ticket_id. */
   async function getTicket(ticketId, extra) {
     var id = requireId(ticketId, 'ticket_id');
@@ -2687,6 +3194,19 @@
     doneMission: doneMission,
     getCustomer: getCustomer,
     getTicket: getTicket,
+    listTicketCustomFields: listTicketCustomFields,
+    getTicketCustomField: getTicketCustomField,
+    collectTicketFieldOptions: collectTicketFieldOptions,
+    resolveTicketClosingStatusField: resolveTicketClosingStatusField,
+    listTicketLabeledFieldOptions: listTicketLabeledFieldOptions,
+    listClosingStatusOptions: listClosingStatusOptions,
+    listClosingReasonOptions: listClosingReasonOptions,
+    resolveTicketCashField: resolveTicketCashField,
+    applyTicketCashField: applyTicketCashField,
+    cachedTicketCashFieldName: cachedTicketCashFieldName,
+    isTicketCashYes: isTicketCashYes,
+    applyTicketLabeledCustomFields: applyTicketLabeledCustomFields,
+    readTicketLabeledField: readTicketLabeledField,
     listDocuments: listDocuments,
     listEmails: listEmails,
     listChatConversations: listChatConversations,

@@ -584,9 +584,57 @@
     }
   }
 
-  function getBackUrl() {
+  function safeTaskBackHref(raw) {
+    if (typeof window.mbSafeBackHref === 'function') return window.mbSafeBackHref(raw);
+    raw = String(raw || '').trim();
+    if (!raw || /^javascript:/i.test(raw) || raw.indexOf('..') >= 0) return '';
+    return raw.replace(/^\//, '');
+  }
+
+  function customerCardUrl(kind) {
     var q = new URLSearchParams(window.location.search || '');
-    var from = String(q.get('from') || q.get('back') || '').trim().toLowerCase();
+    var cid = q.get('customer_id') || q.get('cust_id') || '';
+    var page = kind === 'lead' ? 'lead-card.html' : 'service-customer-card.html';
+    if (!cid) return page;
+    return page + '?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid);
+  }
+
+  function chatBackUrl() {
+    var q = new URLSearchParams(window.location.search || '');
+    var cid = q.get('customer_id') || q.get('cust_id');
+    var chatQ = new URLSearchParams();
+    if (cid) {
+      chatQ.set('customer_id', cid);
+      chatQ.set('cust_id', cid);
+    }
+    var name = q.get('name');
+    var phone = q.get('phone');
+    var email = q.get('email');
+    if (name) chatQ.set('name', name);
+    if (phone) chatQ.set('phone', phone);
+    if (email) chatQ.set('email', email);
+    var qs = chatQ.toString();
+    return qs ? ('chat-customer.html?' + qs) : 'calls-list.html';
+  }
+
+  function getExplicitBackUrl() {
+    var q = new URLSearchParams(window.location.search || '');
+    var safe = safeTaskBackHref(q.get('back') || q.get('return') || '');
+    if (safe && /\.html/i.test(safe) && !/service-create-task/i.test(safe)) return safe;
+    var rawFrom = String(q.get('from') || '').trim();
+    if (rawFrom && /\.html/i.test(rawFrom)) {
+      safe = safeTaskBackHref(rawFrom);
+      if (safe && !/service-create-task/i.test(safe)) return safe;
+    }
+    return '';
+  }
+
+  function getBackUrl() {
+    var explicit = getExplicitBackUrl();
+    if (explicit) return explicit;
+
+    var q = new URLSearchParams(window.location.search || '');
+    var from = String(q.get('from') || '').trim().toLowerCase();
 
     if (from === 'home' || from === 'sales-home' || from === 'sales-home.html' || from === 'main') {
       return 'sales-home.html';
@@ -594,8 +642,14 @@
     if (from === 'tasks' || from === 'sales-tasks' || from === 'sales-tasks.html') {
       return 'sales-tasks.html';
     }
+    if (from === 'lead' || from === 'lead-card' || from === 'lead-card.html') {
+      return customerCardUrl('lead');
+    }
     if (from === 'leads' || from === 'leads-list' || from === 'leads-list.html') {
       return 'leads-list.html';
+    }
+    if (from === 'customer' || from === 'customer-card' || from === 'service-customer-card' || from === 'service-customer-card.html') {
+      return customerCardUrl('customer');
     }
     if (from === 'customers' || from === 'customers.html') {
       return 'customers.html';
@@ -606,28 +660,8 @@
     if (from === 'service' || from === 'service-all-calls') {
       return 'service-all-calls.html';
     }
-
-    // Came from a specific chat — return to that conversation
-    var cid = q.get('customer_id') || q.get('cust_id');
-    var name = q.get('name');
-    var phone = q.get('phone');
-    if (cid || name || phone || from === 'messages' || from === 'chat' || from === 'chat-customer') {
-      var chatQ = new URLSearchParams();
-      if (cid) {
-        chatQ.set('customer_id', cid);
-        chatQ.set('cust_id', cid);
-      }
-      if (name) chatQ.set('name', name);
-      if (phone) chatQ.set('phone', phone);
-      var email = q.get('email');
-      if (email) chatQ.set('email', email);
-      var qs = chatQ.toString();
-      return qs ? ('chat-customer.html?' + qs) : 'calls-list.html';
-    }
-
-    // Explicit absolute/relative back page in query
-    if (from && /\.html/.test(from)) {
-      return from.split('?')[0].replace(/^\//, '');
+    if (from === 'messages' || from === 'chat' || from === 'chat-customer') {
+      return chatBackUrl();
     }
 
     var fromRef = getBackUrlFromReferrer();
@@ -636,14 +670,28 @@
     return getDefaultHomeUrl();
   }
 
-  function goBackToEntryScreen() {
+  function syncCreateTaskActiveTab() {
+    if (!document.body) return;
     var q = new URLSearchParams(window.location.search || '');
-    var from = String(q.get('from') || q.get('back') || '').trim();
-    // No explicit from → prefer browser history (home → task → back = home)
-    if (!from && window.history.length > 1) {
-      window.history.back();
-      return;
+    var from = String(q.get('from') || '').toLowerCase();
+    var back = String(q.get('back') || q.get('return') || '').toLowerCase();
+    var tab = 'tasks';
+    if (from === 'lead' || from === 'leads' || /lead-card|leads-list/.test(back)) tab = 'leads';
+    else if (from === 'customer' || from === 'customers' || /service-customer-card|customers\.html/.test(back)) tab = 'customers';
+    else if (from === 'home' || from === 'main' || /sales-home/.test(back)) tab = 'main';
+    else if (from === 'messages' || from === 'chat' || /chat-customer|calls-list/.test(back)) tab = 'messages';
+    else if (from === 'service' || /service-all-calls/.test(back)) tab = 'service';
+    else if (from === 'tasks' || /sales-tasks/.test(back)) tab = 'tasks';
+    var prev = document.body.getAttribute('data-active-tab') || '';
+    document.body.setAttribute('data-active-tab', tab);
+    if (prev !== tab) {
+      var existing = document.getElementById('common-app-footer');
+      if (existing) existing.remove();
+      if (typeof window.ensureCommonFooter === 'function') window.ensureCommonFooter();
     }
+  }
+
+  function goBackToEntryScreen() {
     window.location.href = getBackUrl();
   }
 
@@ -1253,6 +1301,12 @@
     });
   }
 
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncCreateTaskActiveTab);
+  } else {
+    syncCreateTaskActiveTab();
+  }
+
   var started = false;
 
   function start() {
@@ -1261,6 +1315,7 @@
     // rebuild the dropdowns and wipe the values loadExistingMission() just selected.
     if (started) return;
     started = true;
+    syncCreateTaskActiveTab();
     wireBackNavigation();
     wireMarkDone();
     wireSchedulePills();

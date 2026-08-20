@@ -429,6 +429,204 @@
     return merged;
   }
 
+  function resolveChatHref(href) {
+    var out = String(href || '');
+    if (/^biz1upload\//i.test(out) && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
+      out = MineralBarApp.resolveFileUrl(out) || out;
+    }
+    return out;
+  }
+
+  function hrefMediaKind(href) {
+    var h = String(href || '');
+    if (/\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(h)) return 'image';
+    if (/\.pdf(\?|$)/i.test(h)) return 'pdf';
+    if (/\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba)(\?|$)/i.test(h) ||
+        /(^|[\/._-])voice[-_].+\.(webm|ogg|m4a|mp3)(\?|$)/i.test(h) ||
+        /(?:^|[\/._-])(?:audio|ptt|voice)[\/._-]/i.test(h)) {
+      return 'audio';
+    }
+    if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(h)) return 'video';
+    return '';
+  }
+
+  function looksLikeMediaFileName(text) {
+    var t = String(text || '').trim();
+    if (!t) return false;
+    try { t = decodeURIComponent(t); } catch (e0) { /* keep raw */ }
+    t = t.replace(/\\/g, '/').split('/').pop();
+    return /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba|mp4|webm|mov|m4v|png|jpe?g|gif|webp|bmp|pdf)$/i.test(t);
+  }
+
+  function stripMediaFileNameLines(text) {
+    var lines = String(text || '').split(/\r?\n/);
+    var kept = [];
+    for (var i = 0; i < lines.length; i++) {
+      if (looksLikeMediaFileName(lines[i])) continue;
+      kept.push(lines[i]);
+    }
+    return kept.join('\n').replace(/^\s+|\s+$/g, '');
+  }
+
+  function audioPlayerHtml(safeHref) {
+    return '<div class="mb-chat-audio-wrap" style="margin:4px 0;">' +
+      '<audio class="mb-chat-audio" controls loop playsinline preload="auto" src="' + safeHref +
+      '" style="width:100%; max-width:260px; height:40px; display:block;"></audio></div>';
+  }
+
+  var parkedChatMedia = null;
+
+  function mediaSrcKey(el) {
+    return String((el && (el.getAttribute('src') || el.currentSrc)) || '').split('?')[0];
+  }
+
+  function pauseOtherChatMedia(keep) {
+    var root = document.getElementById('mb-live-chat') || document;
+    var nodes = root.querySelectorAll('audio, video');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i] !== keep && !nodes[i].paused) {
+        try {
+          nodes[i].setAttribute('data-mb-user-stop', '1');
+          nodes[i].pause();
+        } catch (e0) { /* ignore */ }
+      }
+    }
+    if (parkedChatMedia && parkedChatMedia !== keep && !parkedChatMedia.paused) {
+      try {
+        parkedChatMedia.setAttribute('data-mb-user-stop', '1');
+        parkedChatMedia.pause();
+      } catch (e1) { /* ignore */ }
+    }
+  }
+
+  function replayChatMedia(el) {
+    if (!el || el.getAttribute('data-mb-user-stop') === '1') return;
+    el.loop = true;
+    el.setAttribute('data-mb-replaying', '1');
+    try { el.currentTime = 0; } catch (e0) { /* ignore */ }
+    var p = el.play();
+    var clear = function () { el.removeAttribute('data-mb-replaying'); };
+    if (p && typeof p.then === 'function') {
+      p.then(clear).catch(function () {
+        var src = el.getAttribute('src') || el.currentSrc || '';
+        if (!src) { clear(); return; }
+        var clean = String(src).replace(/([?&])_r=\d+/g, '$1').replace(/[?&]$/, '');
+        el.src = clean + (clean.indexOf('?') >= 0 ? '&' : '?') + '_r=' + Date.now();
+        el.loop = true;
+        el.play().catch(function () {}).then(clear, clear);
+      });
+    } else {
+      setTimeout(clear, 120);
+    }
+  }
+
+  function enableChatAudioLoop(el) {
+    if (!el) return;
+    el.loop = true;
+    el.setAttribute('loop', '');
+    el.setAttribute('playsinline', '');
+    if (el.getAttribute('data-mb-loop')) return;
+    el.setAttribute('data-mb-loop', '1');
+
+    function nearEnd() {
+      var d = el.duration;
+      return !!(d && isFinite(d) && d > 0 && (d - (el.currentTime || 0)) < 0.2);
+    }
+
+    el.addEventListener('play', function () {
+      el.removeAttribute('data-mb-user-stop');
+      pauseOtherChatMedia(el);
+    });
+    el.addEventListener('pause', function () {
+      if (el.getAttribute('data-mb-replaying')) return;
+      if (el.ended || nearEnd()) {
+        replayChatMedia(el);
+        return;
+      }
+      el.setAttribute('data-mb-user-stop', '1');
+    });
+    el.addEventListener('ended', function () {
+      replayChatMedia(el);
+    });
+    el.addEventListener('timeupdate', function () {
+      if (el.getAttribute('data-mb-user-stop') === '1' || el.paused) return;
+      if (!nearEnd()) return;
+      el.setAttribute('data-mb-replaying', '1');
+      try { el.currentTime = 0.04; } catch (e1) { replayChatMedia(el); }
+      setTimeout(function () { el.removeAttribute('data-mb-replaying'); }, 100);
+    });
+  }
+
+  function makeLoopingAudio(src) {
+    var audio = document.createElement('audio');
+    audio.className = 'mb-chat-audio';
+    audio.controls = true;
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.setAttribute('playsinline', '');
+    audio.src = src || '';
+    audio.setAttribute('style', 'width:100%; max-width:260px; height:40px; display:block;');
+    enableChatAudioLoop(audio);
+    return audio;
+  }
+
+  function parkPlayingChatMedia(root) {
+    if (parkedChatMedia && parkedChatMedia.parentNode && !parkedChatMedia.paused) {
+      return parkedChatMedia;
+    }
+    parkedChatMedia = null;
+    if (!root) return null;
+    var nodes = root.querySelectorAll('audio.mb-chat-audio, video.mb-chat-maybe-audio');
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (n.paused || n.getAttribute('data-mb-user-stop') === '1') continue;
+      parkedChatMedia = n;
+      document.body.appendChild(n);
+      n.style.cssText = 'position:fixed;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+      return n;
+    }
+    return null;
+  }
+
+  function restoreParkedChatMedia(root) {
+    var parked = parkedChatMedia;
+    if (!parked || !root) return;
+    var src = mediaSrcKey(parked);
+    if (!src) return;
+    var nodes = root.querySelectorAll('audio.mb-chat-audio, video.mb-chat-maybe-audio');
+    var match = null;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i] === parked) { match = nodes[i]; break; }
+      var s = mediaSrcKey(nodes[i]);
+      if (s && (s === src || src.indexOf(s) >= 0 || s.indexOf(src) >= 0)) {
+        match = nodes[i];
+        break;
+      }
+    }
+    parked.style.cssText = 'width:100%; max-width:260px; height:40px; display:block;';
+    if (parked.tagName !== 'VIDEO') parked.className = 'mb-chat-audio';
+    if (match && match !== parked && match.parentNode) {
+      match.parentNode.replaceChild(parked, match);
+      parkedChatMedia = null;
+    } else if (match === parked) {
+      parkedChatMedia = null;
+    }
+  }
+
+  function messagesDomKey(rows) {
+    var seen = {};
+    var parts = [String(currentTypeFilter || 'all')];
+    (rows || []).forEach(function (row) {
+      var text = row && row.message ? String(row.message) : '';
+      if (!text) return;
+      var dk = messageDedupeKey(row);
+      if (seen[dk]) return;
+      seen[dk] = true;
+      parts.push(dk + '\x1f' + (row._pending ? '1' : '0') + '\x1f' + String(row.user_name || ''));
+    });
+    return parts.join('\x1e');
+  }
+
   function formatMessageBody(text) {
     var raw = String(text == null ? '' : text);
     if (!raw) return '';
@@ -444,39 +642,87 @@
     if (last < raw.length) parts.push({ type: 'text', value: raw.slice(last) });
     if (!parts.length) parts.push({ type: 'text', value: raw });
 
+    var hasMedia = parts.some(function (part) {
+      if (part.type !== 'url') return false;
+      var kind = hrefMediaKind(resolveChatHref(part.value));
+      return kind === 'audio' || kind === 'video' || kind === 'image';
+    });
+
     return parts.map(function (part) {
-      if (part.type !== 'url') return esc(part.value);
-      var href = part.value;
-      if (/^biz1upload\//i.test(href) && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
-        href = MineralBarApp.resolveFileUrl(href);
+      if (part.type !== 'url') {
+        var shown = hasMedia ? stripMediaFileNameLines(part.value) : part.value;
+        return shown ? esc(shown) : '';
       }
+      var href = resolveChatHref(part.value);
       var safeHref = esc(href);
-      var isImg = /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(href);
-      var isPdf = /\.pdf(\?|$)/i.test(href);
-      var isAudio = /\.(mp3|wav|m4a|aac|ogg|flac|opus|weba)(\?|$)/i.test(href) ||
-        /(^|[\/._-])voice[-_].+\.webm(\?|$)/i.test(href);
-      var isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(href) && !isAudio;
-      if (isImg) {
+      var kind = hrefMediaKind(href);
+      if (kind === 'image') {
         return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:block; margin:4px 0;">' +
           '<img src="' + safeHref + '" alt="" style="max-width:100%; max-height:220px; border-radius:12px; display:block;"/>' +
           '</a>';
       }
-      if (isPdf) {
+      if (kind === 'pdf') {
         return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:8px; margin:6px 0; padding:10px 12px; border:1.5px solid #dbe7f5; border-radius:12px; background:#f4f8fd; color:#1d60a2; text-decoration:none; font-weight:800; font-size:13.5px;">' +
           '<span style="font-size:18px; line-height:1;">📄</span>' +
           '<span style="word-break:break-word;">' + chatT('Open service form PDF', 'פתח טופס שירות PDF') + '</span>' +
           '</a>';
       }
-      // mp3/mp4: player only — do not show the raw CDN URL under the media
-      if (isAudio) {
-        return '<div style="margin:4px 0;"><audio controls preload="metadata" src="' + safeHref + '" style="width:100%; max-width:260px;"></audio></div>';
+      // Audio / voice: player only — no filename, no CDN URL, no black video frame
+      if (kind === 'audio') {
+        return audioPlayerHtml(safeHref);
       }
-      if (isVideo) {
-        return '<div style="margin:4px 0;"><video controls preload="metadata" src="' + safeHref + '" style="width:100%; max-width:260px; border-radius:12px; background:#0f1828;"></video></div>';
+      if (kind === 'video') {
+        return '<div class="mb-chat-audio-wrap" style="margin:4px 0;">' +
+          '<video class="mb-chat-maybe-audio" controls loop playsinline preload="auto" src="' + safeHref +
+          '" style="width:100%; max-width:260px; height:40px; display:block; border-radius:10px; background:transparent;"></video></div>';
       }
       var label = esc(part.value);
       return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="color:#1d60a2; text-decoration:underline; word-break:break-all;">' + label + '</a>';
     }).join('');
+  }
+
+  function bindMaybeAudioVideo(vid) {
+    if (!vid || vid.getAttribute('data-mb-bound')) return;
+    vid.setAttribute('data-mb-bound', '1');
+    var apply = function () {
+      if (!vid.parentNode) return;
+      var w = vid.videoWidth || 0;
+      var h = vid.videoHeight || 0;
+      // Audio-only mp4/webm (WhatsApp audio) reports 0×0 — show play bar, not a black screen
+      if (w < 16 || h < 16) {
+        var wasPlaying = !vid.paused && vid.getAttribute('data-mb-user-stop') !== '1';
+        var t = vid.currentTime || 0;
+        var audio = makeLoopingAudio(vid.currentSrc || vid.getAttribute('src') || '');
+        vid.parentNode.replaceChild(audio, vid);
+        if (wasPlaying) {
+          audio.removeAttribute('data-mb-user-stop');
+          try { audio.currentTime = t; } catch (e2) { /* ignore */ }
+          audio.play().catch(function () {});
+        }
+        return;
+      }
+      vid.classList.add('mb-is-video');
+      vid.style.height = 'auto';
+      vid.style.maxHeight = '220px';
+      vid.style.background = '#0f1828';
+    };
+    vid.addEventListener('loadedmetadata', apply);
+    vid.addEventListener('error', function () {
+      if (!vid.parentNode) return;
+      vid.parentNode.replaceChild(makeLoopingAudio(vid.getAttribute('src') || ''), vid);
+    });
+    if (vid.readyState >= 1) apply();
+  }
+
+  function bindChatMediaPlayers(root) {
+    if (!root) return;
+    var videos = root.querySelectorAll('video.mb-chat-maybe-audio');
+    for (var i = 0; i < videos.length; i++) {
+      enableChatAudioLoop(videos[i]);
+      bindMaybeAudioVideo(videos[i]);
+    }
+    var audios = root.querySelectorAll('audio.mb-chat-audio');
+    for (var j = 0; j < audios.length; j++) enableChatAudioLoop(audios[j]);
   }
 
   function bubbleIn(text, time, who, badgeHtml) {
@@ -744,8 +990,17 @@
         }
       });
     }
+    var domKey = messagesDomKey(filteredRows);
+    if (el.getAttribute('data-mb-dom-key') === domKey && el.querySelector('audio, video')) {
+      if (parkedChatMedia) restoreParkedChatMedia(el);
+      return;
+    }
+    var playing = parkPlayingChatMedia(el);
     el.innerHTML = html;
-    el.scrollTop = el.scrollHeight;
+    el.setAttribute('data-mb-dom-key', domKey);
+    bindChatMediaPlayers(el);
+    restoreParkedChatMedia(el);
+    if (!playing || playing.paused) el.scrollTop = el.scrollHeight;
   }
 
   async function loadThread(elId, p, options) {
@@ -1236,11 +1491,14 @@
       var finalMsg = textMsg;
       if (attachSnapshot) {
         var isVoice = attachSnapshot.kind === 'voice' || /^voice[-_]/i.test(attachSnapshot.name || '');
+        var isAudioFile = isVoice ||
+          (attachSnapshot.file && /^audio\//i.test(attachSnapshot.file.type || '')) ||
+          /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba)$/i.test(attachSnapshot.name || '');
         showToast(isVoice
           ? chatT('Sending voice message…', 'שולח הודעה קולית…')
           : chatT('Uploading file…', 'מעלה קובץ…'));
         localId = appendLocalMessage(
-          isVoice
+          isAudioFile
             ? ((textMsg ? (textMsg + '\n') : '') + '…')
             : ((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n…'),
           true
@@ -1259,7 +1517,7 @@
           url = MineralBarApp.resolveFileUrl(url);
         }
         if (!url) throw new Error(chatT('File upload failed', 'העלאת הקובץ נכשלה'));
-        finalMsg = isVoice
+        finalMsg = isAudioFile
           ? ((textMsg ? (textMsg + '\n') : '') + url)
           : ((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n' + url);
         currentMessages = currentMessages.map(function (row) {

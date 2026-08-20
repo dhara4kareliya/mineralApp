@@ -113,7 +113,12 @@ mbCss('./common.css');
 <svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="14" style="flex:none; margin-top:1px;"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path></svg>
 <div style="min-width:0; flex:1;">
 <div style="font-size:11px; color:#8a93a3; font-weight:700; margin-bottom:2px;">{{ v.productLabel }}</div>
-<div style="font-size:13px; color:#1f2a3a; font-weight:700; line-height:1.35; word-break:break-word;">{{ v.productName }}</div>
+<sc-for as="p" hint-placeholder-count="1" list="{{ v.productItems }}">
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-top:4px;">
+<div style="font-size:13px; color:#1f2a3a; font-weight:700; line-height:1.35; word-break:break-word; min-width:0;">{{ p.label }}</div>
+<div style="font-size:13px; color:#1d60a2; font-weight:800; line-height:1.35; white-space:nowrap; flex:none; direction:ltr;">{{ p.price }}</div>
+</div>
+</sc-for>
 </div>
 </div>
 </sc-if>
@@ -709,6 +714,8 @@ class Component extends DCLogic {
   extractRows(res) {
     if (!res) return [];
     if (Array.isArray(res.data)) return res.data;
+    if (res.data && Array.isArray(res.data.rows)) return res.data.rows;
+    if (res.data && Array.isArray(res.data.data)) return res.data.data;
     if (Array.isArray(res.output)) return res.output;
     if (Array.isArray(res.rows)) return res.rows;
     if (Array.isArray(res.list)) return res.list;
@@ -1110,6 +1117,108 @@ class Component extends DCLogic {
     }
   }
 
+  formatProductPrice(priceRaw, coin) {
+    coin = coin || '₪';
+    if (priceRaw === '' || priceRaw == null) return '';
+    var num = Number(priceRaw);
+    if (isFinite(num)) {
+      return Math.round(num).toLocaleString('en-US') + (String(coin).indexOf('₪') >= 0 || coin === 'ILS' ? '₪' : String(coin));
+    }
+    var price = String(priceRaw).trim();
+    if (!price) return '';
+    if (coin && price.indexOf('₪') < 0 && price.indexOf(String(coin)) < 0) {
+      return price + String(coin);
+    }
+    return price;
+  }
+
+  pickProductPrice(obj, allowGenericPrice) {
+    if (!obj || typeof obj !== 'object') return '';
+    var raw = obj.product_price != null ? obj.product_price
+      : (obj.item_price != null ? obj.item_price
+        : (obj.item_total != null ? obj.item_total
+          : (obj.main_price != null ? obj.main_price
+            : (obj.sale_price != null ? obj.sale_price
+              : (allowGenericPrice && obj.price != null ? obj.price : '')))));
+    return this.formatProductPrice(raw, obj.coin || obj.currency || '₪');
+  }
+
+  catalogProductEntry(p) {
+    if (!p) return null;
+    var name = String(p.product_name || p.name || p.title || '').trim();
+    var raw = p.product_price != null ? p.product_price
+      : (p.main_price != null ? p.main_price
+        : (p.sale_price != null ? p.sale_price
+          : (p.price != null ? p.price
+            : (p.cost != null ? p.cost : ''))));
+    return {
+      name: name,
+      priceRaw: raw,
+      price: this.formatProductPrice(raw, p.coin || p.currency || '₪')
+    };
+  }
+
+  unwrapProductRecord(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var row = raw.data || raw.output || raw.product || raw.item || raw;
+    if (Array.isArray(row)) row = row[0];
+    if (row && row.data && typeof row.data === 'object' && !Array.isArray(row.data)) row = row.data;
+    if (row && row.product && typeof row.product === 'object' && !Array.isArray(row.product)) row = row.product;
+    if (!row || typeof row !== 'object') return null;
+    if (row.product_name || row.name || row.title || row.id || row.product_id ||
+        row.product_price != null || row.price != null || row.main_price != null) {
+      return row;
+    }
+    return null;
+  }
+
+  extractTicketProductIds(ticket) {
+    var ids = [];
+    if (!ticket) return ids;
+    function addId(v) {
+      if (v == null || v === '') return;
+      if (Array.isArray(v)) { v.forEach(addId); return; }
+      if (typeof v === 'object') {
+        addId(v.id != null ? v.id : v.product_id);
+        return;
+      }
+      String(v).split(/[,|;]+/).forEach(function (part) {
+        part = String(part || '').replace(/[\[\]"']/g, '').trim();
+        if (!part || part === '0' || !/^\d+$/.test(part)) return;
+        ids.push(part);
+      });
+    }
+    addId(ticket.product_id);
+    addId(ticket.product_ids);
+    addId(ticket.productId);
+    addId(ticket.products);
+    addId(ticket.product);
+    addId(ticket.linked_products);
+    addId(ticket.product_list);
+    var cf = ticket.custom_fields;
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e0) { cf = null; }
+    }
+    if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
+      Object.keys(cf).forEach(function (k) {
+        if (!/product/i.test(k)) return;
+        if (/name|title|label|choose|sku/i.test(k)) return;
+        addId(cf[k]);
+      });
+    }
+    Object.keys(ticket).forEach(function (k) {
+      if (!(/^a-.*product/i.test(k) || k === 'a-product_id')) return;
+      if (/name|title|label|sku/i.test(k)) return;
+      addId(ticket[k]);
+    });
+    var seen = {};
+    return ids.filter(function (id) {
+      if (!id || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
+
   normalizeProductRows(raw) {
     var list = [];
     if (!raw) return list;
@@ -1121,6 +1230,7 @@ class Component extends DCLogic {
     else if (raw.output && Array.isArray(raw.output.data)) list = raw.output.data;
     else if (raw.data && Array.isArray(raw.data.products)) list = raw.data.products;
 
+    var self = this;
     return list.map(function (p) {
       if (!p) return null;
       var name = String(p.product_name || p.item_name || p.name || p.title || p.label || p.product || '').trim();
@@ -1130,18 +1240,7 @@ class Component extends DCLogic {
           : (p.item_price != null ? p.item_price
             : (p.product_price != null ? p.product_price : '')));
       var coin = p.coin || p.currency || '₪';
-      var price = '';
-      if (priceRaw !== '' && priceRaw != null) {
-        var num = Number(priceRaw);
-        if (isFinite(num)) {
-          price = Math.round(num).toLocaleString('en-US') + (String(coin).indexOf('₪') >= 0 || coin === 'ILS' ? '₪' : String(coin));
-        } else {
-          price = String(priceRaw);
-          if (coin && String(price).indexOf('₪') < 0 && String(price).indexOf(String(coin)) < 0) {
-            price = price + String(coin);
-          }
-        }
-      }
+      var price = self.formatProductPrice(priceRaw, coin);
       var date = p.date_display || p.date_created || p.created || p.sale_date || p.document_date || '';
       if (date && String(date).length > 10) date = String(date).slice(0, 10);
       return {
@@ -1237,55 +1336,154 @@ class Component extends DCLogic {
     });
   }
 
+  async fetchCatalogById(client, id) {
+    var pid = String(id || '').trim();
+    if (!pid || pid === '0') return null;
+    this._catalogById = this._catalogById || {};
+    if (this._catalogById[pid]) return this._catalogById[pid];
+    try {
+      var got = await client.request('Products.Get', { id: pid, product_id: pid });
+      var item = this.unwrapProductRecord(got);
+      var entry = this.catalogProductEntry(item);
+      if (entry) {
+        this._catalogById[pid] = entry;
+        if (entry.name) this.rememberCatalogName(entry);
+        return entry;
+      }
+    } catch (eGet) {
+      console.warn('[DailySchedule] Products.Get failed', pid, eGet);
+    }
+    return null;
+  }
+
+  rememberCatalogName(entry) {
+    if (!entry || !entry.name) return;
+    this._catalogByName = this._catalogByName || {};
+    this._catalogByName[entry.name.toLowerCase().replace(/\s+/g, ' ')] = entry;
+  }
+
+  async fetchCatalogByName(client, name) {
+    var want = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!want) return null;
+    this._catalogByName = this._catalogByName || {};
+    if (this._catalogByName[want]) return this._catalogByName[want];
+    try {
+      var raw = await client.request('Products.List', {
+        search: name,
+        'search[value]': name,
+        filter_data: name,
+        length: 25,
+        limit: 25,
+        start: 0,
+        draw: 1,
+        active: 1
+      });
+      var rows = this.extractRows(raw);
+      var exact = null;
+      var soft = null;
+      for (var i = 0; i < rows.length; i++) {
+        var entry = this.catalogProductEntry(rows[i]);
+        if (!entry || !entry.name) continue;
+        var nkey = entry.name.toLowerCase().replace(/\s+/g, ' ');
+        this._catalogByName[nkey] = entry;
+        if (rows[i] && rows[i].id != null) {
+          this._catalogById = this._catalogById || {};
+          this._catalogById[String(rows[i].id)] = entry;
+        }
+        if (nkey === want) exact = entry;
+        else if (!soft && nkey.indexOf(want) >= 0) soft = entry;
+      }
+      return exact || soft || null;
+    } catch (eList) {
+      console.warn('[DailySchedule] Products.List search failed', name, eList);
+      return null;
+    }
+  }
+
   async enrichTicketProductNames(client, rows) {
     var list = Array.isArray(rows) ? rows : [];
-    var needsLookup = list.some(function (t) {
-      if (!t) return false;
-      if (this.extractTicketProducts(t).length) return false;
-      return !!(t.product_id || t.productId || (t.products && t.products.length));
-    }.bind(this));
-    if (!needsLookup) return list;
+    if (!list.length) return list;
+    var self = this;
+    this._catalogById = this._catalogById || {};
+    this._catalogByName = this._catalogByName || {};
 
-    var byId = {};
-    try {
-      var res = await client.request('Products.List', { limit: 500 });
-      var products = this.extractRows(res);
-      products.forEach(function (p) {
-        if (!p || p.id == null) return;
-        var name = String(p.product_name || p.name || p.title || '').trim();
-        if (name) byId[String(p.id)] = name;
+    var idsNeeded = {};
+    var namesNeeded = {};
+    list.forEach(function (ticket) {
+      self.extractTicketProductIds(ticket).forEach(function (id) { idsNeeded[id] = true; });
+      self.extractTicketProducts(ticket).forEach(function (p) {
+        if (p.id) idsNeeded[String(p.id)] = true;
+        if (p.label && !p.price) namesNeeded[p.label] = true;
       });
-    } catch (e) {
-      console.warn('[DailySchedule] Products.List enrich failed', e);
-      return list;
+    });
+
+    var idList = Object.keys(idsNeeded);
+    for (var i = 0; i < idList.length && i < 20; i++) {
+      await this.fetchCatalogById(client, idList[i]);
+    }
+
+    var nameList = Object.keys(namesNeeded);
+    for (var n = 0; n < nameList.length && n < 20; n++) {
+      var already = this._catalogByName[nameList[n].toLowerCase().replace(/\s+/g, ' ')];
+      if (already && already.price) continue;
+      await this.fetchCatalogByName(client, nameList[n]);
     }
 
     return list.map(function (t) {
-      if (!t || this.extractTicketProducts(t).length) return t;
-      var id = t.product_id || t.productId;
-      if (!id && Array.isArray(t.products) && t.products[0]) {
-        var first = t.products[0];
-        id = typeof first === 'object' ? (first.id || first.product_id) : first;
+      if (!t) return t;
+      var parts = self.extractTicketProducts(t);
+      var ids = self.extractTicketProductIds(t);
+      if (parts.length === 1 && ids.length && !parts[0].id) parts[0].id = ids[0];
+      if (!parts.length && ids.length) {
+        ids.forEach(function (id) {
+          var cat0 = self._catalogById[id];
+          parts.push({
+            label: (cat0 && cat0.name) || ('#' + id),
+            id: id,
+            price: (cat0 && cat0.price) || ''
+          });
+        });
       }
-      var name = id != null ? byId[String(id)] : '';
-      if (!name) return t;
-      return Object.assign({}, t, { product_name: name, product_id: id });
-    }.bind(this));
+      var resolved = parts.map(function (p) {
+        var cat = (p.id && self._catalogById[String(p.id)]) ||
+          self._catalogByName[String(p.label || '').toLowerCase().replace(/\s+/g, ' ')];
+        return {
+          label: p.label || (cat && cat.name) || '',
+          id: p.id || '',
+          price: p.price || (cat && cat.price) || ''
+        };
+      }).filter(function (p) { return p.label; });
+      if (!resolved.length) return t;
+      var patch = { _scheduleProducts: resolved };
+      if (resolved[0].label && !t.product_name) patch.product_name = resolved[0].label;
+      if (resolved[0].id && !t.product_id) patch.product_id = resolved[0].id;
+      var c0 = (resolved[0].id && self._catalogById[resolved[0].id]) ||
+        self._catalogByName[String(resolved[0].label || '').toLowerCase().replace(/\s+/g, ' ')];
+      if (c0 && c0.priceRaw != null && c0.priceRaw !== '' && t.product_price == null) {
+        patch.product_price = c0.priceRaw;
+      }
+      return Object.assign({}, t, patch);
+    });
   }
 
   extractTicketProducts(ticket) {
     var out = [];
     if (!ticket) return out;
     var subject = String(ticket.subject || ticket.topic || '').trim();
-    function push(name, id) {
+    var self = this;
+    function push(name, id, price) {
       name = String(name || '').trim();
       if (!name || name === 'undefined' || name === 'null') return;
       if (subject && name === subject) return;
       var key = name.toLowerCase();
       for (var i = 0; i < out.length; i++) {
-        if (String(out[i].label || '').toLowerCase() === key) return;
+        if (String(out[i].label || '').toLowerCase() === key) {
+          if (!out[i].price && price) out[i].price = price;
+          if (!out[i].id && id) out[i].id = String(id);
+          return;
+        }
       }
-      out.push({ label: name, id: id ? String(id) : '' });
+      out.push({ label: name, id: id ? String(id) : '', price: price || '' });
     }
 
     var lists = [ticket.products, ticket.product_list, ticket.linked_products];
@@ -1294,39 +1492,54 @@ class Component extends DCLogic {
       list.forEach(function (item) {
         if (!item) return;
         if (typeof item === 'object') {
-          push(item.product_name || item.name || item.title || item.label, item.id || item.product_id);
+          push(
+            item.product_name || item.name || item.title || item.label,
+            item.id || item.product_id,
+            self.pickProductPrice(item, true)
+          );
         } else if (typeof item === 'string' && !/^\d+$/.test(String(item).trim())) {
-          push(item, '');
+          push(item, '', '');
         }
       });
     });
 
     if (ticket.product && typeof ticket.product === 'object' && !Array.isArray(ticket.product)) {
-      push(ticket.product.product_name || ticket.product.name, ticket.product.id || ticket.product.product_id);
+      push(
+        ticket.product.product_name || ticket.product.name,
+        ticket.product.id || ticket.product.product_id,
+        self.pickProductPrice(ticket.product, true)
+      );
     }
 
-    push(ticket.product_name || ticket.joined_product_name || ticket.item_name, ticket.product_id);
+    push(
+      ticket.product_name || ticket.joined_product_name || ticket.item_name,
+      ticket.product_id || ticket['a-product_id'],
+      self.pickProductPrice(ticket, false)
+    );
 
     var cf = ticket.custom_fields;
     if (typeof cf === 'string') {
       try { cf = JSON.parse(cf); } catch (e) { cf = null; }
     }
     if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
+      var cfId = cf.product_id || cf.productId || '';
       Object.keys(cf).forEach(function (k) {
         if (!/product/i.test(k)) return;
         var v = cf[k];
         if (v == null) return;
-        if (typeof v === 'object') push(v.product_name || v.name || v.label, v.id || v.product_id);
-        else {
+        if (typeof v === 'object') {
+          push(v.product_name || v.name || v.label, v.id || v.product_id, self.pickProductPrice(v, true));
+        } else if (/name|title|label/i.test(k)) {
           var s = String(v).trim();
-          if (s && !/^\d+$/.test(s)) push(s, '');
+          if (s && !/^\d+$/.test(s)) push(s, cfId, self.pickProductPrice(cf, true));
         }
       });
     }
 
+    var aId = ticket['a-product_id'] || ticket.product_id || '';
     Object.keys(ticket).forEach(function (k) {
       if (!/^a-.*product.*name/i.test(k) && k !== 'a-product_name') return;
-      push(ticket[k], '');
+      push(ticket[k], aId, '');
     });
 
     return out;
@@ -1367,10 +1580,14 @@ class Component extends DCLogic {
     }
     if (!desc) desc = String(ticket.note || ticket.description || '').trim();
 
-    var productParts = this.extractTicketProducts(ticket);
+    var productParts = (Array.isArray(ticket._scheduleProducts) && ticket._scheduleProducts.length)
+      ? ticket._scheduleProducts
+      : this.extractTicketProducts(ticket);
     var productName = productParts.length ? productParts[0].label : '';
-    // Extra chips only when more than one product (primary is shown above)
-    var parts = productParts.length > 1 ? productParts.slice(1) : [];
+    var productItems = productParts.map(function (p) {
+      return { label: p.label, price: p.price || '' };
+    });
+    var parts = [];
 
     // Biz1 in-app WhatsApp chat (not wa.me browser landing page)
     var chatHref = this.buildBiz1WhatsAppChatHref(ticket) || '#';
@@ -1385,8 +1602,9 @@ class Component extends DCLogic {
       type: ticket.subject || ticket.type || this.t('Service call', 'קריאת שירות'),
       ticketRef: ticketId ? ('#' + ticketId) : '',
       productName: productName,
+      productItems: productItems,
       productLabel: this.t('Product', 'מוצר'),
-      hasProduct: !!productName,
+      hasProduct: productItems.length > 0,
       parts: parts,
       hasParts: parts.length > 0,
       partsTitle: this.t('More products', 'מוצרים נוספים'),

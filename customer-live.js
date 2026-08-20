@@ -1449,12 +1449,15 @@
     return html;
   }
 
-  function renderMissionsSection(missions, customerId, name, phone, city) {
+  function renderMissionsSection(missions, customerId, name, phone, city, opts) {
+    opts = opts || {};
+    var fromKind = opts.from || 'customer';
     var createUrl = 'service-create-task.html?customer_id=' + encodeURIComponent(customerId) +
       '&name=' + encodeURIComponent(name || '') +
       (phone ? '&phone=' + encodeURIComponent(phone) : '') +
       (city ? '&city=' + encodeURIComponent(city) : '') +
-      '&from=customer';
+      '&from=' + encodeURIComponent(fromKind);
+    if (opts.back) createUrl += '&back=' + encodeURIComponent(opts.back);
     var html = '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">' +
       esc(t('Open tasks', 'משימות פתוחות')) + '</div>';
     html += '<div style="background:#fff;border-radius:16px;padding:6px 15px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:18px;">';
@@ -1824,7 +1827,7 @@
       '</div>' +
 
       renderInterestSection(interests, note) +
-      renderMissionsSection(missions, id, name, phone, city) +
+      renderMissionsSection(missions, id, name, phone, city, { from: 'lead', back: backCard }) +
       renderHistorySection(history)
     );
   }
@@ -1923,7 +1926,7 @@
       renderPlansSection(plans) +
       renderProductsSection(products) +
       renderTicketsSection(tickets, id) +
-      renderMissionsSection(missions, id, name, phone, city) +
+      renderMissionsSection(missions, id, name, phone, city, { from: 'customer', back: backCard }) +
       renderHistorySection(history) +
 
       (notes

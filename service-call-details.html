@@ -530,6 +530,15 @@
       return false;
     }
 
+    labeledField(ticket, label) {
+      try {
+        if (window.MineralBarApp && typeof MineralBarApp.readTicketLabeledField === 'function') {
+          return String(MineralBarApp.readTicketLabeledField(ticket, label) || '').trim();
+        }
+      } catch (eLab) { /* ignore */ }
+      return '';
+    }
+
     parseCustomFields(ticket) {
       var cf = ticket && ticket.custom_fields;
       if (typeof cf === 'string') {
@@ -573,7 +582,8 @@
 
     parseClosingStatusLabel(ticket, isEn) {
       var cf = this.parseCustomFields(ticket);
-      var raw = cf.closing_status != null ? cf.closing_status : cf.close_status;
+      var raw = this.labeledField(ticket, 'closing_status') ||
+        (cf.closing_status != null ? cf.closing_status : cf.close_status);
       raw = String(raw != null ? raw : '').trim();
       if (!raw) {
         var m = this.ticketNotesText(ticket).match(/Closing status:\s*([^\n]+)/i);
@@ -599,12 +609,12 @@
 
     parseClosingReason(ticket) {
       var cf = this.parseCustomFields(ticket);
-      var raw = cf.closing_reason != null ? cf.closing_reason
-        : (cf.followup_reason != null ? cf.followup_reason
+      var raw = this.labeledField(ticket, 'closing_reason') ||
+        (cf.closing_reason != null ? cf.closing_reason
           : (cf.close_reason != null ? cf.close_reason : ''));
       raw = String(raw != null ? raw : '').trim();
       if (!raw) {
-        var m = this.ticketNotesText(ticket).match(/Follow-up reason:\s*([^\n]+)/i);
+        var m = this.ticketNotesText(ticket).match(/Follow-up details:\s*([^\n]+)/i);
         if (m && m[1]) raw = String(m[1]).trim();
       }
       return raw;
@@ -617,7 +627,7 @@
         try { ef = JSON.parse(ef); } catch (e0) { ef = null; }
       }
       if (!ef || typeof ef !== 'object') ef = {};
-      var candidates = [cf.warranty_months, cf.warrantyMonths, ef.warranty_months, ef.warrantyMonths, ticket && ticket.warranty_months];
+      var candidates = [this.labeledField(ticket, 'warranty_months'), cf.warranty_months, cf.warrantyMonths, ef.warranty_months, ef.warrantyMonths, ticket && ticket.warranty_months];
       var raw = '';
       for (var i = 0; i < candidates.length; i++) {
         if (candidates[i] != null && String(candidates[i]).trim() !== '') {
@@ -641,20 +651,29 @@
     }
 
     isTakeCashYes(ticket) {
+      try {
+        if (window.MineralBarApp && typeof MineralBarApp.isTicketCashYes === 'function') {
+          return !!MineralBarApp.isTicketCashYes(ticket);
+        }
+      } catch (eCash) { /* fall through */ }
       var cf = this.parseCustomFields(ticket);
       var ef = ticket && (ticket.extra_fields != null ? ticket.extra_fields : ticket.extra_fields_json);
       if (typeof ef === 'string') {
         try { ef = JSON.parse(ef); } catch (e0) { ef = null; }
       }
       if (!ef || typeof ef !== 'object') ef = {};
-      var raw = cf.take_cash || cf.takeCash || cf.collect_cash ||
-        ef.take_cash || ef.takeCash || (ticket && ticket.take_cash) || '';
+      var raw = cf['a-1787203271'] || ticket['a-1787203271'] || ef['a-1787203271'] ||
+        cf['a-1787141989'] || ticket['a-1787141989'] || ef['a-1787141989'] ||
+        cf.cash || cf.take_cash || cf.takeCash || cf.collect_cash ||
+        ef.cash || ef.take_cash || ef.takeCash || (ticket && ticket.take_cash) || '';
+      if (Array.isArray(raw)) raw = raw.length ? raw[0] : '';
       raw = String(raw == null ? '' : raw).toLowerCase().trim();
       if (!raw) {
         var m = this.ticketNotesText(ticket).match(/Take cash(?: from the customer)?:\s*([^\n]+)/i)
           || this.ticketNotesText(ticket).match(/גביית מזומן\s*[:：]\s*([^\n]+)/);
         if (m && m[1]) raw = String(m[1]).toLowerCase().trim();
       }
+      if (raw === '2' || raw === 'no' || raw === 'false' || raw === 'לא') return false;
       return raw === 'yes' || raw === '1' || raw === 'true' || raw === 'כן' || raw === 'y';
     }
 
@@ -999,6 +1018,9 @@
           return;
         }
 
+        if (typeof window.MineralBarApp.listTicketCustomFields === 'function') {
+          await window.MineralBarApp.listTicketCustomFields().catch(function () { /* optional */ });
+        }
         const res = await window.MineralBarApp.getTicket(ticketId);
         if (res && res.ticket) {
           const linkedProducts = await this.resolveLinkedProducts(res.ticket);
@@ -1201,14 +1223,20 @@
         : status.label;
 
       let prioKey = 'normal';
-      var rawPrio = String(
-        t.priority || t.prio || t.ticket_priority ||
-        (t.custom_fields && (t.custom_fields.priority || t.custom_fields.prio)) ||
-        ''
-      ).toLowerCase().trim();
-      if (rawPrio === 'urgent' || rawPrio === 'high' || rawPrio === 'דחוף') prioKey = 'urgent';
-      else if (rawPrio === 'low' || rawPrio === 'נמוך' || rawPrio === 'נמוכה') prioKey = 'low';
-      else prioKey = 'normal';
+      var rating = Number(t.rating || (t.custom_fields && t.custom_fields.rating) || 0);
+      if (rating === 4 || rating === 5) prioKey = 'urgent';
+      else if (rating === 1 || rating === 2) prioKey = 'low';
+      else if (rating === 3) prioKey = 'normal';
+      else {
+        var rawPrio = String(
+          t.priority || t.prio || t.ticket_priority ||
+          (t.custom_fields && (t.custom_fields.priority || t.custom_fields.prio || t.custom_fields.urgency)) ||
+          ''
+        ).toLowerCase().trim();
+        if (rawPrio === 'urgent' || rawPrio === 'high' || rawPrio === 'דחוף') prioKey = 'urgent';
+        else if (rawPrio === 'low' || rawPrio === 'נמוך' || rawPrio === 'נמוכה') prioKey = 'low';
+        else prioKey = 'normal';
+      }
       const prioMeta = this.PRIO[prioKey] || this.PRIO.normal;
       const prio = {
         label: isEn ? prioMeta.label : prioMeta.labelHe,
