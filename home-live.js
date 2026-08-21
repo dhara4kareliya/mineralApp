@@ -345,17 +345,38 @@
   }
 
   async function listHomeMissions() {
-    // One Mission.List page (API caps at 25). Use total_record for open count;
-    // widget only needs 5 today/overdue from this sample — no multi-page storm.
-    var res = await MineralBarApp.listMissions({
-      length: 25,
+    var pageSize = 25;
+    var first = await MineralBarApp.listMissions({
+      length: pageSize,
       start: 0,
       draw: 1,
       show_done_mission: 0,
       include_counts: 1
     });
-    var rows = flattenMissionRows(res);
-    return { rows: rows, total: Number(res.total) || rows.length };
+    var rows = flattenMissionRows(first);
+    var total = Number(first.total) || rows.length;
+    if (rows.length >= total || rows.length < pageSize) {
+      return { rows: rows, total: total };
+    }
+    var starts = [];
+    var start;
+    for (start = rows.length; start < total; start += pageSize) {
+      starts.push(start);
+      if (starts.length >= 20) break;
+    }
+    var rest = await Promise.all(starts.map(function (s) {
+      return MineralBarApp.listMissions({
+        length: pageSize,
+        start: s,
+        draw: 1,
+        show_done_mission: 0,
+        include_counts: 0
+      }).catch(function () { return { rows: [] }; });
+    }));
+    rest.forEach(function (res) {
+      rows = rows.concat(flattenMissionRows(res));
+    });
+    return { rows: rows, total: total };
   }
 
   async function loadHome(opts) {
@@ -437,11 +458,14 @@
 
       var openMissions = rows.filter(isOpen);
       var doneCount = rows.filter(isDone).length;
+      var overdueMissions = openMissions.filter(function (m) {
+        return isOverdue(m, today);
+      });
       var dueNowMissions = openMissions.filter(function (m) {
         return isToday(m, today) || isOverdue(m, today);
       });
-      // Prefer API open total; fall back to due-now sample size
       var openEstimate = Number(results[3].total) || dueNowMissions.length;
+      var overdueCount = overdueMissions.length;
 
       // Home widget: only 5 latest today / overdue tasks (not the full open list)
       var prioritized = dueNowMissions.slice().sort(function (a, b) {
@@ -459,8 +483,9 @@
         : t('Total tasks', 'סה״כ משימות'));
       setText('mb-stat-leads', String(leadsCount));
       setText('mb-stat-leads-sub', t('Folder 1 · Leads', 'תיקייה 1 · לידים'));
-      setText('mb-stat-followup', String(openEstimate || 0));
-      setText('mb-stat-followup-sub', t('Open tasks', 'משימות פתוחות'));
+      setText('mb-stat-followup', String(overdueCount || 0));
+      setText('mb-stat-followup-sub', t('Overdue', 'באיחור'));
+      setText('mb-stat-followup-label', t('Open tasks', 'משימות פתוחות'));
       setText('mb-stat-followups', String(followupCount));
       setText('mb-stat-followups-sub', t('Follow-up', 'פולואפ'));
       setText('mb-pipe-leads', String(leadsCount));

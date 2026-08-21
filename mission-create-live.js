@@ -720,9 +720,14 @@
 
   function isMissionDone(mission) {
     if (!mission) return false;
-    if (mission.is_done || Number(mission.done) === 1) return true;
-    var col = String(mission.project_column || mission.status || '').toLowerCase();
-    return col === 'completed' || col === 'done' || col === 'col_done' || col === 'col_completed';
+    if (mission.is_done || Number(mission.done) === 1 || Number(mission.is_complete) === 1) return true;
+    var col = String(
+      mission.project_column || mission.status || mission.mission_status ||
+      mission.state || mission.status_name || ''
+    ).toLowerCase();
+    return col === 'completed' || col === 'complete' || col === 'done' || col === 'closed' ||
+      col === 'col_done' || col === 'col_completed' ||
+      col === 'בוצע' || col === 'הושלם' || col === 'סגור';
   }
 
   function setDoneHeaderState(alreadyDone) {
@@ -744,23 +749,28 @@
     if (!doneBtn || doneBtn.dataset.wired === '1') return;
     doneBtn.dataset.wired = '1';
     doneBtn.addEventListener('click', async function () {
-      if (!editingMissionId) return;
+      var closeId = editingMissionId || getQueryParam('mission_id') || getQueryParam('id');
+      if (!closeId) {
+        showStatus('error', uiT('Failed to close task', 'סגירת משימה נכשלה') + ': missing id');
+        return;
+      }
       var doneLabel = uiT('Close task', 'סגור משימה');
       doneBtn.disabled = true;
       doneBtn.textContent = uiT('Closing…', 'סוגר…');
       showStatus('loading', uiT('Closing task…', 'סוגר משימה…'));
+      window.__mbClosingMission = true;
       try {
         if (window.MineralBarApp && MineralBarApp.doneMission) {
-          await MineralBarApp.doneMission(editingMissionId);
+          await MineralBarApp.doneMission(closeId);
         } else {
-          await MineralBarApp.getClient().request('Mission.Done', { id: editingMissionId });
+          await MineralBarApp.getClient().request('Mission.Done', { id: closeId, mission_id: closeId });
         }
         setDoneHeaderState(true);
-        showStatus('ok', uiT('Task closed. Redirecting…', 'המשימה נסגרה. מעביר…'));
-        setTimeout(function () {
-          goBackToEntryScreen();
-        }, 500);
+        showStatus('ok', uiT('Task is Done', 'המשימה בוצעה'));
+        try { sessionStorage.setItem('mb_missions_dirty', '1'); } catch (eDirty) { /* ignore */ }
+        window.location.href = 'sales-tasks.html?type=done_tasks';
       } catch (err) {
+        window.__mbClosingMission = false;
         console.error('[mission-create] Mission.Done failed', err);
         showStatus('error', uiT('Failed to close task', 'סגירת משימה נכשלה') + ': ' + ((err && err.message) || err));
         doneBtn.disabled = false;
@@ -1383,6 +1393,7 @@
       // Skip connect nudges / empty keys — they re-fired ColumnsList + Mission.Get
       if (!key || /socket\.nudge/i.test(key)) return;
       if (_missionBootAt && (Date.now() - _missionBootAt) < 4000) return;
+      if (window.__mbClosingMission) return;
       if (/mission\.(done|updated|deleted|reopened)/i.test(key) && editingMissionId) {
         loadExistingMissionOnce();
       }

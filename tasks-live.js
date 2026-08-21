@@ -157,7 +157,7 @@
     var statusColor = isMissionDone(m) ? '#2e8a63' : '#5a6473';
 
     return (
-      '<div class="task-row-card" data-mission="' + esc(JSON.stringify(m)) + '" style="border-right:4px solid ' + groupColor + '; overflow:hidden; width:100%; max-width:100%; box-sizing:border-box;">' +
+      '<div class="task-row-card" data-mission-id="' + esc(String(id)) + '" data-mission="' + esc(JSON.stringify(m)) + '" style="border-right:4px solid ' + groupColor + '; overflow:hidden; width:100%; max-width:100%; box-sizing:border-box;">' +
       '<div style="flex:1; min-width:0; overflow:hidden;">' +
       '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">' +
       '<div class="task-row-title" style="display:flex; align-items:center; gap:6px; flex:1; min-width:0; overflow:hidden;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:' + dotColor + '; flex:none;"></span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(title) + '</span>' +
@@ -182,9 +182,14 @@
 
   function isMissionDone(mission) {
     if (!mission) return false;
-    if (mission.is_done || Number(mission.done) === 1) return true;
-    var col = String(mission.project_column || mission.status || '').toLowerCase();
-    return col === 'completed' || col === 'done' || col === 'col_done' || col === 'col_completed';
+    if (mission.is_done || Number(mission.done) === 1 || Number(mission.is_complete) === 1) return true;
+    var col = String(
+      mission.project_column || mission.status || mission.mission_status ||
+      mission.state || mission.status_name || ''
+    ).toLowerCase();
+    return col === 'completed' || col === 'complete' || col === 'done' || col === 'closed' ||
+      col === 'col_done' || col === 'col_completed' ||
+      col === 'בוצע' || col === 'הושלם' || col === 'סגור';
   }
 
   function openTaskDetail(mission) {
@@ -217,7 +222,7 @@
         '<div style="font-size:20px; font-weight:900; color:var(--text-title); line-height:1.35; flex:1; min-width:0;">' + esc(title) + '</div>' +
         (alreadyDone
           ? '<span style="flex:none; padding:8px 14px; border-radius:99px; background:#e6f4ec; color:#2e8a63; font-size:13px; font-weight:800;">' + esc(closedLabel) + '</span>'
-          : '<button type="button" id="mb-btn-mark-done" style="flex:none; padding:8px 16px; border:none; border-radius:99px; background:#2e8a63; color:#fff; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(46,138,99,0.28);">' + esc(doneLabel) + '</button>') +
+          : '<button type="button" id="mb-btn-mark-done" data-mission-id="' + esc(String(id)) + '" style="flex:none; padding:8px 16px; border:none; border-radius:99px; background:#2e8a63; color:#fff; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(46,138,99,0.28);">' + esc(doneLabel) + '</button>') +
       '</div>';
 
     content.innerHTML =
@@ -281,25 +286,26 @@
     var doneBtn = document.getElementById('mb-btn-mark-done');
     if (doneBtn) {
       doneBtn.addEventListener('click', async function () {
+        var closeId = doneBtn.getAttribute('data-mission-id') || id;
+        if (!closeId) {
+          alert(uiT('Failed to close task', 'סגירת משימה נכשלה') + ': missing id');
+          return;
+        }
         doneBtn.disabled = true;
         doneBtn.textContent = uiT('Closing…', 'סוגר…');
         try {
           if (window.MineralBarApp && MineralBarApp.doneMission) {
-            await MineralBarApp.doneMission(id);
+            await MineralBarApp.doneMission(closeId);
           } else {
-            await MineralBarApp.getClient().request('Mission.Done', { id: id });
+            await MineralBarApp.getClient().request('Mission.Done', { id: closeId, mission_id: closeId });
           }
           panel.style.display = 'none';
           currentStart = 0;
-          if (typeof loadTasks === 'function') loadTasks(currentFilterType);
-          // Return to the screen we entered from (home/chat), not forced tasks stay
-          try {
-            var ref = document.referrer || '';
-            if (ref && /sales-home\.html|chat-customer\.html|calls-list\.html|service-all-calls\.html/i.test(ref) &&
-                window.history.length > 1) {
-              window.history.back();
-            }
-          } catch (eNav) { /* stay on tasks list */ }
+          currentFilterType = 'done_tasks';
+          advancedFilters.status = 'completed';
+          syncTopChips('done_tasks');
+          clearClientPageCache();
+          if (typeof loadTasks === 'function') loadTasks('done_tasks');
         } catch (err) {
           console.error('[tasks-live] Mission.Done failed', err);
           alert(uiT('Failed to close task', 'סגירת משימה נכשלה') + ': ' + ((err && err.message) || err));
@@ -322,6 +328,7 @@
             closeTaskDeleteConfirm();
             panel.style.display = 'none';
             currentStart = 0;
+            clearClientPageCache();
             if (typeof loadTasks === 'function') loadTasks(currentFilterType);
           } catch (e) {
             closeTaskDeleteConfirm();
@@ -402,6 +409,11 @@
   }
 
   var currentFilterType = 'show_all_together_tasks';
+  try {
+    var bootType = new URLSearchParams(location.search || '').get('type') ||
+      new URLSearchParams(location.search || '').get('filter') || '';
+    if (bootType) currentFilterType = bootType;
+  } catch (eBoot) { /* keep default */ }
   var advancedFilters = {
     status: 'everything',   // today | late | everything | completed
     priority: 'all',        // all | urgent | regular | low
@@ -451,6 +463,58 @@
     return (rows || []).filter(function (m) {
       return missionMatchesPriority(m, pri, today);
     });
+  }
+
+  /** All chips page locally after we have the matching rows (API start/length is the wrong page once we filter). */
+  function needsClientPagination(filterType) {
+    return true;
+  }
+
+  function chipGroupLabel(filterType) {
+    if (filterType === 'today_tasks') return uiT('Today', 'היום');
+    if (filterType === 'overdue_tasks') return uiT('Overdue', 'באיחור');
+    if (filterType === 'auto_tasks') return uiT('Automatic', 'אוטומטי');
+    if (filterType === 'priority_tasks') return uiT('Priority', 'עדיפות');
+    if (filterType === 'upcoming_tasks') return uiT('Upcoming', 'קרובות');
+    if (filterType === 'done_tasks') return uiT('Done', 'בוצעו');
+    if (filterType === 'private_tasks') return uiT('Private', 'פרטי');
+    return uiT('Tasks', 'משימות');
+  }
+
+  function flattenMissionList(res) {
+    var rows = (res && res.rows) ? res.rows.slice() : [];
+    if (!rows.length && res && res.groups) {
+      res.groups.forEach(function (g) {
+        (g.rows || []).forEach(function (r) { rows.push(r); });
+      });
+    }
+    return rows;
+  }
+
+  async function fetchAllMissionPages(params) {
+    var first = await MineralBarApp.listMissions(params);
+    var rows = flattenMissionList(first);
+    var totalHint = Number(first.total) || rows.length;
+    var page = Number(params.length) || PAGE_SIZE;
+    var starts = [];
+    var start;
+    for (start = rows.length; start < totalHint; start += page) {
+      starts.push(start);
+      if (starts.length >= 20) break;
+    }
+    if (starts.length) {
+      var rest = await Promise.all(starts.map(function (s) {
+        return MineralBarApp.listMissions(Object.assign({}, params, {
+          start: s,
+          length: page,
+          include_counts: 0
+        })).catch(function () { return { rows: [] }; });
+      }));
+      rest.forEach(function (next) {
+        rows = rows.concat(flattenMissionList(next));
+      });
+    }
+    return Object.assign({}, first, { rows: rows, total: totalHint });
   }
 
   function statusToType(status) {
@@ -620,13 +684,17 @@
       draw: 1,
       include_counts: 1
     };
-    // Upcoming / overdue / automatic are filtered client-side from open (and done, for auto) tasks.
-    if (filterType === 'upcoming_tasks' || filterType === 'overdue_tasks' || filterType === 'auto_tasks') {
-      params.type = 'show_all_together_tasks';
-      params.length = 25;
+    // Client-filtered chips: always pull from the start; we page locally after filtering.
+    if (needsClientPagination(filterType)) {
       params.start = 0;
+      params.length = PAGE_SIZE;
     }
-    if (filterType === 'auto_tasks') {
+    if (filterType === 'upcoming_tasks' || filterType === 'overdue_tasks' ||
+        filterType === 'auto_tasks' || filterType === 'priority_tasks' ||
+        filterType === 'today_tasks') {
+      params.type = 'show_all_together_tasks';
+    }
+    if (filterType === 'auto_tasks' || filterType === 'done_tasks') {
       params.show_done_mission = 1;
     }
     // Priority is filtered client-side — pull a larger page so results aren't truncated.
@@ -661,6 +729,7 @@
     syncFilterBadge();
     currentStart = 0;
     closeFilterPanel();
+    clearClientPageCache();
     loadTasks(currentFilterType);
   }
 
@@ -672,6 +741,7 @@
     syncFilterBadge();
     currentStart = 0;
     closeFilterPanel();
+    clearClientPageCache();
     loadTasks(currentFilterType);
   }
 
@@ -681,6 +751,15 @@
   var liveListenersWired = false;
   var _rtTasksTimer = null;
   var _rtTasksRetryTimers = [];
+  var _clientPageCache = { key: '', rows: [] };
+
+  function clientPageCacheKey(filterType) {
+    return String(filterType || '') + '|' + JSON.stringify(advancedFilters || {});
+  }
+
+  function clearClientPageCache() {
+    _clientPageCache = { key: '', rows: [] };
+  }
 
   /** Mission.List can lag behind mission.done / created — debounce + short retries (silent, no Loading flash). */
   function scheduleLiveTasksRefresh(detail) {
@@ -699,6 +778,7 @@
       : [400];
 
     _rtTasksTimer = setTimeout(function () {
+      clearClientPageCache();
       loadTasks(currentFilterType, { silent: true });
       delays.slice(1).forEach(function (ms) {
         _rtTasksRetryTimers.push(setTimeout(function () {
@@ -861,6 +941,7 @@
         if (detailIn) detailIn.value = '';
 
         currentStart = 0;
+        clearClientPageCache();
         loadTasks(currentFilterType);
       } catch (err) {
         console.error('Quick Mission create failed', err);
@@ -886,6 +967,7 @@
         syncTopChips(type);
         syncFilterBadge();
         currentStart = 0;
+        clearClientPageCache();
         loadTasks(currentFilterType);
       });
     });
@@ -895,25 +977,8 @@
 
   async function listMissionsForChip(filterType) {
     var params = buildListParams(filterType);
-    var first = await MineralBarApp.listMissions(params);
-    if (filterType !== 'auto_tasks') return first;
-    var rows = (first.rows || []).slice();
-    var totalHint = Number(first.total) || 0;
-    var page = 25;
-    var guard = 0;
-    while (rows.length < totalHint && guard < 20) {
-      guard += 1;
-      var next = await MineralBarApp.listMissions(Object.assign({}, params, {
-        start: rows.length,
-        length: page,
-        include_counts: 0
-      }));
-      var more = next.rows || [];
-      if (!more.length) break;
-      rows = rows.concat(more);
-      if (more.length < page) break;
-    }
-    return Object.assign({}, first, { rows: rows });
+    if (needsClientPagination(filterType)) return fetchAllMissionPages(params);
+    return MineralBarApp.listMissions(params);
   }
 
   async function loadTasks(typeParam, opts) {
@@ -923,9 +988,12 @@
     var totalEl = document.getElementById('mb-missions-total');
     var mount = document.getElementById('mb-live-tasks') || document.getElementById('mb-live-missions');
     var hasRows = !!(mount && mount.querySelector('.task-row-card'));
+    var clientPaged = needsClientPagination(filterType);
+    var cacheKey = clientPageCacheKey(filterType);
+    var cacheHit = clientPaged && _clientPageCache.key === cacheKey && Array.isArray(_clientPageCache.rows);
 
     // Socket / soft refresh: keep current list + count visible — never flash loader
-    if (!silent || !hasRows) {
+    if ((!silent || !hasRows) && !cacheHit) {
       if (totalEl) totalEl.textContent = uiT('Loading…', 'טוען…');
       if (mount && !hasRows) {
         if (window.MineralBarLoader && typeof MineralBarLoader.inlineHtml === 'function') {
@@ -944,15 +1012,10 @@
 
     var run = (async function () {
     try {
-      var result = await listMissionsForChip(filterType);
       var today = todayKey();
-      var groups = result.groups || [];
-      var flatRows = result.rows || [];
-      if (!flatRows.length) {
-        groups.forEach(function (g) {
-          (g.rows || []).forEach(function (r) { flatRows.push(r); });
-        });
-      }
+      var result = { rows: [], groups: [], total: 0 };
+      var groups = [];
+      var flatRows = [];
 
       function applyChipRows(rows) {
         if (!filterType || filterType === 'show_all_together_tasks') return rows || [];
@@ -961,30 +1024,6 @@
         });
       }
 
-      flatRows = applyChipRows(flatRows);
-      groups = groups.map(function (g) {
-        return Object.assign({}, g, { rows: applyChipRows(g.rows || []) });
-      }).filter(function (g) {
-        return g.rows && g.rows.length;
-      });
-      if (filterType === 'auto_tasks') {
-        groups = [{
-          id: 'auto',
-          label: uiT('Automatic', 'אוטומטי'),
-          rows: flatRows.slice(),
-          total: flatRows.length
-        }];
-      }
-
-      // Client-side priority filter (API may not support priority param)
-      flatRows = filterRowsByPriority(flatRows, today);
-      groups = groups.map(function (g) {
-        return Object.assign({}, g, { rows: filterRowsByPriority(g.rows || [], today) });
-      }).filter(function (g) {
-        return g.rows && g.rows.length;
-      });
-
-      // Client-side sort fallback
       function sortRows(rows) {
         var key = advancedFilters.sortBy || 'date_to_do';
         var dir = advancedFilters.sortDir === 'desc' ? -1 : 1;
@@ -1008,24 +1047,62 @@
           return 0;
         });
       }
-      flatRows = sortRows(flatRows);
-      groups = groups.map(function (g) {
-        return Object.assign({}, g, { rows: sortRows(g.rows || []) });
-      });
+
+      if (cacheHit) {
+        flatRows = _clientPageCache.rows.slice();
+      } else {
+        result = await listMissionsForChip(filterType);
+        groups = result.groups || [];
+        flatRows = result.rows || [];
+        if (!flatRows.length) {
+          groups.forEach(function (g) {
+            (g.rows || []).forEach(function (r) { flatRows.push(r); });
+          });
+        }
+
+        flatRows = applyChipRows(flatRows);
+        groups = groups.map(function (g) {
+          return Object.assign({}, g, { rows: applyChipRows(g.rows || []) });
+        }).filter(function (g) {
+          return g.rows && g.rows.length;
+        });
+
+        flatRows = filterRowsByPriority(flatRows, today);
+        groups = groups.map(function (g) {
+          return Object.assign({}, g, { rows: filterRowsByPriority(g.rows || [], today) });
+        }).filter(function (g) {
+          return g.rows && g.rows.length;
+        });
+
+        flatRows = sortRows(flatRows);
+        groups = groups.map(function (g) {
+          return Object.assign({}, g, { rows: sortRows(g.rows || []) });
+        });
+
+        if (clientPaged) {
+          _clientPageCache = { key: cacheKey, rows: flatRows.slice() };
+        }
+      }
 
       var total = Number(result.total) || flatRows.length || 0;
-      // When a client-side chip/priority filter is active, count what is actually shown
-      if ((filterType && filterType !== 'show_all_together_tasks') ||
-          (advancedFilters.priority && advancedFilters.priority !== 'all')) {
-        var filteredCount = 0;
-        groups.forEach(function (g) { filteredCount += (g.rows && g.rows.length) || 0; });
-        if (!filteredCount) filteredCount = flatRows.length;
-        total = filteredCount;
+      if (clientPaged) {
+        total = flatRows.length;
+        if (total > 0 && currentStart >= total) {
+          currentStart = Math.max(0, (pageCount(total) - 1) * PAGE_SIZE);
+        }
+        var pageRows = flatRows.slice(currentStart, currentStart + PAGE_SIZE);
+        groups = [{
+          id: filterType || 'all',
+          label: chipGroupLabel(filterType),
+          rows: pageRows,
+          total: total
+        }];
+        flatRows = pageRows;
       }
       currentTotal = total;
 
-      // If filter/total shrank past current page, snap back
-      if (total > 0 && currentStart >= total) {
+      // Server-paged All/Done: if start walked past the last page, snap back
+      if (!clientPaged && total > 0 && currentStart >= total) {
         currentStart = Math.max(0, (pageCount(total) - 1) * PAGE_SIZE);
         return loadTasks(filterType, opts);
       }
@@ -1088,6 +1165,11 @@
           row.addEventListener('click', function() {
             var data = {};
             try { data = JSON.parse(row.getAttribute('data-mission') || '{}'); } catch(e) {}
+            var rid = row.getAttribute('data-mission-id') || '';
+            if (rid) {
+              if (!data.id) data.id = rid;
+              if (!data.mission_id) data.mission_id = rid;
+            }
             openTaskDetail(data);
           });
         });
@@ -1129,6 +1211,7 @@
     wireFilterChips();
     populateQuickMissionDropdowns();
     wireQuickMission();
+    syncTopChips(currentFilterType);
     syncFilterBadge();
     loadTasks(currentFilterType || 'show_all_together_tasks');
 

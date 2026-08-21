@@ -1265,18 +1265,72 @@
     return { ok: true, id: id, results: results };
   }
 
-  /** Mission.Done requires id (not mission_id). */
+  function missionDoneFailed(raw) {
+    if (!raw) return true;
+    if (raw.success === 0 || raw.success === '0' || raw.ok === false) return true;
+    return false;
+  }
+
+  function isMissionRecordDone(mission) {
+    if (!mission) return false;
+    if (mission.is_done === true || Number(mission.done) === 1 || Number(mission.is_complete) === 1) return true;
+    var col = String(mission.project_column || mission.status || '').toLowerCase();
+    return col === 'done' || col === 'completed' || col === 'complete' ||
+      col === 'col_done' || col === 'col_completed' || col === 'closed';
+  }
+
+  async function waitUntilMissionDone(id) {
+    var tries = 0;
+    while (tries < 8) {
+      tries += 1;
+      try {
+        var res = await getMission(id);
+        if (isMissionRecordDone(res && res.mission)) return res.mission;
+      } catch (e) { /* retry */ }
+      await waitMs(tries === 1 ? 200 : 350);
+    }
+    return null;
+  }
+
+  /** Mission.Done — only succeeds after Mission.Get confirms is_done / column=done. */
   async function doneMission(missionId) {
     var id = requireId(missionId, 'id');
     var client = getClient();
-    var raw = await client.request('Mission.Done', { id: id });
-    if (!(raw && (Number(raw.success) === 1 || raw.success === true))) {
-      var err = new Error((raw && raw.message) || 'Mission.Done failed');
-      err.route = 'Mission.Done';
-      err.raw = raw;
-      throw err;
+    var raw = null;
+    try {
+      raw = await client.request('Mission.Done', { id: id, mission_id: id });
+    } catch (err) {
+      raw = (err && err.raw) || null;
+      if (missionDoneFailed(raw)) {
+        var fail0 = new Error((err && err.message) || (raw && raw.message) || 'Mission.Done failed');
+        fail0.route = 'Mission.Done';
+        fail0.raw = raw;
+        throw fail0;
+      }
     }
-    return { ok: true, message: raw.message, raw: raw };
+    if (missionDoneFailed(raw)) {
+      try {
+        raw = await updateMission({
+          id: id,
+          mission_id: id,
+          filed: 'project_column',
+          saveoutput: 'done'
+        });
+      } catch (err2) {
+        var fail = new Error((raw && raw.message) || (err2 && err2.message) || 'Mission.Done failed');
+        fail.route = 'Mission.Done';
+        fail.raw = raw || (err2 && err2.raw);
+        throw fail;
+      }
+    }
+    var mission = await waitUntilMissionDone(id);
+    if (!mission) {
+      var pending = new Error('Task is not Done yet');
+      pending.route = 'Mission.Done';
+      pending.raw = raw;
+      throw pending;
+    }
+    return { ok: true, mission: mission, message: raw && raw.message, raw: raw };
   }
 
   /** Single customer — always pass customer_id. */
