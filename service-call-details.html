@@ -1151,28 +1151,90 @@
       } catch (err) { /* ignore */ }
     }
 
-    renderVals() {
-      const defaultBack = (function () {
-        var role = '';
-        try {
-          if (window.MineralBarApp && typeof MineralBarApp.getRole === 'function') {
-            role = String(MineralBarApp.getRole() || '');
-          }
-        } catch (eR) { /* ignore */ }
-        if (role === 'tech') return 'tech-open-calls.html';
-        return 'service-all-calls.html';
-      })();
-      const backHref = (typeof window.mbResolveEntryBack === 'function')
-        ? (window.mbResolveEntryBack({
-          fallback: defaultBack,
-          selfRe: /service-call-details/i
-        }) || defaultBack)
-        : defaultBack;
-      const onBack = (e) => {
-        if (typeof window.mbGoEntryBack === 'function') {
-          window.mbGoEntryBack(e, { fallback: defaultBack, selfRe: /service-call-details/i, allowHistory: false });
-          return;
+    nestedBackParam(href) {
+      try {
+        var i = String(href || '').indexOf('?');
+        if (i < 0) return '';
+        return String(new URLSearchParams(href.slice(i + 1)).get('back') || '');
+      } catch (e) { return ''; }
+    }
+
+    defaultTicketDetailsBack() {
+      var role = '';
+      try {
+        if (window.MineralBarApp && typeof MineralBarApp.getRole === 'function') {
+          role = String(MineralBarApp.getRole() || '');
         }
+      } catch (eR) { /* ignore */ }
+      if (role === 'tech') return 'tech-open-calls.html';
+      return 'service-all-calls.html';
+    }
+
+    /**
+     * List/home page this ticket was opened from.
+     * Customer card / chat opened FROM this screen are children — going back
+     * must not bounce into them (hard nav from the card drops ?back= and
+     * leaves the card as document.referrer).
+     */
+    resolveTicketDetailsBack() {
+      var defaultBack = this.defaultTicketDetailsBack();
+      var selfRe = /service-call-details/i;
+      var childRe = /service-customer-card|tech-customer-card|lead-card|chat-customer/i;
+      var q = new URLSearchParams(location.search || '');
+      var tid = String(q.get('ticket_id') || '').trim();
+      var self = this;
+
+      function accept(href) {
+        href = (typeof window.mbSafeBackHref === 'function')
+          ? window.mbSafeBackHref(href)
+          : String(href || '').trim();
+        if (!href) return '';
+        var file = String(href).split('?')[0];
+        if (selfRe.test(file)) return '';
+        if (childRe.test(file) && selfRe.test(self.nestedBackParam(href))) return '';
+        return href;
+      }
+
+      var fromParam = accept(q.get('back') || q.get('return') || '');
+      if (fromParam) {
+        try {
+          if (tid) sessionStorage.setItem('mb_ticket_details_back', JSON.stringify({ id: tid, href: fromParam }));
+        } catch (e0) { /* ignore */ }
+        return fromParam;
+      }
+
+      try {
+        var raw = sessionStorage.getItem('mb_ticket_details_back');
+        if (raw) {
+          var stored = JSON.parse(raw);
+          if (stored && stored.href && (!tid || String(stored.id) === tid)) {
+            var storedHref = accept(stored.href);
+            if (storedHref) return storedHref;
+          }
+        }
+      } catch (e1) { /* ignore */ }
+
+      try {
+        if (document.referrer) {
+          var u = new URL(document.referrer);
+          if (u.origin === location.origin) {
+            var refHref = accept((u.pathname.split('/').pop() || '') + u.search + u.hash);
+            if (refHref) return refHref;
+          }
+        }
+      } catch (e2) { /* ignore */ }
+
+      return defaultBack;
+    }
+
+    renderVals() {
+      const defaultBack = this.defaultTicketDetailsBack();
+      const backHref = this.resolveTicketDetailsBack() || defaultBack;
+      const onBack = (e) => {
+        try {
+          if (e && e.preventDefault) e.preventDefault();
+          if (e && e.stopPropagation) e.stopPropagation();
+        } catch (err) { /* ignore */ }
         window.location.href = backHref;
       };
 
@@ -1274,7 +1336,10 @@
       const custInitials = parts.map(p => p[0]).join('').substring(0, 2);
       const customerId = t.cust_id || t.customer_id || t.contactus_id || t.lead_id;
       const customerPhone = t.phone || t.mobile || t.phone_two || '';
-      const backToTicket = 'service-call-details.html?ticket_id=' + encodeURIComponent(t.ticket_id || t.id || '');
+      let backToTicket = 'service-call-details.html?ticket_id=' + encodeURIComponent(t.ticket_id || t.id || '');
+      if (backHref && !/service-call-details|service-customer-card|tech-customer-card|lead-card|chat-customer/i.test(String(backHref).split('?')[0])) {
+        backToTicket += '&back=' + encodeURIComponent(backHref);
+      }
       const customerLink = customerId
         ? 'service-customer-card.html?customer_id=' + encodeURIComponent(customerId) + '&cust_id=' + encodeURIComponent(customerId) +
           '&back=' + encodeURIComponent(backToTicket)

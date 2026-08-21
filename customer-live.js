@@ -106,11 +106,15 @@
     return 'customers.html';
   }
 
+  function hrefFile(href) {
+    return String(href || '').split('?')[0];
+  }
+
   function rememberCustomerCardEntry() {
     if (!CARD_SELF_RE.test(location.pathname || location.href || '')) return;
     var q = new URLSearchParams(location.search || '');
     var explicit = safeCardBackHref(q.get('back') || q.get('from') || q.get('return'));
-    if (explicit && !CARD_SELF_RE.test(explicit)) {
+    if (explicit && !CARD_SELF_RE.test(hrefFile(explicit))) {
       try { sessionStorage.setItem('mb_customer_card_back', explicit); } catch (e) { /* ignore */ }
       return;
     }
@@ -129,10 +133,10 @@
   function resolveCustomerCardBack() {
     var q = new URLSearchParams(location.search || '');
     var fromParam = safeCardBackHref(q.get('back') || q.get('from') || q.get('return'));
-    if (fromParam && !CARD_SELF_RE.test(fromParam) && !CARD_CHILD_RE.test(fromParam)) return fromParam;
+    if (fromParam && !CARD_SELF_RE.test(hrefFile(fromParam)) && !CARD_CHILD_RE.test(hrefFile(fromParam))) return fromParam;
     try {
       var stored = safeCardBackHref(sessionStorage.getItem('mb_customer_card_back'));
-      if (stored && !CARD_SELF_RE.test(stored) && !CARD_CHILD_RE.test(stored)) return stored;
+      if (stored && !CARD_SELF_RE.test(hrefFile(stored)) && !CARD_CHILD_RE.test(hrefFile(stored))) return stored;
     } catch (e) { /* ignore */ }
     try {
       var ref = document.referrer;
