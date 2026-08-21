@@ -882,6 +882,9 @@ class Component extends DCLogic {
     searchQuery: '',
     listPage: 1,
     listPageSize: 25,
+    listTotal: 0,
+    activeCountTotal: 0,
+    inactiveCountTotal: 0,
     loadingMore: false,
     
     // Add product state
@@ -1183,12 +1186,14 @@ class Component extends DCLogic {
   }
 
   /**
-   * One Products.List page (API cap ≈ 25 rows).
+   * One Products.List page (API cap = 25). page is 0-based.
+   * @see https://eli.bull36.com/app/help/Products.List
    */
-  async fetchProductsPage(client, page, pageSize) {
+  async fetchProductsPage(client, page, pageSize, filters) {
     pageSize = pageSize || 25;
+    filters = filters || {};
     var start = page * pageSize;
-    var res = await client.request('Products.List', {
+    var payload = {
       limit: pageSize,
       length: pageSize,
       per_page: pageSize,
@@ -1196,10 +1201,20 @@ class Component extends DCLogic {
       offset: start,
       draw: page + 1,
       order: 'id_desc'
-    });
+    };
+    if (filters.active === 0 || filters.active === 1 || filters.active === '0' || filters.active === '1') {
+      payload.active = Number(filters.active);
+    }
+    if (filters.search) payload.search = String(filters.search);
+    if (filters.cat_id) {
+      payload.cat_id = filters.cat_id;
+      payload.category = filters.cat_id;
+    }
+    var res = await client.request('Products.List', payload);
     var totalHint = Number(
       (res && (res.recordsFiltered != null ? res.recordsFiltered
-        : (res.recordsTotal != null ? res.recordsTotal : 0))) || 0
+        : (res.recordsTotal != null ? res.recordsTotal
+          : (res.total != null ? res.total : 0)))) || 0
     );
     if (!isFinite(totalHint) || totalHint < 0) totalHint = 0;
     var rows = this.productRowsFromList(res);
@@ -1211,96 +1226,133 @@ class Component extends DCLogic {
     return { mapped: mapped, rawCount: rows.length, totalHint: totalHint };
   }
 
+  parseProductsCount(res) {
+    var n = Number(
+      (res && (res.count != null ? res.count
+        : (res.total != null ? res.total
+          : (res.recordsTotal != null ? res.recordsTotal
+            : (res.recordsFiltered != null ? res.recordsFiltered : 0))))) || 0
+    );
+    return (isFinite(n) && n > 0) ? n : 0;
+  }
+
+  /** Shared filters for Products.Count / Products.List (current UI state). */
+  currentProductFilters() {
+    var s = this.state || {};
+    var filters = {};
+    var search = String(s.searchQuery || '').trim();
+    if (search) filters.search = search;
+    var catId = String(s.selectedCategory || 'all');
+    if (catId && catId !== 'all' && catId !== 'low') filters.cat_id = catId;
+    filters.active = s.statusFilter === 'inactive' ? 0 : 1;
+    return filters;
+  }
+
   /**
-   * Products.List is capped at 25 rows/call — page until all products are loaded.
-   * Optional onProgress(allSoFar, meta) paints UI after each batch (first page ASAP).
+   * Products.Count for Active / Inactive badges (+ filtered list total).
+   * @see https://eli.bull36.com/app/help/Products.Count
+   */
+  async refreshProductCounts(client) {
+    var base = this.currentProductFilters();
+    var shared = {};
+    if (base.search) shared.search = base.search;
+    if (base.cat_id) {
+      shared.cat_id = base.cat_id;
+      shared.category = base.cat_id;
+    }
+    var activeRes = null;
+    var inactiveRes = null;
+    try {
+      activeRes = await client.request('Products.Count', Object.assign({}, shared, { active: 1 }));
+    } catch (eA) { console.warn('[Inventory] Products.Count active failed', eA); }
+    try {
+      inactiveRes = await client.request('Products.Count', Object.assign({}, shared, { active: 0 }));
+    } catch (eI) { console.warn('[Inventory] Products.Count inactive failed', eI); }
+    var activeCountTotal = this.parseProductsCount(activeRes);
+    var inactiveCountTotal = this.parseProductsCount(inactiveRes);
+    var listTotal = base.active === 0 ? inactiveCountTotal : activeCountTotal;
+    return { activeCountTotal: activeCountTotal, inactiveCountTotal: inactiveCountTotal, listTotal: listTotal };
+  }
+
+  /**
+   * Load exactly one page into state (no multi-page fetch).
+   * page is 1-based (UI).
+   */
+  async loadProductsPage(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    var page = Math.max(1, Number(opts.page != null ? opts.page : (this.state.listPage || 1)) || 1);
+    var pageSize = Number(this.state.listPageSize) || 25;
+    var loadId = (this._inventoryLoadId || 0) + 1;
+    this._inventoryLoadId = loadId;
+    var self = this;
+
+    if (!(window.MineralBarApp && typeof MineralBarApp.getClient === 'function')) {
+      this.setState({
+        loading: false,
+        products: [],
+        listTotal: 0,
+        activeCountTotal: 0,
+        inactiveCountTotal: 0,
+        listPage: 1
+      });
+      return;
+    }
+
+    if (!silent) this.setState({ loading: true });
+
+    try {
+      var client = MineralBarApp.getClient();
+      var filters = this.currentProductFilters();
+      var countsPromise = this.refreshProductCounts(client);
+      var pageRes = await this.fetchProductsPage(client, page - 1, pageSize, filters);
+      if (self._inventoryLoadId !== loadId) return;
+      var counts = await countsPromise;
+      if (self._inventoryLoadId !== loadId) return;
+
+      var listTotal = counts.listTotal;
+      if (!listTotal && pageRes.totalHint) listTotal = pageRes.totalHint;
+      // If API returned a short page with no total, estimate from current page.
+      if (!listTotal) {
+        listTotal = pageRes.rawCount < pageSize
+          ? ((page - 1) * pageSize + pageRes.rawCount)
+          : (page * pageSize + 1);
+      }
+      var totalPages = Math.max(1, Math.ceil(listTotal / pageSize) || 1);
+      if (page > totalPages) {
+        // Requested page out of range after filter change — load last page once.
+        if (page !== totalPages) {
+          return self.loadProductsPage({ page: totalPages, silent: silent });
+        }
+      }
+
+      self.setState({
+        loading: false,
+        loadingMore: false,
+        products: pageRes.mapped || [],
+        listPage: page,
+        listTotal: listTotal,
+        activeCountTotal: counts.activeCountTotal,
+        inactiveCountTotal: counts.inactiveCountTotal,
+        listRev: Date.now()
+      });
+      try { self.forceUpdate(); } catch (eFu) { /* ignore */ }
+    } catch (err) {
+      console.warn('[MineralBar] failed to load inventory page', err);
+      if (self._inventoryLoadId !== loadId) return;
+      self.setState({ loading: false, loadingMore: false, listRev: Date.now() });
+    }
+  }
+
+  /**
+   * @deprecated Prefer loadProductsPage — kept only if something still references it.
    */
   async fetchAllProducts(client, opts) {
     opts = opts || {};
     var onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
-    var shouldAbort = typeof opts.shouldAbort === 'function' ? opts.shouldAbort : function () { return false; };
-    var pageSize = 25;
-    var concurrency = 3;
-    var all = [];
-    var seen = {};
-    var totalHint = 0;
-
-    try {
-      var countRes = await client.request('Products.Count', {});
-      totalHint = Number(
-        (countRes && (countRes.count != null ? countRes.count
-          : (countRes.total != null ? countRes.total
-            : (countRes.recordsTotal != null ? countRes.recordsTotal : 0)))) || 0
-      );
-      if (!isFinite(totalHint) || totalHint < 0) totalHint = 0;
-    } catch (eCount) {
-      totalHint = 0;
-    }
-
-    // First page alone — unlock UI ASAP
-    if (shouldAbort()) return all;
-    var first = await this.fetchProductsPage(client, 0, pageSize);
-    if (first.totalHint) totalHint = first.totalHint;
-    for (var fi = 0; fi < first.mapped.length; fi++) {
-      var fm = first.mapped[fi];
-      if (seen[fm.id]) continue;
-      seen[fm.id] = true;
-      all.push(fm);
-    }
-    if (onProgress) onProgress(all.slice(), { done: false, page: 0, totalHint: totalHint });
-    if (first.rawCount < pageSize) {
-      if (onProgress) onProgress(all.slice(), { done: true, page: 0, totalHint: totalHint });
-      return all;
-    }
-    if (totalHint > 0 && all.length >= totalHint) {
-      if (onProgress) onProgress(all.slice(), { done: true, page: 0, totalHint: totalHint });
-      return all;
-    }
-
-    var page = 1;
-    var maxPage = totalHint > 0 ? Math.ceil(totalHint / pageSize) + 2 : 80;
-    while (page < maxPage) {
-      if (shouldAbort()) return all;
-      var batchPages = [];
-      for (var b = 0; b < concurrency && (page + b) < maxPage; b++) batchPages.push(page + b);
-      var results = await Promise.all(batchPages.map(function (p) {
-        return this.fetchProductsPage(client, p, pageSize);
-      }.bind(this)));
-
-      var gotAny = false;
-      var hitShort = false;
-      for (var ri = 0; ri < results.length; ri++) {
-        var r = results[ri];
-        if (r.totalHint) totalHint = r.totalHint;
-        if (!r.rawCount) {
-          hitShort = true;
-          continue;
-        }
-        if (r.rawCount < pageSize) hitShort = true;
-        gotAny = true;
-        for (var mi = 0; mi < r.mapped.length; mi++) {
-          var m = r.mapped[mi];
-          if (seen[m.id]) continue;
-          seen[m.id] = true;
-          all.push(m);
-        }
-      }
-
-      if (onProgress) {
-        onProgress(all.slice(), {
-          done: !gotAny || hitShort || (totalHint > 0 && all.length >= totalHint),
-          page: page,
-          totalHint: totalHint
-        });
-      }
-
-      if (!gotAny || hitShort) break;
-      if (totalHint > 0 && all.length >= totalHint) break;
-      page += concurrency;
-    }
-
-    if (onProgress) onProgress(all.slice(), { done: true, page: page, totalHint: totalHint });
-    return all;
+    var first = await this.fetchProductsPage(client, 0, 25, this.currentProductFilters());
+    if (onProgress) onProgress(first.mapped.slice(), { done: true, page: 0, totalHint: first.totalHint });
+    return first.mapped;
   }
 
   buildCategoryList(categoryNamesMap) {
@@ -1393,16 +1445,12 @@ class Component extends DCLogic {
     var opts = arguments[0] || {};
     var silent = !!opts.silent;
     var self = this;
-    var loadId = (this._inventoryLoadId || 0) + 1;
-    this._inventoryLoadId = loadId;
     var hasProducts = !!(this.state.products && this.state.products.length);
     if (!silent && !hasProducts) {
       this.setState({ loading: true });
     }
 
     var defaultCategories = [{ id: 'all', name: 'everything' }, { id: 'low', name: 'low inventory' }];
-    var productsList = [];
-    var resolvedCategories = defaultCategories.slice();
 
     if (!(window.MineralBarApp && typeof MineralBarApp.getClient === 'function')) {
       this.setState({
@@ -1410,6 +1458,9 @@ class Component extends DCLogic {
         products: [],
         categories: defaultCategories,
         listPage: 1,
+        listTotal: 0,
+        activeCountTotal: 0,
+        inactiveCountTotal: 0,
         listRev: Date.now(),
         loadingMore: false
       });
@@ -1418,37 +1469,20 @@ class Component extends DCLogic {
 
     try {
       var client = MineralBarApp.getClient();
+      var loadToken = (this._inventoryLoadId || 0) + 1;
 
-      // Categories in parallel with progressive product fetch (do not block first paint)
       var catsPromise = client.request('Categories.List', { parent: 0, limit: 100 }).catch(function (e) {
         console.warn('[MineralBar] failed to load categories', e);
         return null;
       });
 
-      // Form dropdowns never block the list
-      this.loadInventoryFormMeta(client, loadId);
+      this.loadInventoryFormMeta(client, loadToken);
 
-      await this.fetchAllProducts(client, {
-        shouldAbort: function () { return self._inventoryLoadId !== loadId; },
-        onProgress: function (batch, meta) {
-          if (self._inventoryLoadId !== loadId) return;
-          productsList = batch || [];
-          var patch = {
-            loading: false,
-            products: productsList,
-            listPage: silent ? (self.state.listPage || 1) : 1,
-            listRev: Date.now(),
-            loadingMore: !(meta && meta.done)
-          };
-          if (!(self.state.categories && self.state.categories.length)) {
-            patch.categories = defaultCategories;
-          }
-          self.setState(patch);
-          try { self.forceUpdate(); } catch (eFu) { /* ignore */ }
-        }
+      // Only one Products.List page + Products.Count (no full catalog download)
+      await this.loadProductsPage({
+        page: silent ? (this.state.listPage || 1) : 1,
+        silent: silent
       });
-
-      if (self._inventoryLoadId !== loadId) return;
 
       var catRes = await catsPromise;
       var categoryNamesMap = {};
@@ -1466,7 +1500,7 @@ class Component extends DCLogic {
         });
       }
 
-      // Best-effort: fill missing category names without blocking (max 8 parallel)
+      var productsList = self.state.products || [];
       var missingIds = [];
       productsList.forEach(function (item) {
         var cid = item && item.cat_id ? String(item.cat_id) : '';
@@ -1486,24 +1520,18 @@ class Component extends DCLogic {
         }));
       }
 
-      if (self._inventoryLoadId !== loadId) return;
-      resolvedCategories = self.buildCategoryList(categoryNamesMap);
+      var resolvedCategories = self.buildCategoryList(categoryNamesMap);
       self.setState({
-        loading: false,
-        loadingMore: false,
-        products: productsList,
         categories: resolvedCategories,
         listRev: Date.now()
       });
       try { self.forceUpdate(); } catch (eFu2) { /* ignore */ }
     } catch (err) {
       console.warn('[MineralBar] failed to load inventory', err);
-      if (self._inventoryLoadId !== loadId) return;
       self.setState({
         loading: false,
         loadingMore: false,
-        products: productsList.length ? productsList : (self.state.products || []),
-        categories: resolvedCategories.length ? resolvedCategories : defaultCategories,
+        categories: (self.state.categories && self.state.categories.length) ? self.state.categories : defaultCategories,
         listRev: Date.now()
       });
     }
@@ -1764,7 +1792,38 @@ class Component extends DCLogic {
   }
 
   onCategorySelect(catId) {
-    this.setState({ selectedCategory: catId, listPage: 1 });
+    var self = this;
+    this.setState({ selectedCategory: catId, listPage: 1 }, function () {
+      self.loadProductsPage({ page: 1 });
+    });
+  }
+
+  onStatusFilter(filter) {
+    var self = this;
+    this.setState({ statusFilter: filter, listPage: 1 }, function () {
+      self.loadProductsPage({ page: 1 });
+    });
+  }
+
+  onSearchChange(e) {
+    var self = this;
+    var q = this.inputValue(e);
+    this.setState({ searchQuery: q, listPage: 1 });
+    clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(function () {
+      self.loadProductsPage({ page: 1 });
+    }, 350);
+  }
+
+  goListPage(page) {
+    var pageSize = Number(this.state.listPageSize) || 25;
+    var total = Number(this.state.listTotal) || 0;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+    page = Math.min(Math.max(1, Number(page) || 1), totalPages);
+    if (page === (this.state.listPage || 1) && (this.state.products || []).length) {
+      // still reload in case filters changed
+    }
+    this.loadProductsPage({ page: page });
   }
 
   resolveProductImageUrl(path) {
@@ -2251,30 +2310,25 @@ class Component extends DCLogic {
 
   renderVals() {
     var s = this.state;
-    
-    var activeProducts = s.products.filter(p => p.status !== 0);
-    var inactiveProducts = s.products.filter(p => p.status === 0);
-    var statusProducts = s.statusFilter === 'inactive' ? inactiveProducts : activeProducts;
+    // Server already filtered by active/search/cat — products is the current page only.
+    var pageProducts = s.products || [];
+    var statusProducts = pageProducts;
 
-    // Compute total quantities & alert counts (from current status tab)
+    // Summary cards reflect the current page (full-catalog stock totals need all rows).
     var inStockQty = 0;
     var lowStockCount = 0;
     var outStockCount = 0;
 
-    statusProducts.forEach(p => {
+    statusProducts.forEach(function (p) {
       var q = p.stock || 0;
       inStockQty += q;
-      if (q === 0) {
-        outStockCount++;
-      } else if (q <= 5) {
-        lowStockCount++;
-      }
+      if (q === 0) outStockCount++;
+      else if (q <= 5) lowStockCount++;
     });
 
     var isActiveTab = s.statusFilter !== 'inactive';
 
-    // Render category chips
-    var categoriesMapped = s.categories.map(c => {
+    var categoriesMapped = s.categories.map(function (c) {
       var active = s.selectedCategory === c.id;
       return {
         label: c.name,
@@ -2284,48 +2338,34 @@ class Component extends DCLogic {
         weight: active ? '700' : '600',
         pick: () => this.onCategorySelect(c.id)
       };
-    });
+    }.bind(this));
 
-    // Filter products
-    var filtered = statusProducts.filter(p => {
-      // Category filter
+    // Optional client-only "low" chip on the current page
+    var filtered = statusProducts.filter(function (p) {
       if (s.selectedCategory === 'low') {
-        if (p.stock > 5) return false;
-      } else if (s.selectedCategory !== 'all' && p.cat_id !== s.selectedCategory) {
-        return false;
-      }
-      // Search filter (name or SKU)
-      if (s.searchQuery) {
-        var query = s.searchQuery.toLowerCase().trim();
-        var nameHit = String(p.name || '').toLowerCase().indexOf(query) !== -1;
-        var skuHit = String(p.sku || p.product_sku || '').toLowerCase().indexOf(query) !== -1;
-        var internalSkuHit = String(p.product_internal_sku || p.internal_sku || '').toLowerCase().indexOf(query) !== -1;
-        if (!nameHit && !skuHit && !internalSkuHit) {
-          return false;
-        }
+        if ((p.stock || 0) > 5) return false;
       }
       return true;
     });
 
-    // Client-side pagination (API loads all; UI shows pageSize at a time)
     var pageSize = Number(s.listPageSize) || 25;
-    var totalFiltered = filtered.length;
+    var totalFiltered = Number(s.listTotal) || filtered.length;
     var totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize) || 1);
     var currentPage = Math.min(Math.max(1, Number(s.listPage) || 1), totalPages);
-    var pageStart = (currentPage - 1) * pageSize;
-    var pageItems = filtered.slice(pageStart, pageStart + pageSize);
+    var pageItems = filtered;
     var showPager = totalFiltered > pageSize;
-    var rangeFrom = totalFiltered ? (pageStart + 1) : 0;
-    var rangeTo = Math.min(pageStart + pageSize, totalFiltered);
+    var rangeFrom = totalFiltered ? ((currentPage - 1) * pageSize + 1) : 0;
+    var rangeTo = Math.min(currentPage * pageSize, totalFiltered);
+    if (pageItems.length && rangeTo < rangeFrom + pageItems.length - 1) {
+      rangeTo = rangeFrom + pageItems.length - 1;
+    }
 
     // Group current page products by category
     var groupsMap = {};
-    pageItems.forEach(p => {
-      var catObj = s.categories.find(c => c.id === p.cat_id);
+    pageItems.forEach(function (p) {
+      var catObj = s.categories.find(function (c) { return c.id === p.cat_id; });
       var catName = catObj ? catObj.name : 'other';
-      if (!groupsMap[catName]) {
-        groupsMap[catName] = [];
-      }
+      if (!groupsMap[catName]) groupsMap[catName] = [];
       groupsMap[catName].push(p);
     });
 
@@ -2455,8 +2495,8 @@ class Component extends DCLogic {
       inStockQty: s.loading ? '…' : inStockQty,
       lowStockCount: s.loading ? '…' : lowStockCount,
       outStockCount: s.loading ? '…' : outStockCount,
-      activeCount: s.loading ? '…' : activeProducts.length,
-      inactiveCount: s.loading ? '…' : inactiveProducts.length,
+      activeCount: s.loading ? '…' : (s.activeCountTotal || 0),
+      inactiveCount: s.loading ? '…' : (s.inactiveCountTotal || 0),
       statusActiveBg: isActiveTab ? '#1d60a2' : '#fff',
       statusActiveColor: isActiveTab ? '#fff' : '#5a6473',
       statusActiveBorder: isActiveTab ? '#1d60a2' : '#e4e8ee',
@@ -2475,11 +2515,11 @@ class Component extends DCLogic {
       nextLabel: this.t('Next', 'הבא'),
       prevPage: () => {
         if (currentPage <= 1) return;
-        this.setState({ listPage: currentPage - 1 });
+        this.goListPage(currentPage - 1);
       },
       nextPage: () => {
         if (currentPage >= totalPages) return;
-        this.setState({ listPage: currentPage + 1 });
+        this.goListPage(currentPage + 1);
       },
       productTypes: productTypesMapped,
       chipsRef: this.chipsRef,
@@ -2554,9 +2594,9 @@ class Component extends DCLogic {
       editStatusInactive: Number(s.editStatus) === 0,
       
       // Handlers
-      setStatusActive: () => this.setState({ statusFilter: 'active', listPage: 1 }),
-      setStatusInactive: () => this.setState({ statusFilter: 'inactive', listPage: 1 }),
-      onSearchChange: (e) => this.setState({ searchQuery: this.inputValue(e), listPage: 1 }),
+      setStatusActive: () => this.onStatusFilter('active'),
+      setStatusInactive: () => this.onStatusFilter('inactive'),
+      onSearchChange: (e) => this.onSearchChange(e),
       onAddNameChange: (e) => this.setState({ addName: this.inputValue(e) }),
       onAddEnnameChange: (e) => this.setState({ addEnname: this.inputValue(e) }),
       onAddSkuChange: (e) => this.setState({ addSku: this.inputValue(e) }),

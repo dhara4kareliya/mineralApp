@@ -199,6 +199,10 @@
     return !isSending && Date.now() >= suppressThreadReloadUntil;
   }
 
+  var _threadInFlight = null;
+  var _chatBooted = false;
+  var _chatBootAt = 0;
+
   var dragClickBlockUntil = {};
 
   function esc(s) {
@@ -836,6 +840,15 @@
       if (p.name) q.set('name', p.name);
       if (p.phone) q.set('phone', p.phone);
       if (p.email) q.set('email', p.email);
+      // Back from Customer Card should leave chat (messages list / entry), not reopen the thread.
+      try {
+        var entry = (typeof resolveChatBackHref === 'function')
+          ? resolveChatBackHref()
+          : (safeBackHref((new URLSearchParams(location.search || '')).get('back')) || 'calls-list.html');
+        if (entry) q.set('back', entry);
+      } catch (eBack) {
+        q.set('back', 'calls-list.html');
+      }
       detailsLink.href = 'chat-customer-details.html?' + q.toString();
     }
     var callBtn = document.getElementById('mb-chat-call-btn');
@@ -1005,6 +1018,20 @@
 
   async function loadThread(elId, p, options) {
     options = options || {};
+    // Coalesce overlapping loads — boot + ready + LiveSync were stacking SingleConversations
+    if (_threadInFlight) return _threadInFlight;
+    _threadInFlight = (async function () {
+      try {
+        return await loadThreadBody(elId, p, options);
+      } finally {
+        _threadInFlight = null;
+      }
+    })();
+    return _threadInFlight;
+  }
+
+  async function loadThreadBody(elId, p, options) {
+    options = options || {};
     var silent = !!options.silent;
     var el = document.getElementById(elId);
     var localPending = (currentMessages || []).filter(function (row) {
@@ -1079,11 +1106,11 @@
     }
 
     try {
-      var res = await MineralBarApp.listCustomerMessages(p.customer_id, { limit: 25 });
-      currentMessages = mergeServerAndLocalMessages(res.rows || [], localPending);
+      var res2 = await MineralBarApp.listCustomerMessages(p.customer_id, { limit: 25 });
+      currentMessages = mergeServerAndLocalMessages(res2.rows || [], localPending);
       renderMessages(elId, currentMessages, p);
       fillHeader(p);
-      return res.rows || [];
+      return res2.rows || [];
     } catch (err) {
       console.error('[MineralBar] Chat.CustomerMessages failed', err);
       el = document.getElementById(elId);
@@ -1973,6 +2000,10 @@
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     var elId = 'mb-live-chat';
     if (!document.getElementById(elId)) return;
+    if (_chatBooted) return;
+    _chatBooted = true;
+    _chatBootAt = Date.now();
+    suppressThreadReload(4000);
 
     initHorizontalDrags();
     applySendChannelStyles();
@@ -2008,10 +2039,21 @@
     await loadThread(elId, p);
   }
 
+  function softReloadThread() {
+    if (!document.getElementById('mb-live-chat')) return;
+    if (!shouldReloadThread()) return;
+    if (_chatBootAt && (Date.now() - _chatBootAt) < 4000) return;
+    clearTimeout(window.__mbChatRtTimer);
+    window.__mbChatRtTimer = setTimeout(function () {
+      if (!shouldReloadThread()) return;
+      loadThread('mb-live-chat', params(), { silent: true });
+    }, 400);
+  }
+
   window.addEventListener('mineralbar:ready', function () {
     wireChatBackButton();
     start();
-  });
+  }, { once: true });
   window.addEventListener('pagehide', function () {
     cancelVoiceRecord();
   });
@@ -2024,51 +2066,41 @@
       renderMessages('mb-live-chat', currentMessages, currentParams || params());
     }
   });
-  window.addEventListener('mineralbar:messages', function () {
-    if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-    var elId = 'mb-live-chat';
-    if (!document.getElementById(elId)) return;
-    // Do not wipe / reload conversation after our own Chat.SendCustomer
-    if (!shouldReloadThread()) return;
-    clearTimeout(window.__mbChatRtTimer);
-    window.__mbChatRtTimer = setTimeout(function () {
-      if (!shouldReloadThread()) return;
-      loadThread(elId, params(), { silent: true });
-    }, 400);
-  });
-  if (document.readyState === 'loading') {
+
+  // Wire UI early; boot once when auth is ready (or already authenticated).
+  wireChatBackButton();
+  initHorizontalDrags();
+  if (window.MineralBarApp && MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) {
+    setTimeout(start, 40);
+  } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       wireChatBackButton();
       initHorizontalDrags();
-      setTimeout(wireChatBackButton, 100);
-      setTimeout(wireChatBackButton, 500);
-      setTimeout(start, 50);
     });
-  } else {
-    wireChatBackButton();
-    initHorizontalDrags();
-    setTimeout(wireChatBackButton, 100);
-    setTimeout(wireChatBackButton, 500);
-    setTimeout(start, 50);
   }
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
-    LiveSync.bind(function () {
-      if (!document.getElementById('mb-live-chat')) return;
-      if (typeof shouldReloadThread === 'function' && !shouldReloadThread()) return;
-      loadThread('mb-live-chat', params(), { silent: true });
+    window.__mbChatLiveBound = true;
+    LiveSync.bind(function (detail) {
+      var key = String((detail && detail.key) || '').toLowerCase();
+      if (!key || /socket\.nudge/i.test(key)) return;
+      if (!/message|chat|whatsapp|inbox/i.test(key)) return;
+      softReloadThread();
     }, {
-      keys: /message|chat|whatsapp|inbox|customer|socket\.nudge/i,
+      keys: /message|chat|whatsapp|inbox/i,
       mount: '#mb-live-chat',
       delay: 300,
-      retries: true
+      retries: false
     });
-  } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () {
-      if (!document.getElementById('mb-live-chat')) return;
-      if (typeof shouldReloadThread === 'function' && !shouldReloadThread()) return;
-      loadThread('mb-live-chat', params(), { silent: true });
-    }, { keys: /message|chat|whatsapp|inbox|customer|socket\.nudge/i, delay: 400 });
+  } else {
+    window.addEventListener('mineralbar:messages', softReloadThread);
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(function (detail) {
+        var key = String((detail && detail.key) || '').toLowerCase();
+        if (!key || /socket\.nudge/i.test(key)) return;
+        softReloadThread();
+      }, { keys: /message|chat|whatsapp|inbox/i, delay: 400 });
+    }
   }
 
   // Safety net: inbound WhatsApp/chat often never hits this socket (server fan-out).
@@ -2082,7 +2114,8 @@
         if (!document.getElementById('mb-live-chat')) return;
         if (document.visibilityState && document.visibilityState !== 'visible') return;
         if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-        if (typeof shouldReloadThread === 'function' && !shouldReloadThread()) return;
+        if (!shouldReloadThread()) return;
+        if (_threadInFlight) return;
         var rt = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
         console.log('[SocketTest] chat poll tick', {
           socketStatus: rt && rt.status,

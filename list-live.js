@@ -163,21 +163,20 @@
     });
   }
 
-  async function fetchStatusTypePages(client, type) {
-    var start = 0;
-    for (var page = 0; page < 12; page++) {
-      var res = await client.request('Statuses.List', {
-        type: type,
-        limit: 25,
-        length: 25,
-        start: start
-      });
-      var rows = (res && (res.data || res.rows || res.output)) || [];
-      if (!Array.isArray(rows) || !rows.length) break;
-      ingestStatusRows(rows);
-      if (rows.length < 25) break;
-      start += rows.length;
+  async function fetchStatusTypePages(client, type, folderId) {
+    // One page is enough for chip/status label maps (was paging up to 12× per type).
+    var params = {
+      type: type,
+      limit: 50,
+      length: 50,
+      start: 0
+    };
+    if (folderId != null && folderId !== '' && folderId !== '0') {
+      params.folder_id = folderId;
     }
+    var res = await client.request('Statuses.List', params);
+    var rows = (res && (res.data || res.rows || res.output)) || [];
+    if (Array.isArray(rows) && rows.length) ingestStatusRows(rows);
   }
 
   async function ensureStatusMaps() {
@@ -187,13 +186,15 @@
         if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return statusMapById;
         var client = MineralBarApp.getClient();
         if (!client || !client.request) return statusMapById;
-        // Customer.List.status can be customer status, internal folder status, or a label string
-        var types = ['status', 'internal_status', 'customer_status'];
-        for (var i = 0; i < types.length; i++) {
-          try {
-            await fetchStatusTypePages(client, types[i]);
-          } catch (e) { /* try next */ }
-        }
+        var folderId = lockedFolderIdForPage(pageKind());
+        // Leads need internal folder statuses; customers also use customer_status.
+        // Was 3 types × multi-page = many Statuses.List on every list open.
+        var types = kindIsCustomersPage()
+          ? ['internal_status', 'customer_status']
+          : ['internal_status', 'status'];
+        await Promise.all(types.map(function (type) {
+          return fetchStatusTypePages(client, type, folderId).catch(function () { /* try others */ });
+        }));
       } catch (e) {
         console.warn('[ListLive] Statuses.List failed', e);
       }
@@ -728,62 +729,14 @@
     }
   }
 
-  async function enrichOneCustomerCard(card) {
-    var cid = card.getAttribute('data-customer-id') || '';
-    if (!cid || card.dataset.enriched === '1') return;
-    // Lead cards use a different layout — skip per-card enrichment there
-    if (!card.querySelector('.mb-cust-name-row') && !card.querySelector('.mb-cust-address')) return;
-    card.dataset.enriched = '1';
-    var needsAddress = !((card.querySelector('.mb-cust-address') || {}).textContent || '').trim();
-    var needsStatus = !card.querySelector('.mb-cust-status');
-
-    try {
-      if ((needsAddress || needsStatus) && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
-        var cres = await MineralBarApp.getCustomer(cid).catch(function () { return null; });
-        var c = cres && cres.customer;
-        if (c && c.data && typeof c.data === 'object') c = c.data;
-        if (c) {
-          var picked = pick(c);
-          if (needsAddress) {
-            setAddressLines(card, picked.address, picked.city, picked.phone || card.getAttribute('data-phone') || '');
-          }
-          // Products come from Customer.List / Customer.Get when available —
-          // do not call Documents.Products per card (unused + noisy on list pages).
-          if (picked.products) {
-            setProductLine(card, picked.products);
-          }
-          if (picked.status && needsStatus) {
-            var nameRow = card.querySelector('.mb-cust-name-row');
-            if (nameRow && !nameRow.querySelector('.mb-cust-status')) {
-              var statusColor = picked.statusColor || '#1d60a2';
-              var statusBg = statusColor.charAt(0) === '#' ? (statusColor + '22') : '#eaf2fb';
-              nameRow.insertAdjacentHTML(
-                'beforeend',
-                '<span class="mb-cust-status" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:' +
-                  esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(picked.status) + '</span>'
-              );
-            }
-          }
-        }
-      }
-    } catch (e) { /* ignore */ }
+  async function enrichOneCustomerCard(/* card */) {
+    // Intentionally no-op: address / status / phone come from Customer.List.
+    // Customer.Get is only used when the user taps the product icon.
+    return;
   }
 
-  function enrichCustomerCards(listEl) {
-    listEl = document.getElementById('mb-live-list') || listEl;
-    if (!listEl) return;
-    // Leads list does not show product lines — skip enrichment entirely
-    if ((listEl.getAttribute('data-kind') || pageKind()) === 'leads') return;
-    var cards = Array.prototype.slice.call(listEl.querySelectorAll('[data-customer-id]'));
-    if (!cards.length) return;
-    var queue = cards.slice();
-    var workers = Math.min(3, queue.length);
-    function run() {
-      var card = queue.shift();
-      if (!card) return Promise.resolve();
-      return enrichOneCustomerCard(card).then(run, run);
-    }
-    for (var i = 0; i < workers; i++) run();
+  function enrichCustomerCards(/* listEl */) {
+    // No bulk Customer.Get on list load.
   }
 
   function productsSheetHost() {
@@ -839,6 +792,35 @@
     if (!client || !client.getToken || !client.getToken()) {
       throw new Error('Not authenticated');
     }
+
+    // Product icon only: Customer.Get (list page must not bulk-call this).
+    if (typeof MineralBarApp.getCustomer === 'function') {
+      try {
+        var cres = await MineralBarApp.getCustomer(cid);
+        var c = cres && (cres.customer || cres.data || cres);
+        if (c && c.data && typeof c.data === 'object' && !Array.isArray(c.data)) c = c.data;
+        var fromGet = normalizeProductRows(c);
+        if (!fromGet.length && c) {
+          fromGet = normalizeProductRows({
+            products: c.products || c.product || c.purchased_products || c.customer_products
+          });
+        }
+        if (!fromGet.length && c) {
+          var preview = pickProductPreview(c);
+          if (preview) {
+            fromGet = preview.split(/\s*,\s*/).map(function (name) {
+              name = String(name || '').trim();
+              return name ? { name: name, qty: '', price: '', date: '', type: '', doc: '' } : null;
+            }).filter(Boolean);
+          }
+        }
+        if (fromGet.length) return fromGet;
+      } catch (eGet) {
+        console.warn('[ListLive] Customer.Get for products failed', eGet);
+      }
+    }
+
+    // Fallback: purchased products on documents (only after product-icon tap)
     var attempts = [
       { customer_id: cid, page_id: 1, limit: 25 },
       { cust_id: cid, page_id: 1, limit: 25 },
@@ -1036,7 +1018,47 @@
     window.__mbActiveFolderId = window.__mbListActiveFolder;
   }
 
+  var _listInFlight = null;
+  var _listBooted = false;
+  var _listBootAt = 0;
+  var _rowsCache = null;
+  var _rowsCacheKind = '';
+  var _rowsCacheTotal = 0;
+
   async function loadList(mount, explicitFolderId, opts) {
+    opts = opts || {};
+    // Coalesce duplicates — never queue a second Customer.List behind the first
+    if (_listInFlight) return _listInFlight;
+
+    _listInFlight = (async function () {
+      try {
+        await loadListBody(mount, explicitFolderId, opts);
+      } finally {
+        _listInFlight = null;
+      }
+    })();
+    return _listInFlight;
+  }
+
+  function paintCachedRows(el, kind) {
+    if (!el || !_rowsCache || !_rowsCache.length) return false;
+    kind = kind || _rowsCacheKind || 'leads';
+    var totalEl = document.getElementById('mb-total-label');
+    if (totalEl) totalEl.textContent = formatTotalLabel(_rowsCacheTotal || _rowsCache.length, kind);
+    el.innerHTML = _rowsCache.map(function (row) {
+      var c = pick(row);
+      return kind === 'leads' ? leadCard(c) : customerCard(c);
+    }).join('');
+    applyClientFilters(el);
+    bindClientFilters(el);
+    bindProductButtons(el);
+    bindVipButtons(el);
+    syncChipActiveStyles(getActiveFolderId());
+    el.setAttribute('data-initial-loaded', '1');
+    return true;
+  }
+
+  async function loadListBody(mount, explicitFolderId, opts) {
     opts = opts || {};
     var silent = !!opts.silent;
     var el = mount.el;
@@ -1085,9 +1107,19 @@
       }
 
       if (!rows.length) {
+        _rowsCache = [];
+        _rowsCacheKind = kind;
+        _rowsCacheTotal = total;
         el.innerHTML = emptyHtml(kind);
         return;
       }
+
+      _rowsCache = rows.slice();
+      _rowsCacheKind = kind;
+      _rowsCacheTotal = total;
+      // Re-query mount — DC may have replaced #mb-live-list while Statuses/List were in flight
+      el = document.getElementById('mb-live-list') || el;
+      el.setAttribute('data-initial-loaded', '1');
 
       var html = rows.map(function (row) {
         var c = pick(row);
@@ -1100,7 +1132,7 @@
       bindClientFilters(el);
       bindProductButtons(el);
       bindVipButtons(el);
-      enrichCustomerCards(el);
+      // Address / status / phone from Customer.List only — no Customer.Get on load.
       syncChipActiveStyles(getActiveFolderId(mount));
       return;
     } catch (err) {
@@ -1123,6 +1155,7 @@
     if (btn) btn.addEventListener('click', function () {
       mount._activeLoadId = '';
       el.removeAttribute('data-initial-loaded');
+      _listBooted = false;
       loadList(mount, explicitFolderId);
     });
   }
@@ -1456,8 +1489,15 @@
     var mount = detectMount();
     if (!mount || !mount.el) return;
     // Initial load only — later updates come from socket partial patches
-    if (mount.el.getAttribute('data-initial-loaded') === '1') return;
+    if (_listBooted || _listInFlight || mount.el.getAttribute('data-initial-loaded') === '1') {
+      if (mount.el.getAttribute('data-initial-loaded') !== '1' && _rowsCache) {
+        paintCachedRows(mount.el, mount.kind);
+      }
+      return;
+    }
     mount.el.setAttribute('data-initial-loaded', '1');
+    _listBooted = true;
+    _listBootAt = Date.now();
     var folder = getActiveFolderId(mount);
     setActiveFolderId(folder);
     loadList(mount, folder);
@@ -1466,11 +1506,21 @@
   function watchForListRemount() {
     if (!document.body || window.__mbListMountObserver) return;
     var scheduled = false;
-    window.__mbListMountObserver = new MutationObserver(function() {
+    var lastListEl = document.getElementById('mb-live-list');
+    window.__mbListMountObserver = new MutationObserver(function () {
       if (scheduled) return;
       scheduled = true;
-      setTimeout(function() {
+      setTimeout(function () {
         scheduled = false;
+        var el = document.getElementById('mb-live-list');
+        // Ignore card/innerHTML churn — only act when the list root node is replaced
+        if (!el || el === lastListEl) return;
+        lastListEl = el;
+        // Never kick a second Customer.List for DC remount — reuse cache / in-flight
+        if (_listBooted || _listInFlight || _rowsCache) {
+          paintCachedRows(el, el.getAttribute('data-kind') || pageKind());
+          return;
+        }
         start();
       }, 0);
     });
@@ -1529,7 +1579,6 @@
       if (next) existing.replaceWith(next);
       bindProductButtons(el);
       bindVipButtons(el);
-      if (kind !== 'leads') enrichOneCustomerCard(next || el.querySelector('[data-customer-id="' + cssAttrEscape(String(c.id)) + '"]'));
       console.log('[ListLive] socket updated row', c.id, c.name);
       return true;
     }
@@ -1542,9 +1591,6 @@
     bumpTotal(1);
     bindProductButtons(el);
     bindVipButtons(el);
-    if (kind !== 'leads') {
-      enrichOneCustomerCard(el.querySelector('[data-customer-id="' + cssAttrEscape(String(c.id)) + '"]'));
-    }
     console.log('[ListLive] socket inserted row', c.id, c.name);
     return true;
   }
@@ -1564,19 +1610,25 @@
   var _fullRefreshPendingReason = '';
 
   function fullListRefresh(reason) {
+    var why = String(reason || '');
+    // Skip any soft refresh in the boot window (nudge / empty livesync / remount storms)
+    if (_listBootAt && (Date.now() - _listBootAt) < 5000) {
+      return;
+    }
+    if (_listInFlight) return;
     // Debounce LiveSync retries (300 / 1000 / 2500) into one silent re-fetch
-    _fullRefreshPendingReason = reason || _fullRefreshPendingReason || '';
+    _fullRefreshPendingReason = why || _fullRefreshPendingReason || '';
     clearTimeout(_fullRefreshTimer);
     _fullRefreshTimer = setTimeout(function () {
       var mount = detectMount();
       if (!mount) return;
-      var why = _fullRefreshPendingReason;
+      var pending = _fullRefreshPendingReason;
       _fullRefreshPendingReason = '';
       var folder = getActiveFolderId(mount);
       loadList(mount, folder, { silent: true });
       syncChipActiveStyles(folder);
       if (window.Biz1Pulse) window.Biz1Pulse(mount.el);
-      console.log('[ListLive] silent refresh', why, 'folder=' + folder);
+      console.log('[ListLive] silent refresh', pending, 'folder=' + folder);
     }, 180);
   }
 
@@ -1604,10 +1656,10 @@
       return;
     }
 
-    // Folder filter active → never patch raw list (would break filter); silent re-fetch
-    var folderFiltered = kind === 'leads'
-      ? (activeFolder !== '' && activeFolder != null)
-      : (activeFolder && activeFolder !== '0' && activeFolder !== 'all');
+    // Customers page with a non-all folder chip → silent re-fetch.
+    // Leads are always folder-locked; prefer in-place patch when payload is complete.
+    var folderFiltered = kind === 'customers'
+      && activeFolder && activeFolder !== '0' && activeFolder !== 'all';
     if (folderFiltered) {
       fullListRefresh(key || 'folder-filter');
       return;
@@ -1627,7 +1679,7 @@
     // Ignore realtime soft re-fires — only initial auth ready should load full list
     if (ev && ev.detail && ev.detail.reason === 'realtime') return;
     start();
-  });
+  }, { once: true });
   window.addEventListener('mineralbar:language-changed', function () {
     statusMapsPromise = null;
     statusMapById = {};
@@ -1635,38 +1687,34 @@
     var mount = detectMount();
     if (!mount) return;
     mount.el.removeAttribute('data-initial-loaded');
+    _listBooted = false;
+    _listBootAt = 0;
+    _rowsCache = null;
     start();
   });
-  window.addEventListener('mineralbar:auth-refreshed', start);
-  window.addEventListener('mineralbar:leads', function (ev) {
-    applySocketCustomerEvent((ev && ev.detail) || {});
-  });
-  window.addEventListener('mineralbar:realtime', function (ev) {
-    applySocketCustomerEvent((ev && ev.detail) || {});
-  });
-  window.addEventListener('mineralbar:page-refresh', function (ev) {
-    var detail = (ev && ev.detail) || {};
-    var key = String(detail.key || '').toLowerCase();
-    if (/lead|customer|crm|socket\.nudge/.test(key) || !key) fullListRefresh(key || 'page-refresh');
+  window.addEventListener('mineralbar:auth-refreshed', function () {
+    if (!_listBooted) start();
   });
 
-  if (document.readyState === 'loading') {
+  // One boot path: ready (or already authed). DOM only watches for remount paint.
+  watchForListRemount();
+  if (window.MineralBarApp && MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) {
+    setTimeout(start, 40);
+  } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       watchForListRemount();
-      setTimeout(start, 20);
     });
-  } else {
-    watchForListRemount();
-    setTimeout(start, 20);
   }
   // Do NOT re-fetch on pageshow/visibility — returning from another app must stay on socket updates only.
   // (BFCache socket reconnect is handled in biz1-app.js)
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    window.__mbListLiveBound = true;
     LiveSync.bind(function (detail) {
       var key = String((detail && detail.key) || '').toLowerCase();
-      if (/socket\.nudge/.test(key) || !key) {
-        fullListRefresh(key || 'livesync');
+      if (!key) return;
+      if (/socket\.nudge/.test(key)) {
+        fullListRefresh(key);
         return;
       }
       applySocketCustomerEvent(detail || {});
@@ -1677,9 +1725,27 @@
       retries: true
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () {
-      fullListRefresh('bindLiveReload');
+    window.__mbListLiveBound = true;
+    MineralBarApp.bindLiveReload(function (detail) {
+      var key = String((detail && detail.key) || '').toLowerCase();
+      if (!key || /socket\.nudge/.test(key)) {
+        if (key) fullListRefresh(key || 'bindLiveReload');
+        return;
+      }
+      applySocketCustomerEvent(detail || {});
     }, { keys: /customer|lead|crm|socket\.nudge/i, delay: 180 });
+  } else {
+    window.addEventListener('mineralbar:leads', function (ev) {
+      applySocketCustomerEvent((ev && ev.detail) || {});
+    });
+    window.addEventListener('mineralbar:realtime', function (ev) {
+      applySocketCustomerEvent((ev && ev.detail) || {});
+    });
+    window.addEventListener('mineralbar:page-refresh', function (ev) {
+      var detail = (ev && ev.detail) || {};
+      var key = String(detail.key || '').toLowerCase();
+      if (/lead|customer|crm|socket\.nudge/.test(key) || !key) fullListRefresh(key || 'page-refresh');
+    });
   }
 
   window.ListLive = window.ListLive || {};
@@ -1721,6 +1787,7 @@
     if (!mount || !mount.el) return;
     mount.el.removeAttribute('data-initial-loaded');
     mount._activeLoadId = '';
+    _listBooted = false;
     start();
   };
 

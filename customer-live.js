@@ -72,8 +72,11 @@
     } catch (e2) { /* ignore */ }
   }
 
-  var CARD_SELF_RE = /service-customer-card|chat-customer-details|tech-customer-card|lead-card/i;
-  var CARD_CHILD_RE = /service-open-call|service-quote-form|service-order-form|all-documents|collection-payment|document-issuance|document-issue-form|chat-customer\.html|service-create-task|service-inventory|service-select-customer/i;
+  // Customer / lead card pages themselves (not valid Back targets).
+  var CARD_SELF_RE = /service-customer-card|lead-card|tech-customer-card|chat-customer-details/i;
+
+  // Pages opened FROM a customer card (not valid "entry" parents for Back).
+  var CARD_CHILD_RE = /service-open-call|service-quote-form|service-order-form|all-documents|collection-payment|document-issuance|document-issue-form|service-create-task|service-inventory|service-select-customer|add-note|chat-customer\.html/i;
 
   function safeCardBackHref(raw) {
     if (!raw) return '';
@@ -110,14 +113,38 @@
     return String(href || '').split('?')[0];
   }
 
+  /** Prefer list/entry pages — never bounce Customer Card Back into a chat thread. */
+  function unwrapCustomerCardBack(href) {
+    href = safeCardBackHref(href);
+    if (!href) return '';
+    var file = hrefFile(href);
+    if (/^chat-customer\.html$/i.test(file)) {
+      try {
+        var nested = safeCardBackHref(new URLSearchParams(href.split('?')[1] || '').get('back') || '');
+        if (nested && !/^chat-customer\.html$/i.test(hrefFile(nested)) &&
+            !CARD_SELF_RE.test(hrefFile(nested)) && !CARD_CHILD_RE.test(hrefFile(nested))) {
+          return nested;
+        }
+      } catch (e0) { /* ignore */ }
+      return 'calls-list.html';
+    }
+    if (CARD_SELF_RE.test(file) || CARD_CHILD_RE.test(file)) return '';
+    return href;
+  }
+
   function rememberCustomerCardEntry() {
     if (!CARD_SELF_RE.test(location.pathname || location.href || '')) return;
     var q = new URLSearchParams(location.search || '');
-    var explicit = safeCardBackHref(q.get('back') || q.get('from') || q.get('return'));
-    if (explicit && !CARD_SELF_RE.test(hrefFile(explicit))) {
+    var explicit = unwrapCustomerCardBack(q.get('back') || q.get('from') || q.get('return'));
+    if (explicit) {
       try { sessionStorage.setItem('mb_customer_card_back', explicit); } catch (e) { /* ignore */ }
       return;
     }
+    // Do not overwrite a good entry with a later referrer (e.g. after closing Internal comment).
+    try {
+      var existing = unwrapCustomerCardBack(sessionStorage.getItem('mb_customer_card_back'));
+      if (existing) return;
+    } catch (eExist) { /* ignore */ }
     try {
       var ref = document.referrer;
       if (!ref) return;
@@ -125,18 +152,18 @@
       if (u.origin !== location.origin) return;
       var file = (u.pathname.split('/').pop() || '');
       if (!file || CARD_SELF_RE.test(file) || CARD_CHILD_RE.test(file) || /login/i.test(file)) return;
-      var rel = file + u.search + u.hash;
+      var rel = unwrapCustomerCardBack(file + u.search + u.hash);
       if (rel) sessionStorage.setItem('mb_customer_card_back', rel);
     } catch (e3) { /* ignore */ }
   }
 
   function resolveCustomerCardBack() {
     var q = new URLSearchParams(location.search || '');
-    var fromParam = safeCardBackHref(q.get('back') || q.get('from') || q.get('return'));
-    if (fromParam && !CARD_SELF_RE.test(hrefFile(fromParam)) && !CARD_CHILD_RE.test(hrefFile(fromParam))) return fromParam;
+    var fromParam = unwrapCustomerCardBack(q.get('back') || q.get('from') || q.get('return'));
+    if (fromParam) return fromParam;
     try {
-      var stored = safeCardBackHref(sessionStorage.getItem('mb_customer_card_back'));
-      if (stored && !CARD_SELF_RE.test(hrefFile(stored)) && !CARD_CHILD_RE.test(hrefFile(stored))) return stored;
+      var stored = unwrapCustomerCardBack(sessionStorage.getItem('mb_customer_card_back'));
+      if (stored) return stored;
     } catch (e) { /* ignore */ }
     try {
       var ref = document.referrer;
@@ -144,9 +171,8 @@
         var u = new URL(ref);
         if (u.origin === location.origin) {
           var file = (u.pathname.split('/').pop() || '');
-          if (file && !CARD_SELF_RE.test(file) && !CARD_CHILD_RE.test(file) && !/login/i.test(file)) {
-            return file + u.search + u.hash;
-          }
+          var unwrapped = unwrapCustomerCardBack(file + u.search + u.hash);
+          if (unwrapped) return unwrapped;
         }
       }
     } catch (e2) { /* ignore */ }
@@ -160,17 +186,16 @@
         e.stopPropagation();
       } catch (err) { /* ignore */ }
     }
-    var href = resolveCustomerCardBack();
+    var href = '';
+    try {
+      href = resolveCustomerCardBack();
+    } catch (errResolve) {
+      console.warn('[CustomerLive] resolve back failed', errResolve);
+    }
     if (href) {
       window.location.href = href;
       return;
     }
-    try {
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-    } catch (err2) { /* ignore */ }
     window.location.href = defaultCustomerCardBack();
   }
 

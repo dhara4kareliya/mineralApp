@@ -242,53 +242,77 @@
   function enableDragScroll(slider) {
     if (!slider || slider.dataset.dragScrollWired === '1') return;
     slider.dataset.dragScrollWired = '1';
+    slider.classList.add('mb-h-drag');
+
     var isDown = false;
     var startX = 0;
     var scrollLeft = 0;
     var isDragging = false;
+    var pointerId = null;
 
-    function onDown(clientX) {
+    function onDown(clientX, e) {
       isDown = true;
       isDragging = false;
       slider.classList.add('is-dragging');
-      slider.style.cursor = 'grabbing';
       startX = clientX;
       scrollLeft = slider.scrollLeft;
+      if (e && e.pointerId != null && slider.setPointerCapture) {
+        pointerId = e.pointerId;
+        try { slider.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
     }
 
     function onMove(clientX, e) {
       if (!isDown) return;
-      if (e && e.cancelable) e.preventDefault();
       var dx = clientX - startX;
       if (Math.abs(dx) > 4) isDragging = true;
+      // Same formula works for LTR and RTL scrollLeft (incl. negative RTL values)
       slider.scrollLeft = scrollLeft - dx;
+      if (isDragging && e && e.cancelable) e.preventDefault();
     }
 
     function onUp() {
+      if (!isDown) return;
       isDown = false;
       slider.classList.remove('is-dragging');
-      slider.style.cursor = 'grab';
+      if (pointerId != null && slider.releasePointerCapture) {
+        try { slider.releasePointerCapture(pointerId); } catch (err) { /* ignore */ }
+      }
+      pointerId = null;
       setTimeout(function () { isDragging = false; }, 0);
     }
 
-    slider.addEventListener('mousedown', function (e) {
-      onDown(e.pageX);
-    });
-    window.addEventListener('mousemove', function (e) {
-      onMove(e.pageX, e);
-    });
-    window.addEventListener('mouseup', onUp);
+    if (window.PointerEvent) {
+      slider.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        onDown(e.clientX, e);
+      });
+      slider.addEventListener('pointermove', function (e) {
+        onMove(e.clientX, e);
+      });
+      slider.addEventListener('pointerup', onUp);
+      slider.addEventListener('pointercancel', onUp);
+    } else {
+      slider.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        onDown(e.clientX, e);
+      });
+      window.addEventListener('mousemove', function (e) {
+        onMove(e.clientX, e);
+      });
+      window.addEventListener('mouseup', onUp);
 
-    slider.addEventListener('touchstart', function (e) {
-      if (!e.touches || !e.touches.length) return;
-      onDown(e.touches[0].pageX);
-    }, { passive: true });
-    slider.addEventListener('touchmove', function (e) {
-      if (!e.touches || !e.touches.length) return;
-      onMove(e.touches[0].pageX, e);
-    }, { passive: false });
-    slider.addEventListener('touchend', onUp);
-    slider.addEventListener('touchcancel', onUp);
+      slider.addEventListener('touchstart', function (e) {
+        if (!e.touches || !e.touches.length) return;
+        onDown(e.touches[0].clientX, e);
+      }, { passive: true });
+      slider.addEventListener('touchmove', function (e) {
+        if (!e.touches || !e.touches.length) return;
+        onMove(e.touches[0].clientX, e);
+      }, { passive: false });
+      slider.addEventListener('touchend', onUp);
+      slider.addEventListener('touchcancel', onUp);
+    }
 
     slider.addEventListener('click', function (e) {
       if (isDragging) {
@@ -299,6 +323,10 @@
     slider.addEventListener('dragstart', function (e) {
       e.preventDefault();
     });
+  }
+
+  function wirePipelineDrag() {
+    enableDragScroll(document.getElementById('mb-sales-pipeline-scroll'));
   }
 
   var _homeBooted = false;
@@ -316,37 +344,18 @@
     return rows;
   }
 
-  async function listAllMissionsForHome() {
-    // Mission.List hard-caps at 25 rows even if length>25. Count the API
-    // total_record (open), and page by 25 so today's new task is in the list.
-    var pageSize = 25;
-    var start = 0;
-    var all = [];
-    var seen = {};
-    var apiTotal = 0;
-    for (var page = 0; page < 20; page++) {
-      var res = await MineralBarApp.listMissions({
-        length: pageSize,
-        start: start,
-        draw: 1,
-        show_done_mission: 0,
-        include_counts: 1
-      });
-      if (!apiTotal) apiTotal = Number(res.total) || 0;
-      var rows = flattenMissionRows(res);
-      for (var i = 0; i < rows.length; i++) {
-        var r = rows[i];
-        var id = String(r.mission_id || r.id || '');
-        var key = id || ('row-' + start + '-' + i);
-        if (seen[key]) continue;
-        seen[key] = true;
-        all.push(r);
-      }
-      if (rows.length < pageSize) break;
-      start += rows.length;
-      if (apiTotal && start >= apiTotal) break;
-    }
-    return { rows: all, total: apiTotal || all.length };
+  async function listHomeMissions() {
+    // One Mission.List page (API caps at 25). Use total_record for open count;
+    // widget only needs 5 today/overdue from this sample — no multi-page storm.
+    var res = await MineralBarApp.listMissions({
+      length: 25,
+      start: 0,
+      draw: 1,
+      show_done_mission: 0,
+      include_counts: 1
+    });
+    var rows = flattenMissionRows(res);
+    return { rows: rows, total: Number(res.total) || rows.length };
   }
 
   async function loadHome(opts) {
@@ -377,7 +386,7 @@
     var today = todayKey();
     setGreeting();
     setAvatar();
-    enableDragScroll(document.getElementById('mb-sales-pipeline-scroll'));
+    wirePipelineDrag();
 
     if (!silent) {
       setText('mb-stat-closed', '…');
@@ -411,7 +420,7 @@
           start: 0,
           draw: 1
         }).catch(function () { return { rows: [] }; }),
-        listAllMissionsForHome().catch(function () { return { rows: [], total: 0 }; })
+        listHomeMissions().catch(function () { return { rows: [], total: 0 }; })
       ]);
 
       // Re-query after await — DC/React can replace nodes while requests are in flight
@@ -431,16 +440,18 @@
       var dueNowMissions = openMissions.filter(function (m) {
         return isToday(m, today) || isOverdue(m, today);
       });
-      var openEstimate = dueNowMissions.length;
+      // Prefer API open total; fall back to due-now sample size
+      var openEstimate = Number(results[3].total) || dueNowMissions.length;
 
+      // Home widget: only 5 latest today / overdue tasks (not the full open list)
       var prioritized = dueNowMissions.slice().sort(function (a, b) {
-        var ao = isToday(a, today) ? 0 : 1;
-        var bo = isToday(b, today) ? 0 : 1;
-        if (ao !== bo) return ao - bo;
-        return String(missionDayKey(a) + String(a.date_to_do || '')).localeCompare(
-          String(missionDayKey(b) + String(b.date_to_do || ''))
-        );
-      }).slice(0, 20);
+        var aOver = isOverdue(a, today);
+        var bOver = isOverdue(b, today);
+        if (aOver !== bOver) return aOver ? -1 : 1; // overdue before today
+        var ka = String(missionDayKey(a) || '') + 'T' + String(a.date_to_do || a.date_to_do_format || a.updated || a.id || '');
+        var kb = String(missionDayKey(b) || '') + 'T' + String(b.date_to_do || b.date_to_do_format || b.updated || b.id || '');
+        return kb.localeCompare(ka); // latest first within group
+      }).slice(0, 5);
 
       setText('mb-stat-closed', String(missionTotal));
       setText('mb-stat-closed-sub', doneCount
@@ -482,6 +493,7 @@
 
   function start(opts) {
     opts = opts || {};
+    wirePipelineDrag();
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     if (!homeReady()) {
       if (!window.__mbHomeMountTries) window.__mbHomeMountTries = 0;
@@ -492,6 +504,7 @@
       if (!document.getElementById('mb-live-home')) return;
     }
     window.__mbHomeMountTries = 0;
+    wirePipelineDrag();
     var dirty = false;
     try { dirty = !!sessionStorage.getItem('mb_missions_dirty'); } catch (e0) {}
     if (_homeBooted && !opts.force && !dirty) return;
@@ -499,8 +512,10 @@
     loadHome(opts.silent ? { silent: true } : {});
   }
 
-  window.addEventListener('mineralbar:ready', function () { setTimeout(start, 40); });
-  window.addEventListener('pageshow', function () {
+  // Boot once when auth is ready (not also on every pageshow / double LiveSync bind).
+  window.addEventListener('mineralbar:ready', function () { setTimeout(start, 40); }, { once: true });
+  window.addEventListener('pageshow', function (ev) {
+    if (!ev || !ev.persisted) return;
     if (!document.getElementById('mb-live-home')) return;
     loadHome({ silent: true });
   });
@@ -521,46 +536,36 @@
     }
     window.__mbHomeRtRetries = [];
 
-    // Real mission CRUD → silent retries (API lag). Poll / other → one silent refresh.
-    var delays = /mission\.(done|created|updated|deleted|reopened)/.test(key)
-      ? [300, 1000, 2400]
-      : [180];
+    // One debounced refresh here. LiveSync (when bound) owns API-lag retries.
+    var delay = /mission\.(done|created|updated|deleted|reopened)/.test(key) ? 300 : 180;
+    var extraRetries = !window.__mbHomeLiveBound && /mission\.(done|created|updated|deleted|reopened)/.test(key)
+      ? [1000, 2400]
+      : [];
 
     window.__mbHomeRtTimer = setTimeout(function () {
       loadHome({ silent: true });
-      delays.slice(1).forEach(function (ms) {
+      extraRetries.forEach(function (ms) {
         window.__mbHomeRtRetries.push(setTimeout(function () {
           loadHome({ silent: true });
         }, ms));
       });
-    }, delays[0]);
+    }, delay);
   }
-  window.addEventListener('mineralbar:missions', function (ev) {
-    onHomeLiveRefresh((ev && ev.detail) || {});
-  });
-  window.addEventListener('mineralbar:messages', function (ev) {
-    onHomeLiveRefresh((ev && ev.detail) || {});
-  });
-  window.addEventListener('mineralbar:leads', function (ev) {
-    onHomeLiveRefresh((ev && ev.detail) || {});
-  });
-  window.addEventListener('mineralbar:page-refresh', function (ev) {
-    onHomeLiveRefresh((ev && ev.detail) || {});
-  });
-  window.addEventListener('mineralbar:realtime', function (ev) {
-    var detail = (ev && ev.detail) || {};
-    var key = String(detail.key || '').toLowerCase();
-    if (!key || /mission|task|ticket|message|chat|lead|customer|crm|socket\.nudge/.test(key)) {
-      onHomeLiveRefresh(detail);
-    }
-  });
+
+  // Wire pipeline drag even before auth/API — CSS + gestures should work immediately.
+  wirePipelineDrag();
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 200); });
-  } else {
+    document.addEventListener('DOMContentLoaded', wirePipelineDrag);
+  }
+  setTimeout(wirePipelineDrag, 120);
+  setTimeout(wirePipelineDrag, 400);
+
+  if (window.MineralBarApp && MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) {
     setTimeout(start, 40);
   }
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
+    window.__mbHomeLiveBound = true;
     LiveSync.bind(function (detail) {
       onHomeLiveRefresh(detail || {});
     }, {
@@ -570,10 +575,31 @@
       retries: true
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+    window.__mbHomeLiveBound = true;
     MineralBarApp.bindLiveReload(function (detail) {
       if (!document.getElementById('mb-live-home')) return;
       onHomeLiveRefresh(detail || {});
     }, { keys: /mission|task|ticket|message|chat|lead|customer|socket\.nudge/i, delay: 80 });
+  } else {
+    window.addEventListener('mineralbar:missions', function (ev) {
+      onHomeLiveRefresh((ev && ev.detail) || {});
+    });
+    window.addEventListener('mineralbar:messages', function (ev) {
+      onHomeLiveRefresh((ev && ev.detail) || {});
+    });
+    window.addEventListener('mineralbar:leads', function (ev) {
+      onHomeLiveRefresh((ev && ev.detail) || {});
+    });
+    window.addEventListener('mineralbar:page-refresh', function (ev) {
+      onHomeLiveRefresh((ev && ev.detail) || {});
+    });
+    window.addEventListener('mineralbar:realtime', function (ev) {
+      var detail = (ev && ev.detail) || {};
+      var key = String(detail.key || '').toLowerCase();
+      if (!key || /mission|task|ticket|message|chat|lead|customer|crm|socket\.nudge/.test(key)) {
+        onHomeLiveRefresh(detail);
+      }
+    });
   }
 
 })();

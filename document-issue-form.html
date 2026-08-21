@@ -371,21 +371,26 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
-    if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
-    }
-
     try {
       var p = new URLSearchParams(window.location.search || '');
       var type = p.get('type') || '';
       if (type && this.TYPES.some(t => t.id === type)) this.setState({ type: type });
     } catch (e) { /* ignore */ }
-    this.boot();
-    window.addEventListener('mineralbar:ready', () => this.boot());
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.boot(), { keys: /document|customer|product|socket\.nudge/i, delay: 400 });
+
+    // Boot once: auth ready now, or wait for mineralbar:ready (not both).
+    var client = window.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient();
+    if (client && client.getToken && client.getToken()) {
+      this.boot();
+    } else {
+      window.addEventListener('mineralbar:ready', () => this.boot(), { once: true });
     }
-    window.addEventListener('mineralbar:page-refresh', () => this.boot());
+    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload((detail) => {
+        var key = String((detail && detail.key) || '').toLowerCase();
+        if (!key || /socket\.nudge/i.test(key)) return;
+        if (/document|customer|product/i.test(key)) this.boot({ soft: true });
+      }, { keys: /document|customer|product/i, delay: 400 });
+    }
     var self = this;
     document.addEventListener('click', function (e) {
       if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
@@ -465,9 +470,27 @@ class Component extends DCLogic {
     el.addEventListener('pointercancel', endDrag);
   }
 
-  async boot() {
-    await this.loadCustomer();
-    if (this.state.customerId && !this.state.custNotFound) await this.loadDocumentData();
+  async boot(opts) {
+    opts = opts || {};
+    if (this._bootInFlight) return this._bootInFlight;
+    if (this._booted && opts.soft) {
+      // Soft live refresh: docs only (customer already loaded)
+      if (this.state.customerId && !this.state.custNotFound) {
+        this._bootInFlight = this.loadDocumentData().finally(() => { this._bootInFlight = null; });
+        return this._bootInFlight;
+      }
+      return;
+    }
+    this._bootInFlight = (async () => {
+      try {
+        await this.loadCustomer();
+        if (this.state.customerId && !this.state.custNotFound) await this.loadDocumentData();
+        this._booted = true;
+      } finally {
+        this._bootInFlight = null;
+      }
+    })();
+    return this._bootInFlight;
   }
 
   getCustomerId() {
@@ -724,44 +747,41 @@ class Component extends DCLogic {
     this.setState({ docsLoading: true, docsNotFound: false });
     try {
       var client = MineralBarApp.getClient();
+      // One Documents.List — filter by type client-side (typed+fallback was 2 calls when empty).
       var raw = await client.request('Documents.List', {
         customer_id: cid,
         cust_id: cid,
-        type: apiType,
-        length: 25,
+        length: 50,
         start: 0,
         draw: 1
       });
-      var rows = (raw && (raw.data || raw.rows || raw.output)) || [];
-      if (!Array.isArray(rows)) rows = [];
+      var allRows = (raw && (raw.data || raw.rows || raw.output)) || [];
+      if (!Array.isArray(allRows)) allRows = [];
 
-      if (!rows.length) {
-        var all = await client.request('Documents.List', {
-          customer_id: cid,
-          cust_id: cid,
-          length: 25,
-          start: 0,
-          draw: 1
-        });
-        var allRows = (all && (all.data || all.rows || all.output)) || [];
-        if (!Array.isArray(allRows)) allRows = [];
-        var want = String(apiType || '').toLowerCase();
-        var aliases = {
-          invoice: ['invoice'],
-          receipt_tax_invoice: ['receipt_tax_invoice', 'tax_receipt', 'receipttax'],
-          order_proposals: ['order_proposals', 'proposal', 'deal'],
-          receipt: ['receipt'],
-          credit_invoice: ['credit_invoice', 'credit'],
-          delivery_invoice: ['delivery_invoice', 'delivery'],
-          proforma_invoice: ['proforma_invoice', 'proforma'],
-          gi_ir: ['gi_ir', 'gr_ir', 'grir'],
-          organization_receipt: ['organization_receipt', 'donation_receipt', 'donation', 'donations']
-        };
-        var matchSet = aliases[want] || [want];
-        rows = allRows.filter(r => {
-          var t = String(r.type || r.document_type || r.doc_type || '').toLowerCase();
-          return matchSet.indexOf(t) !== -1 || t === want;
-        });
+      var want = String(apiType || '').toLowerCase();
+      var aliases = {
+        invoice: ['invoice'],
+        receipt_tax_invoice: ['receipt_tax_invoice', 'tax_receipt', 'receipttax'],
+        order_proposals: ['order_proposals', 'proposal', 'deal'],
+        receipt: ['receipt'],
+        credit_invoice: ['credit_invoice', 'credit'],
+        delivery_invoice: ['delivery_invoice', 'delivery'],
+        proforma_invoice: ['proforma_invoice', 'proforma'],
+        gi_ir: ['gi_ir', 'gr_ir', 'grir'],
+        organization_receipt: ['organization_receipt', 'donation_receipt', 'donation', 'donations']
+      };
+      var matchSet = aliases[want] || [want];
+      function rowType(r) {
+        return String(r.type || r.document_type || r.doc_type || '').toLowerCase();
+      }
+      var rows = allRows.filter(function (r) {
+        var t = rowType(r);
+        return matchSet.indexOf(t) !== -1 || t === want;
+      });
+      // If API already scoped by type (or types missing), keep unfiltered when nothing matched
+      // but response was type-parameterless — prefer empty for wrong types.
+      if (!rows.length && allRows.length && allRows.every(function (r) { return !rowType(r); })) {
+        rows = allRows;
       }
 
       if (!rows.length) {
@@ -791,28 +811,21 @@ class Component extends DCLogic {
       }
 
       var creditOptions = [];
-      try {
-        var invRaw = await client.request('Documents.List', {
-          customer_id: cid,
-          cust_id: cid,
-          type: 'invoice',
-          length: 25,
-          start: 0,
-          draw: 1
+      var needsCredit = !!(this.CFG[this.state.type] || {}).credit;
+      if (needsCredit) {
+        var invRows = allRows.filter(function (r) {
+          var t = rowType(r);
+          return t === 'invoice' || !t;
         });
-        var invRows = (invRaw && (invRaw.data || invRaw.rows || invRaw.output)) || [];
-        if (!Array.isArray(invRows)) invRows = [];
         creditOptions = invRows.map(inv => {
           var n = inv.last_documents_id || inv.id || '-';
           var x = Math.round(Number(inv.final_amount != null ? inv.final_amount : inv.total) * 100) / 100;
           var amtText = Number.isNaN(x) ? '0₪' : ((String(x).indexOf('.') >= 0 && !/\.0+$/.test(String(x)) ? x.toFixed(2) : String(Math.round(x))) + '₪');
           return { label: this.t('Tax invoice', 'חשבונית מס') + ' #INV-' + n + ' · ' + amtText };
         });
-      } catch (e2) {
-        creditOptions = [];
-      }
-      if (!creditOptions.length) {
-        creditOptions = [{ label: this.t('No tax invoices found', 'לא נמצאו חשבוניות מס') }];
+        if (!creditOptions.length) {
+          creditOptions = [{ label: this.t('No tax invoices found', 'לא נמצאו חשבוניות מס') }];
+        }
       }
 
       this.setState({ docsLoading: false, docsNotFound: false, docsRows: rows, creditOptions: creditOptions });
@@ -878,17 +891,21 @@ class Component extends DCLogic {
     var fallback = cid
       ? ('document-issuance.html?customer_id=' + encodeURIComponent(cid))
       : 'document-issuance.html';
-    if (typeof window.mbGoEntryBack === 'function') {
-      window.mbGoEntryBack(null, { fallback: fallback, selfRe: /document-issue-form/i });
+    var href = fallback;
+    if (typeof window.mbResolveEntryBack === 'function') {
+      href = window.mbResolveEntryBack({
+        fallback: fallback,
+        selfRe: /document-issue-form/i,
+        // Prefer explicit ?back= (issuance hub). Don't use history — that loops with issuance.
+        useReferrer: false
+      }) || fallback;
+    }
+    // replace so Close on issuance does not return here via history/referrer
+    if (/document-issuance\.html/i.test(href)) {
+      window.location.replace(href);
       return;
     }
-    try {
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-    } catch (e) { /* fallback below */ }
-    window.location.href = fallback;
+    window.location.href = href;
   }
 
   goAllDocuments() {

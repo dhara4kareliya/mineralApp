@@ -57,12 +57,70 @@ mbCss('./common.css');
   .wd-product-select {
     width: 100%;
     max-width: 100%;
-    appearance: auto;
-    background: #fff;
+    appearance: none;
+    -webkit-appearance: none;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat;
+    background-position: left 12px center;
+    padding-inline-end: 12px !important;
+    padding-inline-start: 34px !important;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    cursor: pointer;
   }
-  .wd-product-select option {
-    padding: 8px 10px;
+  html[dir="ltr"] .wd-product-select {
+    background-position: right 12px center;
+    padding-inline-end: 34px !important;
+    padding-inline-start: 12px !important;
+  }
+  .wd-picker-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 80;
+    background: rgba(15, 24, 40, 0.45);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .wd-picker-overlay.is-open {
+    display: flex;
+  }
+  .wd-picker-sheet {
+    width: 100%;
+    max-height: 72%;
+    background: #fff;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -10px 34px rgba(15, 24, 40, 0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .wd-picker-list {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 8px 16px;
+  }
+  .wd-picker-item {
+    width: 100%;
+    text-align: start;
+    border: none;
+    background: transparent;
+    padding: 13px 12px;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2a3a;
+    cursor: pointer;
+    line-height: 1.35;
+    word-break: break-word;
     white-space: normal;
+  }
+  .wd-picker-item:active,
+  .wd-picker-item.is-selected {
+    background: #eaf2fb;
+    color: #1d60a2;
   }
   .photo-slot {
     flex: 1; min-height: 118px; border-radius: 14px; border: 1.6px dashed #aebfd6;
@@ -547,11 +605,11 @@ mbCss('./common.css');
 
 <!-- bottom action — hide whole bar while loading (empty white strip broke the layout) -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showActions }}">
-<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px;" data-no-i18n="true">
+<div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 12px;">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showForm }}">
-<div id="close-form-error" style="display:{{ formErrorDisplay }}; background:#fbeeed; border:1.5px solid #f1c9c4; border-radius:12px; padding:11px 13px; margin-bottom:10px; color:#a3302e; font-size:13px; font-weight:700; white-space:pre-line; text-align:start; line-height:1.45;">{{ formError }}</div>
+<div id="close-form-error" data-no-i18n="true" style="display:{{ formErrorDisplay }}; background:#fbeeed; border:1.5px solid #f1c9c4; border-radius:12px; padding:11px 13px; margin-bottom:10px; color:#a3302e; font-size:13px; font-weight:700; white-space:pre-line; text-align:start; line-height:1.45;">{{ formError }}</div>
 <button type="button" id="submit-close-btn" onclick="{{ submitClose }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ submitBg }}; color:{{ submitColor }}; font-size:15.5px; font-weight:800; cursor:{{ submitCursor }}; opacity:{{ submitOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ submitShadow }};">
-<span id="submit-close-label">{{ submitLabel }}</span>
+<span id="submit-close-label" data-no-i18n="true">{{ submitLabel }}</span>
         </button>
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ showView }}">
@@ -561,6 +619,25 @@ mbCss('./common.css');
 </sc-if>
 </div>
 </sc-if>
+
+<!-- in-app product picker (keeps long product names inside the phone frame) -->
+<div id="wd-picker-overlay" class="wd-picker-overlay" style="display:none;" data-no-i18n="true">
+  <div class="wd-picker-sheet" onclick="event.stopPropagation()">
+    <div style="flex:none; padding:10px 16px 8px;">
+      <div style="display:flex; justify-content:center; padding:2px 0 10px;">
+        <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6;"></div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div id="wd-picker-title" style="font-size:17px; font-weight:800; color:#1f2a3a;"></div>
+        <button type="button" id="wd-picker-close" style="width:34px; height:34px; border-radius:50%; border:none; background:#f1f3f6; color:#5a6473; cursor:pointer; font-size:18px; line-height:1;">×</button>
+      </div>
+    </div>
+    <div style="flex:none; padding:0 16px 10px;">
+      <input id="wd-picker-search" type="search" autocomplete="off" style="width:100%; box-sizing:border-box; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:12px; font-size:14px; font-weight:600; color:#1f2a3a; background:#fff; font-family:inherit;"/>
+    </div>
+    <div id="wd-picker-list" class="wd-picker-list"></div>
+  </div>
+</div>
 </div>
 </div>
 </div>
@@ -1612,8 +1689,13 @@ class Component extends DCLogic {
           if (typeof applyTranslations === 'function') {
             applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
           }
+          self.updateSubmitEnabled();
         }, 80);
       }
+    });
+    window.addEventListener('mineralbar:language-changed', function () {
+      self.setState({ langTick: Date.now() });
+      self.updateSubmitEnabled();
     });
     this.boot();
     window.addEventListener('mineralbar:ready', function (ev) {
@@ -2671,11 +2753,129 @@ class Component extends DCLogic {
     this.bindSignature();
     this.bindSpareInputs();
     this.bindSubmitButton();
+    this.bindProductPickers();
+    this.closeProductPicker();
     this.syncPhotoPreviews();
     this.syncExtraPhotos();
     this.syncSummaryInput();
     this.syncReasonInputs();
     this.updateSubmitEnabled();
+  }
+
+  bindProductPickers() {
+    var self = this;
+    var overlay = document.getElementById('wd-picker-overlay');
+    if (overlay && overlay.getAttribute('data-bound') !== '1') {
+      overlay.setAttribute('data-bound', '1');
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) self.closeProductPicker();
+      });
+      var closeBtn = document.getElementById('wd-picker-close');
+      if (closeBtn) closeBtn.addEventListener('click', function () { self.closeProductPicker(); });
+      var search = document.getElementById('wd-picker-search');
+      if (search) {
+        search.addEventListener('input', function () {
+          self.renderProductPickerList(String(search.value || ''));
+        });
+      }
+    }
+    var selects = document.querySelectorAll('select.wd-product-select');
+    for (var i = 0; i < selects.length; i++) {
+      var sel = selects[i];
+      if (sel.getAttribute('data-picker-bound') === '1') continue;
+      sel.setAttribute('data-picker-bound', '1');
+      sel.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        self.openProductPicker(this);
+      });
+      sel.addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        self.openProductPicker(this);
+      }, { passive: false });
+      sel.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          self.openProductPicker(this);
+        }
+      });
+    }
+  }
+
+  openProductPicker(selectEl) {
+    if (!selectEl) return;
+    this._pickerSelect = selectEl;
+    var overlay = document.getElementById('wd-picker-overlay');
+    var title = document.getElementById('wd-picker-title');
+    var search = document.getElementById('wd-picker-search');
+    if (!overlay) return;
+    var labelEl = selectEl.closest('div') && selectEl.closest('div').querySelector('label');
+    if (title) {
+      title.textContent = (labelEl && labelEl.textContent)
+        ? String(labelEl.textContent).trim()
+        : this.t('Select product…', 'בחר מוצר…');
+    }
+    if (search) {
+      search.value = '';
+      search.placeholder = this.t('Search for a product...', 'חיפוש מוצר...');
+    }
+    this.renderProductPickerList('');
+    overlay.classList.add('is-open');
+    overlay.style.display = 'flex';
+    try { selectEl.blur(); } catch (err) { /* ignore */ }
+    setTimeout(function () {
+      try { if (search) search.focus(); } catch (e2) { /* ignore */ }
+    }, 50);
+  }
+
+  closeProductPicker() {
+    var overlay = document.getElementById('wd-picker-overlay');
+    if (overlay) {
+      overlay.classList.remove('is-open');
+      overlay.style.display = 'none';
+    }
+    this._pickerSelect = null;
+  }
+
+  renderProductPickerList(query) {
+    var listEl = document.getElementById('wd-picker-list');
+    var sel = this._pickerSelect;
+    if (!listEl || !sel) return;
+    var q = String(query || '').trim().toLowerCase();
+    var current = String(sel.value || '');
+    var self = this;
+    listEl.innerHTML = '';
+
+    function addItem(value, label, selected) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wd-picker-item' + (selected ? ' is-selected' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', function () {
+        sel.value = value;
+        try {
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (err) {
+          if (typeof sel.onchange === 'function') sel.onchange({ target: sel });
+        }
+        self.closeProductPicker();
+      });
+      listEl.appendChild(btn);
+    }
+
+    var options = sel.options || [];
+    for (var i = 0; i < options.length; i++) {
+      var opt = options[i];
+      var value = String(opt.value || '');
+      var label = String(opt.textContent || '').trim() || value;
+      if (q && label.toLowerCase().indexOf(q) === -1 && value.toLowerCase().indexOf(q) === -1) continue;
+      addItem(value, label, value === current);
+    }
+    if (!listEl.childNodes.length) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'padding:18px 12px; color:#9aa3b0; font-size:13.5px; font-weight:700; text-align:center;';
+      empty.textContent = this.t('No matching products', 'לא נמצאו מוצרים תואמים');
+      listEl.appendChild(empty);
+    }
   }
 
   syncSummaryInput() {

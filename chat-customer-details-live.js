@@ -123,6 +123,48 @@
     });
   }
 
+  function buildConversationBackUrl(c) {
+    c = c || customerData || {};
+    var id = String(currentCustomerId || c.customer_id || c.id || '').trim();
+    var name = c.name || '';
+    var phone = formatPhone(c.mobile || c.phone || '');
+    var email = c.email || '';
+    var q = new URLSearchParams();
+    if (id) {
+      q.set('customer_id', id);
+      q.set('cust_id', id);
+    }
+    if (name) q.set('name', name);
+    if (phone) q.set('phone', phone);
+    if (email) q.set('email', email);
+    // Conversation's own Back → messages list (or whatever opened the card), not the note page.
+    var listBack = 'calls-list.html';
+    try {
+      var pageQ = new URLSearchParams(location.search || '');
+      var entryBack = String(pageQ.get('back') || pageQ.get('return') || '').trim();
+      if (entryBack) {
+        var entryFile = entryBack.split('?')[0];
+        if (/^chat-customer\.html$/i.test(entryFile)) {
+          try {
+            var nested = new URLSearchParams(entryBack.split('?')[1] || '').get('back');
+            if (nested) listBack = nested;
+          } catch (eN) { /* keep calls-list */ }
+        } else if (!/chat-customer-details|add-note/i.test(entryFile)) {
+          listBack = entryBack;
+        }
+      } else {
+        try {
+          var stored = sessionStorage.getItem('mb_customer_card_back') || sessionStorage.getItem('mb_chat_back') || '';
+          if (stored && !/chat-customer-details|add-note|chat-customer\.html/i.test(String(stored).split('?')[0])) {
+            listBack = stored;
+          }
+        } catch (eS) { /* ignore */ }
+      }
+    } catch (e1) { /* ignore */ }
+    q.set('back', listBack);
+    return 'chat-customer.html?' + q.toString();
+  }
+
   function buildAddNoteUrl(c) {
     c = c || customerData || {};
     var id = String(currentCustomerId || c.customer_id || c.id || '').trim();
@@ -137,7 +179,8 @@
       (email ? '&email=' + encodeURIComponent(email) : '') +
       (address ? '&address=' + encodeURIComponent(address) : '') +
       (city ? '&city=' + encodeURIComponent(city) : '');
-    var back = 'chat-customer-details.html?customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id);
+    // Close / Back on add-note → conversation thread (not Customer Card).
+    var back = buildConversationBackUrl(c);
     return 'add-note.html?' + qs + '&back=' + encodeURIComponent(back);
   }
 

@@ -102,15 +102,21 @@ class Component extends DCLogic {
       LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
     }
 
-    this.loadData();
-    window.addEventListener('mineralbar:ready', () => this.loadData());
+    // Boot once: either auth already ready, or wait for mineralbar:ready (not both).
+    var client = window.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient();
+    if (client && client.getToken && client.getToken()) {
+      this.loadData();
+    } else {
+      window.addEventListener('mineralbar:ready', () => this.loadData(), { once: true });
+    }
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.loadData(), { keys: /ticket|mission|customer|member|socket\.nudge/i, delay: 350 });
     }
     window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:realtime', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
-    window.addEventListener('pageshow', () => this.loadData());
+    // Only reload from bfcache restore — initial pageshow duplicated Ticket.Get
+    window.addEventListener('pageshow', (ev) => { if (ev && ev.persisted) this.loadData(); });
   }
 
   onRealtimeRefresh(ev) {

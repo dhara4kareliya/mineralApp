@@ -63,10 +63,39 @@
   function resolveBackHref() {
     var p = qs();
     var fromParam = safeBackHref(p.get('back') || p.get('from') || p.get('return'));
+    // If we somehow still point at the note page or customer card, prefer the conversation.
+    if (fromParam && /add-note\.html/i.test(fromParam.split('?')[0])) {
+      fromParam = '';
+    }
+    if (fromParam && /chat-customer-details\.html/i.test(fromParam.split('?')[0])) {
+      var cid = resolveCustomerId();
+      var q = new URLSearchParams();
+      if (cid) {
+        q.set('customer_id', cid);
+        q.set('cust_id', cid);
+      }
+      var name = String(p.get('name') || '').trim();
+      var phone = String(p.get('phone') || p.get('mobile') || '').trim();
+      var email = String(p.get('email') || '').trim();
+      if (name) q.set('name', name);
+      if (phone) q.set('phone', phone);
+      if (email) q.set('email', email);
+      try {
+        var nested = safeBackHref(new URLSearchParams(fromParam.split('?')[1] || '').get('back') || '');
+        q.set('back', nested && !/add-note|chat-customer-details/i.test(nested.split('?')[0]) ? nested : 'calls-list.html');
+      } catch (e0) {
+        q.set('back', 'calls-list.html');
+      }
+      return 'chat-customer.html?' + q.toString();
+    }
     if (fromParam) return fromParam;
-    var cid = resolveCustomerId();
-    if (cid) return 'lead-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid);
-    return 'leads-list.html';
+    var cid2 = resolveCustomerId();
+    if (cid2) {
+      return 'chat-customer.html?customer_id=' + encodeURIComponent(cid2) +
+        '&cust_id=' + encodeURIComponent(cid2) +
+        '&back=' + encodeURIComponent('calls-list.html');
+    }
+    return 'calls-list.html';
   }
 
   function pad(n) {

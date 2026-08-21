@@ -294,8 +294,13 @@ class Component extends DCLogic {
     var fallback = cid
       ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
       : home;
+    // Never follow referrer/history back to document-issue-form (that creates a close loop).
     if (typeof window.mbGoEntryBack === 'function') {
-      window.mbGoEntryBack(null, { fallback: fallback, selfRe: /document-issuance/i });
+      window.mbGoEntryBack(null, {
+        fallback: fallback,
+        selfRe: /document-issuance|document-issue-form/i,
+        allowHistory: false
+      });
       return;
     }
     try {
@@ -304,18 +309,13 @@ class Component extends DCLogic {
       if (back) {
         try { back = decodeURIComponent(back); } catch (eDec) { /* keep */ }
         back = String(back || '').trim().replace(/^\//, '');
-        if (back && back.indexOf('..') < 0 && !/^javascript:/i.test(back) && back !== 'customer') {
+        if (back && back.indexOf('..') < 0 && !/^javascript:/i.test(back) &&
+            back !== 'customer' && !/document-issue-form/i.test(back)) {
           window.location.href = back;
           return;
         }
       }
     } catch (e0) { /* ignore */ }
-    try {
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-    } catch (e) { /* fallback below */ }
     window.location.href = fallback;
   }
 

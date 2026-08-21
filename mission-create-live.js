@@ -378,18 +378,41 @@
     return raw;
   }
 
+  var _columnsFetchPromise = null;
+  var _columnsRawRows = null;
+  var _columnsRawOrder = null;
+
+  async function fetchProjectColumnsRaw() {
+    if (_columnsRawRows) return { rows: _columnsRawRows, order: _columnsRawOrder || [] };
+    if (_columnsFetchPromise) return _columnsFetchPromise;
+    _columnsFetchPromise = (async function () {
+      var client = MineralBarApp.getClient ? MineralBarApp.getClient() : null;
+      if (!client || !client.getToken || !client.getToken()) {
+        return { rows: [], order: [] };
+      }
+      var res = await client.request('Projects.ColumnsList', { limit: 25 });
+      var rows = (res && (res.data || res.output || res.rows || res.list)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      var order = Array.isArray(res && res.order) ? res.order : [];
+      _columnsRawRows = rows;
+      _columnsRawOrder = order;
+      return { rows: rows, order: order };
+    })().catch(function (e) {
+      _columnsFetchPromise = null;
+      throw e;
+    });
+    return _columnsFetchPromise;
+  }
+
   async function loadProjectColumns(selectedValue) {
     var select = document.getElementById('mb-project-column');
     if (!select) return;
     var preferred = selectedValue != null ? String(selectedValue) : String(select.value || '');
     select.disabled = true;
     try {
-      var client = MineralBarApp.getClient ? MineralBarApp.getClient() : null;
-      if (!client || !client.getToken || !client.getToken()) return;
-      var res = await client.request('Projects.ColumnsList', { limit: 25 });
-      var rows = (res && (res.data || res.output || res.rows || res.list)) || [];
-      if (!Array.isArray(rows)) rows = [];
-      var order = Array.isArray(res && res.order) ? res.order : [];
+      var packed = await fetchProjectColumnsRaw();
+      var rows = (packed && packed.rows) || [];
+      var order = (packed && packed.order) || [];
       if (order.length) {
         rows = rows.slice().sort(function (a, b) {
           var aKey = a.column_name || a.id || '';
@@ -1308,6 +1331,18 @@
   }
 
   var started = false;
+  var _missionLoadPromise = null;
+  var _missionBootAt = 0;
+
+  async function loadExistingMissionOnce() {
+    if (!editingMissionId) return;
+    if (_missionLoadPromise) return _missionLoadPromise;
+    _missionLoadPromise = loadExistingMission().finally(function () {
+      // Allow a later explicit reload only after boot (e.g. real mission.updated)
+      setTimeout(function () { _missionLoadPromise = null; }, 800);
+    });
+    return _missionLoadPromise;
+  }
 
   function start() {
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
@@ -1315,6 +1350,7 @@
     // rebuild the dropdowns and wipe the values loadExistingMission() just selected.
     if (started) return;
     started = true;
+    _missionBootAt = Date.now();
     syncCreateTaskActiveTab();
     wireBackNavigation();
     wireMarkDone();
@@ -1322,7 +1358,7 @@
     wirePriorityPills();
     wireProjectColumnLiveUpdate();
     populateDropdowns().then(function() {
-      loadExistingMission();
+      return loadExistingMissionOnce();
     });
     wireMediaAndUploads();
     wireSubmit();
@@ -1332,18 +1368,25 @@
     });
   }
 
-  window.addEventListener('mineralbar:ready', function() { setTimeout(start, 150); });
-  if (document.readyState === 'loading') {
+  window.addEventListener('mineralbar:ready', function() { setTimeout(start, 150); }, { once: true });
+  if (window.MineralBarApp && MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) {
+    setTimeout(start, 200);
+  } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() { setTimeout(start, 200); });
   } else {
     setTimeout(start, 200);
   }
 
   if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () {
-      if (typeof populateDropdowns === 'function') populateDropdowns();
-      if (typeof loadExistingMission === 'function') loadExistingMission();
-    }, { keys: /customer|mission|project|socket\.nudge/i, delay: 500 });
+    MineralBarApp.bindLiveReload(function (detail) {
+      var key = String((detail && detail.key) || '').toLowerCase();
+      // Skip connect nudges / empty keys — they re-fired ColumnsList + Mission.Get
+      if (!key || /socket\.nudge/i.test(key)) return;
+      if (_missionBootAt && (Date.now() - _missionBootAt) < 4000) return;
+      if (/mission\.(done|updated|deleted|reopened)/i.test(key) && editingMissionId) {
+        loadExistingMissionOnce();
+      }
+    }, { keys: /mission\.(done|updated|deleted|reopened)/i, delay: 500 });
   }
 
 })();

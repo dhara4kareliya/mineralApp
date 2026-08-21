@@ -385,32 +385,46 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
-    if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: false, keys: /product|document|team_hours|teamhours|ticket|mission/i, delay: 400 });
+    this._booted = false;
+    this._bootAt = 0;
+    this.ensureChrome();
+
+    // Boot once: auth ready now, or wait for mineralbar:ready (not both / not again after boot).
+    var client = this.getClient && this.getClient();
+    if (client && client.getToken && client.getToken()) {
+      this.initData();
+    } else {
+      window.addEventListener('mineralbar:ready', (ev) => {
+        if (ev && ev.detail && ev.detail.reason === 'realtime') return;
+        if (this._booted || this._dashInFlight) return;
+        this.initData();
+        this.ensureChrome();
+      }, { once: true });
     }
 
-    this._booted = false;
-    this.ensureChrome();
-    this.initData();
-    window.addEventListener('mineralbar:ready', (ev) => {
-      if (ev && ev.detail && ev.detail.reason === 'realtime') return;
-      if (this._booted) {
-        this.initData({ silent: true });
-        this.ensureChrome();
-        return;
-      }
-      this.initData();
-      this.ensureChrome();
-    });
-    window.addEventListener('mineralbar:realtime', (ev) => {
-      var key = String((ev && ev.detail && ev.detail.key) || '').toLowerCase();
-      if (/product|document|team_hours|teamhours|ticket|mission/.test(key) && !/socket\.nudge/i.test(key)) {
-        this.initData({ silent: true });
-      }
-    });
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.initData({ silent: true }), { keys: /product|document|team_hours|teamhours|ticket|mission/i, delay: 400 });
+    var onLive = (detail) => {
+      var key = String((detail && detail.key) || '').toLowerCase();
+      if (!key || /socket\.nudge/i.test(key)) return;
+      if (this._bootAt && (Date.now() - this._bootAt) < 4000) return;
+      if (!/product|document|team_hours|teamhours|ticket|mission/.test(key)) return;
+      this.initData({ silent: true });
+    };
+
+    if (window.LiveSync && typeof LiveSync.bind === 'function') {
+      LiveSync.bind((detail) => onLive(detail || {}), {
+        retries: false,
+        keys: /product|document|team_hours|teamhours|ticket|mission/i,
+        delay: 400
+      });
+    } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload((detail) => onLive(detail || {}), {
+        keys: /product|document|team_hours|teamhours|ticket|mission/i,
+        delay: 400
+      });
+    } else {
+      window.addEventListener('mineralbar:realtime', (ev) => onLive((ev && ev.detail) || {}));
     }
+
     setTimeout(() => this.ensureChrome(), 200);
     setTimeout(() => this.ensureChrome(), 800);
     var self = this;
@@ -430,10 +444,8 @@ class Component extends DCLogic {
   async initData(opts) {
     opts = opts || {};
     var silent = !!opts.silent;
-    if (this._dashInFlight) {
-      this._dashQueued = { silent: silent && !(this._dashQueued && this._dashQueued.silent === false) };
-      return this._dashInFlight;
-    }
+    // Coalesce — never queue a second full dashboard load (that duplicated Ticket.Count)
+    if (this._dashInFlight) return this._dashInFlight;
     var client = this.getClient();
     if (!client) {
       this.setState({ loadingDocs: false, loadingWeeks: false, loadingOpenTickets: false, loadingOrders: false });
@@ -449,12 +461,10 @@ class Component extends DCLogic {
           self.loadFieldOrders(client, silent)
         ]);
         self._booted = true;
+        self._bootAt = Date.now();
         self.ensureChrome();
       } finally {
         self._dashInFlight = null;
-        var queued = self._dashQueued;
-        self._dashQueued = null;
-        if (queued) return self.initData(queued);
       }
     })();
     return this._dashInFlight;

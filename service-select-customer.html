@@ -173,7 +173,7 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ false }}" value="{{ saveError }}">
 <div style="margin-bottom:10px; padding:10px 12px; border-radius:10px; background:#fbeeed; border:1px solid #f0c9c4; color:#7a2e28; font-size:12.5px; font-weight:700;">{{ saveError }}</div>
 </sc-if>
-<button disabled="{{ newDisabled }}" onclick="{{ saveNew }}" style="width:100%; padding:12px; border:none; border-radius:11px; background:{{ saveBg }}; color:#fff; font-size:14px; font-weight:800; cursor:{{ saveCursor }};">{{ saveLabel }}</button>
+<button disabled="{{ newDisabled }}" onclick="{{ saveNew }}" data-no-i18n="true" style="width:100%; padding:12px; border:none; border-radius:11px; background:{{ saveBg }}; color:#fff; font-size:14px; font-weight:800; cursor:{{ saveCursor }};">{{ saveLabel }}</button>
 </div>
 </sc-if>
 <!-- results header -->
@@ -232,7 +232,7 @@ mbCss('./common.css');
 <svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="18"><path d="M20 6 9 17l-5-5"></path></svg>
 </div>
 </sc-if>
-<button disabled="{{ nextDisabled }}" onclick="{{ goNext }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ nextBg }}; color:{{ nextColor }}; font-size:16px; font-weight:800; cursor:{{ nextCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ nextShadow }};">
+<button disabled="{{ nextDisabled }}" onclick="{{ goNext }}" data-no-i18n="true" style="width:100%; padding:15px; border:none; border-radius:14px; background:{{ nextBg }}; color:{{ nextColor }}; font-size:16px; font-weight:800; cursor:{{ nextCursor }}; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:{{ nextShadow }};">
           {{ nextLabel }}
           <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="17"><path d="m14 6-6 6 6 6"></path></svg>
 </button>
@@ -251,7 +251,16 @@ class Component extends DCLogic {
     saveError: '',
     nName: '', nPhone: '', nCity: '',
     nStreet: '', nHouse: '', nFloor: '', nApt: '', nEntrance: '',
+    langTick: 0,
   };
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
 
   AVATARS = [
     { bg: '#e6f0fb', color: '#1d60a2' },
@@ -267,6 +276,16 @@ class Component extends DCLogic {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
       LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
     }
+
+    var self = this;
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.lang-translator-btn, #btn-lang-toggle')) {
+        setTimeout(function () { self.setState({ langTick: Date.now() }); }, 80);
+      }
+    });
+    window.addEventListener('mineralbar:language-changed', function () {
+      self.setState({ langTick: Date.now() });
+    });
 
     this.loadCustomers();
     window.addEventListener('mineralbar:ready', () => this.loadCustomers());
@@ -427,6 +446,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const st = this.state;
+    void st.langTick;
     const list = this.filtered();
     const sel = this.CUSTOMERS.find(c => String(c.id) === String(st.selectedId));
 
@@ -489,10 +509,14 @@ class Component extends DCLogic {
       newDisabled: !newReady,
       saveBg: newReady ? '#1d60a2' : '#b9c4d2',
       saveCursor: newReady ? 'pointer' : 'not-allowed',
-      saveLabel: st.savingNew ? 'Saving…' : 'Save and continue',
+      saveLabel: st.savingNew
+        ? this.t('Saving…', 'שומר…')
+        : this.t('Save and continue', 'שמירה והמשך'),
 
-      listLabel: st.query.trim() ? ('Search results (' + list.length + ')') : ('Customers ' + list.length),
-      listSubLabel: st.query.trim() ? '' : 'Recent customers',
+      listLabel: st.query.trim()
+        ? (this.t('Search results', 'תוצאות חיפוש') + ' (' + list.length + ')')
+        : (this.t('Customers', 'לקוחות') + ' ' + list.length),
+      listSubLabel: st.query.trim() ? '' : this.t('Recent customers', 'לקוחות אחרונים'),
       resultCount: list.length,
       results,
       isEmpty: list.length === 0,
@@ -502,7 +526,9 @@ class Component extends DCLogic {
       selInitials: sel ? this.initials(sel.name) : '',
       goNext: () => this.goNext(),
       nextDisabled: !hasSel,
-      nextLabel: hasSel ? 'Continue to ticket details' : 'Select a customer to continue',
+      nextLabel: hasSel
+        ? this.t('Continue to ticket details', 'המשך לפרטי הטיקט')
+        : this.t('Select a customer to continue', 'בחר לקוח להמשך'),
       nextBg: hasSel ? '#1d60a2' : '#e3e7ed',
       nextColor: hasSel ? '#fff' : '#9aa3b0',
       nextCursor: hasSel ? 'pointer' : 'not-allowed',

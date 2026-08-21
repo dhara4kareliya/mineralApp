@@ -77,6 +77,33 @@ button, input, select, textarea, a {
   height: 0;
 }
 
+/* Horizontal chip/filter rows — allow pan despite .dc-scroll overflow-x:hidden */
+.dc-scroll.mb-h-drag,
+#mb-sales-pipeline-scroll {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dc-scroll.mb-h-drag.is-dragging,
+#mb-sales-pipeline-scroll.is-dragging,
+.dc-scroll.mb-h-drag.is-dragging *,
+#mb-sales-pipeline-scroll.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+.dc-scroll.mb-h-drag::-webkit-scrollbar,
+#mb-sales-pipeline-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 .hidden {
   display: none !important;
 }
