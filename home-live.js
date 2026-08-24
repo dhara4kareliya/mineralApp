@@ -85,6 +85,50 @@
     return { text: t('Open', 'פתוח'), color: '#7b8595' };
   }
 
+  var CLOSED_LEAD_STATUS = 10184;
+
+  function currentMonthRange() {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var from = y + '-' + pad(m + 1) + '-01';
+    var last = new Date(y, m + 1, 0).getDate();
+    var to = y + '-' + pad(m + 1) + '-' + pad(last);
+    return { from: from, to: to };
+  }
+
+  function statusIdCandidates(row) {
+    if (!row) return [];
+    var vals = [row.status, row.sub_list_data, row.status_id, row.internal_status_id, row.c_status];
+    var out = [];
+    for (var i = 0; i < vals.length; i++) {
+      var raw = vals[i];
+      if (raw && typeof raw === 'object') raw = raw.id || raw.status_id || raw.value || raw.val || '';
+      var n = Number(raw);
+      if (isFinite(n) && n > 0) out.push(n);
+    }
+    return out;
+  }
+
+  function leadCreatedKey(row) {
+    if (!row) return '';
+    var raw = row.date_created || row.created_at || row.created || row.insert_date ||
+      row.inserted_date || row.default_date || row.updated || '';
+    var s = String(raw == null ? '' : raw).trim();
+    var m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (m) return m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]);
+    var d = new Date(raw);
+    if (!isNaN(d.getTime())) return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    return '';
+  }
+
+  function isClosedLeadThisMonth(row, range) {
+    if (statusIdCandidates(row).indexOf(CLOSED_LEAD_STATUS) === -1) return false;
+    var k = leadCreatedKey(row);
+    if (!k || !range) return false;
+    return k >= range.from && k <= range.to;
+  }
+
   function isFollowupLead(row) {
     if (!row) return false;
     var status = [
@@ -432,6 +476,7 @@
     }
 
     try {
+      var monthRange = currentMonthRange();
       var results = await Promise.all([
         MineralBarApp.countCustomers(MineralBarApp.FOLDERS.LEADS).catch(function () { return { count: 0 }; }),
         MineralBarApp.countMissions({}).catch(function () { return { count: 0 }; }),
@@ -452,6 +497,10 @@
       var missionTotal = Number(results[1].count) || Number(results[3].total) || 0;
       var leadRows = results[2].rows || results[2].data || [];
       var followupCount = leadRows.filter(isFollowupLead).length;
+      // Customer.Count/List ignore status=10184 server-side — count on the folder-1 list.
+      var closedCount = leadRows.filter(function (row) {
+        return isClosedLeadThisMonth(row, monthRange);
+      }).length;
 
       var rows = flattenMissionRows(results[3]);
       try { sessionStorage.removeItem('mb_missions_dirty'); } catch (e2) {}
@@ -481,8 +530,9 @@
       setText('mb-stat-closed-sub', doneCount
         ? (doneCount + ' ' + t('done in sample', 'בוצעו בדגימה'))
         : t('Total tasks', 'סה״כ משימות'));
-      setText('mb-stat-leads', String(leadsCount));
-      setText('mb-stat-leads-sub', t('Folder 1 · Leads', 'תיקייה 1 · לידים'));
+      setText('mb-stat-leads-label', t('Closed leads', 'לידים שנסגרו'));
+      setText('mb-stat-leads', String(closedCount));
+      setText('mb-stat-leads-sub', t('This month', 'החודש'));
       setText('mb-stat-followup', String(overdueCount || 0));
       setText('mb-stat-followup-sub', t('Overdue', 'באיחור'));
       setText('mb-stat-followup-label', t('Open tasks', 'משימות פתוחות'));

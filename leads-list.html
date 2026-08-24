@@ -173,6 +173,7 @@
           <!-- ===== scrollable list ===== -->
           <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:12px 16px 16px;">
             <div data-folder="1" data-kind="leads" id="mb-live-list"></div>
+            <div id="mb-ended-warranty" style="display:none;"></div>
           </div>
 
           <!-- ============ FILTER SHEET ============ -->
@@ -210,6 +211,24 @@
                   <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ statusLabel }}</div>
                   <div style="display:flex; flex-wrap:wrap; gap:8px;">
                     <sc-for as="o" hint-placeholder-count="6" list="{{ statusOpts }}">
+                      <button onclick="{{ o.pick }}"
+                        style="display:inline-flex; align-items:center; gap:5px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
+                        <sc-if hint-placeholder-val="{{ false }}" value="{{ o.check }}"><svg fill="none" height="13"
+                            stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6"
+                            viewbox="0 0 24 24" width="13">
+                            <path d="M20 6 9 17l-5-5"></path>
+                          </svg></sc-if>
+                        {{ o.label }}
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+                <!-- owner -->
+                <div style="height:1px; background:#f0f2f5; margin:0 0 16px;"></div>
+                <div style="margin-bottom:17px;">
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ ownerLabel }}</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <sc-for as="o" hint-placeholder-count="4" list="{{ ownerOpts }}">
                       <button onclick="{{ o.pick }}"
                         style="display:inline-flex; align-items:center; gap:5px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
                         <sc-if hint-placeholder-val="{{ false }}" value="{{ o.check }}"><svg fill="none" height="13"
@@ -334,11 +353,13 @@ class Component extends DCLogic {
     filtersOpen: false,
     mainChip: 'all',
     status: 'all',
+    owner: 'all',
     source: 'all',
     dateQuick: 'none',
     sortLeads: 'created',
     dir: { created: 'new', statusTime: 'long' },
     langTick: 0,
+    teamMembers: [],
   };
 
   TONES = {
@@ -383,8 +404,86 @@ class Component extends DCLogic {
     ];
   }
 
+  memberId(m) {
+    return String((m && (m.id || m.user_id || m.member_id || m.team_member_id)) || '').trim();
+  }
+
+  memberLabel(m) {
+    return String((m && (m.name || m.full_name || m.user_name || m.email)) || '').trim();
+  }
+
+  loggedInMemberId() {
+    var meEmail = '';
+    var meUserId = '';
+    try {
+      meEmail = ((window.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
+    } catch (e) { meEmail = ''; }
+    try {
+      var meUser = (window.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser()) || {};
+      meUserId = String(meUser.id || meUser.user_id || meUser.member_id || '').trim();
+    } catch (e2) { meUserId = ''; }
+    var team = this.state.teamMembers || [];
+    for (var i = 0; i < team.length; i++) {
+      var m = team[i] || {};
+      var email = String(m.email || '').toLowerCase();
+      var id = this.memberId(m);
+      if ((meEmail && email === meEmail) || (meUserId && id === meUserId)) return id;
+    }
+    return meUserId;
+  }
+
+  parseTeamMembers(res) {
+    var data = (res && res.data) || res || {};
+    var team = data.team_members || data.users || data.members || [];
+    if (!Array.isArray(team)) team = [];
+    return team.filter(function (m) { return m && (m.id || m.user_id || m.member_id || m.team_member_id); });
+  }
+
+  async loadOwners() {
+    var team = [];
+    try {
+      var client = window.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient();
+      if (!client || (client.getToken && !client.getToken())) {
+        this.setState({ teamMembers: [] });
+        return;
+      }
+      var res;
+      if (client.account && typeof client.account.basic === 'function') {
+        res = await client.account.basic();
+      } else {
+        res = await client.request('User.Basic', {});
+      }
+      team = this.parseTeamMembers(res);
+    } catch (e) {
+      team = [];
+    }
+    if (!Array.isArray(team)) team = [];
+    var patch = { teamMembers: team };
+    if (this.state.owner === 'unassigned') patch.owner = 'all';
+    this.setState(patch);
+  }
+
+  ownerDefs() {
+    var defs = [
+      { id: 'all', en: 'All', he: 'הכל' },
+    ];
+    var seen = { all: true };
+    var meId = this.loggedInMemberId();
+    var team = this.state.teamMembers || [];
+    for (var i = 0; i < team.length; i++) {
+      var id = this.memberId(team[i]);
+      if (!id || seen[id]) continue;
+      seen[id] = true;
+      var label = this.memberLabel(team[i]) || ('#' + id);
+      if (meId && id === meId) label += this.isEn() ? ' (me)' : ' (אני)';
+      defs.push({ id: id, en: label, he: label });
+    }
+    return defs;
+  }
+
   openFilters() {
     this.setState({ filtersOpen: true });
+    this.loadOwners();
     var foot = document.getElementById('common-app-footer');
     if (foot) foot.style.visibility = 'hidden';
     var self = this;
@@ -409,6 +508,7 @@ class Component extends DCLogic {
     if (window.ListLive && typeof window.ListLive.setLeadAdvancedFilters === 'function') {
       window.ListLive.setLeadAdvancedFilters({
         status: status,
+        owner: this.state.owner || 'all',
         source: this.state.source,
         dateQuick: this.state.dateQuick,
         sortLeads: this.state.sortLeads,
@@ -428,6 +528,7 @@ class Component extends DCLogic {
       self.setState({
         mainChip: d.mainChip != null ? d.mainChip : self.state.mainChip,
         status: d.status != null ? d.status : self.state.status,
+        owner: d.owner != null ? d.owner : self.state.owner,
         source: d.source != null ? d.source : self.state.source
       });
     };
@@ -435,9 +536,12 @@ class Component extends DCLogic {
     this._onLeadChipsReady = function () { self.setupFilterDragScroll(); };
     window.addEventListener('mineralbar:lead-chips-ready', this._onLeadChipsReady);
     this._onLang = function () { self.setState({ langTick: Date.now() }); };
+    this._onReady = function () { self.loadOwners(); };
     window.addEventListener('mineralbar:language-changed', this._onLang);
+    window.addEventListener('mineralbar:ready', this._onReady);
     this.setupFilterDragScroll();
     setTimeout(function () { self.setupFilterDragScroll(); }, 400);
+    this.loadOwners();
   }
 
   setupFilterDragScroll() {
@@ -597,12 +701,16 @@ class Component extends DCLogic {
     if (this._onLang) {
       window.removeEventListener('mineralbar:language-changed', this._onLang);
     }
+    if (this._onReady) {
+      window.removeEventListener('mineralbar:ready', this._onReady);
+    }
   }
 
   clearFilters() {
     this.setState({
       mainChip: 'all',
       status: 'all',
+      owner: 'all',
       source: 'all',
       dateQuick: 'none',
       sortLeads: 'created',
@@ -612,6 +720,7 @@ class Component extends DCLogic {
       window.ListLive.setLeadAdvancedFilters({
         mainChip: 'all',
         status: 'all',
+        owner: 'all',
         source: 'all',
         dateQuick: 'none',
         sortLeads: 'created',
@@ -633,6 +742,7 @@ class Component extends DCLogic {
       if (status !== 'all') mainChip = status;
       var liveCount = window.ListLive.previewLeadFilterCount({
         status: status,
+        owner: s.owner || 'all',
         source: s.source,
         dateQuick: s.dateQuick,
         sortLeads: s.sortLeads,
@@ -643,6 +753,7 @@ class Component extends DCLogic {
     }
     var fallback = 47;
     if (s.status !== 'all') fallback = 22;
+    if (s.owner && s.owner !== 'all') fallback = 11;
     if (s.source !== 'all') fallback = 14;
     return fallback;
   }
@@ -671,6 +782,17 @@ class Component extends DCLogic {
         label: t(o.en, o.he),
         pick: () => this.setState({ source: o.id }),
         bg: st.bg, color: st.color, border: st.border, weight: st.weight
+      };
+    });
+
+    const ownerOpts = this.ownerDefs().map(o => {
+      const on = String(s.owner || 'all') === String(o.id);
+      const st = this.selPill(on);
+      return {
+        label: t(o.en, o.he),
+        pick: () => this.setState({ owner: o.id }),
+        bg: st.bg, color: st.color, border: st.border, weight: st.weight,
+        check: on && o.id !== 'all'
       };
     });
 
@@ -748,6 +870,14 @@ class Component extends DCLogic {
         });
       }
     }
+    if (s.owner && s.owner !== 'all') {
+      const o = this.ownerDefs().find(x => String(x.id) === String(s.owner));
+      chips.push({
+        label: o ? t(o.en, o.he) : String(s.owner),
+        bg: this.TONES.blue.bg, color: this.TONES.blue.color, border: this.TONES.blue.border,
+        clear: () => this.setState({ owner: 'all' })
+      });
+    }
     if (s.source !== 'all') {
       const o = this.sourceDefs().find(x => x.id === s.source);
       if (o) {
@@ -769,7 +899,7 @@ class Component extends DCLogic {
       }
     }
 
-    const hasActiveFilters = s.status !== 'all' || s.source !== 'all' || s.dateQuick !== 'none';
+    const hasActiveFilters = s.status !== 'all' || s.source !== 'all' || s.dateQuick !== 'none' || (s.owner && s.owner !== 'all');
 
     return {
       pageTitle: t('Leads', 'לידים'),
@@ -779,6 +909,7 @@ class Component extends DCLogic {
       filterTitle: t('Filtering and sorting', 'סינון ומיון'),
       clearAllLabel: t('Clear all', 'נקה הכל'),
       statusLabel: t('Status', 'סטטוס'),
+      ownerLabel: t('Owner', 'בעלים'),
       sourceLabel: t('Source', 'מקור'),
       dateTitle: t('Creation date', 'תאריך יצירה'),
       dateToLabel: t('To date', 'עד תאריך'),
@@ -791,6 +922,7 @@ class Component extends DCLogic {
       clearFilters: () => this.clearFilters(),
       hasActiveFilters,
       statusOpts,
+      ownerOpts,
       sourceOpts,
       dateChips,
       dateFromText,

@@ -1367,8 +1367,7 @@
       'sub_list_data_name', 'internal_sub_status_list', 'tag', 'extra_fields',
       'parent_customer_id', 'parent_cust_IIId', 'room_customer_name',
       'customer_add_from_email', 'extension', 'data_value_for_socket',
-      'checkUnique', 'upsert', 'glob_check_already_or_not', 'force', 'followup',
-      'user_id'
+      'checkUnique', 'upsert', 'glob_check_already_or_not', 'force', 'followup'
     ];
 
     // Name (official: name)
@@ -1422,12 +1421,6 @@
 
     var statusVal = p.status_id || p.status;
     if (statusVal !== undefined && statusVal !== '') payload.status_id = statusVal;
-
-    var assignId = p.user_id || p.team_member_id || p.customer_manager || p.assign_member_id;
-    if (assignId !== undefined && assignId !== '') {
-      var assignNum = Number(assignId);
-      if (Number.isFinite(assignNum) && assignNum > 0) payload.user_id = assignNum;
-    }
 
     if (p.sub_list_data !== undefined && p.sub_list_data !== '') payload.sub_list_data = p.sub_list_data;
     if (p.sub_list_data_name !== undefined && p.sub_list_data_name !== '') payload.sub_list_data_name = p.sub_list_data_name;
@@ -1761,6 +1754,151 @@
       });
     }
     return out;
+  }
+
+  function parseMaybeJson(val) {
+    if (val == null || val === '') return val;
+    if (typeof val !== 'string') return val;
+    var s = val.trim();
+    if (!s) return val;
+    if (s.charAt(0) !== '{' && s.charAt(0) !== '[') return val;
+    try { return JSON.parse(s); } catch (e) { return val; }
+  }
+
+  function extraFieldRowsFromValue(raw, acc) {
+    acc = acc || [];
+    raw = parseMaybeJson(raw);
+    if (!raw) return acc;
+    if (Array.isArray(raw)) {
+      raw.forEach(function (row) {
+        extraFieldRowsFromValue(row, acc);
+      });
+      return acc;
+    }
+    if (typeof raw !== 'object') return acc;
+    var looksLikeField = !!(
+      raw.name || raw.field_name || raw.update_field_name ||
+      raw.options_en || raw.options_he || raw.option_en || raw.option_he ||
+      raw.option_value || raw.en || raw.he
+    );
+    if (looksLikeField && (raw.name || raw.en || raw.he || raw.options_en || raw.options_he)) {
+      acc.push(raw);
+      return acc;
+    }
+    Object.keys(raw).forEach(function (key) {
+      var val = raw[key];
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        var row = val;
+        if (!row.name && !row.field_name) {
+          row = Object.assign({ name: key }, val);
+        }
+        extraFieldRowsFromValue(row, acc);
+      }
+    });
+    return acc;
+  }
+
+  function getCustomerExtraFieldsFromUserBasic(basic) {
+    var data = (basic && basic.data) || basic || {};
+    var settings = data.field_settings || data.field_setting || {};
+    var customer = settings.customer || {};
+    var extra = customer.extra_fields;
+    extra = parseMaybeJson(extra);
+    if (Array.isArray(extra)) return extra;
+    if (extra && typeof extra === 'object') return extraFieldRowsFromValue(extra, []);
+    return [];
+  }
+
+  function extractExtraFieldsFromUserBasic(basic) {
+    var fromCustomer = getCustomerExtraFieldsFromUserBasic(basic);
+    if (fromCustomer.length) return fromCustomer;
+    var acc = [];
+    extraFieldRowsFromValue(basic && basic.data && basic.data.extra_fields, acc);
+    extraFieldRowsFromValue(basic && basic.extra_fields, acc);
+    return acc;
+  }
+
+  function isInsuranceExtraField(field) {
+    if (!field || typeof field !== 'object') return false;
+    var en = String(field.en || field.label_en || field.title_en || '').trim().toLowerCase();
+    var he = String(field.he || field.label_he || field.title_he || '').trim();
+    var name = String(
+      field.name || field.field_name || field.update_field_name ||
+      field.key || field.id || ''
+    ).toLowerCase().trim();
+    if (en === 'insurance' || he === 'ביטוח' || name === 'insurance') return true;
+    if (/agent|סוכן/.test(en + ' ' + he + ' ' + name)) return false;
+    return /(^|[^a-z])insurance([^a-z]|$)|ביטוח/.test(en + ' ' + he + ' ' + name);
+  }
+
+  function findInsuranceExtraField(basic) {
+    var rows = getCustomerExtraFieldsFromUserBasic(basic);
+    if (!rows.length) rows = extractExtraFieldsFromUserBasic(basic);
+    var i;
+    for (i = 0; i < rows.length; i++) {
+      if (isInsuranceExtraField(rows[i])) return rows[i];
+    }
+    return null;
+  }
+
+  function insuranceFieldStorageName(field) {
+    var name = String((field && (
+      field.name || field.field_name || field.update_field_name || field.key
+    )) || '').trim();
+    return name || 'insurance';
+  }
+
+  function parseInsuranceOptionsFromField(field) {
+    if (!field) return [];
+    var en = splitTicketOptionList(field.options_en || field.option_en);
+    var he = splitTicketOptionList(field.options_he || field.option_he);
+    var n = Math.max(en.length, he.length);
+    var out = [];
+    var i;
+    var labelEn;
+    var labelHe;
+    var value;
+    for (i = 0; i < n; i++) {
+      labelEn = (en[i] != null && String(en[i]).trim() !== '') ? String(en[i]).trim() : '';
+      labelHe = (he[i] != null && String(he[i]).trim() !== '') ? String(he[i]).trim() : '';
+      value = labelHe || labelEn;
+      if (!value) continue;
+      out.push({
+        value: value,
+        label: labelHe || labelEn,
+        labelEn: labelEn || labelHe,
+        labelHe: labelHe || labelEn
+      });
+    }
+    return out;
+  }
+
+  async function fetchUserBasic(force) {
+    if (!force) {
+      var cached = getUserBasic();
+      if (cached && findInsuranceExtraField(cached)) return cached;
+    }
+    var client = getClient();
+    var raw;
+    if (client.account && typeof client.account.basic === 'function') {
+      raw = await client.account.basic();
+    } else {
+      raw = await client.request('User.Basic', {});
+    }
+    if (raw) {
+      try { global.localStorage.setItem(USER_KEY, JSON.stringify(raw)); } catch (e) { /* ignore */ }
+    }
+    return raw;
+  }
+
+  async function listInsuranceOptions(force) {
+    var basic = await fetchUserBasic(!!force);
+    var field = findInsuranceExtraField(basic);
+    return {
+      field: field,
+      fieldName: insuranceFieldStorageName(field),
+      options: parseInsuranceOptionsFromField(field)
+    };
   }
 
   async function resolveTicketLabeledFieldDef(label) {
@@ -3220,6 +3358,10 @@
     getRole: getRole,
     getEmail: getEmail,
     getUserBasic: getUserBasic,
+    fetchUserBasic: fetchUserBasic,
+    extractExtraFieldsFromUserBasic: extractExtraFieldsFromUserBasic,
+    findInsuranceExtraField: findInsuranceExtraField,
+    listInsuranceOptions: listInsuranceOptions,
     getUser: getUser,
     getFolders: getFolders,
     populateFolderDropdowns: populateFolderDropdowns,

@@ -199,17 +199,21 @@ mbCss('./common.css');
       <label class="field-label" id="mb-status-label">
         <span id="mb-status-label-text">Customer status</span>
       </label>
-      <select id="mb-status" class="ds-input">
+      <select id="mb-status" class="ds-input" data-no-i18n="true">
         <option value="">Loading statuses...</option>
       </select>
     </div>
 
-    <!-- Service route (saved via extra_fields.insurance on Customer.Add) -->
+    <!-- Filter / insurance + warranty end date (extra_fields on Customer.Add) -->
     <div class="field-group">
-      <label class="field-label" id="mb-service-route-label" data-no-i18n="true">Service route <span style="color:#9aa3b0; font-weight:500;">(optional)</span></label>
-      <select id="mb-service-route" class="ds-input" data-no-i18n="true">
-        <option value="">Loading service routes...</option>
+      <label class="field-label" id="mb-insurance-label" data-no-i18n="true">Insurance <span style="color:#9aa3b0; font-weight:500;">(optional)</span></label>
+      <select id="mb-insurance" class="ds-input" data-no-i18n="true">
+        <option value="">-- Select --</option>
       </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label" id="mb-warranty-end-label" data-no-i18n="true">Warranty end date <span style="color:#9aa3b0; font-weight:500;">(optional)</span></label>
+      <input id="mb-warranty-end" class="ds-input" type="date" />
     </div>
 
     <!-- Followup (lower on form) -->
@@ -311,35 +315,32 @@ mbCss('./common.css');
     }
   }
 
-  var SERVICE_ROUTE_FIELD = 'insurance';
-  // Static options from mineral2 reference: מכירות הוספת לקוח.dc.html
-  var SERVICE_ROUTE_OPTIONS = [
-    { value: 'no_route', labelHe: 'ללא מסלול', labelEn: 'Without a route' },
-    { value: 'filters_route', labelHe: 'מסלול סננים — 89₪/ח׳', labelEn: 'Filters route — 89₪/month' },
-    { value: 'insurance_route', labelHe: 'מסלול ביטוח — 29₪/ח׳', labelEn: 'Insurance route — 29₪/month' },
-    { value: 'extended_warranty', labelHe: 'אחריות מורחבת', labelEn: 'Extended warranty' }
-  ];
+  var INSURANCE_FIELD = 'insurance';
+  var WARRANTY_END_FIELD = 'a-1786435543';
+  var insuranceOptionsFromApi = [];
 
-  function serviceRouteLabel() {
-    return isEnLang()
-      ? 'Service route'
-      : 'מסלול שירות';
+  function updateInsuranceLabels() {
+    var isEn = isEnLang();
+    var optional = isEn ? '(optional)' : '(אופציונלי)';
+    var insLabel = document.getElementById('mb-insurance-label');
+    var warLabel = document.getElementById('mb-warranty-end-label');
+    if (insLabel) {
+      insLabel.innerHTML = (isEn ? 'Insurance' : 'ביטוח') +
+        ' <span style="color:#9aa3b0;font-weight:500;">' + optional + '</span>';
+    }
+    if (warLabel) {
+      warLabel.innerHTML = (isEn ? 'Warranty end date' : 'תאריך סיום אחריות') +
+        ' <span style="color:#9aa3b0;font-weight:500;">' + optional + '</span>';
+    }
   }
 
-  function updateServiceRouteLabel() {
-    var label = document.getElementById('mb-service-route-label');
-    if (!label) return;
-    var optional = isEnLang() ? '(optional)' : '(אופציונלי)';
-    label.innerHTML = serviceRouteLabel() + ' <span style="color:#9aa3b0;font-weight:500;">' + optional + '</span>';
-  }
-
-  function loadServiceRoutes() {
-    var select = document.getElementById('mb-service-route');
+  function renderInsuranceOptions(options) {
+    var select = document.getElementById('mb-insurance');
     if (!select) return;
-
     var currentValue = select.value;
     var isEn = isEnLang();
-    updateServiceRouteLabel();
+    updateInsuranceLabels();
+    options = Array.isArray(options) ? options : [];
 
     select.innerHTML = '';
     var placeholder = document.createElement('option');
@@ -347,10 +348,14 @@ mbCss('./common.css');
     placeholder.textContent = isEn ? '-- Select --' : '-- בחר --';
     select.appendChild(placeholder);
 
-    SERVICE_ROUTE_OPTIONS.forEach(function (opt) {
+    options.forEach(function (opt) {
+      var value = String((opt && (opt.value || opt.labelHe || opt.labelEn)) || '').trim();
+      if (!value) return;
       var option = document.createElement('option');
-      option.value = opt.value;
-      option.textContent = isEn ? opt.labelEn : opt.labelHe;
+      option.value = value;
+      option.textContent = isEn
+        ? String(opt.labelEn || opt.label || value)
+        : String(opt.labelHe || opt.label || value);
       select.appendChild(option);
     });
 
@@ -359,6 +364,63 @@ mbCss('./common.css');
     })) {
       select.value = currentValue;
     }
+  }
+
+  async function loadInsuranceOptions(force) {
+    var select = document.getElementById('mb-insurance');
+    if (!select) return;
+    updateInsuranceLabels();
+
+    if (!force && insuranceOptionsFromApi.length) {
+      renderInsuranceOptions(insuranceOptionsFromApi);
+      return;
+    }
+
+    if (!window.MineralBarApp || typeof MineralBarApp.listInsuranceOptions !== 'function') return;
+
+    if (!insuranceOptionsFromApi.length) {
+      select.innerHTML = '';
+      var loading = document.createElement('option');
+      loading.value = '';
+      loading.textContent = isEnLang() ? 'Loading…' : 'טוען…';
+      select.appendChild(loading);
+    }
+
+    try {
+      var res = await MineralBarApp.listInsuranceOptions(!!force);
+      if (res && res.fieldName) INSURANCE_FIELD = res.fieldName;
+      insuranceOptionsFromApi = (res && res.options) || [];
+      renderInsuranceOptions(insuranceOptionsFromApi);
+      if (!insuranceOptionsFromApi.length) {
+        console.warn('[sales-add-customer] User.Basic extra_fields Insurance has no options_en/options_he');
+      }
+    } catch (e) {
+      console.error('[sales-add-customer] User.Basic insurance options failed', e);
+      renderInsuranceOptions(insuranceOptionsFromApi);
+    }
+  }
+
+  function statusRowId(row) {
+    if (!row) return '';
+    var id = row.status_id != null ? row.status_id : (row.id != null ? row.id : row.data_id);
+    return id == null ? '' : String(id).trim();
+  }
+
+  function statusRowLabel(row, isEn) {
+    if (!row) return '';
+    return String(
+      isEn
+        ? (row.name_en || row.name || row.name_he || row.name_for || row.label || '')
+        : (row.name_he || row.name || row.name_en || row.name_for || row.label || '')
+    ).trim();
+  }
+
+  function applyStatusSelectColor(select) {
+    if (!select) return;
+    var opt = select.options[select.selectedIndex];
+    var color = opt && opt.getAttribute('data-status-color');
+    select.style.backgroundColor = color || '#fff';
+    select.style.color = '#111';
   }
 
   async function loadStatuses() {
@@ -389,20 +451,25 @@ mbCss('./common.css');
       var placeholder = document.createElement('option');
       placeholder.value = '';
       placeholder.textContent = isEn ? '--select status option--' : '--בחר סטטוס--';
+      placeholder.style.backgroundColor = '#e8eaed';
       select.appendChild(placeholder);
 
       var openingId = '';
       rows.forEach(function (row) {
-        var id = row.status_id || row.id || row.data_id;
-        var label = isEn
-          ? (row.name_en || row.name_for || row.name_he)
-          : (row.name_he || row.name_for || row.name_en);
-        if (id == null || !label) return;
+        var id = statusRowId(row);
+        var label = statusRowLabel(row, isEn);
+        if (!id || !label) return;
         var option = document.createElement('option');
-        option.value = String(id);
-        option.textContent = String(label);
+        option.value = id;
+        option.textContent = label;
+        option.setAttribute('data-status-name', label);
+        var color = String(row.color || row.status_color || '').trim();
+        if (color) {
+          option.setAttribute('data-status-color', color);
+          option.style.backgroundColor = color;
+        }
         select.appendChild(option);
-        if (!openingId && /new|חדש/i.test(String(label))) openingId = String(id);
+        if (!openingId && /^(new|חדש)$/i.test(label)) openingId = id;
       });
 
       if (currentValue && Array.from(select.options).some(function (option) {
@@ -411,6 +478,11 @@ mbCss('./common.css');
         select.value = currentValue;
       } else if (openingId) {
         select.value = openingId;
+      }
+      applyStatusSelectColor(select);
+      if (!select._mbStatusColorBound) {
+        select._mbStatusColorBound = true;
+        select.addEventListener('change', function () { applyStatusSelectColor(select); });
       }
     } catch (e) {
       console.error('[sales-add-customer] CustomerStatuses.List failed', e);
@@ -425,12 +497,12 @@ mbCss('./common.css');
   }
 
   loadStatuses();
-  loadServiceRoutes();
+  loadInsuranceOptions(true);
   loadSalespeople();
   updateFormLabels();
   window.addEventListener('mineralbar:ready', function () {
     loadStatuses();
-    loadServiceRoutes();
+    loadInsuranceOptions(true);
     loadSalespeople();
     updateFormLabels();
   });
@@ -439,7 +511,7 @@ mbCss('./common.css');
   }
   window.addEventListener('mineralbar:language-changed', function () {
     loadStatuses();
-    loadServiceRoutes();
+    loadInsuranceOptions(false);
     loadSalespeople();
     updateFormLabels();
   });
@@ -480,7 +552,8 @@ mbCss('./common.css');
       var ownerIn = document.getElementById('mb-owner-name');
       var salespersonSel = document.getElementById('mb-salesperson');
       var statusSel = document.getElementById('mb-status');
-      var serviceRouteSel = document.getElementById('mb-service-route');
+      var insuranceSel = document.getElementById('mb-insurance');
+      var warrantyEndIn = document.getElementById('mb-warranty-end');
 
       var name = nameIn ? nameIn.value.trim() : '';
       var phone = phoneIn ? phoneIn.value.trim() : '';
@@ -533,10 +606,14 @@ mbCss('./common.css');
           address: address,
           note: noteIn ? noteIn.value.trim() : '',
           folder_id: customersFolderId(),
-          status_id: statusSel ? statusSel.value : '',
           customer_manager: salespersonId,
           team_member_id: salespersonId
         };
+
+        var statusId = statusSel ? String(statusSel.value || '').trim() : '';
+        if (statusId) {
+          payload.status_id = /^\d+$/.test(statusId) ? Number(statusId) : statusId;
+        }
 
         var ownerName = ownerIn ? ownerIn.value.trim() : '';
         if (ownerName) payload.room_customer_name = ownerName;
@@ -545,10 +622,12 @@ mbCss('./common.css');
         var csvId = idIn ? idIn.value.trim() : '';
         if (csvId && /^\d+$/.test(csvId)) payload.csv_id = csvId;
 
-        var serviceRouteVal = serviceRouteSel ? serviceRouteSel.value : '';
-        if (serviceRouteVal) {
+        var insuranceVal = insuranceSel ? insuranceSel.value : '';
+        var warrantyEndVal = warrantyEndIn ? warrantyEndIn.value.trim() : '';
+        if (insuranceVal || warrantyEndVal) {
           var extraFields = {};
-          extraFields[SERVICE_ROUTE_FIELD] = serviceRouteVal;
+          if (insuranceVal) extraFields[INSURANCE_FIELD] = insuranceVal;
+          if (warrantyEndVal) extraFields[WARRANTY_END_FIELD] = warrantyEndVal;
           payload.extra_fields = extraFields;
         }
 

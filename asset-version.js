@@ -27,7 +27,7 @@
   'use strict';
 
   // ★ Bump this one string when you need a full client cache refresh.
-  var V = '136';
+  var V = '148';
 
   g.MB_ASSET_V = V;
 

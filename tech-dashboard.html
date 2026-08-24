@@ -188,6 +188,19 @@ mbCss('./common.css');
 <span style="font-size:11px; color:#9aa3b0; font-weight:600;">{{ od.meta }}</span>
 <button type="button" onclick="{{ od.open }}" style="border:none; background:none; color:#1d60a2; font-size:12px; font-weight:800; cursor:pointer; padding:0; font-family:inherit; flex:none;">{{ od.actionLabel }}</button>
 </div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ od.expanded }}">
+<div style="margin-top:10px; padding:8px 10px; border-radius:12px; background:#f6f8fb;">
+<sc-for as="ln" hint-placeholder-count="0" list="{{ od.lines }}">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid {{ ln.border }};">
+<div style="min-width:0; flex:1;">
+<div style="font-size:12.5px; font-weight:700; color:#1f2a3a;">{{ ln.items }}</div>
+<div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:2px;">{{ ln.meta }}</div>
+</div>
+<span style="font-size:12px; font-weight:800; color:#2e8a63; flex:none;">{{ ln.amount }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
 </div>
 </div>
 </div>
@@ -231,6 +244,7 @@ class Component extends DCLogic {
     openTicketsPageSize: 5,
     fieldOrdersPage: 1,
     fieldOrdersPageSize: 5,
+    expandedOrderKey: '',
     langTick: 0
   };
 
@@ -330,6 +344,8 @@ class Component extends DCLogic {
     if (Array.isArray(res.rows)) return res.rows;
     if (Array.isArray(res.list)) return res.list;
     if (Array.isArray(res.products)) return res.products;
+    if (Array.isArray(res.entries)) return res.entries;
+    if (res.data && Array.isArray(res.data.data)) return res.data.data;
     if (Array.isArray(res)) return res;
     return [];
   }
@@ -406,19 +422,19 @@ class Component extends DCLogic {
       var key = String((detail && detail.key) || '').toLowerCase();
       if (!key || /socket\.nudge/i.test(key)) return;
       if (this._bootAt && (Date.now() - this._bootAt) < 4000) return;
-      if (!/product|document|team_hours|teamhours|ticket|mission/.test(key)) return;
+      if (!/product|document|entry|team_hours|teamhours|ticket|mission/.test(key)) return;
       this.initData({ silent: true });
     };
 
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
       LiveSync.bind((detail) => onLive(detail || {}), {
         retries: false,
-        keys: /product|document|team_hours|teamhours|ticket|mission/i,
+        keys: /product|document|entry|team_hours|teamhours|ticket|mission/i,
         delay: 400
       });
     } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload((detail) => onLive(detail || {}), {
-        keys: /product|document|team_hours|teamhours|ticket|mission/i,
+        keys: /product|document|entry|team_hours|teamhours|ticket|mission/i,
         delay: 400
       });
     } else {
@@ -724,29 +740,75 @@ class Component extends DCLogic {
 
   isYesValue(raw) {
     var s = String(raw == null ? '' : raw).toLowerCase().trim();
-    return s === 'yes' || s === '1' || s === 'true' || s === 'כן' || s === 'y';
+    return s === 'yes' || s === '1' || s === 'true' || s === 'כן' || s === 'y' || s === 'on';
   }
 
-  isFieldPurchaseForUser(doc, userId) {
-    if (!doc) return false;
-    var bag = this.collectDocFields(doc);
-    var purchased = this.pickDocField(bag, [
-      'EntryPurchasedInField', 'entry_purchased_in_field', 'purchased_in_field', 'PurchasedInField'
-    ]);
-    if (purchased !== '' && !this.isYesValue(purchased)) return false;
-    var techRaw = this.pickDocField(bag, [
-      'EntryPurchaseTechnician', 'entry_purchase_technician', 'PurchaseTechnician'
-    ]);
-    var ids = [
-      techRaw,
-      doc.created_by_user_id,
-      doc.team_member_id,
-      doc.second_team_member
-    ].map(function (x) { return Number(x) || 0; }).filter(Boolean);
-    if (userId && ids.length && ids.indexOf(Number(userId)) === -1) return false;
-    if (Number(doc.paid) === 0 || doc.paid === '0' || doc.paid === false) return false;
-    if (Number(doc.is_canceled) === 1 || Number(doc.canceled_status) === 1) return false;
-    return true;
+  looksLikeDateTime(raw) {
+    return /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(String(raw == null ? '' : raw).trim());
+  }
+
+  pickEntryVal(row, names) {
+    if (!row) return '';
+    var bag = this.collectDocFields(row);
+    var fromBag = this.pickDocField(bag, names);
+    if (fromBag !== '' && fromBag != null) return fromBag;
+    for (var i = 0; i < names.length; i++) {
+      var key = names[i];
+      if (row[key] != null && row[key] !== '') return row[key];
+    }
+    return '';
+  }
+
+  pickEntryText(row, names) {
+    for (var i = 0; i < names.length; i++) {
+      var v = this.pickEntryVal(row, [names[i]]);
+      var s = String(v == null ? '' : v).trim();
+      if (!s || s === 'null' || s === 'undefined') continue;
+      if (this.looksLikeDateTime(s)) continue;
+      if (typeof v === 'object') continue;
+      return s;
+    }
+    return '';
+  }
+
+  normalizeEntryId(raw) {
+    var v = raw;
+    if (v && typeof v === 'object') {
+      v = v.id || v.user_id || v.member_id || v.value || v.val || '';
+    }
+    return String(v == null ? '' : v).trim();
+  }
+
+  idsMatch(a, b) {
+    var sa = this.normalizeEntryId(a);
+    var sb = this.normalizeEntryId(b);
+    if (!sa || !sb) return false;
+    if (sa === sb) return true;
+    var na = Number(sa);
+    var nb = Number(sb);
+    return isFinite(na) && isFinite(nb) && na !== 0 && na === nb;
+  }
+
+  isProductEntryRow(row) {
+    if (!row) return false;
+    var sku = String(row.data1 || '').trim();
+    if (sku && sku.indexOf('{') === -1) return true;
+    var amt = Number(String(row.data5 == null ? '' : row.data5).replace(/[^\d.-]/g, ''));
+    if (isFinite(amt) && amt > 0) return true;
+    return this.isYesValue(row.data11);
+  }
+
+  isFieldPurchaseEntry(row, userId) {
+    if (!row || !userId) return false;
+    if (!this.isYesValue(row.data11)) return false;
+    var tech = row.data12;
+    if (Array.isArray(tech)) {
+      for (var i = 0; i < tech.length; i++) {
+        if (this.idsMatch(tech[i], userId)) return true;
+      }
+      return false;
+    }
+    return this.idsMatch(tech, userId);
   }
 
   formatOrderItems(doc) {
@@ -758,14 +820,20 @@ class Component extends DCLogic {
   }
 
   formatOrderAmount(doc) {
-    var n = Number(doc && (doc.final_amount != null ? doc.final_amount : doc.total));
+    var raw = (doc && doc.data5 != null && doc.data5 !== '')
+      ? doc.data5
+      : this.pickEntryVal(doc, ['data5', 'final_amount', 'amount', 'total', 'price', 'sum', 'cost', 'item_price']);
+    var n = Number(String(raw == null ? '' : raw).replace(/[^\d.-]/g, ''));
+    if (!isFinite(n)) n = Number(doc && (doc.final_amount != null ? doc.final_amount : doc.total));
     if (!isFinite(n)) n = 0;
     var coin = String((doc && doc.coin) || '₪');
-    return Math.round(n).toLocaleString('en-US') + coin;
+    return { text: Math.round(n).toLocaleString('en-US') + coin, num: n };
   }
 
   formatOrderWhen(doc) {
-    var dateStr = (doc && (doc.date_created || doc.inserted_date || doc.default_date || doc.due_date)) || '';
+    var dateStr = this.pickEntryVal(doc, [
+      'date_created', 'created_at', 'created', 'date', 'inserted_date', 'default_date', 'due_date'
+    ]) || (doc && (doc.date_created || doc.inserted_date || doc.default_date || doc.due_date)) || '';
     if (!dateStr) return '';
     try {
       var d = new Date(dateStr);
@@ -784,56 +852,115 @@ class Component extends DCLogic {
     return s;
   }
 
+  async fetchEntryRows(client, extra) {
+    var pageSize = 25;
+    var all = [];
+    var seen = {};
+    for (var page = 0; page < 20; page++) {
+      var payload = Object.assign({
+        tab_id: 755,
+        customer_id: 0,
+        cust_id: 0,
+        contactus_id: 0,
+        length: pageSize,
+        start: page * pageSize,
+        draw: page + 1
+      }, extra || {});
+      var res = await client.request('Entries.List', payload);
+      var rows = this.extractRows(res);
+      if (!rows.length) break;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        var id = String(row.id || row.entry_id || ('r' + page + '-' + i));
+        if (seen[id]) continue;
+        seen[id] = true;
+        all.push(row);
+      }
+      if (rows.length < pageSize) break;
+    }
+    return all;
+  }
+
+  mapFieldOrder(row) {
+    var cid = String(row.cust_id || row.customer_id || row.contactus_id || '');
+    var name = String(row.customer_name || row.company_name || '').trim();
+    var sku = String(row.data1 || '').trim();
+    if (sku.indexOf('{') !== -1) sku = '';
+    var items = sku || this.formatOrderItems(row);
+    var amt = this.formatOrderAmount(row);
+    return {
+      id: String(row.id || row._id || row.row_id || ''),
+      name: name || sku || ('#' + (row.id || '')),
+      items: items || this.t('Purchase order', 'הזמנת רכש'),
+      amount: amt.text,
+      amountNum: amt.num,
+      when: this.formatOrderWhen(row),
+      fieldOrder: this.isYesValue(row.data11),
+      pdfUrl: this.cleanPdfUrl(row.pdf_url || row.file_url || ''),
+      customerId: cid
+    };
+  }
+
+  groupOrdersByCustomer(orders) {
+    var groups = [];
+    var map = {};
+    for (var i = 0; i < (orders || []).length; i++) {
+      var o = orders[i];
+      var key = String(o.customerId || o.name || o.id || i);
+      if (!map[key]) {
+        map[key] = {
+          key: key,
+          customerId: o.customerId,
+          name: o.name,
+          lines: [],
+          amountNum: 0,
+          when: o.when,
+          fieldOrder: false,
+          pdfUrl: o.pdfUrl || ''
+        };
+        groups.push(map[key]);
+      }
+      var g = map[key];
+      g.lines.push(o);
+      g.amountNum += Number(o.amountNum) || 0;
+      if (o.fieldOrder) g.fieldOrder = true;
+      if (!g.pdfUrl && o.pdfUrl) g.pdfUrl = o.pdfUrl;
+    }
+    for (var g2 = 0; g2 < groups.length; g2++) {
+      var grp = groups[g2];
+      var n = grp.lines.length;
+      grp.amount = Math.round(grp.amountNum).toLocaleString('en-US') + '₪';
+      grp.items = n + ' ' + this.t(n === 1 ? 'order' : 'orders', n === 1 ? 'הזמנה' : 'הזמנות');
+    }
+    return groups;
+  }
+
   async loadFieldOrders(client, silent) {
     if (!silent) this.setState({ loadingOrders: true });
-    var userId = this.resolveUserId();
     try {
-      var payload = {
-        type: 'purchase_orders',
-        paid: 1,
-        length: 50,
-        start: 0,
-        draw: 1,
-        EntryPurchasedInField: 'yes',
-        EntryPurchaseTechnician: userId || ''
-      };
-      if (userId) payload.team_member_id = userId;
-      var res = await client.request('Documents.List', payload);
-      var rows = this.extractRows(res);
+      var userId = this.resolveUserId();
+      var rows = await this.fetchEntryRows(client, {});
       var orders = [];
       for (var i = 0; i < rows.length; i++) {
-        var doc = rows[i];
-        if (!this.isFieldPurchaseForUser(doc, userId)) continue;
-        var cid = String(doc.cust_id || doc.customer_id || '');
-        orders.push({
-          id: String(doc.id || doc.last_documents_id || ''),
-          name: doc.name || doc.company_name || ('#' + (doc.id || '')),
-          items: this.formatOrderItems(doc) || this.t('Purchase order', 'הזמנת רכש'),
-          amount: this.formatOrderAmount(doc),
-          when: this.formatOrderWhen(doc),
-          pdfUrl: this.cleanPdfUrl(doc.pdf_url),
-          customerId: cid
-        });
+        if (!this.isFieldPurchaseEntry(rows[i], userId)) continue;
+        orders.push(this.mapFieldOrder(rows[i]));
       }
-      this.setState({ loadingOrders: false, fieldOrders: orders, fieldOrdersPage: 1 });
+      this.setState({
+        loadingOrders: false,
+        fieldOrders: this.groupOrdersByCustomer(orders),
+        fieldOrdersPage: 1,
+        expandedOrderKey: ''
+      });
     } catch (e) {
-      console.error('[TechDashboard] Documents.List field orders failed', e);
+      console.error('[TechDashboard] Entries.List field orders failed', e);
       this.setState({ loadingOrders: false, fieldOrders: [], fieldOrdersPage: 1 });
     }
   }
 
   openFieldOrder(order) {
     if (!order) return;
-    if (order.pdfUrl) {
-      window.open(order.pdfUrl, '_blank', 'noopener');
-      return;
-    }
-    if (order.customerId) {
-      window.location.href = 'all-documents.html?customer_id=' + encodeURIComponent(order.customerId) +
-        '&cust_id=' + encodeURIComponent(order.customerId) +
-        '&back=' + encodeURIComponent('tech-dashboard.html');
-      return;
-    }
+    var key = String(order.key || order.customerId || order.name || '');
+    this.setState({ expandedOrderKey: this.state.expandedOrderKey === key ? '' : key });
   }
 
   prevOrders() {
@@ -962,17 +1089,28 @@ class Component extends DCLogic {
     var canPrevOrders = orderPage > 1;
     var canNextOrders = orderPage < orderPages;
     var fieldOrders = pageOrders.map(function (o, i) {
+      var expanded = String(st.expandedOrderKey || '') === String(o.key || o.customerId || o.name || '');
+      var lines = (o.lines || []).map(function (ln, li) {
+        return {
+          items: ln.items || this.t('Purchase order', 'הזמנת רכש'),
+          amount: ln.amount || '',
+          meta: [ln.when, ln.fieldOrder ? this.t('Field order', 'הזמנת שטח') : this.t('Purchase order', 'הזמנת רכש')].filter(Boolean).join(' · '),
+          border: li === o.lines.length - 1 ? 'transparent' : '#e8edf3'
+        };
+      }.bind(this));
       return {
         name: o.name,
         items: o.items || '',
         amount: o.amount || '',
-        meta: [o.when, this.t('Field order', 'הזמנת שטח')].filter(Boolean).join(' · '),
+        meta: o.when || '',
+        expanded: expanded,
+        lines: lines,
         badgeBg: '#e9f5ee',
         badgeColor: '#2e8a63',
         iconBg: '#eaf2fb',
         iconColor: '#1d60a2',
         border: i === pageOrders.length - 1 ? 'transparent' : '#f0f2f5',
-        actionLabel: this.t('View', 'צפייה'),
+        actionLabel: expanded ? this.t('Hide', 'הסתר') : this.t('View', 'צפייה'),
         open: (function (ord) {
           return function () { self.openFieldOrder(ord); };
         })(o)
@@ -1018,10 +1156,10 @@ class Component extends DCLogic {
       fieldOrders: fieldOrders,
       ordersLoading: !!st.loadingOrders,
       ordersEmpty: !st.loadingOrders && totalOrders === 0,
-      ordersSectionLabel: this.t('Purchase orders', 'הזמנות רכש'),
+      ordersSectionLabel: this.t('Field orders', 'הזמנות שטח'),
       ordersCountLabel: st.loadingOrders
         ? ''
-        : (totalOrders + ' ' + this.t('orders', 'הזמנות')),
+        : (totalOrders + ' ' + this.t('customers', 'לקוחות')),
       ordersEmptyLabel: this.t('No field purchase orders', 'אין הזמנות שנרכשו בשטח'),
       showOrdersPager: !st.loadingOrders && totalOrders > 0,
       ordersRangeLabel: totalOrders

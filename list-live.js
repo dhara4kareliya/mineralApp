@@ -317,6 +317,9 @@
   function parseExtraFields(row) {
     row = row || {};
     var ef = row.extra_fields_json;
+    if (typeof ef === 'string') {
+      try { ef = JSON.parse(ef); } catch (e0) { ef = null; }
+    }
     if (!ef && row.extra_fields != null) {
       if (typeof row.extra_fields === 'string') {
         try { ef = JSON.parse(row.extra_fields); } catch (e) { ef = null; }
@@ -324,7 +327,7 @@
         ef = row.extra_fields;
       }
     }
-    return (ef && typeof ef === 'object') ? ef : {};
+    return (ef && typeof ef === 'object' && !Array.isArray(ef)) ? ef : {};
   }
 
   // Biz1 rejects unknown custom fields. Mineral has Level (a-1785311630):
@@ -345,16 +348,66 @@
     return (ts - Date.now()) / 86400000 <= 30;
   }
 
+  var WARRANTY_END_FIELD = 'a-1786435543';
+
+  function padDay(n) {
+    n = Number(n) || 0;
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  function extraFieldVal(ef, key) {
+    if (!ef) return '';
+    var v = ef[key];
+    if (v && typeof v === 'object') v = v.value != null ? v.value : (v.val != null ? v.val : (v.date != null ? v.date : ''));
+    return String(v == null ? '' : v).trim();
+  }
+
+  function dayKeyFromRaw(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s || s === 'null' || s === 'undefined' || s === '[]') return '';
+    if (/^\d{10,13}$/.test(s)) {
+      var ms = Number(s);
+      if (s.length === 10) ms *= 1000;
+      var dn = new Date(ms);
+      if (!isNaN(dn.getTime())) return dn.getFullYear() + '-' + padDay(dn.getMonth() + 1) + '-' + padDay(dn.getDate());
+    }
+    var iso = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (iso) return iso[1] + '-' + padDay(+iso[2]) + '-' + padDay(+iso[3]);
+    var dmy = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})/);
+    if (dmy) {
+      var y = dmy[3].length === 2 ? ('20' + dmy[3]) : dmy[3];
+      return y + '-' + padDay(+dmy[2]) + '-' + padDay(+dmy[1]);
+    }
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) return d.getFullYear() + '-' + padDay(d.getMonth() + 1) + '-' + padDay(d.getDate());
+    return '';
+  }
+
+  function todayDayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + padDay(d.getMonth() + 1) + '-' + padDay(d.getDate());
+  }
+
+  function isWarrantyEnded(row, ef) {
+    ef = ef || parseExtraFields(row);
+    var endKey = dayKeyFromRaw(extraFieldVal(ef, WARRANTY_END_FIELD));
+    if (!endKey) return false;
+    return todayDayKey() >= endKey;
+  }
+
   function isWarrantyRunningOut(row, ef) {
     ef = ef || parseExtraFields(row);
-    var ins = String(ef.insurance || row.insurance || row.warranty || row.warranty_status || '').trim();
-    if (/warrant|אחרי|extended/i.test(ins)) return true;
-    var end = row.warranty_end || row.warranty_until || ef.warranty_end || ef.warranty_until;
-    if (end) {
-      var ts = new Date(end).getTime();
-      if (!isNaN(ts)) return (ts - Date.now()) / 86400000 <= 60;
-    }
-    return false;
+    if (isWarrantyEnded(row, ef)) return false;
+    var endKey = dayKeyFromRaw(
+      extraFieldVal(ef, WARRANTY_END_FIELD) ||
+      row.warranty_end || row.warranty_until || ef.warranty_end || ef.warranty_until
+    );
+    if (!endKey) return false;
+    var today = todayDayKey();
+    if (endKey < today) return false;
+    var end = new Date(endKey + 'T00:00:00');
+    if (isNaN(end.getTime())) return false;
+    return (end.getTime() - Date.now()) / 86400000 <= 60;
   }
 
   function pick(row) {
@@ -371,6 +424,7 @@
     var isVip = isVipFromExtra(ef);
     var isRenew = isRenewDue(row);
     var isWarranty = isWarrantyRunningOut(row, ef);
+    var isWarrantyEndedFlag = isWarrantyEnded(row, ef);
     var out = {
       id: id,
       name: name,
@@ -385,13 +439,30 @@
       isVip: isVip,
       isRenew: isRenew,
       isWarranty: isWarranty,
+      isWarrantyEnded: isWarrantyEndedFlag,
       followup: row.followup || '',
       source: stripHtmlText(row.source || row.affiliate || row.lead_source || row.channel || ''),
+      ownerId: pickLeadOwnerId(row),
       statusKey: '',
       raw: row
     };
     out.statusKey = leadStatusKey(out.status, row);
     return out;
+  }
+
+  function pickLeadOwnerId(row) {
+    row = row || {};
+    var ef = parseExtraFields(row);
+    var cand = [
+      row.user_id, row.customer_manager, row.team_member_id, row.assign_member_id,
+      row.assigned_user_id, row.manager_id, row.assigned_to,
+      ef.user_id, ef.customer_manager, ef.team_member_id
+    ];
+    for (var i = 0; i < cand.length; i++) {
+      var id = String(cand[i] == null ? '' : cand[i]).trim();
+      if (id && id !== '0' && id !== 'null' && id !== 'undefined') return id;
+    }
+    return '';
   }
 
   function leadStatusKey(statusLabel, row) {
@@ -572,7 +643,7 @@
     var address = String(c.address || c.city || '').trim();
     var dateText = formatListDate(c.created);
     return (
-      '<a href="' + detail + '" data-customer-id="' + esc(c.id) + '" data-status="' + esc(c.status) + '" data-status-key="' + esc(c.statusKey || leadStatusKey(c.status, c.raw)) + '" data-source-key="' + esc(leadSourceKey(c.source)) + '" data-created="' + esc(c.created || '') + '" data-followup="' + esc(c.followup || '') + '" style="display:block;background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;text-decoration:none;">' +
+      '<a href="' + detail + '" data-customer-id="' + esc(c.id) + '" data-status="' + esc(c.status) + '" data-status-key="' + esc(c.statusKey || leadStatusKey(c.status, c.raw)) + '" data-source-key="' + esc(leadSourceKey(c.source)) + '" data-owner-id="' + esc(c.ownerId || pickLeadOwnerId(c.raw)) + '" data-created="' + esc(c.created || '') + '" data-followup="' + esc(c.followup || '') + '" style="display:block;background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;text-decoration:none;">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
       '<div style="font-size:17px;font-weight:800;color:#16223a;display:inline-flex;align-items:center;gap:5px;min-width:0;">' +
       '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(c.name) + '</span>' +
@@ -613,6 +684,7 @@
     var isVip = !!c.isVip;
     var isRenew = !!c.isRenew;
     var isWarranty = !!c.isWarranty;
+    var isWarrantyEnded = !!c.isWarrantyEnded;
     // Avoid repeating city when it is already at the end of the address line
     var cityLine = city;
     if (cityLine && address) {
@@ -638,11 +710,13 @@
     if (isRenew) {
       badges += '<span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#f0eefb;color:#50439d;flex:none;">' + esc(t('Renew', 'חידוש')) + '</span>';
     }
-    if (isWarranty) {
+    if (isWarrantyEnded) {
+      badges += '<span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#fbeeed;color:#a3302e;flex:none;">' + esc(t('Warranty ended', 'אחריות שהסתיימה')) + '</span>';
+    } else if (isWarranty) {
       badges += '<span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#fbeeed;color:#a3302e;flex:none;">' + esc(t('Warranty', 'אחריות')) + '</span>';
     }
     return (
-      '<div class="mb-cust-card" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" data-vip="' + (isVip ? '1' : '0') + '" data-renew="' + (isRenew ? '1' : '0') + '" data-warranty="' + (isWarranty ? '1' : '0') + '">' +
+      '<div class="mb-cust-card" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" data-vip="' + (isVip ? '1' : '0') + '" data-renew="' + (isRenew ? '1' : '0') + '" data-warranty="' + (isWarranty ? '1' : '0') + '" data-warranty-ended="' + (isWarrantyEnded ? '1' : '0') + '">' +
       '<a href="' + detail + '" class="mb-cust-avatar">' + esc(av) + '</a>' +
       '<a href="' + detail + '" class="mb-cust-main">' +
       '<div class="mb-cust-name-row">' +
@@ -930,22 +1004,107 @@
     });
   }
 
+  function listBindRoots(listEl) {
+    var roots = [];
+    var live = document.getElementById('mb-live-list');
+    var extra = endedWarrantyMount();
+    if (listEl) roots.push(listEl);
+    if (live && roots.indexOf(live) === -1) roots.push(live);
+    if (extra && roots.indexOf(extra) === -1) roots.push(extra);
+    return roots;
+  }
+
   function bindProductButtons(listEl) {
-    listEl = document.getElementById('mb-live-list') || listEl;
-    if (!listEl) return;
-    var buttons = listEl.querySelectorAll('.mb-cust-products-btn');
-    buttons.forEach(function (btn) {
-      if (btn.dataset.wired === '1') return;
-      btn.dataset.wired = '1';
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var cid = btn.getAttribute('data-customer-id') || '';
-        var cname = btn.getAttribute('data-customer-name') || '';
-        if (!cid) return;
-        openCustomerProductsSheet(cid, cname);
+    listBindRoots(listEl).forEach(function (root) {
+      var buttons = root.querySelectorAll('.mb-cust-products-btn');
+      buttons.forEach(function (btn) {
+        if (btn.dataset.wired === '1') return;
+        btn.dataset.wired = '1';
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var cid = btn.getAttribute('data-customer-id') || '';
+          var cname = btn.getAttribute('data-customer-name') || '';
+          if (!cid) return;
+          openCustomerProductsSheet(cid, cname);
+        });
       });
     });
+  }
+
+  var _warrantyEndedCache = [];
+
+  function endedWarrantyMount() {
+    return document.getElementById('mb-ended-warranty');
+  }
+
+  function renderEndedWarrantySection(rows) {
+    var mount = endedWarrantyMount();
+    if (!mount) return;
+    rows = Array.isArray(rows) ? rows : [];
+    _warrantyEndedCache = rows.slice();
+    if (!rows.length) {
+      mount.innerHTML = '';
+      mount.style.display = 'none';
+      return;
+    }
+    var n = rows.length;
+    var cards = rows.map(function (row) {
+      return customerCard(pick(row));
+    }).join('');
+    mount.style.display = 'block';
+    mount.innerHTML =
+      '<div style="margin:6px 0 4px; padding-top:14px; border-top:1px solid #e4e8ee;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 12px;">' +
+      '<div style="font-size:16px;font-weight:800;color:#16223a;">' + esc(t('Warranty ended', 'אחריות שהסתיימה')) + '</div>' +
+      '<div data-ended-warranty-count style="font-size:12px;font-weight:700;color:#9aa3b0;">' +
+      n + ' ' + esc(t(n === 1 ? 'customer' : 'customers', n === 1 ? 'לקוח' : 'לקוחות')) +
+      '</div></div>' +
+      cards +
+      '</div>';
+    bindProductButtons(mount);
+    bindVipButtons(mount);
+  }
+
+  async function loadEndedWarrantyCustomers() {
+    if (!kindIsLeadsPage() || !endedWarrantyMount()) return;
+    try {
+      var folderId = (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.CUSTOMERS) || 2;
+      var res = await MineralBarApp.listCustomers({
+        folder_id: folderId,
+        length: 100,
+        start: 0,
+        draw: 1
+      });
+      var rows = (res && (res.rows || res.data || res.items || res.records)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      renderEndedWarrantySection(rows.filter(function (row) {
+        return isWarrantyEnded(row);
+      }));
+      applyEndedWarrantySearch();
+    } catch (err) {
+      console.warn('[ListLive] ended-warranty Customer.List failed', err);
+    }
+  }
+
+  function applyEndedWarrantySearch() {
+    var mount = endedWarrantyMount();
+    if (!mount || mount.style.display === 'none') return;
+    var input = document.querySelector('.ds-input') || document.getElementById('mb-customer-search');
+    var query = input ? String(input.value || '').toLowerCase().trim() : '';
+    var items = mount.querySelectorAll('.mb-cust-card[data-customer-id]');
+    var visible = 0;
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (!item.dataset.originalDisplay) item.dataset.originalDisplay = item.style.display || 'flex';
+      var show = !query || item.textContent.toLowerCase().indexOf(query) > -1;
+      item.style.display = show ? item.dataset.originalDisplay : 'none';
+      if (show) visible++;
+    }
+    var countEl = mount.querySelector('[data-ended-warranty-count]');
+    if (countEl) {
+      countEl.textContent = visible + ' ' + t(visible === 1 ? 'customer' : 'customers', visible === 1 ? 'לקוח' : 'לקוחות');
+    }
   }
 
   function detectMount() {
@@ -1055,6 +1214,10 @@
     bindVipButtons(el);
     syncChipActiveStyles(getActiveFolderId());
     el.setAttribute('data-initial-loaded', '1');
+    if (kind === 'leads') {
+      if (_warrantyEndedCache.length) renderEndedWarrantySection(_warrantyEndedCache);
+      loadEndedWarrantyCustomers();
+    }
     return true;
   }
 
@@ -1111,6 +1274,7 @@
         _rowsCacheKind = kind;
         _rowsCacheTotal = total;
         el.innerHTML = emptyHtml(kind);
+        if (kind === 'leads') loadEndedWarrantyCustomers();
         return;
       }
 
@@ -1134,6 +1298,7 @@
       bindVipButtons(el);
       // Address / status / phone from Customer.List only — no Customer.Get on load.
       syncChipActiveStyles(getActiveFolderId(mount));
+      if (kind === 'leads') loadEndedWarrantyCustomers();
       return;
     } catch (err) {
       lastErr = err;
@@ -1207,6 +1372,15 @@
       if (sourceKey !== filters.source) return false;
     }
 
+    if (filters.owner && filters.owner !== 'all') {
+      var ownerId = String(item.getAttribute('data-owner-id') || '').trim();
+      if (filters.owner === 'unassigned') {
+        if (ownerId) return false;
+      } else if (ownerId !== String(filters.owner)) {
+        return false;
+      }
+    }
+
     if (filters.dateQuick && filters.dateQuick !== 'none') {
       var anchor = createdTs;
       if (filters.soug === 'renew' && !isNaN(followupTs)) anchor = followupTs;
@@ -1277,7 +1451,9 @@
       var matchesFilter = true;
       if (kindVis === 'customers' && filter && filter !== 'all') {
         if (filter === 'renew') matchesFilter = item.getAttribute('data-renew') === '1';
-        else if (filter === 'warranty') matchesFilter = item.getAttribute('data-warranty') === '1';
+        else if (filter === 'warranty' || filter === 'warranty-ended') {
+          matchesFilter = item.getAttribute('data-warranty-ended') === '1';
+        }
         else if (filter === 'vip') matchesFilter = item.getAttribute('data-vip') === '1';
       } else if (kindVis === 'leads') {
         matchesFilter = leadMatchesAdvancedFilters(item, getLeadFilters());
@@ -1295,6 +1471,7 @@
 
     if (kindVis === 'leads') {
       sortLeadItems(listEl, getLeadFilters());
+      applyEndedWarrantySearch();
     }
   }
 
@@ -1340,7 +1517,7 @@
     var chips = [
       { id: 'all', label: t('All', 'הכל'), color: '#1d60a2', bg: '#eaf2fb', border: '#6ea6d8' },
       { id: 'renew', label: t('To renew', 'לחידוש'), color: '#50439d', bg: '#f0eefb', border: '#a89fd4' },
-      { id: 'warranty', label: t('Warranty ending', 'אחריות פוקעת'), color: '#a3302e', bg: '#fbeeed', border: '#e8a9a4' },
+      { id: 'warranty-ended', label: t('Warranty ended', 'אחריות שהסתיימה'), color: '#a3302e', bg: '#fbeeed', border: '#e8a9a4' },
       { id: 'vip', label: t('VIP', 'VIP'), color: '#8a6540', bg: '#f6eee4', border: '#c9a882' }
     ];
     container.style.display = 'flex';
@@ -1381,16 +1558,16 @@
   }
 
   function bindVipButtons(listEl) {
-    listEl = document.getElementById('mb-live-list') || listEl;
-    if (!listEl) return;
-    var buttons = listEl.querySelectorAll('.mb-cust-vip-btn');
-    buttons.forEach(function (btn) {
-      if (btn.dataset.wired === '1') return;
-      btn.dataset.wired = '1';
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleCustomerVip(btn);
+    listBindRoots(listEl).forEach(function (root) {
+      var buttons = root.querySelectorAll('.mb-cust-vip-btn');
+      buttons.forEach(function (btn) {
+        if (btn.dataset.wired === '1') return;
+        btn.dataset.wired = '1';
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleCustomerVip(btn);
+        });
       });
     });
   }
