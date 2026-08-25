@@ -267,6 +267,40 @@
     el.innerHTML = rows.map(rowHtml).join('');
   }
 
+  function applySocketToConversationList(detail) {
+    var key = String((detail && detail.key) || '').toLowerCase();
+    if (/socket\.nudge/i.test(key)) return false;
+    var ev = (detail && (detail.event || detail)) || {};
+    var payload = ev.payload || ev.data || ev.record || ev.message || ev;
+    if (typeof payload === 'string') {
+      try { payload = JSON.parse(payload); } catch (e0) { payload = { message: payload }; }
+    }
+    if (!payload || typeof payload !== 'object') return false;
+    if (payload.message && typeof payload.message === 'object') {
+      payload = Object.assign({}, payload, payload.message);
+    }
+    var cid = String(payload.customer_id || payload.cust_id || payload.contactus_id || '');
+    var mid = payload.messenger_meta_id;
+    if (mid && typeof mid === 'object') mid = mid.$oid || mid.id || '';
+    mid = String(mid || '');
+    var text = String(payload.message || payload.msg || payload.body || payload.text || payload.note || '').trim();
+    if (!cid && !mid && !text) return false;
+
+    var idx = -1;
+    for (var i = 0; i < allRows.length; i++) {
+      var row = allRows[i] || {};
+      if (cid && String(row.customer_id || row.cust_id || '') === cid) { idx = i; break; }
+      if (mid && String(row.messenger_meta_id || '') === mid) { idx = i; break; }
+    }
+    if (idx < 0) return false;
+    if (text) allRows[idx].subject = text;
+    var when = payload.time || payload.created || payload.date || payload.created_at || payload.create_date;
+    if (when) allRows[idx].when = String(when);
+    var search = document.getElementById('mb-messages-search');
+    renderFiltered('mb-live-messages', search && search.value);
+    return true;
+  }
+
   async function loadMessages(elId, opts) {
     opts = opts || {};
     var silent = !!opts.silent;
@@ -343,11 +377,10 @@
     if (allRows.length) renderFiltered(elId, search && search.value);
     else loadMessages(elId, { silent: true });
   });
-  window.addEventListener('mineralbar:messages', function () {
+  window.addEventListener('mineralbar:messages', function (ev) {
     var elId = 'mb-live-messages';
-    if (!document.getElementById(elId) || !window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-    clearTimeout(window.__mbMessagesRtTimer);
-    window.__mbMessagesRtTimer = setTimeout(function () { loadMessages(elId, { silent: true }); }, 400);
+    if (!document.getElementById(elId)) return;
+    applySocketToConversationList((ev && ev.detail) || {});
   });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 50); });
@@ -356,20 +389,24 @@
   }
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
-    LiveSync.bind(function () {
+    LiveSync.bind(function (detail) {
       if (!document.getElementById('mb-live-messages')) return;
-      loadMessages('mb-live-messages', { silent: true });
+      var key = String((detail && detail.key) || '').toLowerCase();
+      if (/socket\.nudge/i.test(key)) return;
+      applySocketToConversationList(detail);
     }, {
-      keys: /message|chat|whatsapp|inbox|socket\.nudge/i,
+      keys: /message|chat|whatsapp|inbox/i,
       mount: '#mb-live-messages',
-      delay: 300,
-      retries: true
+      delay: 200,
+      retries: false
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () {
+    MineralBarApp.bindLiveReload(function (detail) {
       if (!document.getElementById('mb-live-messages')) return;
-      loadMessages('mb-live-messages', { silent: true });
-    }, { keys: /message|chat|whatsapp|inbox|socket\.nudge/i, delay: 400 });
+      var key = String((detail && detail.key) || '').toLowerCase();
+      if (/socket\.nudge/i.test(key)) return;
+      applySocketToConversationList(detail);
+    }, { keys: /message|chat|whatsapp|inbox/i, delay: 200 });
   }
 
 })();

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Biz1 Bookings — Appointment Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,500&family=Sora:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/css/dashboard.css?v=20260814" />
+    <script src="./assets/config.js?v=20260805"></script>
+    <script src="./assets/js/app.js?v=20260805"></script>
+  </head>
+  <body data-theme="light">
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand">
+            <span class="brand-mark">B</span>
+            <div>
+              <div class="brand-name" data-i18n="brandName">Biz1 Bookings</div>
+              <div class="brand-tag" data-i18n="brandTag">Front desk · Calendar &amp; Loyalty</div>
+            </div>
+          </div>
+          <div class="view-switch" id="viewSwitch" role="tablist">
+            <button type="button" data-view="day" class="active" data-i18n="viewDay">Day</button>
+            <button type="button" data-view="week" data-i18n="viewWeek">Week</button>
+            <button type="button" data-view="staff" data-i18n="viewStaff">Staff</button>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="lang-switch" id="langSwitch" aria-label="Language switch">
+            <button type="button" data-lang="en" class="active">EN</button>
+            <button type="button" data-lang="he">עב</button>
+          </div>
+          <div class="user-chip" id="loggedInUser" title="" hidden></div>
+          <button type="button" class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" id="logoutBtn" aria-label="Logout" title="Logout">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="sync-bar" id="syncBar">
+        <span class="sync-pill google"><span class="pulse-dot"></span><span data-i18n="syncGoogle">Google Calendar 2-way sync</span></span>
+        <span class="sync-pill wa" data-i18n="syncWa">WhatsApp confirmations</span>
+        <span class="sync-pill loyalty" data-i18n="syncLoyalty">Loyalty punch cards</span>
+        <span data-live-chip class="sync-pill live-chip live-off" title="Realtime socket">
+          <span class="pulse-dot"></span>
+          <span data-live-label>Socket Off</span>
+        </span>
+      </div>
+
+      <div class="cal-wrap">
+        <div class="week-staff-select" id="dayStaffSelect">
+          <label for="dayStaffPicker" data-i18n="staffFilterLabel">Staff</label>
+          <span class="color-dot" id="dayStaffDot"></span>
+          <select id="dayStaffPicker"><option value="all" data-i18n="allStaff">All staff</option></select>
+          <div class="week-range-nav" id="dayRangeNav">
+            <button type="button" id="prevDay" aria-label="Previous day">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 18-6-6 6-6" /></svg>
+            </button>
+            <div class="week-range-label" id="dayRangeLabel">—</div>
+            <button type="button" id="nextDay" aria-label="Next day">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 18 6-6-6-6" /></svg>
+            </button>
+          </div>
+        </div>
+        <div class="week-staff-select" id="weekStaffSelect">
+          <label for="weekStaffPicker" data-i18n="weekStaffLabel">Week staff</label>
+          <span class="color-dot" id="weekStaffDot"></span>
+          <select id="weekStaffPicker"></select>
+          <div class="week-range-nav" id="weekRangeNav">
+            <button type="button" id="prevWeek" aria-label="Previous week">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 18-6-6 6-6" /></svg>
+            </button>
+            <div class="week-range-label" id="weekRangeLabel">—</div>
+            <button type="button" id="nextWeek" aria-label="Next week">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 18 6-6-6-6" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="day-grid active" id="dayGrid" style="--staff-count: 4"></div>
+        <div class="week-grid" id="weekGrid"></div>
+        <div class="staff-view" id="staffView"></div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <!-- Quick Booking: Client → Staff → Slot -->
+    <div class="modal-overlay" id="bookingModal">
+      <div class="modal-card modal-card--wide">
+        <div class="modal-title" data-i18n="quickBookingTitle">Quick Booking</div>
+
+        <div class="modal-field">
+          <label for="qbTitle" data-i18n="title">Title</label>
+          <input type="text" id="qbTitle" autocomplete="off" />
+        </div>
+        <div class="modal-field">
+          <label for="qbClient" data-i18n="client">Client</label>
+          <select id="qbClient"></select>
+        </div>
+        <div class="modal-field">
+          <label for="qbStaff" data-i18n="staff">Staff</label>
+          <div class="staff-select-wrap">
+            <span class="color-dot" id="qbStaffDot"></span>
+            <select id="qbStaff"></select>
+          </div>
+        </div>
+        <div class="modal-field">
+          <label for="qbDate" data-i18n="date">Date</label>
+          <input type="date" id="qbDate" />
+        </div>
+        <div class="modal-field">
+          <label data-i18n="availableSlots">Available time slots</label>
+          <div class="slot-grid" id="qbSlots">
+            <div class="slot-empty" data-i18n="selectServiceStaff">Select staff to load slots</div>
+          </div>
+        </div>
+        <div class="modal-field">
+          <label for="qbDuration" data-i18n="duration">Duration (minutes)</label>
+          <input type="number" id="qbDuration" min="5" step="5" value="30" />
+        </div>
+        <div class="modal-field">
+          <label for="qbAddress" data-i18n="address">Location</label>
+          <input type="text" id="qbAddress" autocomplete="off" data-i18n-placeholder="addressPlaceholder" placeholder="Office" />
+        </div>
+        <div class="modal-field">
+          <label for="qbDetails" data-i18n="details">Details / notes</label>
+          <textarea id="qbDetails" rows="2" data-i18n-placeholder="detailsPlaceholder" placeholder="Details note"></textarea>
+        </div>
+        <div class="modal-field qb-notify-row">
+          <label class="check-label">
+            <input type="checkbox" id="qbNotify" checked />
+            <span data-i18n="notifyFlow">Notify (server notification)</span>
+          </label>
+          <label class="check-label">
+            <input type="checkbox" id="qbWhatsApp" checked />
+            <span data-i18n="waFlow">Send WhatsApp to client's saved mobile + .ics / Google Calendar link</span>
+          </label>
+          <label class="check-label">
+            <input type="checkbox" id="qbGoogleSync" checked />
+            <span data-i18n="googleFlow">Sync to Google Calendar (2-way)</span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" id="qbCancel" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn-primary" id="qbSubmit" data-i18n="confirmBooking">Confirm Booking</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="apptDetailModal">
+      <div class="modal-card">
+        <div class="modal-title" data-i18n="appointmentTitle">Appointment</div>
+        <div class="modal-field">
+          <label data-i18n="client">Client</label>
+          <div id="adClient" class="modal-static-field"></div>
+        </div>
+        <div class="modal-field">
+          <label data-i18n="staff">Staff</label>
+          <div id="adStaff" class="modal-static-field"></div>
+        </div>
+        <div class="modal-field">
+          <label data-i18n="time">Time</label>
+          <div id="adTime" class="modal-static-field"></div>
+        </div>
+        <div class="modal-field">
+          <label data-i18n="googleSync">Google sync</label>
+          <div id="adGoogle" class="modal-static-field"></div>
+        </div>
+        <div class="modal-field">
+          <a href="#" id="adLoyaltyLink" class="loyalty-link-btn" data-i18n="openLoyalty">Open Loyalty Profile</a>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" id="adDeleteBtn" style="color:#c23b3f;border-color:#e8a0a2;" data-i18n="delete">Delete</button>
+          <button type="button" class="btn-ghost" id="adClose" data-i18n="close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./assets/js/dashboard.js?v=20260805b"></script>
+  </body>
+</html>

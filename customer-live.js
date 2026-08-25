@@ -512,6 +512,54 @@
     return '1';
   }
 
+  function extractLeadFolderIds(c) {
+    c = c || {};
+    var ids = [];
+
+    function pushIds(raw) {
+      if (raw == null || raw === '') return;
+      if (typeof raw === 'string') {
+        try {
+          var parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) || (parsed && typeof parsed === 'object')) raw = parsed;
+        } catch (e) { /* csv below */ }
+      }
+      if (Array.isArray(raw)) {
+        raw.forEach(function (f) {
+          if (f && typeof f === 'object') {
+            var oid = String(f.id || f.folder_id || f.value || '').trim();
+            if (oid) ids.push(oid);
+          } else if (f != null && String(f).trim()) {
+            ids.push(String(f).trim());
+          }
+        });
+        return;
+      }
+      if (raw && typeof raw === 'object') {
+        var one = String(raw.id || raw.folder_id || '').trim();
+        if (one) ids.push(one);
+        return;
+      }
+      String(raw).split(',').forEach(function (s) {
+        s = String(s || '').trim();
+        if (s) ids.push(s);
+      });
+    }
+
+    pushIds(c.folders);
+    pushIds(c.folders_array);
+    if (!ids.length) pushIds(c.folder_id);
+    if (!ids.length) pushIds(c.folder);
+    if (!ids.length) ids.push(leadFolderId());
+
+    var seen = {};
+    return ids.filter(function (id) {
+      if (!id || id === '0' || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
+
   function applyLeadSelectStyle(sel) {
     if (!sel) return;
     var isRtl = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'he');
@@ -563,6 +611,20 @@
 
   function leadFolderStatusValue(c, folderId, folderStatuses) {
     c = c || {};
+    if (c.folder_status_map && c.folder_status_map[folderId]) {
+      return c.folder_status_map[folderId];
+    }
+    if (Array.isArray(c.folders) && c.folders.length && typeof c.folders[0] === 'object') {
+      var match = c.folders.find(function (f) {
+        return String(f.id || f.folder_id) === String(folderId);
+      });
+      if (match) {
+        return {
+          status_id: String(match.sub_list_data || match.status_id || match.status || ''),
+          sub_status_id: match.internal_sub_status_list || match.sub_status_id || ''
+        };
+      }
+    }
     var statusId = '';
     var known = {};
     (folderStatuses || []).forEach(function (row) {
@@ -636,6 +698,54 @@
     styleLeadStatusSelect(selectEl, folderStatuses);
   }
 
+  function pad2(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  var LEAD_FOLLOWUP_STATUS_ID = '10191';
+
+  function isLeadFollowupStatus(selectEl, folderStatuses) {
+    var id = String((selectEl && selectEl.value) || '').trim();
+    if (id && id === LEAD_FOLLOWUP_STATUS_ID) return true;
+    var label = '';
+    if (selectEl && selectEl.selectedIndex >= 0) {
+      label = String(selectEl.options[selectEl.selectedIndex].textContent || '');
+    }
+    var row = (folderStatuses || []).find(function (r) {
+      return String(r.status_id || r.id || r.data_id || '') === id;
+    });
+    var blob = [
+      label,
+      row && (row.name_en || ''),
+      row && (row.name_he || ''),
+      row && (row.name || ''),
+      row && (row.name_for || '')
+    ].join(' ');
+    return /follow|פולוא|מעקב/i.test(blob);
+  }
+
+  function followupRawToLocalInputs(raw) {
+    var fallback = { date: '', time: '09:00' };
+    if (!raw) return fallback;
+    var s = String(raw).trim().replace('T', ' ');
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (!m) return fallback;
+    return {
+      date: m[1] + '-' + m[2] + '-' + m[3],
+      time: (m[4] && m[5]) ? (m[4] + ':' + m[5]) : '09:00'
+    };
+  }
+
+  function formatFollowupDateTime(dateStr, timeStr) {
+    if (!dateStr) return '';
+    var parts = String(timeStr || '09:00').split(':');
+    var hh = pad2(Number(parts[0]) || 0);
+    var mm = pad2(Number(parts[1]) || 0);
+    var m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return '';
+    return m[1] + '-' + m[2] + '-' + m[3] + ' ' + hh + ':' + mm + ':00';
+  }
+
   function populateLeadSubStatusSelect(selectEl, parentStatusId, selectedSubId) {
     selectEl.innerHTML = '';
     var placeholder = document.createElement('option');
@@ -654,7 +764,7 @@
     applyLeadSelectStyle(selectEl);
   }
 
-  function buildLeadFolderBlock(folderId, folderName, statusVal, subStatusVal, folderStatuses, customerId) {
+  function buildLeadFolderBlock(folderId, folderName, statusVal, subStatusVal, folderStatuses, customerId, followupVal) {
     var block = document.createElement('div');
     block.className = 'folder-block';
     block.style.cssText = 'background:#eef4fb;border:1px solid #dce8f5;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px;';
@@ -662,7 +772,7 @@
     var header = document.createElement('div');
     header.style.cssText = 'display:flex;align-items:center;gap:8px;';
     header.innerHTML =
-      '<span style="width:8px;height:8px;border-radius:50%;background:' + (LEAD_FOLDER_COLORS[String(folderId)] || '#f87171') + ';flex:none;"></span>' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:' + (LEAD_FOLDER_COLORS[String(folderId)] || '#9ca3af') + ';flex:none;"></span>' +
       '<span style="font-size:14px;font-weight:800;color:#1f2a3a;">' + esc(folderName) + '</span>';
     block.appendChild(header);
 
@@ -688,6 +798,31 @@
     subWrap.appendChild(subSelect);
     block.appendChild(subWrap);
 
+    var followWrap = document.createElement('div');
+    followWrap.className = 'folder-followup-wrap';
+    followWrap.style.cssText = 'display:none;background:#eaf2fb;border:1.6px solid #aecbe9;border-radius:12px;padding:12px;';
+    var followLabel = document.createElement('span');
+    followLabel.style.cssText = 'display:block;margin-bottom:8px;font-size:12.5px;font-weight:800;color:#1d60a2;';
+    followLabel.textContent = t('Follow-up date', 'תאריך פולואפ');
+    var followRow = document.createElement('div');
+    followRow.style.cssText = 'display:flex;gap:8px;';
+    var dateIn = document.createElement('input');
+    dateIn.type = 'date';
+    dateIn.className = 'folder-followup-date';
+    dateIn.style.cssText = 'flex:1.2;padding:9px 10px;border-radius:8px;border:1.5px solid #bcd6f0;font-size:13.5px;font-weight:700;color:#1f2a3a;background:#fff;';
+    var timeIn = document.createElement('input');
+    timeIn.type = 'time';
+    timeIn.className = 'folder-followup-time';
+    timeIn.style.cssText = 'flex:1;padding:9px 10px;border-radius:8px;border:1.5px solid #bcd6f0;font-size:13.5px;font-weight:700;color:#1f2a3a;background:#fff;';
+    var localFu = followupRawToLocalInputs(followupVal);
+    dateIn.value = localFu.date;
+    timeIn.value = localFu.time;
+    followRow.appendChild(dateIn);
+    followRow.appendChild(timeIn);
+    followWrap.appendChild(followLabel);
+    followWrap.appendChild(followRow);
+    block.appendChild(followWrap);
+
     var saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'folder-save-btn';
@@ -698,9 +833,16 @@
     populateLeadStatusSelect(statusSelect, folderStatuses, statusVal);
     populateLeadSubStatusSelect(subSelect, statusVal, subStatusVal);
 
+    function syncFollowupField() {
+      var show = String(folderId) === '1' && isLeadFollowupStatus(statusSelect, folderStatuses);
+      followWrap.style.display = show ? 'block' : 'none';
+    }
+    syncFollowupField();
+
     statusSelect.addEventListener('change', function () {
       styleLeadStatusSelect(statusSelect, folderStatuses);
       populateLeadSubStatusSelect(subSelect, statusSelect.value, '');
+      syncFollowupField();
     });
 
     saveBtn.addEventListener('click', function () {
@@ -743,9 +885,44 @@
       };
       if (subStatusId) payload.internal_sub_status_list = subStatusId;
 
+      var followWrap = block.querySelector('.folder-followup-wrap');
+      var needFollowup = followWrap && followWrap.style.display !== 'none' &&
+        isLeadFollowupStatus(statusSel, null);
+      var followUtc = '';
+      if (needFollowup) {
+        var dateIn = block.querySelector('.folder-followup-date');
+        var timeIn = block.querySelector('.folder-followup-time');
+        var dateVal = dateIn ? String(dateIn.value || '').trim() : '';
+        if (!dateVal) {
+          showLeadStatusToast(t('Select a follow-up date', 'יש לבחור תאריך פולואפ'), 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+        followUtc = formatFollowupDateTime(dateVal, timeIn ? timeIn.value : '09:00');
+        if (!followUtc) {
+          showLeadStatusToast(t('Select a follow-up date', 'יש לבחור תאריך פולואפ'), 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+      }
+
       var raw = await MineralBarApp.getClient().request('Customer.Edit', payload);
       if (!(raw && (Number(raw.success) === 1 || raw.success === true || raw.output || raw.data))) {
         throw new Error((raw && (raw.message || raw.error)) || 'Customer.Edit failed');
+      }
+
+      if (followUtc) {
+        var fuRaw = await MineralBarApp.getClient().request('Customer.Edit', {
+          customer_id: customerId,
+          id: customerId,
+          cust_id: customerId,
+          followup: followUtc
+        });
+        if (!(fuRaw && (Number(fuRaw.success) === 1 || fuRaw.success === true || fuRaw.output || fuRaw.data))) {
+          throw new Error((fuRaw && (fuRaw.message || fuRaw.error)) || 'Follow-up save failed');
+        }
       }
 
       leadFolderUi.suppressUntil = Date.now() + 2800;
@@ -754,6 +931,7 @@
         window.__mbLeadCardCustomer.sub_list_data = statusId;
         window.__mbLeadCardCustomer.sub_list_data_name = statusName;
         if (subStatusId) window.__mbLeadCardCustomer.internal_sub_status_list = subStatusId;
+        if (followUtc) window.__mbLeadCardCustomer.followup = followUtc;
       }
       showLeadStatusToast(t('Details saved successfully!', 'הפרטים נשמרו בהצלחה!'));
 
@@ -782,22 +960,40 @@
     if (!container) return;
     container.innerHTML = '<div style="padding:12px 0;color:#9aa3b0;font-size:13px;font-weight:600;">' + esc(t('Loading…', 'טוען…')) + '</div>';
 
-    var folderId = leadFolderId();
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
-    var folderName = isEn ? 'New Leads' : 'פניות חדשות';
+    var allFolders = [];
     try {
-      var folders = (window.MineralBarApp && typeof MineralBarApp.getFolders === 'function') ? MineralBarApp.getFolders() : [];
-      var folderDef = (folders || []).find(function (f) { return String(f.id || f.folder_id) === String(folderId); });
-      if (folderDef) {
-        folderName = isEn ? (folderDef.name_en || folderDef.name || folderDef.name_he) : (folderDef.name_he || folderDef.name || folderDef.name_en);
-      }
+      allFolders = (window.MineralBarApp && typeof MineralBarApp.getFolders === 'function')
+        ? (MineralBarApp.getFolders() || [])
+        : [];
     } catch (e0) { /* ignore */ }
 
     await fetchLeadSubStatuses();
-    var folderStatuses = await fetchLeadFolderStatuses(folderId);
-    var vals = leadFolderStatusValue(c, folderId, folderStatuses);
+    var folderIds = extractLeadFolderIds(c);
+    var customerId = c.customer_id || c.id;
     container.innerHTML = '';
-    container.appendChild(buildLeadFolderBlock(folderId, folderName, vals.status_id, vals.sub_status_id, folderStatuses, c.customer_id || c.id));
+
+    for (var i = 0; i < folderIds.length; i++) {
+      var fId = folderIds[i];
+      var folderDef = (allFolders || []).find(function (f) {
+        return String(f.id || f.folder_id || f.value) === String(fId);
+      });
+      var folderName = folderDef
+        ? (isEn ? (folderDef.name_en || folderDef.name || folderDef.name_he)
+          : (folderDef.name_he || folderDef.name || folderDef.name_en))
+        : ('Folder #' + fId);
+      var folderStatuses = await fetchLeadFolderStatuses(fId);
+      var vals = leadFolderStatusValue(c, fId, folderStatuses);
+      container.appendChild(buildLeadFolderBlock(
+        fId,
+        folderName,
+        vals.status_id,
+        vals.sub_status_id,
+        folderStatuses,
+        customerId,
+        c.followup
+      ));
+    }
 
     var title = document.getElementById('mb-lead-status-title');
     if (title) title.textContent = t('CUSTOMER FOLDERS', 'תיקיות לקוח');

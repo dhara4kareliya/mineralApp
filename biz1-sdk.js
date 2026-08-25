@@ -79,11 +79,31 @@
     ].join(':');
   }
 
+  function formatWallClockDateTime(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return [
+      date.getFullYear(),
+      pad2(date.getMonth() + 1),
+      pad2(date.getDate())
+    ].join('-') + ' ' + [
+      pad2(date.getHours()),
+      pad2(date.getMinutes()),
+      pad2(date.getSeconds())
+    ].join(':');
+  }
+
   function isDateField(key) {
     var name = String(key || '').toLowerCase();
     return /(^|_)(date|datetime|time|followup|due)(_|$)/.test(name)
       || ['from', 'to', 'start', 'stop', 'created_at', 'updated_at', 'last_update', 'last_updated', 'payment_date'].indexOf(name) !== -1
       || name.indexOf('date_of_due') !== -1;
+  }
+
+  // Customer.followup is a reminder wall-clock. Converting it to UTC shifts the
+  // selected time by the browser offset (e.g. 4–5.5h) and that shifted value
+  // is what Customer.Get shows after reload.
+  function isWallClockDateField(key) {
+    return String(key || '').toLowerCase() === 'followup';
   }
 
   function localDateStringToDate(value) {
@@ -100,8 +120,12 @@
     );
   }
 
+  function formatDateField(key, date) {
+    return isWallClockDateField(key) ? formatWallClockDateTime(date) : formatUtcDateTime(date);
+  }
+
   function normalizeDateInput(key, value) {
-    if (value instanceof Date) return formatUtcDateTime(value);
+    if (value instanceof Date) return formatDateField(key, value);
     if (!isDateField(key) || typeof value !== 'string') return value;
 
     var text = value.trim();
@@ -109,10 +133,10 @@
     if (/^\d{2}:\d{2}(:\d{2})?$/.test(text)) return text.length === 5 ? text + ':00' : text;
 
     var localDate = localDateStringToDate(text);
-    if (localDate) return formatUtcDateTime(localDate);
+    if (localDate) return formatDateField(key, localDate);
 
     var parsed = new Date(text);
-    return Number.isNaN(parsed.getTime()) ? value : formatUtcDateTime(parsed);
+    return Number.isNaN(parsed.getTime()) ? value : formatDateField(key, parsed);
   }
 
   function appendBody(body, key, value) {
@@ -123,7 +147,7 @@
       return;
     }
     if (value instanceof Date) {
-      body.append(key, formatUtcDateTime(value));
+      body.append(key, formatDateField(key, value));
       return;
     }
     if (typeof value === 'object') {

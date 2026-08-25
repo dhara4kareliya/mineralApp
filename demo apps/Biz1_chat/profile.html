@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport"/>
+<title>תצוגת Biz1 — פרופיל</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('biz1demo_theme') || localStorage.getItem('mineral_theme');
+    if (t !== 'dark' && t !== 'light') {
+      t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/css/showcase.css?v=chat-12"/>
+<script src="assets/config.js"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.bull36\.com.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+})();
+</script>
+<script src="assets/js/lang.js?v=chat-23"></script>
+<script src="assets/js/support.js"></script>
+<script src="assets/js/biz1-app.js?v=chat-23"></script>
+</head>
+<body>
+<div class="app-shell">
+  <div class="app-frame">
+    <div class="screen" id="screenProfile">
+
+      <div class="profile-header">
+        <div class="profile-title" data-i18n="profile">פרופיל</div>
+        <button type="button" class="icon-circle" onclick="location.href='conversation.html'" aria-label="Back">
+          <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M9 18l6-6-6-6"></path></svg>
+        </button>
+      </div>
+
+      <div class="dc-scroll profile-body">
+        <div class="profile-card">
+          <div class="profile-av" id="userAvatar">U</div>
+          <h2 id="userName" class="profile-name" data-i18n="loading">טוען...</h2>
+          <p id="userEmail" class="profile-email" data-i18n="loading_data">טוען נתונים...</p>
+          <div id="userRole" class="profile-role">...</div>
+        </div>
+
+        <div class="profile-options">
+          <div class="profile-row">
+            <div class="profile-row-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <span data-i18n="dark_mode">מצב לילה</span>
+            </div>
+            <button type="button" id="themeToggleBtn" class="theme-switch" aria-label="Toggle theme">
+              <div id="themeToggleCircle" class="theme-switch-knob"></div>
+            </button>
+          </div>
+
+          <div class="profile-row">
+            <div class="profile-row-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              <span data-i18n="language">שפה</span>
+            </div>
+            <a href="?lang=en" id="langToggleLink" class="lang-pill">EN</a>
+          </div>
+
+          <div class="profile-row profile-row--danger">
+            <div class="profile-row-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+              <span data-i18n="logout">התנתק</span>
+            </div>
+            <button type="button" id="logoutBtn" class="logout-btn" data-i18n="exit">יציאה</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var themeToggleCircle = document.getElementById('themeToggleCircle');
+
+  function updateThemeUI() {
+    var isRTL = document.documentElement.dir === 'rtl';
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      themeToggleCircle.style.transform = isRTL ? 'translateX(-18px)' : 'translateX(18px)';
+    } else {
+      themeToggleCircle.style.transform = 'translateX(0)';
+    }
+  }
+  setTimeout(updateThemeUI, 0);
+
+  document.getElementById('themeToggleBtn').addEventListener('click', function () {
+    var current = document.documentElement.getAttribute('data-theme');
+    var next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('biz1demo_theme', next);
+    updateThemeUI();
+  });
+
+  async function loadUserData() {
+    try {
+      MineralBarApp.requireAuth('login.html');
+      var client = MineralBarApp.getClient();
+      var response = await client.account.basic();
+      var data = (response && response.data) || response || {};
+
+      if (data && data.user) {
+        document.getElementById('userName').textContent = data.user.name || 'User';
+        document.getElementById('userEmail').textContent = data.user.email || '';
+        document.getElementById('userAvatar').textContent = (data.user.name || 'U').charAt(0).toUpperCase();
+        document.getElementById('userRole').textContent = MineralBarApp.getRole() || 'user';
+      }
+    } catch (err) {
+      console.error('Failed to load user data:', err);
+      document.getElementById('userName').textContent = window.t ? window.t('error_dashboard') : 'Error loading data';
+    }
+  }
+  loadUserData();
+
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    if (confirm(window.t ? window.t('confirm_logout') : 'Are you sure you want to logout?')) {
+      MineralBarApp.clearSession({ keepEmail: false, keepRemember: false });
+      window.location.href = 'login.html';
+    }
+  });
+})();
+</script>
+</body>
+</html>

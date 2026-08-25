@@ -1450,16 +1450,16 @@
     if (p.glob_check_already_or_not !== undefined) payload.glob_check_already_or_not = p.glob_check_already_or_not;
     if (p.force !== undefined) payload.force = p.force;
 
-    // Followup (UTC Y-m-d H:i:s)
+    // Followup is stored as wall-clock Y-m-d H:i:s (same date/time the user picked).
     if (p.followup !== undefined && p.followup !== '') {
       if (p.followup instanceof Date) {
         var d = p.followup;
-        payload.followup = d.getUTCFullYear() + '-' +
-          String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
-          String(d.getUTCDate()).padStart(2, '0') + ' ' +
-          String(d.getUTCHours()).padStart(2, '0') + ':' +
-          String(d.getUTCMinutes()).padStart(2, '0') + ':' +
-          String(d.getUTCSeconds()).padStart(2, '0');
+        payload.followup = d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0') + ' ' +
+          String(d.getHours()).padStart(2, '0') + ':' +
+          String(d.getMinutes()).padStart(2, '0') + ':' +
+          String(d.getSeconds()).padStart(2, '0');
       } else {
         payload.followup = p.followup;
       }

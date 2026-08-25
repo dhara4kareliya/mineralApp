@@ -24,6 +24,52 @@
     '5': '#6b7280',
     '6': '#4b5563'
   };
+  var LEAD_FOLLOWUP_STATUS_ID = '10191';
+
+  function pad2(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  function isLeadFollowupStatus(selectEl, folderStatuses) {
+    var id = String((selectEl && selectEl.value) || '').trim();
+    if (id && id === LEAD_FOLLOWUP_STATUS_ID) return true;
+    var label = '';
+    if (selectEl && selectEl.selectedIndex >= 0) {
+      label = String(selectEl.options[selectEl.selectedIndex].textContent || '');
+    }
+    var row = (folderStatuses || []).find(function (r) {
+      return String(r.status_id || r.id || r.data_id || '') === id;
+    });
+    var blob = [
+      label,
+      row && (row.name_en || ''),
+      row && (row.name_he || ''),
+      row && (row.name || '')
+    ].join(' ');
+    return /follow|פולוא|מעקב/i.test(blob);
+  }
+
+  function followupRawToLocalInputs(raw) {
+    var fallback = { date: '', time: '09:00' };
+    if (!raw) return fallback;
+    var s = String(raw).trim().replace('T', ' ');
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (!m) return fallback;
+    return {
+      date: m[1] + '-' + m[2] + '-' + m[3],
+      time: (m[4] && m[5]) ? (m[4] + ':' + m[5]) : '09:00'
+    };
+  }
+
+  function formatFollowupDateTime(dateStr, timeStr) {
+    if (!dateStr) return '';
+    var parts = String(timeStr || '09:00').split(':');
+    var hh = pad2(Number(parts[0]) || 0);
+    var mm = pad2(Number(parts[1]) || 0);
+    var m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return '';
+    return m[1] + '-' + m[2] + '-' + m[3] + ' ' + hh + ':' + mm + ':00';
+  }
 
   var dictionary = {
     en: {
@@ -44,6 +90,8 @@
       internalSubStatus: "Internal sub-status",
       selectInternalStatus: "--Select Internal Status--",
       saveFolderBtn: "Save for folder",
+      followupDate: "Follow-up date",
+      selectFollowupDate: "Select a follow-up date",
       details: "DETAILS",
       openMissions: "Missions",
       notes: "NOTES",
@@ -68,6 +116,8 @@
       internalSubStatus: "תת-סטטוס פנימי",
       selectInternalStatus: "-- בחר סטטוס פנימי --",
       saveFolderBtn: "שמור לתיקייה",
+      followupDate: "תאריך פולואפ",
+      selectFollowupDate: "יש לבחור תאריך פולואפ",
       details: "פרטים",
       openMissions: "משימות",
       notes: "הערות",
@@ -482,11 +532,33 @@
         folder_id: String(folderId),
         sub_list_data: statusId,
         sub_list_data_name: statusName,
-        // Customer.Get returns the selected internal status in `status`
         status: statusId
       };
       if (subStatusId) {
         payload.internal_sub_status_list = subStatusId;
+      }
+
+      var followWrap = block.querySelector('.folder-followup-wrap');
+      var needFollowup = followWrap && followWrap.style.display !== 'none' &&
+        isLeadFollowupStatus(statusSel, null);
+      var followUtc = '';
+      if (needFollowup) {
+        var dateIn = block.querySelector('.folder-followup-date');
+        var timeIn = block.querySelector('.folder-followup-time');
+        var dateVal = dateIn ? String(dateIn.value || '').trim() : '';
+        if (!dateVal) {
+          showToast(t('selectFollowupDate'), 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+        followUtc = formatFollowupDateTime(dateVal, timeIn ? timeIn.value : '09:00');
+        if (!followUtc) {
+          showToast(t('selectFollowupDate'), 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
       }
 
       var raw = await client.request('Customer.Edit', Object.assign({
@@ -500,11 +572,24 @@
         throw new Error(String(failMsg));
       }
 
+      if (followUtc) {
+        var fuRaw = await client.request('Customer.Edit', {
+          customer_id: currentCustomerId,
+          id: currentCustomerId,
+          cust_id: currentCustomerId,
+          followup: followUtc
+        });
+        if (!(fuRaw && (Number(fuRaw.success) === 1 || fuRaw.success === true || fuRaw.output || fuRaw.data))) {
+          throw new Error((fuRaw && (fuRaw.message || fuRaw.error)) || 'Follow-up save failed');
+        }
+      }
+
       if (customerData) {
         customerData.status = statusId;
         customerData.sub_list_data = statusId;
         customerData.sub_list_data_name = statusName;
         if (subStatusId) customerData.internal_sub_status_list = subStatusId;
+        if (followUtc) customerData.followup = followUtc;
       }
 
       // Own write echoes on the socket as customer.* — suppress live reloads briefly
@@ -561,6 +646,31 @@
     subWrap.appendChild(subSelect);
     block.appendChild(subWrap);
 
+    var followWrap = document.createElement('div');
+    followWrap.className = 'folder-followup-wrap';
+    followWrap.style.cssText = 'display:none;background:#eaf2fb;border:1.6px solid #aecbe9;border-radius:12px;padding:12px;';
+    var followLabel = document.createElement('span');
+    followLabel.style.cssText = 'display:block;margin-bottom:8px;font-size:12.5px;font-weight:800;color:#1d60a2;';
+    followLabel.textContent = t('followupDate');
+    var followRow = document.createElement('div');
+    followRow.style.cssText = 'display:flex;gap:8px;';
+    var dateIn = document.createElement('input');
+    dateIn.type = 'date';
+    dateIn.className = 'folder-followup-date';
+    dateIn.style.cssText = 'flex:1.2;padding:9px 10px;border-radius:8px;border:1.5px solid #bcd6f0;font-size:13.5px;font-weight:700;color:#1f2a3a;background:#fff;';
+    var timeIn = document.createElement('input');
+    timeIn.type = 'time';
+    timeIn.className = 'folder-followup-time';
+    timeIn.style.cssText = 'flex:1;padding:9px 10px;border-radius:8px;border:1.5px solid #bcd6f0;font-size:13.5px;font-weight:700;color:#1f2a3a;background:#fff;';
+    var localFu = followupRawToLocalInputs(customerData && customerData.followup);
+    dateIn.value = localFu.date;
+    timeIn.value = localFu.time;
+    followRow.appendChild(dateIn);
+    followRow.appendChild(timeIn);
+    followWrap.appendChild(followLabel);
+    followWrap.appendChild(followRow);
+    block.appendChild(followWrap);
+
     var saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'folder-save-btn';
@@ -572,10 +682,17 @@
     populateStatusSelect(statusSelect, folderStatuses, statusVal);
     populateSubStatusSelect(subSelect, statusVal, subStatusVal);
 
+    function syncFollowupField() {
+      var show = String(folderId) === '1' && isLeadFollowupStatus(statusSelect, folderStatuses);
+      followWrap.style.display = show ? 'block' : 'none';
+    }
+    syncFollowupField();
+
     statusSelect.addEventListener('change', function () {
       styleStatusSelect(statusSelect, folderStatuses);
       populateSubStatusSelect(subSelect, statusSelect.value, '');
       applySelectStyle(subSelect);
+      syncFollowupField();
     });
 
     saveBtn.addEventListener('click', function () {

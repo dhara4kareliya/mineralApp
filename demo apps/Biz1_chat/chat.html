@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport"/>
+<title>תצוגת Biz1 — צ׳אט</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('biz1demo_theme') || localStorage.getItem('mineral_theme');
+    if (t !== 'dark' && t !== 'light') {
+      t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/css/showcase.css?v=chat-27"/>
+<script src="assets/config.js"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.bull36\.com.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+})();
+</script>
+<script src="assets/js/lang.js?v=chat-26"></script>
+<script src="assets/js/support.js"></script>
+<script src="assets/js/biz1-app.js?v=chat-24"></script>
+<script src="assets/js/page-boot.js?v=chat-22"></script>
+<script src="assets/js/chat-live.js?v=chat-27"></script>
+<script src="assets/js/chat-crm.js?v=chat-24"></script>
+<script>
+/* Desktop deep-link → inbox split view */
+(function () {
+  if (window.matchMedia && window.matchMedia('(min-width: 1024px)').matches && location.search) {
+    location.replace('conversation.html' + location.search);
+  }
+})();
+</script>
+</head>
+<body>
+<div class="app-shell">
+  <div class="app-frame">
+    <div class="screen" id="screenChat">
+
+      <div class="chat-header">
+        <a href="conversation.html" class="chat-back" aria-label="Back">
+          <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="18"><path d="M15 18l-6-6 6-6"></path></svg>
+        </a>
+        <div id="mb-chat-av" class="chat-av">?</div>
+        <div class="chat-head-text">
+          <div id="mb-chat-name" class="chat-name">User</div>
+          <div id="mb-chat-sub" class="chat-sub">loading…</div>
+        </div>
+        <button type="button" class="theme-toggle theme-toggle--on-dark" id="themeToggle" title="Theme">
+          <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+        </button>
+        <button type="button" id="crm-info-btn" class="chat-icon-btn" aria-label="CRM">
+          <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        </button>
+        <button type="button" class="chat-icon-btn" aria-label="More">
+          <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg>
+        </button>
+      </div>
+
+      <div class="dc-scroll chat-thread" id="mb-live-chat"></div>
+      <div id="mb-chat-status" class="chat-status"></div>
+
+      <div class="chat-composer" id="mb-chat-composer">
+        <div id="mb-chat-attach-menu" class="chat-attach-menu">
+          <button type="button" class="mb-attach-opt" data-attach="image">
+            <svg fill="none" height="26" stroke="#25b35e" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="26"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="2"></circle><path d="m4 18 5-4 4 3 3-2 4 3"></path></svg>
+            <span data-i18n="attach_image">Image</span>
+          </button>
+          <button type="button" class="mb-attach-opt" data-attach="file">
+            <svg fill="none" height="26" stroke="#6b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="26"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+            <span data-i18n="attach_file">File</span>
+          </button>
+          <button type="button" class="mb-attach-opt" data-attach="music">
+            <svg fill="none" height="26" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="26"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            <span data-i18n="attach_music">Music</span>
+          </button>
+          <button type="button" class="mb-attach-opt" data-attach="record">
+            <svg fill="none" height="26" stroke="#e11d48" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="26"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v4"></path><path d="M8 23h8"></path></svg>
+            <span data-i18n="attach_record">Record</span>
+          </button>
+        </div>
+        <div id="mb-chat-attach-preview" class="chat-attach-preview">
+          <div id="mb-chat-attach-thumb" class="chat-attach-thumb"></div>
+          <div class="chat-attach-meta">
+            <div id="mb-chat-attach-name" class="chat-attach-name"></div>
+            <div id="mb-chat-attach-hint" class="chat-attach-hint" data-i18n="attach_ready">Ready to send</div>
+          </div>
+          <button type="button" id="mb-chat-attach-clear" class="chat-attach-clear" aria-label="Remove">
+            <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="14"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div class="chat-composer-row">
+          <button type="button" id="mb-chat-attach-btn" class="chat-attach" aria-label="Attach" aria-expanded="false">
+            <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.2-9.2a3.67 3.67 0 0 1 5.18 5.18l-9.2 9.2a1.83 1.83 0 0 1-2.6-2.6l8.5-8.48"></path></svg>
+          </button>
+          <div class="chat-input-wrap">
+            <input class="ds-msg" id="mb-chat-input" data-i18n-placeholder="write_message" placeholder="כתוב הודעה..."/>
+          </div>
+          <button type="button" id="mb-chat-record-btn" class="chat-record" aria-label="Record" aria-pressed="false">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v4"></path><path d="M8 23h8"></path></svg>
+          </button>
+          <button id="mb-chat-send" class="chat-send" type="button" aria-label="Send">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"><path d="M21 3 3 10.5l7 2.5 2.5 7z"></path><path d="M21 3 10 13"></path></svg>
+          </button>
+        </div>
+        <div class="chat-file-inputs" aria-hidden="true">
+          <input class="mb-chat-file-input" type="file" id="mb-chat-file-image" accept="image/*,.png,.jpg,.jpeg,.gif,.webp,.bmp,.heic" tabindex="-1"/>
+          <input class="mb-chat-file-input" type="file" id="mb-chat-file-doc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/zip,application/x-rar-compressed" tabindex="-1"/>
+          <input class="mb-chat-file-input" type="file" id="mb-chat-file-music" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,video/*,.mp4,.webm,.mov" tabindex="-1"/>
+        </div>
+      </div>
+
+      <div id="crm-overlay" class="crm-overlay">
+        <div id="crm-backdrop" class="crm-backdrop"></div>
+        <div class="dc-scroll crm-sheet" id="crm-sheet-content">
+          <div class="crm-handle"></div>
+          <div class="crm-sheet-head">
+            <button type="button" id="close-crm-btn" class="crm-close" aria-label="Close">
+              <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="15"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+            </button>
+            <div class="crm-sheet-title" data-i18n="crm_profile">פרופיל לקוח</div>
+          </div>
+          <div id="crm-content-area" class="crm-body">
+            <div style="text-align:center; padding:20px;">
+              <span style="font-size:14px; color:var(--text-muted);" data-i18n="loading_data">טוען נתונים...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('themeToggle').addEventListener('click', function () {
+  var cur = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('biz1demo_theme', next);
+});
+</script>
+</body>
+</html>

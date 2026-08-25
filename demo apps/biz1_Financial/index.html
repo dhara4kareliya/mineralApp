@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Biz1 Showcase — Login</title>
+  <script src="./assets/config.js?v=financial-multi-login-20260811"></script>
+  <script>
+    (function () {
+      var user = (window.Biz1Config && window.Biz1Config.user) || "";
+      user = String(user).trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\.bull36\.com.*$/i, "");
+      if (user) {
+        document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="./assets/css/app.css?v=financial-multi-login-20260811">
+  <script defer src="./assets/js/app.js?v=financial-multi-login-20260811"></script>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="phone-outer">
+      <div class="phone-inner">
+        <section id="loginView" class="view">
+          <div class="lang-bar">
+            <div class="lang-bar-left">
+              <span class="muted-mini">14:44</span>
+            </div>
+            <div class="lang-bar-right">
+              <button id="themeToggleBtn" type="button" class="mini-btn" aria-label="Toggle theme">☼</button>
+              <button id="langToggleBtn" type="button" class="mini-btn" aria-label="Toggle language">EN</button>
+            </div>
+          </div>
+          <div class="brand-hero">
+            <div id="brandTitle" class="brand-title">Biz1 Showcase</div>
+            <div id="brandSub" class="brand-sub">Sign in to the management system</div>
+          </div>
+          <div class="auth-shell">
+            <form id="loginForm" class="card login-card">
+              <div id="loginTitle" class="login-title">Account login</div>
+              <div id="usernameWrap">
+                <label id="usernameLabel" for="username">Email / Username / Phone / ID</label>
+                <input id="username" type="text" autocomplete="username" required>
+              </div>
+              <div id="passwordWrap">
+                <label id="passwordLabel" for="password">Password</label>
+                <div class="password-wrap">
+                  <input id="password" type="password" autocomplete="current-password" required>
+                  <button id="togglePasswordBtn" type="button" class="password-toggle" aria-label="Show password">👁</button>
+                </div>
+              </div>
+              <div id="otpWrap" class="hidden">
+                <label id="otpLabel" for="otp">OTP</label>
+                <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter code">
+                <button id="resendOtpBtn" type="button" class="resend-otp">Resend OTP</button>
+              </div>
+              <label id="rememberWrap" class="remember-row">
+                <input id="rememberMe" type="checkbox">
+                <span id="rememberLabel">Remember me</span>
+              </label>
+              <button id="loginBtn" type="submit">Sign in</button>
+              <p id="loginError" class="error hidden"></p>
+            </form>
+            <p id="loginFooter" class="login-footer">Biz1 Showcase</p>
+          </div>
+        </section>
+
+        <section id="dashboardView" class="view hidden">
+          <header class="topbar">
+            <h2 id="dashboardTitle">Executive Analytics</h2>
+            <div class="actions">
+              <button id="dashboardThemeToggleBtn" type="button" class="mini-btn" aria-label="Toggle theme">☼</button>
+              <button id="dashboardLangToggleBtn" type="button" class="mini-btn" aria-label="Toggle language">EN</button>
+              <span id="liveChip" class="live-chip live-off">Live: Off</span>
+              <button id="refreshBtn" class="ghost">Refresh</button>
+              <button id="logoutBtn" class="ghost">Logout</button>
+            </div>
+          </header>
+
+          <nav class="tabs">
+            <button id="tabOverview" class="tab active" data-tab="overview">Overview</button>
+            <button id="tabCashflow" class="tab" data-tab="cashflow">Cash Flow & Receivables</button>
+            <button id="tabProducts" class="tab" data-tab="products">Product Analytics</button>
+          </nav>
+
+          <main class="dash-scroll">
+            <section data-page="overview">
+              <div class="kpis">
+                <article class="card"><h4 id="kpiRevenueTitle">Total Revenue</h4><div id="kpiRevenue" class="value">$0</div><small id="kpiRevenueDelta">--</small></article>
+                <article class="card"><h4 id="kpiMrrTitle">Monthly MRR</h4><div id="kpiMrr" class="value">$0</div><small id="kpiMrrDelta">--</small></article>
+                <article class="card"><h4 id="kpiClientsTitle">Active Clients</h4><div id="kpiClients" class="value">0</div><small id="kpiClientsDelta">--</small></article>
+                <article class="card"><h4 id="kpiOutstandingTitle">Outstanding Invoices</h4><div id="kpiOutstanding" class="value">$0</div><small id="kpiOutstandingDelta">--</small></article>
+              </div>
+              <article class="card chart">
+                <h3 id="trendTitle">Revenue & Expense Trends</h3>
+                <div id="trendChart"></div>
+              </article>
+              <div class="split">
+                <article class="card">
+                  <h3 id="recentTxTitle">Recent Transactions</h3>
+                  <ul id="txList" class="list"></ul>
+                  <div id="txPager" class="pager hidden">
+                    <button id="txPrevBtn" type="button" class="ghost pager-btn">Prev</button>
+                    <span id="txPageInfo" class="pager-info">1 / 1</span>
+                    <button id="txNextBtn" type="button" class="ghost pager-btn">Next</button>
+                  </div>
+                </article>
+                <article class="card">
+                  <h3 id="topProductsTitle">Top Performing Products</h3>
+                  <ol id="topList" class="list"></ol>
+                </article>
+              </div>
+            </section>
+
+            <section data-page="cashflow" class="hidden">
+              <div class="split">
+                <article class="card chart">
+                  <h3 id="overdueTitle">Overdue Debts (30/60/90 days)</h3>
+                  <div id="overdueChart"></div>
+                </article>
+                <article class="card">
+                  <h3 id="receivablesTitle">Receivables</h3>
+                  <ul id="receivableList" class="list"></ul>
+                  <button id="waReminderBtn" class="primary">Send Automated WhatsApp Reminders</button>
+                  <p id="waStatus" class="muted"></p>
+                </article>
+              </div>
+            </section>
+
+            <section data-page="products" class="hidden">
+              <article class="card">
+                <h3 id="topSellingTitle">Top Selling Services / Products</h3>
+                <div id="productBars"></div>
+              </article>
+            </section>
+          </main>
+        </section>
+      </div>
+    </div>
+  </div>
+  <div id="chartTooltip" class="chart-tooltip hidden"></div>
+</body>
+</html>

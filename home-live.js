@@ -85,7 +85,9 @@
     return { text: t('Open', 'פתוח'), color: '#7b8595' };
   }
 
+  /** Folder 1 internal status "סגירה" — not a global customer status / header dropdown. */
   var CLOSED_LEAD_STATUS = 10184;
+  var CLOSED_LEAD_PAGE = 25;
 
   function currentMonthRange() {
     var now = new Date();
@@ -97,36 +99,80 @@
     return { from: from, to: to };
   }
 
-  function statusIdCandidates(row) {
-    if (!row) return [];
-    var vals = [row.status, row.sub_list_data, row.status_id, row.internal_status_id, row.c_status];
-    var out = [];
-    for (var i = 0; i < vals.length; i++) {
-      var raw = vals[i];
-      if (raw && typeof raw === 'object') raw = raw.id || raw.status_id || raw.value || raw.val || '';
-      var n = Number(raw);
-      if (isFinite(n) && n > 0) out.push(n);
-    }
-    return out;
-  }
-
-  function leadCreatedKey(row) {
-    if (!row) return '';
-    var raw = row.date_created || row.created_at || row.created || row.insert_date ||
-      row.inserted_date || row.default_date || row.updated || '';
+  function rowDayKey(raw) {
     var s = String(raw == null ? '' : raw).trim();
     var m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-    if (m) return m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]);
-    var d = new Date(raw);
-    if (!isNaN(d.getTime())) return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-    return '';
+    if (!m) return '';
+    return m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]);
   }
 
-  function isClosedLeadThisMonth(row, range) {
-    if (statusIdCandidates(row).indexOf(CLOSED_LEAD_STATUS) === -1) return false;
-    var k = leadCreatedKey(row);
-    if (!k || !range) return false;
-    return k >= range.from && k <= range.to;
+  function isClosedThisMonth(row, range) {
+    if (!row || Number(row.status) !== CLOSED_LEAD_STATUS) return false;
+    var k = rowDayKey(row.last_updated);
+    return !!(k && range && k >= range.from && k <= range.to);
+  }
+
+  function closedLeadListTotal(raw, counted) {
+    var src = raw && typeof raw === 'object' ? raw : {};
+    var n = Number(src.recordsTotal || src.total_record || src.totalrecords || src.totalRecords || 0);
+    if (isFinite(n) && n > CLOSED_LEAD_PAGE) return n;
+    var fromCount = Number(counted && counted.count);
+    if (isFinite(fromCount) && fromCount > CLOSED_LEAD_PAGE) return fromCount;
+    return 0;
+  }
+
+  /**
+   * How many leads were closed this month (status 10184 + last_updated in month).
+   * API from_date filters date_created, so we paginate all folder-1 pages and filter in-app.
+   * Do not send status= on Count/List.
+   */
+  async function countClosedLeadsThisMonth(range) {
+    var folderId = 1;
+    try {
+      if (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.LEADS != null) {
+        folderId = MineralBarApp.FOLDERS.LEADS;
+      }
+    } catch (e0) { /* stay on 1 */ }
+
+    var counted = await MineralBarApp.countCustomers(folderId).catch(function () {
+      return { count: 0 };
+    });
+    var totalHint = closedLeadListTotal(counted && counted.raw, counted);
+    var closed = 0;
+    var start = 0;
+    var pages = 0;
+    var seen = {};
+    var maxPages = 200;
+
+    while (pages < maxPages) {
+      var list = await MineralBarApp.listCustomers({
+        folder_id: folderId,
+        start: start,
+        limit: CLOSED_LEAD_PAGE,
+        length: CLOSED_LEAD_PAGE,
+        draw: 1
+      }).catch(function () { return { rows: [] }; });
+      var rows = list.rows || list.data || [];
+      if (!totalHint) totalHint = closedLeadListTotal(list, counted);
+
+      var newOnPage = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var id = String((row && (row.id || row.customer_id || row.cust_id)) || ('i-' + start + '-' + i));
+        if (seen[id]) continue;
+        seen[id] = 1;
+        newOnPage += 1;
+        if (isClosedThisMonth(row, range)) closed += 1;
+      }
+
+      pages += 1;
+      start += CLOSED_LEAD_PAGE;
+      if (rows.length < CLOSED_LEAD_PAGE) break;
+      if (newOnPage === 0) break;
+      if (totalHint > CLOSED_LEAD_PAGE && start >= totalHint) break;
+    }
+
+    return closed;
   }
 
   function isFollowupLead(row) {
@@ -486,7 +532,8 @@
           start: 0,
           draw: 1
         }).catch(function () { return { rows: [] }; }),
-        listHomeMissions().catch(function () { return { rows: [], total: 0 }; })
+        listHomeMissions().catch(function () { return { rows: [], total: 0 }; }),
+        countClosedLeadsThisMonth(monthRange).catch(function () { return 0; })
       ]);
 
       // Re-query after await — DC/React can replace nodes while requests are in flight
@@ -497,10 +544,7 @@
       var missionTotal = Number(results[1].count) || Number(results[3].total) || 0;
       var leadRows = results[2].rows || results[2].data || [];
       var followupCount = leadRows.filter(isFollowupLead).length;
-      // Customer.Count/List ignore status=10184 server-side — count on the folder-1 list.
-      var closedCount = leadRows.filter(function (row) {
-        return isClosedLeadThisMonth(row, monthRange);
-      }).length;
+      var closedCount = Number(results[4]) || 0;
 
       var rows = flattenMissionRows(results[3]);
       try { sessionStorage.removeItem('mb_missions_dirty'); } catch (e2) {}

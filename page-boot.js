@@ -387,7 +387,7 @@
       console.log('[SocketTest] Filter console by: SocketTest');
       console.log('[SocketTest] Expected flow: START → CONNECT → biz1:ready → EVENT/forceRelay/SDK relay → LiveReload RUN');
       console.log('[SocketTest] If you RECEIVE a message and see NO onAny lines, the SERVER is not pushing to this socket (client is fine).');
-      console.log('[SocketTest] Chat page also polls REST every 8s as fallback — look for "chat poll saw change".');
+      console.log('[SocketTest] Chat updates come from socket events only — no REST poll.');
     } catch (eHint) { /* ignore */ }
     try {
       var rt0 = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();

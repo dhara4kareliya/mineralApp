@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biz1 Showcase - New Task</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="assets/js/lang.js"></script>
+<script src="assets/js/support.js"></script>
+<script src="assets/js/config.js"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.bull36\.com.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+})();
+</script>
+<script src="assets/js/biz1-app.js?v=mission-list-1"></script>
+<script src="assets/js/page-boot.js?v=header-2"></script>
+<script src="assets/js/mission-create-live.js?v=priority-edit-8"></script>
+<script src="assets/js/components.js?v=sticky-hf-1"></script>
+<script>
+  (function() {
+    var theme = localStorage.getItem('biz1demo_theme') || localStorage.getItem('mineral_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="stylesheet" href="assets/css/style.css?v=kanban-card-1">
+<style>
+  .form-card {
+    background: var(--bg-panel);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-panel);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  }
+  .card-header-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-title);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .field-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-sub);
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="app-container">
+  <div class="mobile-frame">
+    <div class="screen-content">
+
+      <div id="app-header"></div>
+
+      <div class="dc-scroll page-body" id="mb-mission-form">
+        <div id="mb-mission-status" style="display:none;"></div>
+
+        <!-- Title & Navigation Row -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <a href="tasks.html" id="mb-mission-close" style="width:34px; height:34px; border-radius:50%; background:var(--bg-panel); border:1px solid var(--border-panel); color:var(--text-title); display:flex; align-items:center; justify-content:center; text-decoration:none; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+              <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+            </a>
+            <div style="font-size:20px; font-weight:800; color:var(--text-title);" data-i18n="add_task">משימה חדשה</div>
+          </div>
+          
+          <!-- Private Toggle Badge -->
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px; border:1px solid var(--border-panel); background:var(--bg-panel); font-size:12.5px; font-weight:700; color:var(--text-sub); cursor:pointer; user-select:none;">
+            <input id="mb-task-private" type="checkbox" style="accent-color:var(--color-primary); width:15px; height:15px;" />
+            <span>🔒 <span data-i18n="private">פרטי</span></span>
+          </label>
+        </div>
+
+        <!-- Linked Customer Box (Shown when customer_id query param exists) -->
+        <div id="mb-linked-customer" style="display:none; align-items:center; gap:11px; margin-bottom:14px; background:var(--bg-panel); padding:12px 14px; border-radius:14px; border:1px solid var(--border-panel);">
+          <span style="display:inline-flex; align-items:center; gap:4px; background:#e6f4ec; color:#2e8a63; font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; flex:none;">
+            <span style="width:6px; height:6px; border-radius:50%; background:#2e8a63;"></span><span data-i18n="linked">מקושר</span>
+          </span>
+          <div style="flex:1;">
+            <div id="mb-linked-name" style="font-size:15px; font-weight:800; color:var(--text-title);"></div>
+            <div id="mb-linked-meta" style="font-size:12px; color:var(--text-sub); margin-top:2px;"></div>
+          </div>
+          <div id="mb-linked-av" style="width:40px; height:40px; border-radius:50%; background:#eaf2fb; color:var(--color-primary); font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none;">?</div>
+        </div>
+
+        <!-- Card 1: Details -->
+        <div class="form-card">
+          <div class="card-header-title" data-i18n="details_section">פרטים</div>
+          
+          <div style="margin-bottom:14px;">
+            <label class="field-label">
+              <span data-i18n="mission_desc">תיאור המשימה</span> <span style="color:#c0392b;">*</span>
+            </label>
+            <input class="gv-in" id="mb-mission-title" placeholder="לדוגמה: לבדוק אם קיבל את ההצעה" data-i18n-placeholder="mission_desc_placeholder" style="width:100%; box-sizing:border-box;" type="text"/>
+          </div>
+
+          <div>
+            <label class="field-label" data-i18n="notes_optional">הערות (אופציונלי)</label>
+            <textarea class="gv-in" id="mb-mission-note" placeholder="הוסף הקשר..." data-i18n-placeholder="notes_placeholder" style="width:100%; box-sizing:border-box; resize:none; height:74px;"></textarea>
+          </div>
+        </div>
+
+        <!-- Card 3: Assignments -->
+        <div class="form-card">
+          <div class="card-header-title" data-i18n="association">שיוך ומשאבים</div>
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div>
+              <label class="field-label" data-i18n="customer_name">שם לקוח</label>
+              <select class="gv-in" id="mb-customer-name" style="width:100%; box-sizing:border-box;">
+                <option value="" data-i18n="choose_customer">בחר לקוח</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" data-i18n="assign_staff">איש צוות</label>
+              <select class="gv-in" id="mb-mission-assignee" style="width:100%; box-sizing:border-box;"></select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div>
+              <label class="field-label" data-i18n="project">פרויקט</label>
+              <select class="gv-in" id="mb-project-name" style="width:100%; box-sizing:border-box;">
+                <option value="">—</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label"><span data-i18n="color">צבע</span> <span style="color:#c0392b;">*</span></label>
+              <select class="gv-in" id="mb-choose-color" style="width:100%; box-sizing:border-box;">
+                <option value="#2563eb" data-i18n="color_medium">כחול · בינוני</option>
+                <option value="#ef4444" data-i18n="color_urgent">אדום · דחוף</option>
+                <option value="#22c55e" data-i18n="color_low">ירוק · נמוכה</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" data-i18n="step">שלב</label>
+              <select class="gv-in" id="mb-mission-step" style="width:100%; box-sizing:border-box;">
+                <option value="">—</option>
+                <option value="1" data-i18n="step_1">שלב 1</option>
+                <option value="2" data-i18n="step_2">שלב 2</option>
+                <option value="3" data-i18n="step_3">שלב 3</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Execution Date -->
+        <div class="form-card">
+          <div class="card-header-title">
+            <span><span data-i18n="execution_date">מועד ביצוע</span> <span style="color:#c0392b;">*</span></span>
+          </div>
+          
+          <div style="display:flex; gap:11px; margin-bottom:14px;">
+            <div style="flex:1;">
+              <label class="field-label" data-i18n="date_label">תאריך</label>
+              <input class="gv-in" id="mb-mission-date" style="text-align:center; box-sizing:border-box; width:100%;" type="date"/>
+            </div>
+            <div style="flex:1;">
+              <label class="field-label" data-i18n="time_label">שעה</label>
+              <input class="gv-in" id="mb-mission-time" style="text-align:center; box-sizing:border-box; width:100%;" type="time" value="14:00"/>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label" data-i18n="status_column">סטטוס / עמודה</label>
+            <select class="gv-in" id="mb-project-column" style="width:100%; box-sizing:border-box;">
+              <option value="" data-i18n="loading_columns">טוען עמודות...</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Card 5: Media & Recordings -->
+        <div class="form-card">
+          <div class="card-header-title" data-i18n="media_recordings">מדיה והקלטות</div>
+          <div style="display:grid; grid-template-columns:1fr; gap:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button id="mb-record-btn" type="button" class="control-btn" style="padding:8px 14px; border-radius:10px; border:1px solid var(--border-panel); background:var(--bg-form); font-size:12.5px; font-weight:700; color:var(--text-title); cursor:pointer; display:flex; align-items:center; gap:5px; flex:none;">
+                <span>►</span> <span data-i18n="record">הקלטה</span>
+              </button>
+              <input class="gv-in" id="mb-recording-link" placeholder="קישור להקלטה..." data-i18n-placeholder="recording_link_placeholder" style="flex:1; box-sizing:border-radius:10px;" type="text"/>
+            </div>
+
+            <div id="mb-image-dropzone" style="border:2px dashed var(--border-panel); border-radius:14px; padding:14px; background:var(--bg-form); text-align:center; transition:border-color .15s, background .15s;">
+              <label for="mb-file-input" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <span style="font-size:13px; font-weight:700; color:var(--text-title);">📷 <span data-i18n="select_drag_pictures">בחר או גרור תמונות</span></span>
+                <span style="font-size:11.5px; color:var(--text-sub);" data-i18n="click_choose_file">לחץ כאן לבחירת קובץ</span>
+              </label>
+              <input id="mb-file-input" type="file" accept="image/*" multiple style="display:none;" />
+              <div id="mb-image-preview" style="display:none; margin-top:12px; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6: Options -->
+        <div class="form-card">
+          <div class="card-header-title" data-i18n="advanced_options">אפשרויות מתקדמות</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+              <input id="mb-use-template" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+              <span data-i18n="use_as_template">השתמש כתבנית</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+              <input id="mb-email-me" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+              <span data-i18n="email_me_employee">שלח לי / לעובד במייל</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+              <input id="mb-whatsapp-reminder" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+              <span data-i18n="whatsapp_reminder">תזכורת וואטסאפ</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-title); cursor:pointer;">
+              <input id="mb-notify-client" type="checkbox" style="accent-color:var(--color-primary); width:16px; height:16px;" />
+              <span data-i18n="notify_client">הודע ללקוח</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Save CTA Button -->
+        <div style="margin-top:20px; margin-bottom:10px;">
+          <button id="mb-create-mission" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:15px; border:none; border-radius:14px; background:var(--color-primary); color:#fff; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 6px 16px rgba(29,96,162,.28);" type="button">
+            <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="18"><path d="M20 6 9 17l-5-5"></path></svg>
+            <span data-i18n="create_task">צור משימה</span>
+          </button>
+        </div>
+
+      </div>
+
+      <div id="app-footer"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

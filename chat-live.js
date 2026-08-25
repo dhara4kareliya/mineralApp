@@ -2039,15 +2039,65 @@
     await loadThread(elId, p);
   }
 
-  function softReloadThread() {
-    if (!document.getElementById('mb-live-chat')) return;
-    if (!shouldReloadThread()) return;
-    if (_chatBootAt && (Date.now() - _chatBootAt) < 4000) return;
-    clearTimeout(window.__mbChatRtTimer);
-    window.__mbChatRtTimer = setTimeout(function () {
-      if (!shouldReloadThread()) return;
-      loadThread('mb-live-chat', params(), { silent: true });
-    }, 400);
+  function pickSocketMessageRow(detail) {
+    var ev = (detail && (detail.event || detail)) || {};
+    var payload = ev.payload || ev.data || ev.record || ev.message || ev;
+    if (typeof payload === 'string') {
+      try { payload = JSON.parse(payload); } catch (e0) { payload = { message: payload }; }
+    }
+    if (!payload || typeof payload !== 'object') return null;
+    if (payload.message && typeof payload.message === 'object') {
+      payload = Object.assign({}, payload, payload.message);
+    }
+    var text = String(payload.message || payload.msg || payload.body || payload.text || payload.note || '').trim();
+    var file = payload.file_url || payload.media_url || payload.file || payload.href || '';
+    if (!text && !file) return null;
+    var mid = payload.messenger_meta_id;
+    if (mid && typeof mid === 'object') mid = mid.$oid || mid.id || '';
+    return {
+      message: text || String(file),
+      user_name: payload.user_name || payload.email || payload.from_name || payload.sender_name || '',
+      time: payload.time || payload.created || payload.date || payload.created_at || payload.create_date || '',
+      direction: payload.direction,
+      type: payload.type || '',
+      user_id: payload.user_id,
+      messenger_meta_id: mid,
+      customer_id: payload.customer_id || payload.cust_id || payload.contactus_id || payload.client_id,
+      raw: payload
+    };
+  }
+
+  function socketEventMatchesThread(row, p) {
+    p = p || currentParams || params() || {};
+    if (!row) return false;
+    var cid = String(p.customer_id || p.cust_id || '');
+    var mid = String(p.messenger_meta_id || '');
+    var rcid = String(row.customer_id || '');
+    var rmid = String(row.messenger_meta_id || '');
+    if (mid && rmid && mid === rmid) return true;
+    if (cid && rcid && cid === rcid) return true;
+    if (!rcid && !rmid) return true;
+    return false;
+  }
+
+  function applySocketChatEvent(detail) {
+    var key = String((detail && detail.key) || '').toLowerCase();
+    if (/socket\.nudge/i.test(key)) return false;
+    if (!document.getElementById('mb-live-chat')) return false;
+    var row = pickSocketMessageRow(detail);
+    if (!row) return false;
+    var p = currentParams || params();
+    if (!socketEventMatchesThread(row, p)) return false;
+    var pending = (currentMessages || []).filter(function (r) { return r && r._pending; });
+    var existing = (currentMessages || []).filter(function (r) { return !(r && r._pending); });
+    var keyMsg = messageDedupeKey(row);
+    for (var i = 0; i < existing.length; i++) {
+      if (messageDedupeKey(existing[i]) === keyMsg) return true;
+    }
+    existing.push(row);
+    currentMessages = mergeServerAndLocalMessages(existing, pending);
+    renderMessages('mb-live-chat', currentMessages, p);
+    return true;
   }
 
   window.addEventListener('mineralbar:ready', function () {
@@ -2085,52 +2135,23 @@
       var key = String((detail && detail.key) || '').toLowerCase();
       if (!key || /socket\.nudge/i.test(key)) return;
       if (!/message|chat|whatsapp|inbox/i.test(key)) return;
-      softReloadThread();
+      applySocketChatEvent(detail);
     }, {
       keys: /message|chat|whatsapp|inbox/i,
       mount: '#mb-live-chat',
-      delay: 300,
+      delay: 200,
       retries: false
     });
   } else {
-    window.addEventListener('mineralbar:messages', softReloadThread);
+    window.addEventListener('mineralbar:messages', function (ev) {
+      applySocketChatEvent((ev && ev.detail) || {});
+    });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(function (detail) {
         var key = String((detail && detail.key) || '').toLowerCase();
         if (!key || /socket\.nudge/i.test(key)) return;
-        softReloadThread();
-      }, { keys: /message|chat|whatsapp|inbox/i, delay: 400 });
+        applySocketChatEvent(detail);
+      }, { keys: /message|chat|whatsapp|inbox/i, delay: 200 });
     }
   }
-
-  // Safety net: inbound WhatsApp/chat often never hits this socket (server fan-out).
-  // Quiet poll keeps the open thread fresh while we wait for real events.
-  (function startChatThreadPoll() {
-    if (window.__mbChatPollStarted) return;
-    window.__mbChatPollStarted = true;
-    var lastCount = -1;
-    setInterval(function () {
-      try {
-        if (!document.getElementById('mb-live-chat')) return;
-        if (document.visibilityState && document.visibilityState !== 'visible') return;
-        if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-        if (!shouldReloadThread()) return;
-        if (_threadInFlight) return;
-        var rt = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
-        console.log('[SocketTest] chat poll tick', {
-          socketStatus: rt && rt.status,
-          connected: !!(rt && rt.socket && rt.socket.connected),
-          msgs: currentMessages && currentMessages.length
-        });
-        loadThread('mb-live-chat', params(), { silent: true }).then(function () {
-          var n = (currentMessages && currentMessages.length) || 0;
-          if (lastCount >= 0 && n !== lastCount) {
-            console.log('[SocketTest] chat poll saw change', { from: lastCount, to: n, note: 'REST saw new msgs — socket did not push' });
-          }
-          lastCount = n;
-        }).catch(function () { /* ignore */ });
-      } catch (ePoll) { /* ignore */ }
-    }, 8000);
-  })();
-
 })();
