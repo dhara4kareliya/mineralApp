@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="refresh" content="0; url=login.html" />
+  <script>
+    (function () {
+      var token = localStorage.getItem('biz1_sdk_bearer_token');
+      location.replace(token ? 'app.html' : 'login.html');
+    })();
+  </script>
+  <title>Files Data</title>
+</head>
+<body>Redirecting…</body>
+</html>

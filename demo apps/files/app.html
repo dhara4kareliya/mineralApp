@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Files Data — Document Repository</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="app-page" data-i18n-title="appTitle">
+  <div class="boot-loader" aria-hidden="true"><div class="spinner"></div></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="auth-mark auth-mark--sm" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+          </svg>
+        </div>
+        <div>
+          <strong data-i18n="brandTitle">Files Data</strong>
+          <span class="muted" data-i18n="brandSubtitle">Document repository</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label" data-i18n="folders">Folders</div>
+        <nav class="folder-list" id="folderList" data-i18n-aria="fileFoldersAria" aria-label="File folders"></nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="socket-pill" id="socketStatus" data-i18n-title="realtimeStatus" title="Realtime status">
+          <span class="socket-dot" aria-hidden="true"></span>
+          <span class="socket-label">Connecting…</span>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div>
+            <h1 id="folderTitle">Files</h1>
+            <p class="topbar-sub"><span id="fileCount">0 files</span><span id="livePulse" class="live-pulse" aria-hidden="true"></span></p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <label class="lang-select-wrap">
+            <span class="sr-only" data-i18n="language">Language</span>
+            <select class="lang-select" data-lang-select aria-label="Language">
+              <option value="en">English</option>
+              <option value="he">עברית</option>
+            </select>
+          </label>
+          <button type="button" class="icon-btn" data-theme-toggle data-i18n-aria="toggleTheme" aria-label="Toggle theme">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="refreshBtn" data-i18n-aria="refresh" aria-label="Refresh">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+          <div class="user-chip">
+            <span id="userName">Account</span>
+            <button type="button" class="ghost-btn" id="logoutBtn" data-i18n="logout">Log out</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="toolbar card">
+        <div class="toolbar-row">
+          <div class="toolbar-search">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="searchInput" type="text" data-i18n-placeholder="searchPlaceholder" placeholder="Search documents across folders…" autocomplete="off" spellcheck="false" />
+          </div>
+          <button type="button" class="btn btn--primary" id="uploadBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <span data-i18n="quickAdd">Quick add</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="content">
+        <div id="loadingState" class="loading-state hidden">
+          <div class="spinner"></div>
+          <p data-i18n="loadingFiles">Loading files…</p>
+        </div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-icon" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+            </svg>
+          </div>
+          <h2 data-i18n="noFilesTitle">No files here yet</h2>
+          <p data-i18n="noFilesDesc">Search documents or upload to the selected folder.</p>
+        </div>
+
+        <div id="fileGrid" class="file-grid" aria-live="polite"></div>
+
+        <div class="load-more-wrap">
+          <button type="button" class="btn btn--ghost hidden" id="loadMoreBtn" data-i18n="loadMore">Load more</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Preview modal -->
+  <div id="previewModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="modal-card modal-card--wide">
+      <header class="modal-header">
+        <div>
+          <h2 id="previewTitle" data-i18n="preview">Preview</h2>
+          <p id="previewMeta" class="muted"></p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn--ghost" id="previewDownload" data-i18n="download">Download</button>
+          <button type="button" class="icon-btn" id="previewClose" data-i18n-aria="close" aria-label="Close">×</button>
+        </div>
+      </header>
+      <div class="preview-body">
+        <img id="previewImage" class="preview-image hidden" data-i18n-aria="preview" alt="Preview" />
+        <iframe id="previewFrame" class="preview-frame hidden" data-i18n-title="filePreview" title="File preview"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add file modal (Files.Upload) -->
+  <div id="uploadModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
+    <div class="modal-card modal-card--upload">
+      <header class="modal-header">
+        <div>
+          <h2 id="uploadTitle" data-i18n="addFile">Add file</h2>
+          <p class="muted" data-i18n="uploadDesc">Upload a document and attach it to a client.</p>
+        </div>
+        <button type="button" class="icon-btn" id="uploadClose" data-i18n-aria="close" aria-label="Close">×</button>
+      </header>
+
+      <form id="uploadForm" class="modal-form" novalidate>
+        <div id="uploadError" class="alert alert--error hidden" role="alert"></div>
+
+        <label class="field">
+          <span><span data-i18n="client">Client</span> <em class="req">*</em></span>
+          <div class="client-picker client-picker--modal" id="uploadClientPicker">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input id="uploadCustomerSearch" type="text" data-i18n-placeholder="searchClientPlaceholder" placeholder="Search client by name…" autocomplete="off" spellcheck="false" />
+            <div id="uploadCustomerResults" class="dropdown hidden" role="listbox"></div>
+          </div>
+          <div id="uploadSelectedCustomer" class="chip chip--client hidden">
+            <span class="chip-prefix" data-i18n="client">Client</span>
+            <span class="chip-label">Client</span>
+            <button type="button" class="chip-clear" id="uploadClearCustomer" data-i18n-aria="clearClient" aria-label="Clear client">×</button>
+          </div>
+        </label>
+
+        <label class="field">
+          <span data-i18n="folder">Folder</span>
+          <select id="uploadFolder"></select>
+        </label>
+
+        <label class="field">
+          <span data-i18n="displayName">Display name</span>
+          <input id="uploadFileName" type="text" data-i18n-placeholder="displayNamePlaceholder" placeholder="Signed contract (optional)" maxlength="180" />
+        </label>
+
+        <div class="field">
+          <span><span data-i18n="file">File</span> <em class="req">*</em></span>
+          <div class="file-drop" id="uploadDropzone">
+            <input id="fileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.csv,.txt,.mp3,.mp4,.mov,.wav" required />
+            <div class="file-drop-content" id="uploadDropContent">
+              <div class="file-drop-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <strong id="uploadFileLabel">Drop a file here or click to browse</strong>
+              <p class="muted" data-i18n="fileTypesHint">PDF, images, Office docs, audio/video</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-form-actions">
+          <button type="button" class="btn btn--ghost" id="uploadCancel" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="uploadSubmit">
+            <span class="btn-label" data-i18n="uploadFile">Upload file</span>
+            <span class="spinner spinner--btn" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/realtime.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
