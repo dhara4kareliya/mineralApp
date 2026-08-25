@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/app.css?v=20260825-projects-v7">
+<link rel="stylesheet" href="./assets/css/app.css?v=20260825-projects-v11">
 <script src="./assets/config.js?v=20260825-projects-v3"></script>
 <script>
 (function () {
@@ -25,7 +25,7 @@
   }
 })();
 </script>
-<script src="./assets/js/app.js?v=20260825-projects-v8"></script>
+<script src="./assets/js/app.js?v=20260825-projects-v14"></script>
 </head>
 <body>
 <div id="appRoot" dir="ltr" class="page-wrap">
@@ -130,6 +130,10 @@
           </div>
         </div>
         <div class="lang-bar-right">
+          <div data-live-chip class="live-chip live-off" title="Live updates">
+            <span class="dot"></span>
+            <span data-live-label data-i18n="live_socket_off">Offline</span>
+          </div>
           <button type="button" class="btn-profile" data-profile-open data-i18n-title="profile" title="Profile" aria-label="Profile">
             <span class="btn-profile-avatar" data-profile-initials>?</span>
           </button>
@@ -184,9 +188,6 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
               <input id="projectSearch" class="ds-input search-input" type="search" data-i18n-placeholder="search_projects" placeholder="Search projects or clients">
             </div>
-            <select id="statusFilter" class="ds-input filter-select" aria-label="Status">
-              <option value="" data-i18n="filter_all">All</option>
-            </select>
             <select id="teamFilter" class="ds-input filter-select" aria-label="Team">
               <option value="" data-i18n="filter_team_all">All team</option>
             </select>
@@ -247,6 +248,10 @@
           </button>
         </div>
         <div class="lang-bar-right">
+          <div data-live-chip class="live-chip live-off" title="Live updates">
+            <span class="dot"></span>
+            <span data-live-label data-i18n="live_socket_off">Offline</span>
+          </div>
           <button type="button" class="btn-profile" data-profile-open data-i18n-title="profile" title="Profile" aria-label="Profile">
             <span class="btn-profile-avatar" data-profile-initials>?</span>
           </button>

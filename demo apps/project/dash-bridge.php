@@ -368,7 +368,7 @@ try {
 
     if ($action === 'logout') {
         $_SESSION['dash_ok'] = false;
-        unset($_SESSION['dash_domain']);
+        unset($_SESSION['dash_domain'], $_SESSION['dash_user']);
         $jar = cookie_jar();
         if (is_file($jar)) {
             @unlink($jar);
@@ -378,12 +378,18 @@ try {
 
     if ($action === 'login') {
         $domain = assert_bull36_domain($domain !== '' ? $domain : (string) ($in['domain'] ?? ''));
-        $_SESSION['dash_domain'] = $domain;
         $email = trim((string) ($in['email'] ?? $in['username'] ?? ''));
         $password = (string) ($in['password'] ?? '');
         if ($email === '' || $password === '') {
             json_out(['ok' => false, 'message' => 'Email and password are required'], 400);
         }
+        $jar = cookie_jar();
+        if (is_file($jar)) {
+            @unlink($jar);
+        }
+        $_SESSION['dash_ok'] = false;
+        $_SESSION['dash_domain'] = $domain;
+        $_SESSION['dash_user'] = $email;
         $res = curl_dash($domain . '/dashboard/login/check_login', [
             'email' => $email,
             'password' => $password,
@@ -416,7 +422,7 @@ try {
                 $fields['search'] = $search;
             }
             if ($team !== '') {
-                $fields['search_team_member'] = $team;
+                $fields['search_team_member'] = [$team];
             }
             $res = curl_dash($domain . '/dashboard/project/load_project_html_new', $fields);
             if ($res['status'] === 302) {
@@ -452,10 +458,22 @@ try {
             'project_name' => (string) ($in['project_name'] ?? $in['name'] ?? ''),
             'project_id' => (string) ($in['project_id'] ?? $in['id'] ?? '0'),
             'client_id' => (string) ($in['client_id'] ?? $in['customer_id'] ?? '0'),
+            'client_name' => (string) ($in['client_name'] ?? ''),
             'credentials' => (string) ($in['credentials'] ?? ''),
             'note' => (string) ($in['note'] ?? ''),
-            'tags' => is_array($in['tags'] ?? null) ? implode(',', $in['tags']) : (string) ($in['tags'] ?? ''),
         ];
+        foreach (['private_project', 'show_hide_tag', 'allow_add_mission', 'done', 'use_as_template'] as $flag) {
+            $v = $in[$flag] ?? null;
+            if ($v === true || $v === 1 || $v === '1' || $v === 'on' || $v === 'true') {
+                $fields[$flag] = '1';
+            }
+        }
+        $tags = $in['tags'] ?? '';
+        if (is_array($tags)) {
+            $fields['tags'] = implode(',', array_map('strval', $tags));
+        } else {
+            $fields['tags'] = (string) $tags;
+        }
         if ($fields['project_name'] === '') {
             json_out(['ok' => false, 'message' => 'Project name is required'], 400);
         }
@@ -465,6 +483,13 @@ try {
         }
         if (is_array($members)) {
             $fields['organizations_user'] = array_values(array_map('strval', $members));
+        }
+        $defaults = $in['default_user'] ?? [];
+        if (is_string($defaults)) {
+            $defaults = array_filter(array_map('trim', explode(',', $defaults)));
+        }
+        if (is_array($defaults) && $defaults) {
+            $fields['default_user'] = array_values(array_map('strval', $defaults));
         }
         $res = curl_dash($domain . '/dashboard/project/save_project', $fields);
         $json = decode_json($res['text']);

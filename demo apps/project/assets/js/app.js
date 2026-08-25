@@ -162,6 +162,113 @@
   return { Biz1Client: Biz1Client, Biz1ApiError: Biz1ApiError, createClient: function (o) { return new Biz1Client(o); } };
 });
 
+/* ===== Socket.IO realtime client (same /realtime/socket.io as ticket demo) ===== */
+(function (global) {
+  'use strict';
+  var DEFAULT_SOCKET_PATH = '/realtime/socket.io';
+  var LAST_EVENT_ID_KEY = 'biz1_realtime_last_event_id';
+  var DEVICE_ID_KEY = 'biz1_realtime_device_id';
+
+  function Biz1RealtimeClient(client, options) {
+    options = options || {};
+    this.client = client;
+    this.path = options.path || DEFAULT_SOCKET_PATH;
+    this.platform = options.platform || 'web';
+    this.io = options.io || null;
+    this.socket = null;
+    this.handlers = {};
+    this.storage = client.storage || (typeof localStorage !== 'undefined' ? localStorage : { getItem: function () { return ''; }, setItem: function () {}, removeItem: function () {} });
+  }
+
+  Biz1RealtimeClient.prototype.deviceId = function () {
+    var existing = this.storage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    var id = this.platform + '-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    this.storage.setItem(DEVICE_ID_KEY, id);
+    return id;
+  };
+  Biz1RealtimeClient.prototype.lastEventId = function () {
+    return Number(this.storage.getItem(LAST_EVENT_ID_KEY) || 0);
+  };
+  Biz1RealtimeClient.prototype.setLastEventId = function (eventId) {
+    if (eventId == null || eventId === '') return false;
+    var next = Number(eventId);
+    var prev = this.lastEventId();
+    if (!isFinite(next)) {
+      var prevRaw = String(this.storage.getItem(LAST_EVENT_ID_KEY) || '');
+      if (String(eventId) === prevRaw) return false;
+      this.storage.setItem(LAST_EVENT_ID_KEY, String(eventId));
+      return true;
+    }
+    if (next <= prev) return false;
+    this.storage.setItem(LAST_EVENT_ID_KEY, String(next));
+    return true;
+  };
+  Biz1RealtimeClient.prototype.resolveIo = function () {
+    if (this.io) return this.io;
+    if (typeof globalThis !== 'undefined' && globalThis.io) return globalThis.io;
+    throw new Error('Socket.IO client is required. Load socket.io-client first.');
+  };
+  Biz1RealtimeClient.prototype.connect = function (options) {
+    options = options || {};
+    var token = options.token || this.client.getToken();
+    if (!token) throw new Error('Realtime connect requires a bearer token. Login first.');
+    if (this.socket) this.socket.disconnect();
+    var io = this.resolveIo();
+    var self = this;
+    this.socket = io(this.client.domain, {
+      transports: ['websocket', 'polling'],
+      path: options.path || this.path,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 30000,
+      auth: {
+        bearer: token,
+        deviceId: options.deviceId || this.deviceId(),
+        platform: options.platform || this.platform,
+        fcmToken: options.fcmToken || '',
+        lastEventId: this.lastEventId()
+      }
+    });
+    this.socket.on('biz1:event', function (event) {
+      if (!self.setLastEventId(event && event.id)) return;
+      self.emitLocal(event && event.key, event);
+      self.emitLocal('*', event);
+      self.socket.emit('realtime:ack', { eventId: event.id });
+    });
+    this.socket.on('biz1:ready', function (payload) { self.emitLocal('biz1:ready', payload); });
+    this.socket.on('rooms:refresh', function (event) { self.emitLocal('rooms:refresh', event); });
+    return this.socket;
+  };
+  Biz1RealtimeClient.prototype.on = function (eventKey, handler) {
+    if (!this.handlers[eventKey]) this.handlers[eventKey] = [];
+    this.handlers[eventKey].push(handler);
+    var self = this;
+    return function off() {
+      self.handlers[eventKey] = (self.handlers[eventKey] || []).filter(function (fn) { return fn !== handler; });
+    };
+  };
+  Biz1RealtimeClient.prototype.emitLocal = function (eventKey, payload) {
+    (this.handlers[eventKey] || []).slice().forEach(function (handler) { handler(payload); });
+  };
+  Biz1RealtimeClient.prototype.disconnect = function () {
+    if (this.socket) this.socket.disconnect();
+    this.socket = null;
+  };
+
+  function attachRealtime(client, options) {
+    if (!client) return null;
+    if (client.realtime && typeof client.realtime.connect === 'function') return client.realtime;
+    var Ctor = (global.Biz1SDK && global.Biz1SDK.Biz1RealtimeClient) || Biz1RealtimeClient;
+    client.realtime = new Ctor(client, options || {});
+    return client.realtime;
+  }
+
+  global.Biz1SDK = global.Biz1SDK || {};
+  if (!global.Biz1SDK.Biz1RealtimeClient) global.Biz1SDK.Biz1RealtimeClient = Biz1RealtimeClient;
+  global.Biz1SDK.attachRealtime = attachRealtime;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ===== Auth / session ===== */
 (function (global) {
   'use strict';
@@ -201,6 +308,9 @@
     if (!global.__biz1ProjClient) {
       global.__biz1ProjClient = new global.Biz1SDK.Biz1Client({ domain: DOMAIN, storage: global.localStorage });
       installAuthInterceptor(global.__biz1ProjClient);
+    }
+    if (global.Biz1SDK && typeof global.Biz1SDK.attachRealtime === 'function') {
+      global.Biz1SDK.attachRealtime(global.__biz1ProjClient);
     }
     return global.__biz1ProjClient;
   }
@@ -333,12 +443,13 @@
       }
     } catch (e) { /* ignore */ }
   }
-  function clearSession(options) {
+  async function clearSession(options) {
     options = options || {};
     try {
       global.localStorage.removeItem(USER_KEY);
       global.localStorage.removeItem(ROLE_KEY);
       global.localStorage.removeItem(EXPIRES_KEY);
+      global.localStorage.removeItem('biz1_realtime_last_event_id');
       if (!options.keepRemember) {
         global.localStorage.removeItem(CRED_KEY);
         global.localStorage.removeItem(REMEMBER_KEY);
@@ -347,9 +458,13 @@
       if (global.sessionStorage) global.sessionStorage.removeItem(SESSION_PASS_KEY);
       global.localStorage.removeItem(DASH_HOST_KEY);
     } catch (e) { /* ignore */ }
+    try { disconnectRealtime(); } catch (rtErr) { /* ignore */ }
     try { getClient().logout(); } catch (e2) { /* ignore */ }
     try {
-      fetch('dash-bridge.php', {
+      dispatchAppEvent('mineralbar:session-cleared', {});
+    } catch (e4) { /* ignore */ }
+    try {
+      await fetch('dash-bridge.php', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
@@ -467,6 +582,7 @@
     if (rememberFlag == null) rememberFlag = global.localStorage.getItem(REMEMBER_KEY) === '1';
     saveCredentials(opts && opts.username, opts && opts.password, !!rememberFlag);
     try { await ensureDashboardSession({ force: true }); } catch (dashErr) { /* list will surface this */ }
+    connectRealtime().catch(function () { /* socket is optional; poll still updates */ });
     return {
       ok: true, otpRequired: false, role: role,
       user: (userBasic.data && userBasic.data.user) || userBasic.user || userBasic,
@@ -568,6 +684,176 @@
     }, { skipAuthRefresh: true });
   }
 
+  var realtimeState = {
+    status: 'off',
+    ready: null,
+    error: null,
+    socket: null,
+    registered: []
+  };
+  var realtimeHandlersWired = false;
+  var realtimeConnectPromise = null;
+
+  function dispatchAppEvent(name, detail) {
+    try {
+      if (typeof global.dispatchEvent === 'function' && typeof global.CustomEvent === 'function') {
+        global.dispatchEvent(new global.CustomEvent(name, { detail: detail || {} }));
+      }
+    } catch (e) { /* ignore */ }
+  }
+  function setRealtimeStatus(status, error) {
+    realtimeState.status = status;
+    if (error != null) realtimeState.error = error;
+    dispatchAppEvent('mineralbar:socket-status', {
+      status: realtimeState.status,
+      error: realtimeState.error,
+      registered: realtimeState.registered.slice(),
+      ready: realtimeState.ready
+    });
+  }
+  function loadScriptOnce(src) {
+    return new Promise(function (resolve, reject) {
+      if (typeof document === 'undefined') {
+        reject(new Error('document required to load ' + src));
+        return;
+      }
+      var existing = document.querySelector('script[data-mb-src="' + src + '"], script[src="' + src + '"]');
+      if (existing) {
+        if (global.io) { resolve(); return; }
+        existing.addEventListener('load', function () { resolve(); });
+        existing.addEventListener('error', function () { reject(new Error('Failed to load ' + src)); });
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.setAttribute('data-mb-src', src);
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error('Failed to load ' + src)); };
+      (document.head || document.documentElement).appendChild(s);
+    });
+  }
+  async function ensureSocketIo() {
+    if (global.io) return global.io;
+    setRealtimeStatus('loading_io');
+    await loadScriptOnce(DOMAIN + '/realtime/socket.io/socket.io.js');
+    if (!global.io) throw new Error('socket.io.js loaded but window.io missing');
+    return global.io;
+  }
+  function classifyRealtimeEvent(event) {
+    var key = String((event && event.key) || '');
+    if (/project|kanban|board/i.test(key)) return 'projects';
+    if (/mission|task/i.test(key)) return 'missions';
+    return 'other';
+  }
+  function wireRealtimeHandlers(client) {
+    if (realtimeHandlersWired || !client || !client.realtime || typeof client.realtime.on !== 'function') return;
+    realtimeHandlersWired = true;
+    client.realtime.on('biz1:ready', function (payload) {
+      realtimeState.ready = payload || null;
+      realtimeState.registered = (payload && Array.isArray(payload.events)) ? payload.events.slice() : [];
+      realtimeState.error = null;
+      setRealtimeStatus('ready');
+      dispatchAppEvent('mineralbar:socket', {
+        type: 'ready',
+        payload: payload,
+        registered: realtimeState.registered
+      });
+    });
+    client.realtime.on('*', function (event) {
+      var group = classifyRealtimeEvent(event);
+      var detail = { group: group, key: event && event.key, event: event };
+      dispatchAppEvent('mineralbar:realtime', detail);
+      if (group === 'projects') dispatchAppEvent('mineralbar:projects', detail);
+      if (group === 'missions') dispatchAppEvent('mineralbar:missions', detail);
+    });
+  }
+  async function connectRealtime(options) {
+    options = options || {};
+    var client = getClient();
+    if (!client.getToken()) throw new Error('Realtime connect requires login');
+    if (realtimeState.socket && realtimeState.socket.connected && realtimeState.status === 'ready') {
+      return { socket: realtimeState.socket, ready: realtimeState.ready };
+    }
+    if (realtimeConnectPromise) return realtimeConnectPromise;
+    realtimeConnectPromise = (async function () {
+      await ensureSocketIo();
+      if (global.Biz1SDK && typeof global.Biz1SDK.attachRealtime === 'function') {
+        global.Biz1SDK.attachRealtime(client);
+      }
+      wireRealtimeHandlers(client);
+      setRealtimeStatus('connecting');
+      var socket = client.realtime.connect({
+        platform: options.platform || 'web',
+        path: options.path || '/realtime/socket.io',
+        deviceId: options.deviceId,
+        fcmToken: options.fcmToken || '',
+        token: options.token
+      });
+      realtimeState.socket = socket;
+      socket.on('connect', function () {
+        if (realtimeState.status !== 'ready') setRealtimeStatus('connecting');
+        dispatchAppEvent('mineralbar:socket', { type: 'connect', id: socket.id });
+      });
+      socket.on('connect_error', function (err) {
+        var msg = (err && err.message) || String(err);
+        setRealtimeStatus('error', msg);
+        dispatchAppEvent('mineralbar:socket', { type: 'error', error: msg });
+      });
+      socket.on('disconnect', function (reason) {
+        if (realtimeState.status !== 'error') setRealtimeStatus('offline');
+        dispatchAppEvent('mineralbar:socket', { type: 'disconnect', reason: reason });
+      });
+      return new Promise(function (resolve, reject) {
+        var done = false;
+        var t = setTimeout(function () {
+          if (done) return;
+          done = true;
+          resolve({ socket: socket, ready: realtimeState.ready, timeout: true });
+        }, options.timeoutMs || 12000);
+        var off = client.realtime.on('biz1:ready', function (payload) {
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          try { off(); } catch (e) { /* ignore */ }
+          resolve({ socket: socket, ready: payload });
+        });
+        socket.on('connect_error', function (err) {
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          reject(err);
+        });
+      });
+    })();
+    try { return await realtimeConnectPromise; }
+    catch (err) {
+      setRealtimeStatus('error', (err && err.message) || String(err));
+      throw err;
+    } finally {
+      realtimeConnectPromise = null;
+    }
+  }
+  function disconnectRealtime() {
+    try {
+      var client = getClient();
+      if (client && client.realtime) client.realtime.disconnect();
+    } catch (e) { /* ignore */ }
+    realtimeState.socket = null;
+    realtimeState.ready = null;
+    realtimeState.registered = [];
+    setRealtimeStatus('off');
+  }
+  function getRealtimeState() {
+    return {
+      status: realtimeState.status,
+      error: realtimeState.error,
+      registered: realtimeState.registered.slice(),
+      ready: realtimeState.ready,
+      connected: !!(realtimeState.socket && realtimeState.socket.connected)
+    };
+  }
+
   global.MineralBarApp = {
     DOMAIN: DOMAIN,
     getDomain: function () { return DOMAIN; },
@@ -590,7 +876,10 @@
     isAuthenticated: isAuthenticated,
     dashHost: dashHost,
     dashCall: dashCall,
-    ensureDashboardSession: ensureDashboardSession
+    ensureDashboardSession: ensureDashboardSession,
+    connectRealtime: connectRealtime,
+    disconnectRealtime: disconnectRealtime,
+    getRealtimeState: getRealtimeState
   };
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -687,12 +976,31 @@
       cancel: 'Cancel',
       save: 'Save',
       create: 'Create',
+      submit: 'Submit',
+      reset: 'Reset',
       add: 'Add',
       delete: 'Delete',
       edit: 'Edit',
       close: 'Close',
-      project_name: 'Project name',
+      project_name: 'Name',
+      project_name_ph: 'Enter Project Name',
       client: 'Client',
+      client_ph: 'Assign Client',
+      member: 'Member',
+      member_ph: 'Select Team Member',
+      credentials: 'Credentials',
+      credentials_ph: 'Enter Credentials',
+      default_user: 'Default user',
+      default_user_ph: 'Default user',
+      note: 'Note',
+      note_ph: 'Enter Note',
+      private_project: 'Private project',
+      show_hide_tag: 'Show/Hide tag',
+      tags: 'Tags',
+      tag_new: 'NEW',
+      allow_add_missions: 'Allow add missions',
+      project_done: 'Project Done',
+      use_as_template: 'use as template',
       start_date: 'Start date',
       status: 'Status',
       no_client: 'No client',
@@ -700,7 +1008,7 @@
       confirm_delete: 'Delete this project?',
       confirm_delete_many: 'Delete selected projects?',
       confirm_delete_column: 'Delete this column?',
-      create_title: 'New project',
+      create_title: 'Add Project',
       assign_title: 'Team allocation',
       columns_title: 'Board columns',
       column_en: 'English label',
@@ -727,6 +1035,8 @@
       board_col_send_pictures: 'Send pictures',
       board_col_send_offer: 'To send a quote / offer',
       board_col_follow_up: 'Follow-up call',
+      live_socket_on: 'Live',
+      live_socket_off: 'Offline',
       page_board_title: 'Project board',
       toast_saved: 'Saved',
       toast_assigned: 'Team updated',
@@ -813,12 +1123,31 @@
       cancel: 'ביטול',
       save: 'שמירה',
       create: 'יצירה',
+      submit: 'שלח',
+      reset: 'נקה',
       add: 'הוספה',
       delete: 'מחיקה',
       edit: 'עריכה',
       close: 'סגור',
-      project_name: 'שם פרויקט',
+      project_name: 'שם',
+      project_name_ph: 'הזן את שם הפרויקט',
       client: 'לקוח',
+      client_ph: 'הקצה לקוח',
+      member: 'חבר',
+      member_ph: 'בחר חבר צוות',
+      credentials: 'תעודות',
+      credentials_ph: 'הזן אישורים',
+      default_user: 'חבר צוות ברירת מחדל',
+      default_user_ph: 'חבר צוות ברירת מחדל',
+      note: 'הערה',
+      note_ph: 'הוסף הערה',
+      private_project: 'פרויקט פרטי',
+      show_hide_tag: 'הצג/הסתר תג',
+      tags: 'תגיות',
+      tag_new: 'חדש',
+      allow_add_missions: 'הרשאה להוספת משימות',
+      project_done: 'הפרויקט בוצע',
+      use_as_template: 'השתמש בתבנית',
       start_date: 'תאריך התחלה',
       status: 'סטטוס',
       no_client: 'אין לקוח',
@@ -826,7 +1155,7 @@
       confirm_delete: 'למחוק את הפרויקט?',
       confirm_delete_many: 'למחוק את הפרויקטים שנבחרו?',
       confirm_delete_column: 'למחוק את העמודה?',
-      create_title: 'פרויקט חדש',
+      create_title: 'הוסף פרויקט',
       assign_title: 'הקצאת צוות',
       columns_title: 'עמודות לוח',
       column_en: 'תווית אנגלית',
@@ -853,6 +1182,8 @@
       board_col_send_pictures: 'לשלוח תמונות',
       board_col_send_offer: 'לשלוח הצעה',
       board_col_follow_up: 'שיחת פולואפ',
+      live_socket_on: 'שידור חי',
+      live_socket_off: 'מנותק',
       page_board_title: 'לוח פרויקט',
       toast_saved: 'נשמר',
       toast_assigned: 'הצוות עודכן',
@@ -948,23 +1279,84 @@
 
   var PAGE_SIZE = 25;
   var AVATAR_COLORS = ['#1d60a2', '#2e8a63', '#bd8324', '#7b5ea7', '#c0392b', '#2a9d8f', '#e76f51', '#457b9d'];
-  var state = {
-    rows: [],
-    total: 0,
-    start: 0,
-    search: '',
-    status: '',
-    teamMemberId: '',
-    selected: {},
-    columns: [],
-    customers: [],
-    team: [],
-    loading: false,
-    assignments: {},
-    board: null,
-    boardSearch: '',
-    chartPage: 0
-  };
+  function blankState() {
+    return {
+      rows: [],
+      allRows: [],
+      projectTags: [],
+      total: 0,
+      start: 0,
+      search: '',
+      status: '',
+      teamMemberId: '',
+      selected: {},
+      columns: [],
+      customers: [],
+      team: [],
+      loading: false,
+      assignments: {},
+      board: null,
+      boardSearch: '',
+      chartPage: 0,
+      dragging: false,
+      listFp: '',
+      boardFp: '',
+      liveSyncing: false,
+      dashReady: false,
+      listOwner: ''
+    };
+  }
+  var state = Object.assign(blankState(), { epoch: 0, ownerKey: '' });
+
+  function accountKey() {
+    try {
+      var user = global.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser();
+      var id = user && (user.id || user.user_id);
+      var email = (global.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '';
+      return String(id || email || '');
+    } catch (e) { return ''; }
+  }
+  function resetWorkspace() {
+    var epoch = (state.epoch || 0) + 1;
+    Object.assign(state, blankState());
+    state.epoch = epoch;
+    state.ownerKey = '';
+    var tbody = document.getElementById('projectsTbody');
+    if (tbody) tbody.innerHTML = '';
+    var cards = document.getElementById('projectsCards');
+    if (cards) cards.innerHTML = '';
+    var wrap = document.getElementById('projectsTableWrap');
+    if (wrap) wrap.classList.add('hidden');
+    var empty = document.getElementById('projectsEmpty');
+    if (empty) empty.classList.add('hidden');
+    var err = document.getElementById('projectsError');
+    if (err) err.classList.add('hidden');
+    var loading = document.getElementById('projectsLoading');
+    if (loading) loading.classList.add('hidden');
+    ['statTotal', 'statActive', 'statDone', 'statOpen'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = '0';
+    });
+    var cols = document.getElementById('boardColumns');
+    if (cols) cols.innerHTML = '';
+    var nameEl = document.getElementById('boardProjectName');
+    if (nameEl) nameEl.textContent = '—';
+    var teamEl = document.getElementById('boardTeam');
+    if (teamEl) teamEl.innerHTML = '';
+    var clientEl = document.getElementById('boardClient');
+    if (clientEl) clientEl.innerHTML = '';
+    var search = document.getElementById('projectSearch');
+    if (search) search.value = '';
+    var teamFilter = document.getElementById('teamFilter');
+    if (teamFilter) teamFilter.innerHTML = '<option value=""></option>';
+    document.querySelectorAll('[data-profile-initials]').forEach(function (el) { el.textContent = '?'; });
+    var pn = document.getElementById('profileName');
+    var pe = document.getElementById('profileEmail');
+    var pr = document.getElementById('profileRole');
+    if (pn) pn.textContent = '—';
+    if (pe) pe.textContent = '—';
+    if (pr) pr.textContent = '—';
+  }
 
   function tr(key) {
     return (global.MineralBarI18n && MineralBarI18n.t(key)) || key;
@@ -1028,11 +1420,11 @@
   function memberId(m) {
     if (m == null) return '';
     if (typeof m !== 'object') return String(m);
-    return String(pick(m, ['id', 'user_id', 'member_id', 'team_member_id', 'uid'], '') || '');
+    return String(pick(m, ['id', 'user_id', 'member_id', 'team_member_id', 'uid', 'organization_id', 'organizations_user_id', 'org_user_id'], '') || '');
   }
   function memberName(m) {
     if (!m || typeof m !== 'object') return String(m || '');
-    return String(pick(m, ['name', 'full_name', 'display_name', 'username', 'email', 'first_name'], '') || '');
+    return String(pick(m, ['name', 'full_name', 'display_name', 'username', 'user_name', 'email', 'first_name', 'member_name'], '') || '');
   }
   function teamFromBasic() {
     return (global.MineralBarApp && MineralBarApp.getTeamMembers && MineralBarApp.getTeamMembers()) || [];
@@ -1115,8 +1507,52 @@
     return {
       id: id, name: name, clientName: clientName, customerId: customerId,
       created: created, start: start, status: status, statusLabel: statusLabel || status || '—',
-      open: open, done: done, total: total, progress: progress, team: team, raw: row
+      open: open, done: done, total: total, progress: progress, team: team,
+      testing: Number(pick(row, ['testing'], 0) || 0),
+      queries: Number(pick(row, ['queries'], 0) || 0),
+      to_do: Number(pick(row, ['to_do', 'todo'], 0) || 0),
+      raw: row
     };
+  }
+
+  function isDoneProject(p) {
+    var s = String((p && (p.statusLabel || p.status)) || '').toLowerCase();
+    return (p && p.progress >= 100) || /done|complete|closed|finish|הושלם/.test(s);
+  }
+  function projectMatchesStatus(p, statusKey) {
+    if (!statusKey) return true;
+    var f = String(statusKey);
+    var fl = f.toLowerCase();
+    if (fl === '__active') return !isDoneProject(p);
+    if (fl === '__done') return isDoneProject(p);
+    var label = String(p.statusLabel || '').toLowerCase();
+    var st = String(p.status || '').toLowerCase();
+    if (st === fl || label === fl) return true;
+    if (fl === 'testing') return Number(p.testing || 0) > 0;
+    if (fl === 'queries') return Number(p.queries || 0) > 0;
+    if (fl === 'to_do' || fl === 'todo') return Number(p.to_do || 0) > 0;
+    var col = (state.columns || []).find(function (c) {
+      return [c.column_name, c.name_en, c.name_he, c.id].some(function (v) {
+        return v != null && String(v).toLowerCase() === fl;
+      });
+    });
+    if (col) {
+      var key = String(col.column_name || '').toLowerCase();
+      if (key === 'testing') return Number(p.testing || 0) > 0;
+      if (key === 'queries') return Number(p.queries || 0) > 0;
+      if (key === 'to_do' || key === 'todo') return Number(p.to_do || 0) > 0;
+      if (key === 'done') return isDoneProject(p);
+      var names = [col.column_name, col.name_en, col.name_he].map(function (v) { return String(v || '').toLowerCase(); });
+      return names.indexOf(st) !== -1 || names.indexOf(label) !== -1;
+    }
+    return false;
+  }
+  function projectMatchesTeam(p, teamKey) {
+    if (!teamKey) return true;
+    var key = String(teamKey).toLowerCase();
+    return (p.team || []).some(function (m) {
+      return String(m.id || '').toLowerCase() === key || String(m.name || '').toLowerCase() === key;
+    });
   }
 
   function columnTone(status) {
@@ -1149,19 +1585,52 @@
   function client() { return global.MineralBarApp.getClient(); }
 
   async function fetchProjects() {
+    var epoch = state.epoch;
+    var uid = accountKey();
     await global.MineralBarApp.ensureDashboardSession();
+    if (epoch !== state.epoch || accountKey() !== uid) return;
     var raw = await global.MineralBarApp.dashCall('list', {
       search: state.search || '',
       team_member_id: state.teamMemberId || ''
     });
-    var rows = listRows(raw).map(mapProject);
-    if (state.status) {
-      rows = rows.filter(function (p) {
-        return p.status === state.status || p.statusLabel === state.status;
-      });
-    }
+    if (epoch !== state.epoch || accountKey() !== uid) return;
+    var mapped = listRows(raw).map(mapProject);
+    state.allRows = mapped;
+    state.listOwner = uid;
+    var rows = mapped.filter(function (p) {
+      return projectMatchesStatus(p, state.status) && projectMatchesTeam(p, state.teamMemberId);
+    });
     state.total = rows.length;
+    if (state.start >= state.total && state.start > 0) {
+      state.start = Math.max(0, Math.floor(Math.max(0, state.total - 1) / PAGE_SIZE) * PAGE_SIZE);
+    }
     state.rows = rows.slice(state.start, state.start + PAGE_SIZE);
+    return listFingerprint();
+  }
+
+  function listFingerprint() {
+    return JSON.stringify({
+      total: state.total,
+      start: state.start,
+      search: state.search,
+      status: state.status,
+      team: state.teamMemberId,
+      rows: (state.rows || []).map(function (p) {
+        return [p.id, p.name, p.clientName, p.status, p.progress,
+          (p.team || []).map(function (m) { return m.id || m.name; }).join(',')];
+      })
+    });
+  }
+  function boardFingerprint(board) {
+    board = board || state.board || {};
+    return JSON.stringify({
+      id: board.id,
+      name: board.name || board.title || '',
+      client: board.client_name || '',
+      cols: (board.columns || []).map(function (c) {
+        return [c.key, (c.missions || []).map(function (m) { return String(m.id) + ':' + String(m.title || ''); })];
+      })
+    });
   }
 
   async function fetchColumns() {
@@ -1217,10 +1686,14 @@
   }
 
   function renderStats() {
+    var list = (state.allRows || []).filter(function (p) {
+      return projectMatchesStatus(p, state.status) && projectMatchesTeam(p, state.teamMemberId);
+    });
+    if (!list.length && state.rows.length) list = state.rows;
     var total = state.total;
-    var active = state.rows.filter(function (p) { return p.progress < 100 && !/done|complete|closed/i.test(p.status); }).length;
-    var done = state.rows.filter(function (p) { return p.progress >= 100 || /done|complete|closed/i.test(p.status); }).length;
-    var open = state.rows.reduce(function (n, p) { return n + (Number(p.open) || 0); }, 0);
+    var active = list.filter(function (p) { return !isDoneProject(p); }).length;
+    var done = list.filter(function (p) { return isDoneProject(p); }).length;
+    var open = list.reduce(function (n, p) { return n + (Number(p.open) || 0); }, 0);
     var elT = document.getElementById('statTotal');
     var elA = document.getElementById('statActive');
     var elD = document.getElementById('statDone');
@@ -1232,34 +1705,31 @@
   }
 
   function fillFilters() {
-    var statusEl = document.getElementById('statusFilter');
     var teamEl = document.getElementById('teamFilter');
-    if (statusEl) {
-      var cur = state.status;
-      statusEl.innerHTML = '<option value="">' + esc(tr('filter_all')) + '</option>';
-      var seen = {};
-      state.columns.forEach(function (c) {
-        var key = String(c.column_name || c.name_en || c.id || '');
-        if (!key || seen[key]) return;
-        seen[key] = true;
-        var label = (global.MineralBarI18n.getLang() === 'he' ? (c.name_he || c.name_en) : (c.name_en || c.name_he)) || key;
-        statusEl.appendChild(new Option(label, key, false, key === cur));
-      });
-      state.rows.forEach(function (p) {
-        if (p.status && !seen[p.status]) {
-          seen[p.status] = true;
-          statusEl.appendChild(new Option(p.statusLabel || p.status, p.status, false, p.status === cur));
-        }
-      });
-    }
+    if (document.activeElement === teamEl) return;
+    var source = (state.allRows && state.allRows.length) ? state.allRows : state.rows;
     if (teamEl) {
       var tcur = state.teamMemberId;
-      teamEl.innerHTML = '<option value="">' + esc(tr('filter_team_all')) + '</option>';
+      var teamHtml = '<option value="">' + esc(tr('filter_team_all')) + '</option>';
+      var seenT = {};
+      function addTeamOption(id, name) {
+        var value = id || name;
+        if (!value || seenT[value]) return;
+        seenT[value] = true;
+        teamHtml += '<option value="' + esc(value) + '"' + (String(tcur) === String(value) ? ' selected' : '') + '>' + esc(name || ('#' + id)) + '</option>';
+      }
       uniqueTeam().forEach(function (m) {
-        var id = memberId(m);
-        if (!id) return;
-        teamEl.appendChild(new Option(memberName(m) || ('#' + id), id, false, id === tcur));
+        addTeamOption(memberId(m), memberName(m) || memberId(m));
       });
+      source.forEach(function (p) {
+        (p.team || []).forEach(function (m) { addTeamOption(m.id, m.name); });
+      });
+      if (teamEl.innerHTML !== teamHtml) {
+        teamEl.innerHTML = teamHtml;
+        if (tcur) teamEl.value = tcur;
+      } else if (teamEl.value !== tcur) {
+        teamEl.value = tcur;
+      }
     }
   }
 
@@ -1272,7 +1742,14 @@
     var err = document.getElementById('projectsError');
     if (loading) loading.classList.toggle('hidden', !state.loading);
     if (err) err.classList.add('hidden');
-    if (!state.rows.length && !state.loading) {
+    if (state.loading || (state.listOwner && state.listOwner !== accountKey())) {
+      if (wrap) wrap.classList.add('hidden');
+      if (tbody) tbody.innerHTML = '';
+      if (cards) cards.innerHTML = '';
+      if (empty) empty.classList.add('hidden');
+      return;
+    }
+    if (!state.rows.length) {
       if (wrap) wrap.classList.add('hidden');
       if (cards) cards.innerHTML = '';
       if (empty) empty.classList.remove('hidden');
@@ -1320,53 +1797,70 @@
     if (next) next.disabled = state.start + PAGE_SIZE >= state.total;
   }
 
-  async function reload() {
-    state.loading = true;
-    renderTable();
+  async function reload(options) {
+    options = options || {};
+    var silent = !!options.silent;
+    var epoch = state.epoch;
+    if (!silent) {
+      state.loading = true;
+      renderTable();
+    }
     try {
       await fetchProjects();
+      if (epoch !== state.epoch) return;
       fillFilters();
       renderStats();
+      var fp = listFingerprint();
+      if (silent && fp === state.listFp) return;
+      state.listFp = fp;
     } catch (err) {
+      if (epoch !== state.epoch) return;
+      if (silent) return;
       var box = document.getElementById('projectsError');
       var txt = document.getElementById('projectsErrorText');
       if (txt) txt.textContent = (err && err.message) || tr('err_failed');
       if (box) box.classList.remove('hidden');
       state.rows = [];
     } finally {
-      state.loading = false;
-      renderTable();
+      if (epoch === state.epoch) {
+        state.loading = false;
+        renderTable();
+      }
     }
   }
 
+  function closeProfile() {
+    var ov = document.getElementById('profileOverlay');
+    if (ov) { ov.classList.add('hidden'); ov.setAttribute('aria-hidden', 'true'); }
+  }
+  function closeOverlays() {
+    closeProfile();
+    closeModal();
+  }
   function closeModal() {
     var ov = document.getElementById('modalOverlay');
     if (ov) { ov.classList.add('hidden'); ov.setAttribute('aria-hidden', 'true'); }
+    var sheet = document.querySelector('#modalOverlay .modal-sheet');
+    if (sheet) sheet.classList.remove('modal-sheet--form');
   }
-  function openModal(title, bodyHtml, footerHtml) {
+  function openModal(title, bodyHtml, footerHtml, options) {
+    options = options || {};
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalBody').innerHTML = bodyHtml;
     document.getElementById('modalFooter').innerHTML = footerHtml || '';
     var ov = document.getElementById('modalOverlay');
     ov.classList.remove('hidden');
     ov.setAttribute('aria-hidden', 'false');
+    var sheet = document.querySelector('#modalOverlay .modal-sheet');
+    if (sheet) sheet.classList.toggle('modal-sheet--form', !!options.form);
   }
 
   function customerOptions(selected) {
-    var html = '<option value="">' + esc(tr('no_client')) + '</option>';
+    var html = '<option value="">' + esc(tr('client_ph')) + '</option>';
     state.customers.forEach(function (c) {
       var id = String(c.id || c.customer_id || '');
       var name = pick(c, ['name', 'company', 'full_name', 'customer_name'], '#' + id);
       html += '<option value="' + esc(id) + '"' + (id === String(selected || '') ? ' selected' : '') + '>' + esc(name) + '</option>';
-    });
-    return html;
-  }
-  function statusOptions(selected) {
-    var html = '<option value="">—</option>';
-    state.columns.forEach(function (c) {
-      var key = String(c.column_name || c.name_en || '');
-      var label = (global.MineralBarI18n.getLang() === 'he' ? (c.name_he || c.name_en) : (c.name_en || c.name_he)) || key;
-      html += '<option value="' + esc(key) + '"' + (key === String(selected || '') ? ' selected' : '') + '>' + esc(label) + '</option>';
     });
     return html;
   }
@@ -1380,50 +1874,194 @@
     throw lastErr || new Error(tr('err_failed'));
   }
 
+  function memberPickHtml() {
+    return uniqueTeam().map(function (m) {
+      var id = memberId(m); var name = memberName(m) || ('#' + id);
+      if (!id) return '';
+      return '<label class="team-pick-row"><input type="checkbox" value="' + esc(id) + '"><span class="avatar" style="background:' + colorFor(id) + '">' + esc(initials(name)) + '</span><span>' + esc(name) + '</span></label>';
+    }).join('') || '<div class="assign-hint">' + esc(tr('no_team')) + '</div>';
+  }
+  function parseProjectTags(html) {
+    var tags = [];
+    var seen = {};
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html || '';
+    wrap.querySelectorAll('.added_tag_project, [data_id]').forEach(function (el) {
+      var id = el.getAttribute('data_id') || el.getAttribute('data-id') || '';
+      var name = (el.textContent || '').trim();
+      if (!id || !name || seen[id]) return;
+      seen[id] = true;
+      tags.push({ id: String(id), name: name });
+    });
+    return tags;
+  }
+  async function loadProjectTags() {
+    if (state.projectTags && state.projectTags.length) return state.projectTags;
+    var id = ((state.allRows && state.allRows[0]) || state.rows[0] || {}).id;
+    if (!id) { state.projectTags = []; return state.projectTags; }
+    try {
+      var got = await global.MineralBarApp.dashCall('get', { id: id });
+      var html = (got && (got.all_tag_of_project || (got.project && got.project.all_tag_of_project))) || '';
+      state.projectTags = parseProjectTags(html);
+    } catch (e) { state.projectTags = []; }
+    if (!state.projectTags.length) {
+      state.projectTags = [{ id: '281', name: 'road' }, { id: '', name: 'demo' }];
+    }
+    return state.projectTags;
+  }
+  function tagChipsHtml(tags) {
+    var chips = '<button type="button" class="tag-chip tag-chip--new" id="fTagNew">' + esc(tr('tag_new')) + '</button>';
+    (tags || []).forEach(function (tag) {
+      var attr = tag.id ? ('data-tag-id="' + esc(tag.id) + '"') : ('data-tag-name="' + esc(tag.name) + '"');
+      chips += '<button type="button" class="tag-chip" ' + attr + '>' + esc(tag.name) + '</button>';
+    });
+    return chips;
+  }
+  function syncDefaultUsers() {
+    var box = document.getElementById('fDefaultUser');
+    if (!box) return;
+    var rows = [];
+    document.querySelectorAll('#fTeam input[type=checkbox]:checked').forEach(function (el) {
+      var id = el.value;
+      if (!id) return;
+      var name = ((el.closest('label') || {}).textContent || '').trim() || ('#' + id);
+      rows.push('<label class="team-pick-row"><input type="checkbox" value="' + esc(id) + '"><span class="avatar" style="background:' + colorFor(id) + '">' + esc(initials(name)) + '</span><span>' + esc(name) + '</span></label>');
+    });
+    box.innerHTML = rows.join('') || '<div class="assign-hint">' + esc(tr('default_user_ph')) + '</div>';
+  }
+  function setPrivateProjectMode(on) {
+    document.querySelectorAll('.hide-on-private').forEach(function (el) { el.classList.toggle('hidden', !!on); });
+  }
+  function resetCreateForm() {
+    var form = document.getElementById('fCreateForm');
+    if (!form) return;
+    form.querySelectorAll('input[type=text], textarea').forEach(function (el) { el.value = ''; });
+    form.querySelectorAll('select').forEach(function (el) { el.selectedIndex = 0; });
+    form.querySelectorAll('input[type=checkbox]').forEach(function (el) {
+      el.checked = el.id === 'fShowTag';
+    });
+    form.querySelectorAll('.tag-chip.is-on').forEach(function (el) { el.classList.remove('is-on'); });
+    var extra = document.getElementById('fNewTagRow');
+    if (extra) extra.classList.add('hidden');
+    setPrivateProjectMode(false);
+    syncDefaultUsers();
+  }
+
   function openCreateModal() {
+    var initialTags = (state.projectTags && state.projectTags.length) ? state.projectTags : [{ id: '281', name: 'road' }, { id: '', name: 'demo' }];
     openModal(tr('create_title'),
+      '<form id="fCreateForm" class="create-form" autocomplete="off">' +
+      '<label class="check-row"><input id="fPrivate" type="checkbox" value="1"><span>' + esc(tr('private_project')) + '</span></label>' +
+      '<div class="create-grid">' +
       '<div class="field"><label class="field-label">' + esc(tr('project_name')) + ' <span class="req">*</span></label>' +
-      '<input id="fName" class="ds-input input" type="text" required></div>' +
-      '<div class="field"><label class="field-label">' + esc(tr('client')) + '</label>' +
+      '<input id="fName" class="ds-input input" type="text" required placeholder="' + esc(tr('project_name_ph')) + '"></div>' +
+      '<div class="field hide-on-private"><label class="field-label">' + esc(tr('client')) + '</label>' +
       '<select id="fClient" class="ds-input input">' + customerOptions() + '</select></div>' +
-      '<div class="field"><label class="field-label">' + esc(tr('start_date')) + '</label>' +
-      '<input id="fStart" class="ds-input input" type="date"></div>' +
-      '<div class="field"><label class="field-label">' + esc(tr('status')) + '</label>' +
-      '<select id="fStatus" class="ds-input input">' + statusOptions() + '</select></div>' +
-      '<div class="field"><label class="field-label">' + esc(tr('assign_team')) + '</label><div class="team-pick" id="fTeam"></div></div>',
-      '<button type="button" class="btn-ghost" data-modal-close>' + esc(tr('cancel')) + '</button>' +
-      '<button type="button" class="btn-primary" id="fCreateBtn">' + esc(tr('create')) + '</button>'
+      '<div class="field hide-on-private"><label class="field-label">' + esc(tr('member')) + '</label>' +
+      '<div class="team-pick team-pick--compact" id="fTeam"></div></div>' +
+      '<div class="field"><label class="field-label">' + esc(tr('credentials')) + '</label>' +
+      '<input id="fCreds" class="ds-input input" type="text" placeholder="' + esc(tr('credentials_ph')) + '"></div>' +
+      '<div class="field hide-on-private"><label class="field-label">' + esc(tr('default_user')) + '</label>' +
+      '<div class="team-pick team-pick--compact" id="fDefaultUser"><div class="assign-hint">' + esc(tr('default_user_ph')) + '</div></div></div>' +
+      '<div class="field field--note"><label class="field-label">' + esc(tr('note')) + '</label>' +
+      '<textarea id="fNote" class="ds-input input" rows="4" placeholder="' + esc(tr('note_ph')) + '"></textarea></div>' +
+      '</div>' +
+      '<label class="check-row"><input id="fShowTag" type="checkbox" value="1" checked><span>' + esc(tr('show_hide_tag')) + '</span></label>' +
+      '<div class="field"><div class="field-label">' + esc(tr('tags')) + '</div>' +
+      '<div class="tag-row" id="fTags">' + tagChipsHtml(initialTags) + '</div>' +
+      '<div id="fNewTagRow" class="new-tag-row hidden"><input id="fNewTagName" class="ds-input input" type="text" placeholder="' + esc(tr('tag_new')) + '">' +
+      '<button type="button" class="btn-ghost" id="fAddTagBtn">' + esc(tr('add')) + '</button></div></div>' +
+      '<div class="create-flags">' +
+      '<label class="check-row"><input id="fAllowMissions" type="checkbox"><span>' + esc(tr('allow_add_missions')) + '</span></label>' +
+      '<label class="check-row"><input id="fProjectDone" type="checkbox"><span>' + esc(tr('project_done')) + '</span></label>' +
+      '<label class="check-row"><input id="fTemplate" type="checkbox"><span>' + esc(tr('use_as_template')) + '</span></label>' +
+      '</div></form>',
+      '<button type="button" class="btn-primary" id="fCreateBtn">' + esc(tr('submit')) + '</button>' +
+      '<button type="button" class="btn-ghost" id="fResetBtn">' + esc(tr('reset')) + '</button>',
+      { form: true }
     );
     var box = document.getElementById('fTeam');
-    if (box) {
-      box.innerHTML = uniqueTeam().map(function (m) {
-        var id = memberId(m); var name = memberName(m) || ('#' + id);
-        return '<label class="team-pick-row"><input type="checkbox" value="' + esc(id) + '"><span class="avatar" style="background:' + colorFor(id) + '">' + esc(initials(name)) + '</span><span>' + esc(name) + '</span></label>';
-      }).join('') || '<div class="assign-hint">' + esc(tr('no_team')) + '</div>';
+    if (box) box.innerHTML = memberPickHtml();
+    var priv = document.getElementById('fPrivate');
+    if (priv) priv.addEventListener('change', function () { setPrivateProjectMode(priv.checked); });
+    if (box) box.addEventListener('change', syncDefaultUsers);
+    var tagsEl = document.getElementById('fTags');
+    if (tagsEl) {
+      tagsEl.addEventListener('click', function (e) {
+        var chip = e.target.closest('.tag-chip');
+        if (!chip) return;
+        e.preventDefault();
+        if (chip.id === 'fTagNew') {
+          var row = document.getElementById('fNewTagRow');
+          if (row) row.classList.toggle('hidden');
+          return;
+        }
+        chip.classList.toggle('is-on');
+      });
     }
+    var addTag = document.getElementById('fAddTagBtn');
+    if (addTag) {
+      addTag.addEventListener('click', function () {
+        var input = document.getElementById('fNewTagName');
+        var name = ((input && input.value) || '').trim();
+        if (!name || !tagsEl) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tag-chip is-on';
+        btn.setAttribute('data-tag-name', name);
+        btn.textContent = name;
+        tagsEl.appendChild(btn);
+        if (input) input.value = '';
+      });
+    }
+    var resetBtn = document.getElementById('fResetBtn');
+    if (resetBtn) resetBtn.addEventListener('click', resetCreateForm);
+    var form = document.getElementById('fCreateForm');
+    if (form) form.addEventListener('submit', function (e) { e.preventDefault(); submitCreate(); });
+    loadProjectTags().then(function (liveTags) {
+      var row = document.getElementById('fTags');
+      if (!row || !liveTags.length) return;
+      row.innerHTML = tagChipsHtml(liveTags);
+    }).catch(function () {});
   }
 
   async function submitCreate() {
-    var name = (document.getElementById('fName') || {}).value || '';
-    name = name.trim();
+    var name = ((document.getElementById('fName') || {}).value || '').trim();
     if (!name) { toast(tr('err_fill')); return; }
-    var customerId = (document.getElementById('fClient') || {}).value || '';
-    var start = (document.getElementById('fStart') || {}).value || '';
-    var status = (document.getElementById('fStatus') || {}).value || '';
+    var isPrivate = !!(document.getElementById('fPrivate') || {}).checked;
+    var clientEl = document.getElementById('fClient');
+    var customerId = isPrivate ? '0' : ((clientEl && clientEl.value) || '');
+    var clientName = '';
+    if (!isPrivate && clientEl && clientEl.selectedIndex > 0) clientName = clientEl.options[clientEl.selectedIndex].text;
     var ids = [];
-    document.querySelectorAll('#fTeam input[type=checkbox]:checked').forEach(function (el) { if (el.value) ids.push(el.value); });
+    var defaults = [];
+    if (!isPrivate) {
+      document.querySelectorAll('#fTeam input[type=checkbox]:checked').forEach(function (el) { if (el.value) ids.push(el.value); });
+      document.querySelectorAll('#fDefaultUser input[type=checkbox]:checked').forEach(function (el) { if (el.value) defaults.push(el.value); });
+    }
+    var tags = [];
+    document.querySelectorAll('#fTags .tag-chip.is-on[data-tag-id]').forEach(function (el) {
+      var id = el.getAttribute('data-tag-id');
+      if (id) tags.push(id);
+    });
     var payload = {
       name: name,
       project_name: name,
       project_id: '0',
       client_id: customerId || '0',
       customer_id: customerId || '0',
-      credentials: '',
-      note: '',
-      start_date: start || undefined,
-      status: status || undefined,
+      client_name: clientName,
+      credentials: ((document.getElementById('fCreds') || {}).value || '').trim(),
+      note: ((document.getElementById('fNote') || {}).value || '').trim(),
       organizations_user: ids,
-      team_member_ids: ids
+      team_member_ids: ids,
+      default_user: defaults,
+      tags: tags,
+      private_project: isPrivate ? '1' : '',
+      show_hide_tag: (document.getElementById('fShowTag') || {}).checked ? '1' : '',
+      allow_add_mission: (document.getElementById('fAllowMissions') || {}).checked ? '1' : '',
+      done: (document.getElementById('fProjectDone') || {}).checked ? '1' : '',
+      use_as_template: (document.getElementById('fTemplate') || {}).checked ? '1' : ''
     };
     try {
       var res = await global.MineralBarApp.dashCall('save', payload);
@@ -1545,26 +2183,39 @@
     global.location.hash = 'board/' + encodeURIComponent(String(projectId));
   }
 
-  async function loadBoard(projectId) {
+  async function loadBoard(projectId, options) {
+    options = options || {};
+    var silent = !!options.silent;
+    var epoch = state.epoch;
+    if (state.dragging) return;
     var loading = document.getElementById('boardLoading');
     var err = document.getElementById('boardError');
-    if (loading) loading.classList.remove('hidden');
-    if (err) err.classList.add('hidden');
+    if (!silent && loading) loading.classList.remove('hidden');
+    if (!silent && err) err.classList.add('hidden');
     try {
       await global.MineralBarApp.ensureDashboardSession();
+      if (epoch !== state.epoch) return;
       var raw = await global.MineralBarApp.dashCall('board', { id: projectId, project_id: projectId });
+      if (epoch !== state.epoch || accountKey() !== state.ownerKey) return;
+      raw.id = String(raw.id || projectId);
+      var fp = boardFingerprint(raw);
+      if (silent && fp === state.boardFp && String((state.board && state.board.id) || '') === String(projectId)) return;
+      if (state.dragging) return;
       state.board = raw;
       state.board.id = String(raw.id || projectId);
-      state.chartPage = 0;
+      state.boardFp = fp;
+      if (!silent) state.chartPage = 0;
       renderBoard();
     } catch (e) {
+      if (epoch !== state.epoch) return;
+      if (silent) return;
       var txt = document.getElementById('boardErrorText');
       if (txt) txt.textContent = (e && e.message) || tr('err_failed');
       if (err) err.classList.remove('hidden');
       state.board = { id: String(projectId), columns: [], team: [] };
       renderBoard();
     } finally {
-      if (loading) loading.classList.add('hidden');
+      if (epoch === state.epoch && loading) loading.classList.add('hidden');
     }
   }
 
@@ -1683,11 +2334,15 @@
     if (!root) return;
     root.querySelectorAll('.mission-card').forEach(function (card) {
       card.addEventListener('dragstart', function (e) {
+        state.dragging = true;
         card.classList.add('is-dragging');
         e.dataTransfer.setData('text/plain', card.getAttribute('data-mission'));
         e.dataTransfer.effectAllowed = 'move';
       });
-      card.addEventListener('dragend', function () { card.classList.remove('is-dragging'); });
+      card.addEventListener('dragend', function () {
+        state.dragging = false;
+        card.classList.remove('is-dragging');
+      });
     });
     root.querySelectorAll('[data-col]').forEach(function (col) {
       col.addEventListener('dragover', function (e) {
@@ -1808,12 +2463,120 @@
   async function bootBoard(projectId) {
     var ok = await MineralBarApp.ensureAuth('index.html#login');
     if (!ok) return;
+    var uid = accountKey();
+    var switched = !state.ownerKey || state.ownerKey !== uid;
+    if (switched) resetWorkspace();
+    state.ownerKey = uid;
+    state.dashReady = false;
     setShellBoard(true);
     showView('board');
     MineralBarI18n.apply();
     fillProfile();
     bindBoard();
+    wireLiveUpdates();
+    MineralBarApp.connectRealtime().catch(function () { /* poll keeps the board live */ });
+    try { await global.MineralBarApp.ensureDashboardSession({ force: switched }); } catch (dashErr) { /* loadBoard will show the error */ }
+    if (accountKey() === uid) state.dashReady = true;
     await loadBoard(projectId);
+  }
+
+  function currentView() {
+    var page = (global.location.hash || '').replace(/^#/, '');
+    if (page.indexOf('?') !== -1) page = page.slice(0, page.indexOf('?'));
+    if (page.indexOf('board/') === 0) return 'board';
+    if (page === 'projects') return 'projects';
+    if (!page && global.MineralBarApp && MineralBarApp.isAuthenticated()) return 'projects';
+    return 'login';
+  }
+  function eventProjectId(detail) {
+    var ev = (detail && detail.event) || detail || {};
+    var bags = [ev, ev.payload, ev.data, ev.body, ev.extra_array, ev.all_data_array];
+    for (var i = 0; i < bags.length; i += 1) {
+      var bag = bags[i];
+      if (!bag || typeof bag !== 'object') continue;
+      var id = bag.project_id || bag.projectId || bag.data_project || bag.project;
+      if (id && id !== true) return String(id);
+    }
+    return '';
+  }
+  function isLiveProjectEvent(detail) {
+    var key = String((detail && detail.key) || '');
+    var group = detail && detail.group;
+    if (group === 'projects' || group === 'missions') return true;
+    return /project|mission|task|kanban|board|newMission|projectQuery/i.test(key);
+  }
+
+  var liveTimer = null;
+  var livePoll = null;
+  var liveWired = false;
+
+  function scheduleLiveSync(detail) {
+    if (!global.MineralBarApp || !MineralBarApp.isAuthenticated || !MineralBarApp.isAuthenticated()) return;
+    if (liveTimer) clearTimeout(liveTimer);
+    liveTimer = setTimeout(function () {
+      liveTimer = null;
+      applyLiveSync(detail).catch(function () {});
+    }, 280);
+  }
+  async function applyLiveSync(detail) {
+    if (state.liveSyncing || state.dragging || state.loading || !state.dashReady) return;
+    if (!global.MineralBarApp || !MineralBarApp.isAuthenticated || !MineralBarApp.isAuthenticated()) return;
+    var view = currentView();
+    if (view === 'login') return;
+    var pid = eventProjectId(detail);
+    if (view === 'board' && pid && state.board && String(state.board.id) !== pid) return;
+    state.liveSyncing = true;
+    try {
+      if (view === 'board' && state.board && state.board.id) await loadBoard(state.board.id, { silent: true });
+      else if (view === 'projects') await reload({ silent: true });
+    } finally {
+      state.liveSyncing = false;
+    }
+  }
+  function paintLiveChips() {
+    var chips = document.querySelectorAll('[data-live-chip]');
+    var st = { connected: false, status: 'off' };
+    try {
+      if (global.MineralBarApp && MineralBarApp.getRealtimeState) st = MineralBarApp.getRealtimeState() || st;
+    } catch (e) { /* ignore */ }
+    var on = !!(st.connected || st.status === 'ready');
+    chips.forEach(function (el) {
+      el.classList.toggle('live-on', on);
+      el.classList.toggle('live-off', !on);
+      var label = el.querySelector('[data-live-label]');
+      if (label) {
+        label.setAttribute('data-i18n', on ? 'live_socket_on' : 'live_socket_off');
+        label.textContent = on ? tr('live_socket_on') : tr('live_socket_off');
+      }
+    });
+  }
+  function wireLiveUpdates() {
+    if (liveWired) {
+      paintLiveChips();
+      return;
+    }
+    liveWired = true;
+    paintLiveChips();
+    global.addEventListener('mineralbar:socket', paintLiveChips);
+    global.addEventListener('mineralbar:socket-status', paintLiveChips);
+    global.addEventListener('mineralbar:lang', paintLiveChips);
+    global.addEventListener('mineralbar:realtime', function (e) {
+      if (!isLiveProjectEvent(e.detail)) return;
+      scheduleLiveSync(e.detail);
+    });
+    global.addEventListener('mineralbar:projects', function (e) { scheduleLiveSync(e.detail); });
+    global.addEventListener('mineralbar:missions', function (e) { scheduleLiveSync(e.detail); });
+    global.addEventListener('visibilitychange', function () {
+      if (!document.hidden) scheduleLiveSync({ key: 'visibility' });
+    });
+    setInterval(paintLiveChips, 4000);
+    livePoll = setInterval(function () {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (!global.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
+      if (!state.dashReady || state.loading) return;
+      if (currentView() === 'login') return;
+      scheduleLiveSync({ key: 'poll' });
+    }, 8000);
   }
 
   function fillProfile() {
@@ -1834,6 +2597,10 @@
     document.querySelectorAll('.app-view').forEach(function (el) {
       el.classList.toggle('hidden', el.getAttribute('data-view') !== page);
     });
+    if (page === 'login') {
+      closeOverlays();
+      resetWorkspace();
+    }
     var brand = global.MineralBarApp.getBrandName();
     document.title = page === 'login' ? tr('page_login_title')
       : page === 'board' ? (tr('page_board_title') + ' — ' + brand)
@@ -2013,7 +2780,11 @@
         try {
           var result = await MineralBarApp.login({ username: username, password: password, otp: '', remember: !!(rememberEl && rememberEl.checked) });
           if (result && result.otpRequired) { otpEl.value = ''; enterOtpMode(); return; }
-          if (result && result.ok) { global.location.hash = 'projects'; return; }
+          if (result && result.ok) {
+            resetWorkspace();
+            global.location.hash = 'projects';
+            return;
+          }
           showErrorKey('err_resend_otp');
         } catch (err) { handleLoginError(err, 'err_resend_otp'); }
         finally { setRequestBusy(false, 'resend'); }
@@ -2039,7 +2810,11 @@
           enterOtpMode();
           return;
         }
-        if (result.ok) { global.location.hash = 'projects'; return; }
+        if (result.ok) {
+          resetWorkspace();
+          global.location.hash = 'projects';
+          return;
+        }
         showErrorKey('err_failed');
       } catch (err) {
         if (waitingOtp && otp && !getRetrySeconds(err) && isOtpValidationError(err)) {
@@ -2064,8 +2839,6 @@
         t = setTimeout(function () { state.search = search.value.trim(); state.start = 0; reload(); }, 350);
       });
     }
-    var statusEl = document.getElementById('statusFilter');
-    if (statusEl) statusEl.addEventListener('change', function () { state.status = statusEl.value; state.start = 0; reload(); });
     var teamEl = document.getElementById('teamFilter');
     if (teamEl) teamEl.addEventListener('change', function () { state.teamMemberId = teamEl.value; state.start = 0; reload(); });
     var refresh = document.getElementById('btnRefresh');
@@ -2144,10 +2917,17 @@
     if (logout && !logout.__bound) {
       logout.__bound = true;
       logout.addEventListener('click', function () {
-        MineralBarApp.clearSession();
-        global.location.hash = 'login';
+        closeOverlays();
+        resetWorkspace();
+        Promise.resolve(MineralBarApp.clearSession()).finally(function () {
+          global.location.hash = 'login';
+        });
       });
     }
+    global.addEventListener('mineralbar:session-cleared', function () {
+      resetWorkspace();
+      closeOverlays();
+    });
     global.addEventListener('mineralbar:lang', function () {
       MineralBarI18n.apply();
       fillFilters();
@@ -2166,15 +2946,29 @@
   async function bootProjects() {
     var ok = await MineralBarApp.ensureAuth('index.html#login');
     if (!ok) return;
+    var uid = accountKey();
+    var switched = !state.ownerKey || state.ownerKey !== uid;
+    if (switched) resetWorkspace();
+    state.ownerKey = uid;
+    state.dashReady = false;
+    state.loading = true;
     setShellBoard(false);
     showView('projects');
     MineralBarI18n.apply();
     fillProfile();
     bindProjects();
+    renderTable();
+    wireLiveUpdates();
+    MineralBarApp.connectRealtime().catch(function () { /* poll keeps the list live */ });
     state.team = teamFromBasic();
-    try { await global.MineralBarApp.ensureDashboardSession(); } catch (dashErr) { /* reload() will show the error */ }
-    try { await fetchColumns(); } catch (e) { state.columns = []; }
-    try { await fetchCustomers(); } catch (e2) { state.customers = []; }
+    var epoch = state.epoch;
+    try { await global.MineralBarApp.ensureDashboardSession({ force: switched }); } catch (dashErr) { /* reload() will show the error */ }
+    if (epoch !== state.epoch || accountKey() !== uid) return;
+    state.dashReady = true;
+    try { await fetchColumns(); } catch (e) { if (epoch === state.epoch) state.columns = []; }
+    if (epoch !== state.epoch) return;
+    try { await fetchCustomers(); } catch (e2) { if (epoch === state.epoch) state.customers = []; }
+    if (epoch !== state.epoch) return;
     fillFilters();
     await reload();
   }
