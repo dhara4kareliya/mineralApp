@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-i18n-title="page_login_title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biz1 Showcase — Projects</title>
+<script>
+(function(){try{var t=localStorage.getItem('biz1proj_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('biz1demo_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var l=localStorage.getItem('biz1proj_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/app.css?v=20260825-projects-v7">
+<script src="./assets/config.js?v=20260825-projects-v3"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.bull36\.com.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  if (user) {
+    document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+  }
+})();
+</script>
+<script src="./assets/js/app.js?v=20260825-projects-v8"></script>
+</head>
+<body>
+<div id="appRoot" dir="ltr" class="page-wrap">
+  <div class="phone-outer">
+
+    <!-- LOGIN -->
+    <div class="phone-inner app-view login-screen" data-view="login">
+      <div class="lang-bar login-status-bar">
+        <div class="lang-bar-left">
+          <span class="lang-label" data-i18n="lang_label">Language</span>
+          <div class="lang-switch">
+            <button type="button" data-set-lang="en">EN</button>
+            <button type="button" data-set-lang="he">עב</button>
+          </div>
+        </div>
+        <div class="lang-bar-right">
+          <button type="button" class="theme-toggle" data-theme-toggle data-i18n-title="toggle_theme" title="Light / Dark mode">
+            <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="brand-hero">
+        <div class="brand-blob brand-blob--tr"></div>
+        <div class="brand-blob brand-blob--bl"></div>
+        <div class="brand-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9cc3ec" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v16"/></svg>
+        </div>
+        <div class="brand-title" data-i18n="brand">Biz1 Showcase</div>
+        <div class="brand-sub" data-i18n="login_subtitle">Projects · Team workspace</div>
+      </div>
+
+      <div class="dc-scroll login-scroll">
+        <form id="loginForm" class="login-card">
+          <div class="login-title" data-i18n="account_login">Sign in to your account</div>
+
+          <div id="errorBox" class="error-box hidden">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <div id="errorText" class="error-text"></div>
+          </div>
+
+          <div id="usernameWrap" class="field">
+            <label for="username" class="field-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa3b0" stroke-width="1.9"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/></svg>
+              <span data-i18n="login_identifier_label">Email / Username / Phone / ID</span> <span class="req">*</span>
+            </label>
+            <input id="username" class="ds-input input input--ltr" type="text" autocomplete="username" data-i18n-placeholder="login_identifier_placeholder" placeholder="Email, username, phone or ID" required data-align-lang="ltr">
+          </div>
+
+          <div id="passwordWrap" class="field field--tight">
+            <label for="password" class="field-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa3b0" stroke-width="1.9"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <span data-i18n="password_label">Password</span> <span class="req">*</span>
+            </label>
+            <div class="pass-wrap">
+              <input id="password" class="ds-input input input--pass" type="password" autocomplete="current-password" data-i18n-placeholder="password_placeholder" placeholder="Enter password" required data-align-lang="auto">
+              <button type="button" id="togglePassword" class="pass-toggle" data-i18n-aria="toggle_password" aria-label="Show or hide password">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="otpWrap" class="field field--tight hidden">
+            <label for="otp" class="field-label">
+              <span data-i18n="otp_label">Verification code (OTP)</span> <span class="req">*</span>
+            </label>
+            <input id="otp" class="ds-input input input--otp" type="text" inputmode="numeric" autocomplete="one-time-code" data-i18n-placeholder="otp_placeholder" placeholder="Enter code">
+            <div class="otp-resend">
+              <button type="button" id="resendOtpBtn" class="btn-ghost" style="padding:8px 14px;font-size:12.5px;">
+                <span id="resendOtpText" data-i18n="resend_otp">Resend OTP</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="login-row">
+            <label class="remember">
+              <input id="remember" type="checkbox">
+              <span data-i18n="remember_me">Remember me</span>
+            </label>
+            <span class="biz1-tag">Biz1</span>
+          </div>
+
+          <button type="submit" id="loginBtn" class="btn btn-primary btn-login">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
+            <span id="loginBtnText" data-i18n="login_btn">Sign in</span>
+          </button>
+        </form>
+
+        <div class="footer-note" data-i18n="footer_crm">Biz1 Showcase · Projects</div>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="phone-inner app-view hidden projects-screen" data-view="projects">
+      <div class="lang-bar">
+        <div class="lang-bar-left">
+          <span class="lang-label" data-i18n="lang_label">Language</span>
+          <div class="lang-switch">
+            <button type="button" data-set-lang="en">EN</button>
+            <button type="button" data-set-lang="he">עב</button>
+          </div>
+        </div>
+        <div class="lang-bar-right">
+          <button type="button" class="btn-profile" data-profile-open data-i18n-title="profile" title="Profile" aria-label="Profile">
+            <span class="btn-profile-avatar" data-profile-initials>?</span>
+          </button>
+          <button type="button" class="theme-toggle" data-theme-toggle data-i18n-title="toggle_theme" title="Light / Dark mode">
+            <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="projects-body dc-scroll">
+        <div class="projects-hero">
+          <div class="projects-hero-copy">
+            <div class="projects-kicker" data-i18n="projects_kicker">Project directory</div>
+            <h1 class="projects-title" data-i18n="projects_title">Active projects</h1>
+            <p class="projects-sub" data-i18n="projects_sub">Clients, team allocation, and timeline status in one workspace.</p>
+          </div>
+          <div class="projects-hero-actions">
+            <button type="button" id="btnDeleteSelected" class="btn-ghost toolbar-btn toolbar-btn--danger" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5h6v2M10 11v6M14 11v6M6 7l1 12h10l1-12"/></svg>
+              <span data-i18n="delete_selected">Delete</span>
+            </button>
+            <button type="button" id="btnNewProject" class="btn-primary toolbar-btn toolbar-btn--primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              <span data-i18n="new_project">New project</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="card stat-card">
+            <div class="stat-label" data-i18n="stat_total">Projects</div>
+            <div id="statTotal" class="stat-value">0</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-label" data-i18n="stat_active">Active</div>
+            <div id="statActive" class="stat-value stat-value--brand">0</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-label" data-i18n="stat_done">Completed</div>
+            <div id="statDone" class="stat-value stat-value--ok">0</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-label" data-i18n="stat_open">Open items</div>
+            <div id="statOpen" class="stat-value stat-value--warn">0</div>
+          </div>
+        </div>
+
+        <div class="card toolbar-card">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+              <input id="projectSearch" class="ds-input search-input" type="search" data-i18n-placeholder="search_projects" placeholder="Search projects or clients">
+            </div>
+            <select id="statusFilter" class="ds-input filter-select" aria-label="Status">
+              <option value="" data-i18n="filter_all">All</option>
+            </select>
+            <select id="teamFilter" class="ds-input filter-select" aria-label="Team">
+              <option value="" data-i18n="filter_team_all">All team</option>
+            </select>
+            <button type="button" id="btnRefresh" class="btn-ghost toolbar-btn" data-i18n-title="refresh" title="Refresh">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+              <span data-i18n="refresh">Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="projectsLoading" class="card empty-card hidden">
+          <div class="empty-text" data-i18n="loading">Loading…</div>
+        </div>
+        <div id="projectsError" class="card empty-card hidden">
+          <div id="projectsErrorText" class="empty-text empty-text--error"></div>
+        </div>
+        <div id="projectsEmpty" class="card empty-card hidden">
+          <div class="empty-text" data-i18n="data_not_found">Data not found</div>
+        </div>
+
+        <div id="projectsTableWrap" class="card table-card hidden">
+          <div class="table-scroll">
+            <table class="projects-table">
+              <thead>
+                <tr>
+                  <th class="col-check"><input id="selectAll" type="checkbox" aria-label="Select all"></th>
+                  <th data-i18n="col_project">Project</th>
+                  <th data-i18n="col_client">Client</th>
+                  <th data-i18n="col_dates">Created / Start</th>
+                  <th data-i18n="col_team">Team</th>
+                  <th data-i18n="col_status">Timeline</th>
+                  <th data-i18n="col_progress">Progress</th>
+                  <th class="col-actions" data-i18n="col_actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="projectsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="projectsCards" class="projects-cards"></div>
+
+        <div id="projectsPager" class="pager hidden">
+          <button type="button" id="btnPrev" class="btn-ghost toolbar-btn" data-i18n="prev">Previous</button>
+          <span id="pagerInfo" class="pager-info"></span>
+          <button type="button" id="btnNext" class="btn-ghost toolbar-btn" data-i18n="next">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOARD -->
+    <div class="phone-inner app-view hidden board-screen" data-view="board">
+      <div class="lang-bar">
+        <div class="lang-bar-left">
+          <button type="button" id="btnBoardBack" class="btn-ghost toolbar-btn board-back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            <span data-i18n="back">Back</span>
+          </button>
+        </div>
+        <div class="lang-bar-right">
+          <button type="button" class="btn-profile" data-profile-open data-i18n-title="profile" title="Profile" aria-label="Profile">
+            <span class="btn-profile-avatar" data-profile-initials>?</span>
+          </button>
+          <button type="button" class="theme-toggle" data-theme-toggle data-i18n-title="toggle_theme" title="Light / Dark mode">
+            <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="board-top">
+        <div class="board-title-wrap">
+          <div id="boardProjectName" class="board-project-name">—</div>
+          <div id="boardTeam" class="board-team"></div>
+        </div>
+        <div class="board-top-mid">
+          <div class="search-wrap board-search-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+            <input id="boardSearch" class="ds-input search-input" type="search" data-i18n-placeholder="search_missions" placeholder="Search missions">
+          </div>
+          <div id="boardClient" class="board-client"></div>
+        </div>
+        <div class="board-chart" id="boardChart">
+          <svg id="boardDonut" class="board-donut" viewBox="0 0 100 100" aria-hidden="true"></svg>
+          <div class="board-chart-side">
+            <ul id="boardChartLegend" class="board-chart-legend"></ul>
+            <div class="board-chart-pager">
+              <button type="button" class="board-chart-nav" data-chart-page="-1" aria-label="Previous">▲</button>
+              <span id="boardChartPage">1/1</span>
+              <button type="button" class="board-chart-nav board-chart-nav--next" data-chart-page="1" aria-label="Next">▼</button>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="btnBoardRefresh" class="btn-ghost toolbar-btn" data-i18n="refresh">Refresh</button>
+      </div>
+      <div id="boardLoading" class="card empty-card hidden">
+        <div class="empty-text" data-i18n="loading">Loading…</div>
+      </div>
+      <div id="boardError" class="card empty-card hidden">
+        <div id="boardErrorText" class="empty-text empty-text--error"></div>
+      </div>
+      <div id="boardColumns" class="board-columns dc-scroll"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="profileOverlay" class="profile-overlay hidden" aria-hidden="true">
+      <button type="button" class="profile-backdrop" data-profile-close aria-label="Close"></button>
+      <div class="profile-sheet" role="dialog" aria-labelledby="profileTitle">
+        <div class="profile-sheet-top">
+          <div id="profileTitle" class="profile-sheet-title" data-i18n="profile">Profile</div>
+          <button type="button" class="profile-close" data-profile-close aria-label="Close">×</button>
+        </div>
+        <div class="profile-avatar-lg" data-profile-initials>?</div>
+        <div id="profileName" class="profile-name">—</div>
+        <div class="profile-rows">
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="email_label">Email / Username</div>
+            <div id="profileEmail" class="profile-row-value">—</div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="profile_role">Role</div>
+            <div id="profileRole" class="profile-row-value">—</div>
+          </div>
+        </div>
+        <button type="button" id="logoutBtn" class="btn-primary profile-logout-btn" data-i18n="logout">Log out</button>
+      </div>
+    </div>
+
+    <!-- GENERIC MODAL -->
+    <div id="modalOverlay" class="modal-overlay hidden" aria-hidden="true">
+      <button type="button" class="modal-backdrop" data-modal-close aria-label="Close"></button>
+      <div class="modal-sheet" role="dialog" aria-modal="true">
+        <div class="modal-top">
+          <div id="modalTitle" class="modal-title"></div>
+          <button type="button" class="profile-close" data-modal-close aria-label="Close">×</button>
+        </div>
+        <div id="modalBody" class="modal-body"></div>
+        <div id="modalFooter" class="modal-footer"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div id="toast" class="toast hidden" role="status"></div>
+</body>
+</html>
