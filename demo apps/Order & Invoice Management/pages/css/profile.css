@@ -1,0 +1,106 @@
+/* Profile / customer hub */
+.back-link {
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.segmented {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.seg-btn {
+  width: auto;
+  min-width: 110px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.seg-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: transparent;
+}
+
+.split-view {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(280px, 1.1fr);
+  gap: 16px;
+}
+
+.detail-box {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface-2);
+  min-height: 120px;
+}
+
+.detail-box dl {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.detail-box dt {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.detail-box dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.list-item.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 18px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+#profileBody .row a {
+  text-decoration: none;
+}
+
+#profileBody .row button {
+  min-width: 110px;
+}
+
+@media (max-width: 960px) {
+  .split-view {
+    grid-template-columns: 1fr;
+  }
+}

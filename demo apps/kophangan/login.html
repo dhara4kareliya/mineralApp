@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Expense Hub — Login</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div class="phone-frame">
+      <div class="login-hero">
+        <div style="position:absolute; inset-inline-end:14px; top:14px; display:flex; gap:8px; z-index:2;">
+          <button type="button" id="btn-lang" class="btn-icon" style="background:rgba(255,255,255,.14); border:none; color:#fff;">EN</button>
+          <button type="button" id="btn-theme" class="btn-icon" style="background:rgba(255,255,255,.14); border:none; color:#fff;">☾</button>
+        </div>
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#9ce7dc" stroke-width="1.8">
+            <path d="M4 19V5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+            <path d="M14 3v5h5" />
+            <path d="M8 13h8M8 17h5" />
+          </svg>
+        </div>
+        <div style="font-size:28px; font-weight:800; position:relative;" data-i18n="appName">Expense Hub</div>
+        <div style="margin-top:8px; opacity:.85; font-weight:600; position:relative;" data-i18n="appTagline">Track and manage expenses on the go</div>
+      </div>
+
+      <form id="loginForm" class="card login-card">
+        <div style="font-size:18px; font-weight:800; margin-bottom:4px;" data-i18n="loginTitle">Sign in</div>
+        <div style="font-size:12.5px; color:var(--text-muted); font-weight:600; margin-bottom:16px;" data-i18n="loginSubtitle">Username, email, phone or ID — plus password and OTP when required</div>
+
+        <div id="errorBox" class="error-box hidden"></div>
+
+        <div class="field">
+          <label for="username"><span data-i18n="email">Username / Email / Phone / ID</span> *</label>
+          <input id="username" class="input" type="text" inputmode="text" autocomplete="username" data-i18n-placeholder="emailPlaceholder" placeholder="username, email, phone or ID" required />
+        </div>
+
+        <div class="field">
+          <label for="password"><span data-i18n="password">Password</span> *</label>
+          <div class="password-wrap">
+            <input id="password" class="input" type="password" autocomplete="current-password" data-i18n-placeholder="passwordPlaceholder" placeholder="Enter password" required />
+            <button type="button" class="eye-btn" id="togglePassword" data-i18n-aria="showPassword" aria-label="Show or hide password">👁</button>
+          </div>
+        </div>
+
+        <div id="otpWrap" class="field hidden">
+          <label for="otp"><span data-i18n="otp">Verification code (OTP)</span> *</label>
+          <input id="otp" class="input" inputmode="numeric" autocomplete="one-time-code" data-i18n-placeholder="otpPlaceholder" placeholder="Enter code" style="text-align:center; letter-spacing:3px;" />
+          <button type="button" id="resendOtpBtn" style="margin-top:8px; border:none; background:transparent; color:var(--primary); font-weight:700; font-size:12.5px;"></button>
+        </div>
+
+        <label class="checkbox-row" style="justify-content:space-between;">
+          <span style="display:inline-flex; align-items:center; gap:8px;">
+            <input id="remember" type="checkbox" />
+            <span data-i18n="rememberMe">Remember me</span>
+          </span>
+        </label>
+
+        <button class="btn btn-primary" id="loginBtn" type="submit" style="width:100%;">
+          <span id="loginBtnText" data-i18n="connect">Sign in</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-stack" class="toast-stack"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

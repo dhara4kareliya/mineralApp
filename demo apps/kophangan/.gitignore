@@ -1,0 +1,12 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea
+.vscode
+
+# Optional local overrides
+js/config.local.js

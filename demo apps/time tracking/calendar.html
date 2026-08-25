@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <script src="js/guard.js"></script>
+  <script>AuthGuard.redirectIfLoggedOut('login.html');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Calendar — Time Tracking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body class="auth-checking">
+  <div id="boot-loader" class="boot-loader" aria-hidden="true">
+    <span class="spinner"></span>
+  </div>
+
+  <div id="app">
+    <section class="view dashboard-view">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-mini">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span data-i18n="appName">Time Tracking</span>
+          </div>
+          <nav class="page-nav">
+            <a href="home.html" class="page-nav-link" data-i18n="navHome">Home</a>
+            <a href="calendar.html" class="page-nav-link active" data-i18n="navCalendar">Calendar</a>
+          </nav>
+        </div>
+        <div class="topbar-right">
+          <div class="lang-switch lang-switch-sm" role="group" aria-label="Language">
+            <button type="button" class="lang-btn" data-lang-btn="en">EN</button>
+            <button type="button" class="lang-btn" data-lang-btn="he">עב</button>
+          </div>
+          <button type="button" id="theme-toggle" class="icon-btn" data-i18n-aria="toggleTheme">
+            <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg class="icon-moon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <div class="user-chip">
+            <span id="user-name">—</span>
+            <button type="button" id="logout-btn" class="btn btn-ghost btn-sm" data-i18n="logout">Logout</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="card calendar-card">
+          <div class="card-header">
+            <div>
+              <h2 data-i18n="calendarTitle">Month Calendar</h2>
+              <p class="card-desc" data-i18n="calendarDesc">View attendance, notes, and sick days by date</p>
+            </div>
+            <div class="history-filters">
+              <label class="month-picker-label" for="cal-month" data-i18n="selectMonth">Month</label>
+              <select id="cal-month" class="input-sm month-select"></select>
+              <button type="button" id="cal-refresh" class="btn btn-ghost btn-sm" data-i18n="refresh">Refresh</button>
+            </div>
+          </div>
+
+          <div id="cal-loading" class="loading-state hidden">
+            <span class="spinner"></span>
+            <span data-i18n="loadingCalendar">Loading calendar…</span>
+          </div>
+
+          <div class="cal-legend" id="cal-legend"></div>
+          <div class="cal-weekdays" id="cal-weekdays"></div>
+          <div class="cal-grid" id="cal-grid" role="grid" aria-label="Month calendar"></div>
+        </section>
+
+        <div class="calendar-panels">
+          <section class="card day-panel">
+            <h3 data-i18n="dayDetails">Day details</h3>
+            <p id="day-hint" class="card-desc" data-i18n="selectDayHint">Select a day on the calendar to view or edit.</p>
+
+            <form id="day-form" class="hidden">
+              <input type="hidden" id="day-iso" />
+              <input type="hidden" id="day-team-hours-id" />
+              <p id="day-selected-label" class="day-selected-label"></p>
+
+              <div class="day-form-grid">
+                <div class="field">
+                  <label for="day-check-in" data-i18n="checkIn">Check in</label>
+                  <input type="time" id="day-check-in" step="60" />
+                </div>
+                <div class="field">
+                  <label for="day-check-out" data-i18n="checkOut">Check out</label>
+                  <input type="time" id="day-check-out" step="60" />
+                </div>
+              </div>
+
+              <div class="field field-checkbox">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="day-sick" />
+                  <span data-i18n="sickDay">Sick day</span>
+                </label>
+              </div>
+
+              <div class="field">
+                <label for="day-note" data-i18n="note">Note</label>
+                <textarea id="day-note" rows="3" data-i18n-placeholder="notePlaceholderDay" placeholder="Add a note for this day…"></textarea>
+              </div>
+
+              <p id="day-hours" class="day-hours-meta"></p>
+              <div id="day-extras" class="day-extras"></div>
+
+              <button type="submit" class="btn btn-primary" id="day-save" data-i18n="saveDay">Save day</button>
+            </form>
+          </section>
+
+          <section class="card notes-panel">
+            <div class="card-header">
+              <div>
+                <h2 data-i18n="notesSickTitle">Notes & sick days</h2>
+                <p class="card-desc" data-i18n="notesSickDesc">All notes and sick-day entries this month</p>
+              </div>
+              <select id="notes-filter" class="input-sm">
+                <option value="all" data-i18n="filterAll">All</option>
+                <option value="sick" data-i18n="filterSick">Sick only</option>
+                <option value="break" data-i18n="filterBreak">Break only</option>
+                <option value="notes" data-i18n="filterNotes">With notes</option>
+              </select>
+            </div>
+            <div id="notes-empty" class="empty-state hidden">
+              <p id="notes-empty-msg" data-i18n="selectDayForSessions">Select a day on the calendar to view its sessions.</p>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="notes-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="colClockIn">Clock in</th>
+                    <th data-i18n="colClockOut">Clock out</th>
+                    <th data-i18n="colDuration">Duration</th>
+                    <th data-i18n="colNote">Note</th>
+                    <th data-i18n="colStatus">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="notes-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/calendar.js"></script>
+</body>
+</html>

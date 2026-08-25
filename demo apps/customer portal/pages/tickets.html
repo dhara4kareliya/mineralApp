@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.tickets">Tickets — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="toolbar">
+      <div class="tabs" id="status-tabs">
+        <button type="button" class="tab active" data-show="" data-i18n="tickets.all">All</button>
+        <button type="button" class="tab" data-show="1" data-i18n="tickets.open">Open</button>
+        <button type="button" class="tab" data-show="0" data-i18n="tickets.closed">Closed</button>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input class="form-control" id="search" data-i18n-placeholder="tickets.search" placeholder="Search subject…" />
+      </div>
+      <a class="btn btn-primary" href="ticket-new.html">+ <span data-i18n="tickets.new">New ticket</span></a>
+    </div>
+    <div class="card" data-live-target>
+      <div id="list"><div class="spinner"></div></div>
+      <div class="pagination" id="pager" hidden>
+        <span id="pager-label"></span>
+        <div class="flex gap-1">
+          <button type="button" class="btn btn-sm btn-secondary" id="prev" data-i18n="previous">Previous</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="next" data-i18n="next">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    Layout.render({ active: 'tickets', titleKey: 'nav.tickets' });
+
+    let state = { show: '', search: '', page: 0, limit: window.CP_CONFIG.PAGE_SIZE };
+
+    document.getElementById('status-tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.tab');
+      if (!tab) return;
+      UI.qsa('.tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.show = tab.dataset.show;
+      state.page = 0;
+      load();
+    });
+
+    let searchTimer;
+    document.getElementById('search').addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.search = e.target.value.trim();
+        state.page = 0;
+        load();
+      }, 350);
+    });
+
+    document.getElementById('prev').addEventListener('click', () => {
+      if (state.page > 0) { state.page--; load(); }
+    });
+    document.getElementById('next').addEventListener('click', () => {
+      state.page++;
+      load();
+    });
+
+    async function load() {
+      const el = document.getElementById('list');
+      Layout.loading(el);
+      try {
+        const body = {
+          limit: state.limit,
+          start: state.page * state.limit,
+        };
+        if (state.show !== '') body.show = state.show;
+        if (state.search) body.searchh = state.search;
+
+        const data = await API.ticketsList(body);
+        const rows = data.data || [];
+        if (!rows.length) {
+          Layout.empty(el, I18n.t('tickets.noFound'), I18n.t('tickets.createHint'));
+          document.getElementById('pager').hidden = true;
+          return;
+        }
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr><th>${I18n.t('tickets.id')}</th><th>${I18n.t('tickets.subject')}</th><th>${I18n.t('tickets.status')}</th><th></th></tr></thead>
+          <tbody>
+            ${rows
+              .map(
+                (r) => `<tr class="clickable" onclick="location.href='ticket-detail.html?id=${r.ticket_id}'">
+                <td><strong>#${r.ticket_id}</strong></td>
+                <td>${Layout.escapeHtml(r.subject || '—')}</td>
+                <td><span class="badge ${r.show == 1 ? 'badge-success' : 'badge-muted'}">${r.show == 1 ? I18n.t('tickets.open') : I18n.t('tickets.closed')}</span></td>
+                <td><a class="btn btn-sm btn-ghost" href="ticket-detail.html?id=${r.ticket_id}">${I18n.t('open')}</a></td>
+              </tr>`
+              )
+              .join('')}
+          </tbody>
+        </table></div>`;
+
+        const pager = document.getElementById('pager');
+        pager.hidden = false;
+        const total = data.count ?? rows.length;
+        document.getElementById('pager-label').textContent = I18n.t('tickets.showing', {
+          from: state.page * state.limit + 1,
+          to: state.page * state.limit + rows.length,
+          total: typeof total === 'number' ? total : rows.length,
+        });
+        document.getElementById('prev').disabled = state.page === 0;
+        document.getElementById('next').disabled = rows.length < state.limit;
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    }
+
+    Realtime.on((p) => {
+      if (p.type === 'ticket' || p.type === 'status') load();
+    });
+
+    load();
+  </script>
+</body>
+</html>

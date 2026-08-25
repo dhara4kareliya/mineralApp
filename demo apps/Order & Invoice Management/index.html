@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Order & Invoice</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <script src="assets/translations.js"></script>
+    <script src="assets/api.js"></script>
+    <script src="assets/app.js"></script>
+  </head>
+  <body data-page="app" class="app-body">
+    <div id="app" class="app-fullscreen">
+      <header class="topbar topbar--full">
+        <div class="topbar__brand">
+          <div class="auth-mark auth-mark--sm" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 7h16M4 12h10M4 17h14" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <strong data-i18n="appTitle">Order & Invoice</strong>
+            <span class="muted" data-i18n="appSubtitle">Biz1</span>
+          </div>
+        </div>
+
+        <div class="user-chip" title="Logged in user">
+          <span class="user-avatar" id="userAvatar">U</span>
+          <div class="user-chip__text">
+            <strong id="userName">—</strong>
+            <span class="muted" id="userEmail"></span>
+          </div>
+        </div>
+
+        <div class="topbar__actions">
+          <span class="live-pill" id="livePill"><i></i><span id="liveText" data-i18n="offline">Offline</span></span>
+          <button type="button" class="icon-btn" id="langToggle" aria-label="Switch language">EN</button>
+          <button type="button" class="icon-btn" id="themeToggle" aria-label="Toggle theme">☾</button>
+          <button type="button" class="btn btn--ghost" id="syncBtn" data-i18n="sync">Sync</button>
+          <button type="button" class="btn btn--ghost" id="logoutBtn" data-i18n="logout">Log out</button>
+        </div>
+      </header>
+
+      <div class="app-main">
+        <section class="toolbar toolbar--full">
+          <div class="nav-bar">
+            <button type="button" class="btn btn--ghost btn--sm hidden" id="navBackBtn" data-i18n="back">Back</button>
+            <div class="nav-title" id="navTitle" data-i18n="customersTitle">Customers</div>
+          </div>
+
+          <div id="customerBrowse" class="picker-panel">
+            <div id="folderStrip" class="folder-strip" role="tablist" aria-label="Folders"></div>
+            <form class="search-form" id="customerBrowseForm">
+              <input id="customerBrowseInput" type="search" autocomplete="off" data-i18n-placeholder="searchCustomers" placeholder="Search customers…" />
+              <button type="submit" class="btn btn--primary" data-i18n="search">Search</button>
+              <button type="button" class="btn btn--ghost hidden" id="clearCustomerBrowseBtn" data-i18n="clear">Clear</button>
+            </form>
+          </div>
+        </section>
+
+        <div class="panel-body">
+          <div id="listError" class="alert alert--error hidden"></div>
+
+          <div id="customerTableScroll" class="table-scroll">
+            <table class="data-table">
+              <thead id="customerTableHead"></thead>
+              <tbody id="customerTableBody"></tbody>
+            </table>
+          </div>
+
+          <div id="pagerBar" class="pager">
+            <div class="pager__meta" id="pagerMeta"></div>
+            <div style="display:flex;gap:.45rem">
+              <button type="button" class="btn btn--ghost btn--sm" id="pagerPrev" data-i18n="prev">Prev</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="pagerNext" data-i18n="next">Next</button>
+            </div>
+          </div>
+
+          <section id="customerDetail" class="hidden"></section>
+
+          <section id="docsPanel" class="hidden">
+            <div class="segmented" role="tablist">
+              <button type="button" class="seg-btn is-active" data-panel="invoices" data-i18n="invoices">Invoices</button>
+              <button type="button" class="seg-btn" data-panel="orders" data-i18n="orders">Orders</button>
+            </div>
+
+            <div id="panelInvoices" style="margin-top:1rem">
+              <div class="split-view">
+                <div class="card" style="padding:1rem">
+                  <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;margin-bottom:.75rem">
+                    <strong data-i18n="invoiceList">Invoice list</strong>
+                    <button type="button" class="btn btn--ghost btn--sm" id="refreshInvoices" data-i18n="refresh">Refresh</button>
+                  </div>
+                  <div class="table-scroll" style="min-height:220px;max-height:420px">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th data-i18n="name">Name</th>
+                          <th data-i18n="docType">Type</th>
+                          <th data-i18n="docDate">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody id="invoiceListBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="card" style="padding:1rem">
+                  <strong data-i18n="selectedInvoice">Selected invoice</strong>
+                  <div id="invoiceDetail" class="detail-box muted" style="margin-top:.75rem" data-i18n="selectInvoiceHint">Select an invoice from the list.</div>
+                  <iframe id="invoiceViewer" class="doc-viewer" style="margin-top:.75rem" hidden title="Invoice viewer"></iframe>
+                </div>
+              </div>
+            </div>
+
+            <div id="panelOrders" class="hidden" style="margin-top:1rem">
+              <div class="split-view">
+                <div class="card" style="padding:1rem">
+                  <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;margin-bottom:.75rem">
+                    <strong data-i18n="orderList">Order list</strong>
+                    <button type="button" class="btn btn--ghost btn--sm" id="refreshOrders" data-i18n="refresh">Refresh</button>
+                  </div>
+                  <div class="table-scroll" style="min-height:220px;max-height:420px">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th data-i18n="name">Name</th>
+                          <th data-i18n="docType">Type</th>
+                          <th data-i18n="docDate">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orderListBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="card" style="padding:1rem">
+                  <strong data-i18n="selectedOrder">Selected order</strong>
+                  <div id="orderDetail" class="detail-box muted" style="margin-top:.75rem" data-i18n="selectOrderHint">Select an order from the list.</div>
+                  <iframe id="orderViewer" class="doc-viewer" style="margin-top:.75rem" hidden title="Order viewer"></iframe>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="customerEditModal" class="modal-backdrop hidden" role="presentation">
+      <div class="modal" role="dialog" aria-modal="true">
+        <header class="modal__header">
+          <h2 data-i18n="editCustomer">Edit customer</h2>
+          <button type="button" class="icon-btn" id="closeEditModal" aria-label="Close">×</button>
+        </header>
+        <form id="editCustomerForm" class="modal__body">
+          <input type="hidden" name="customer_id" />
+          <div id="editNote" class="alert alert--error hidden"></div>
+          <label class="field"><span data-i18n="clientName">Client name</span><input name="name" required /></label>
+          <label class="field"><span data-i18n="company">Company</span><input name="company" /></label>
+          <label class="field"><span data-i18n="phone">Phone</span><input name="phone" /></label>
+          <label class="field"><span data-i18n="email">Email</span><input name="email" type="email" /></label>
+          <label class="field"><span data-i18n="notes">Notes</span><textarea name="note"></textarea></label>
+          <footer class="modal__footer" style="padding:0;border:0;margin-top:.5rem">
+            <button type="button" class="btn btn--ghost" id="cancelEdit" data-i18n="cancel">Cancel</button>
+            <button type="submit" class="btn btn--primary" data-i18n="save">Save</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div id="deleteCustomerModal" class="modal-backdrop hidden" role="presentation">
+      <div class="modal" role="dialog" aria-modal="true">
+        <header class="modal__header">
+          <h2 data-i18n="deleteCustomer">Delete customer?</h2>
+          <button type="button" class="icon-btn" id="closeDeleteModal" aria-label="Close">×</button>
+        </header>
+        <div class="modal__body">
+          <p data-i18n="deleteCustomerText">This moves the customer to trash. You can restore it later if your account allows it.</p>
+          <footer class="modal__footer" style="padding:0;border:0;margin-top:1rem">
+            <button type="button" class="btn btn--ghost" id="cancelDelete" data-i18n="cancel">Cancel</button>
+            <button type="button" class="btn btn--danger" id="confirmDeleteCustomerBtn" data-i18n="delete">Delete</button>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

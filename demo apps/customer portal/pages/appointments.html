@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.appointments">Appointments — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="appt-layout">
+      <aside class="appt-sidebar">
+        <button type="button" class="appt-new-btn" id="appt-new-btn" data-i18n="appt.new">NEW APPOINTMENT</button>
+
+        <div class="appt-panel">
+          <div id="appt-mini-cal"></div>
+        </div>
+
+        <div class="appt-panel">
+          <div id="appt-doctors"></div>
+        </div>
+      </aside>
+
+      <section class="appt-main">
+        <div class="appt-toolbar">
+          <div class="appt-toolbar-left">
+            <button type="button" class="appt-icon-btn" id="appt-prev-week" data-i18n-aria="appt.prevWeek" aria-label="Previous week">‹</button>
+            <span class="appt-week-badge" data-i18n="appt.week">WEEK</span>
+            <button type="button" class="appt-icon-btn" id="appt-next-week" data-i18n-aria="appt.nextWeek" aria-label="Next week">›</button>
+            <span class="appt-range-label" id="appt-range-label"></span>
+            <button type="button" class="btn btn-sm btn-ghost" id="appt-today" data-i18n="appt.today">Today</button>
+          </div>
+          <div class="appt-toolbar-right">
+            <div class="appt-filters" id="appt-filters"></div>
+          </div>
+        </div>
+        <div class="appt-week-wrap">
+          <div id="appt-week"><div class="loading-block"><div class="spinner"></div><span data-i18n="appt.loading">Loading schedule…</span></div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="appt-modal" hidden></div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script src="../js/appointments.js?v=202608151306"></script>
+  <script>
+    Layout.render({ active: 'appointments', titleKey: 'nav.appointments' });
+    AppointmentsCalendar.init();
+  </script>
+</body>
+</html>

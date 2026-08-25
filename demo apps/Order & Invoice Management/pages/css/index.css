@@ -1,0 +1,8 @@
+/* Dashboard page */
+.module-tile h3 {
+  font-size: 15px;
+}
+
+#dashCustomerCount {
+  color: var(--primary);
+}

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <script src="js/guard.js"></script>
+  <script>AuthGuard.redirectIfLoggedOut('login.html');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Time Tracking & Timesheets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body class="auth-checking">
+  <div id="boot-loader" class="boot-loader" aria-hidden="true">
+    <span class="spinner"></span>
+  </div>
+
+  <div id="app">
+    <section class="view dashboard-view">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-mini">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span data-i18n="appName">Time Tracking</span>
+          </div>
+          <nav class="page-nav">
+            <a href="home.html" class="page-nav-link active" data-i18n="navHome">Home</a>
+            <a href="calendar.html" class="page-nav-link" data-i18n="navCalendar">Calendar</a>
+          </nav>
+        </div>
+        <div class="topbar-right">
+          <div class="lang-switch lang-switch-sm" role="group" aria-label="Language">
+            <button type="button" class="lang-btn" data-lang-btn="en">EN</button>
+            <button type="button" class="lang-btn" data-lang-btn="he">עב</button>
+          </div>
+          <span id="socket-badge" class="socket-badge" data-i18n-title="socketTitle" title="Realtime connection">
+            <span class="socket-dot"></span>
+            <span class="socket-label" data-i18n="socketOffline">Offline</span>
+          </span>
+          <button type="button" id="theme-toggle" class="icon-btn" data-i18n-aria="toggleTheme">
+            <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg class="icon-moon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <div class="user-chip">
+            <span id="user-name">—</span>
+            <button type="button" id="logout-btn" class="btn btn-ghost btn-sm" data-i18n="logout">Logout</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="card shift-card">
+          <div class="card-header">
+            <div>
+              <h2 data-i18n="liveShiftControl">Live Shift Control</h2>
+              <p class="card-desc" data-i18n="liveShiftDesc">Start or end your daily work shift</p>
+            </div>
+            <div id="shift-status" class="status-pill status-off">
+              <span class="status-dot"></span>
+              <span id="shift-status-text" data-i18n="statusOff">Off shift</span>
+            </div>
+          </div>
+
+          <div class="shift-body">
+            <div class="live-clock-wrap">
+              <p class="clock-label" data-i18n="currentSession">Current session</p>
+              <div id="live-clock" class="live-clock">00:00:00</div>
+              <p id="shift-started-at" class="clock-meta" data-i18n="notClockedIn">Not clocked in</p>
+            </div>
+
+            <div class="shift-actions">
+              <button type="button" id="btn-start" class="btn btn-success">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span data-i18n="startShift">Start shift</span>
+              </button>
+              <button type="button" id="btn-end" class="btn btn-danger" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                <span data-i18n="endShift">End shift</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats-grid">
+          <article class="card stat-card">
+            <p class="stat-label" data-i18n="today">Today</p>
+            <p id="total-today" class="stat-value">00:00:00</p>
+            <p class="stat-sub" data-i18n="workingHoursLogged">Working hours logged</p>
+          </article>
+          <article class="card stat-card">
+            <p class="stat-label" data-i18n="thisMonth">This month</p>
+            <p id="total-month" class="stat-value">00:00:00</p>
+            <p id="month-percent" class="stat-sub">—</p>
+          </article>
+          <article class="card stat-card">
+            <p class="stat-label" data-i18n="sessions">Sessions</p>
+            <p id="session-count" class="stat-value">0</p>
+            <p class="stat-sub" data-i18n="thisMonthLabel">This month</p>
+          </article>
+        </section>
+
+        <section class="card month-overview-card">
+          <div class="card-header">
+            <div>
+              <h2 data-i18n="monthOverview">Month overview</h2>
+              <p class="card-desc" data-i18n="hoursVsTarget">Hours vs monthly target</p>
+            </div>
+          </div>
+            <!-- <div class="target-progress">
+              <div class="target-progress-head">
+                <span id="target-progress-label">—</span>
+                <span id="target-progress-pct" class="target-pct">0%</span>
+              </div>
+              <div class="progress-track" aria-hidden="true">
+                <div id="target-progress-bar" class="progress-fill is-low"></div>
+              </div>
+            </div> -->
+          <div class="kpi-grid">
+            <article class="kpi-item kpi-days">
+              <p class="kpi-label" data-i18n="daysWorkedLabel">Days worked</p>
+              <p id="kpi-days" class="kpi-value">—</p>
+            </article>
+            <article class="kpi-item kpi-extra">
+              <p class="kpi-label" data-i18n="extraHours">Extra hours</p>
+              <p id="kpi-extra" class="kpi-value">—</p>
+            </article>
+            <article class="kpi-item kpi-missions">
+              <p class="kpi-label" data-i18n="doneMissions">Done missions</p>
+              <p id="kpi-missions" class="kpi-value">—</p>
+            </article>
+            <article class="kpi-item kpi-sales">
+              <p class="kpi-label" data-i18n="sales">Sales</p>
+              <p id="kpi-sales" class="kpi-value">—</p>
+            </article>
+            <article class="kpi-item kpi-calls">
+              <p class="kpi-label" data-i18n="calls">Calls</p>
+              <p id="kpi-calls" class="kpi-value">—</p>
+            </article>
+            <article class="kpi-item kpi-salary">
+              <p class="kpi-label" data-i18n="salary">Salary</p>
+              <p id="kpi-salary" class="kpi-value">—</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="card customer-time-card">
+          <div class="card-header">
+            <div>
+              <h2 data-i18n="customerTime">Customer time</h2>
+              <p class="card-desc" data-i18n="customerTimeDesc">Time logged against customers this month</p>
+            </div>
+          </div>
+          <div id="customer-empty" class="empty-state hidden">
+            <p data-i18n="noCustomerTime">No customer time logged this month.</p>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="customer-table">
+              <thead>
+                <tr>
+                  <th data-i18n="colCustomer">Customer</th>
+                  <th data-i18n="colDate">Date</th>
+                  <th data-i18n="colClockIn">Clock in</th>
+                  <th data-i18n="colClockOut">Clock out</th>
+                  <th data-i18n="colDuration">Duration</th>
+                </tr>
+              </thead>
+              <tbody id="customer-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card history-card">
+          <div class="card-header">
+            <div>
+              <h2 data-i18n="attendanceHistory">Attendance History</h2>
+              <p class="card-desc" data-i18n="attendanceDesc">Clock-in, clock-out, and session durations</p>
+            </div>
+            <div class="history-filters">
+              <label class="month-picker-label" for="history-month" data-i18n="selectMonth">Month</label>
+              <select id="history-month" class="input-sm month-select" aria-describedby="history-month-label"></select>
+              <button type="button" id="refresh-history" class="btn btn-ghost btn-sm" data-i18n="refresh">Refresh</button>
+            </div>
+          </div>
+          <p id="history-month-label" class="month-showing-label"></p>
+
+          <div id="history-loading" class="loading-state hidden">
+            <span class="spinner"></span>
+            <span data-i18n="loadingSessions">Loading sessions…</span>
+          </div>
+          <div id="history-empty" class="empty-state hidden">
+            <p data-i18n="noRecords">No attendance records for this period.</p>
+          </div>
+          <div class="table-wrap">
+            <table id="history-table" class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="colDate">Date</th>
+                  <th data-i18n="colClockIn">Clock in</th>
+                  <th data-i18n="colClockOut">Clock out</th>
+                  <th data-i18n="colDuration">Duration</th>
+                  <th data-i18n="colNote">Note</th>
+                  <th data-i18n="colStatus">Status</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap mobile-cards" id="history-cards"></div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <dialog id="end-shift-dialog" class="modal">
+    <form method="dialog" id="end-shift-form">
+      <h3 data-i18n="endShiftTitle">End shift</h3>
+      <p id="end-shift-summary" class="modal-summary" data-i18n="endShiftConfirm">Confirm you want to end your current shift.</p>
+      <div id="end-shift-kpis" class="end-kpis hidden">
+        <div><span data-i18n="hoursToday">Hours today</span><strong id="end-hours-today">—</strong></div>
+        <div><span data-i18n="missionsDone">Done</span><strong id="end-missions-done">—</strong></div>
+        <div><span data-i18n="missionsTesting">Testing</span><strong id="end-missions-testing">—</strong></div>
+        <div><span data-i18n="missionsOpen">Open missions</span><strong id="end-missions-open">—</strong></div>
+      </div>
+      <div class="field">
+        <label for="end-note" data-i18n="noteOptional">Note (optional)</label>
+        <textarea id="end-note" rows="3" data-i18n-placeholder="notePlaceholder" placeholder="End of day summary…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancel-end" data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-danger" id="confirm-end" data-i18n="confirmEnd">End shift</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/realtime.js"></script>
+  <script src="js/timesheet.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>

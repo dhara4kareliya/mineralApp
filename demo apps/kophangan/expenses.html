@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Expense Hub — Expenses</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div class="phone-frame" id="phoneFrame">
+      <header class="topbar">
+        <div class="topbar-user">
+          <div class="name" id="userName">Hello</div>
+          <div class="meta">
+            <span id="liveDot" class="status-dot off"></span>
+            <span id="liveLabel" data-i18n="disconnected">Offline</span>
+            · <span data-i18n="expenses">Expenses</span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" class="btn-icon" id="btn-refresh" data-i18n-aria="refresh" aria-label="Refresh">↻</button>
+          <button type="button" class="btn-icon" id="btn-lang">EN</button>
+          <button type="button" class="btn-icon" id="btn-theme">☾</button>
+          <button type="button" class="btn-icon" id="btn-logout" data-i18n-aria="logout" aria-label="Log out">⎋</button>
+        </div>
+      </header>
+
+      <div class="page">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:22px; font-weight:800;" data-i18n="expenses">Expenses</div>
+          <div id="totalLabel" style="color:var(--text-muted); font-weight:600; font-size:13;">Total: 0</div>
+        </div>
+
+        <div class="toolbar">
+          <input id="searchInput" class="input" data-i18n-placeholder="search" placeholder="Search expenses" />
+          <button type="button" class="btn btn-ghost" id="btn-open-filters" aria-label="Filters">
+            <span data-i18n="filters">Filters</span>
+            <span id="filterBadge" class="filter-badge hidden">0</span>
+          </button>
+        </div>
+
+        <div id="activeFilters" class="active-filters hidden"></div>
+
+        <div id="listState" class="empty-state" data-i18n="loading">Loading…</div>
+        <div id="expenseList" class="expense-list"></div>
+
+        <div class="fab">
+          <button type="button" class="btn btn-primary" id="btn-add" style="width:100%;">+ <span data-i18n="addExpense">Add Expense</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Expense Sheet -->
+  <div id="addOverlay" class="sheet-overlay hidden">
+    <div class="sheet sheet-fixed" role="dialog" aria-modal="true">
+      <div class="sheet-header">
+        <h2 id="formTitle" data-i18n="addExpense">Add Expense</h2>
+        <button type="button" class="close-x" id="btn-close-add" data-i18n-aria="close" aria-label="Close">×</button>
+      </div>
+      <form id="addForm" class="sheet-form">
+        <div class="sheet-body">
+          <div id="addError" class="error-box hidden"></div>
+
+          <div class="field add-only">
+            <label data-i18n="expenseName">Expense Name</label>
+            <input id="f-name" class="input" data-i18n-placeholder="expenseNamePlaceholder" />
+          </div>
+          <div class="field">
+            <label><span data-i18n="selectCategory">Select Category</span> *</label>
+            <select id="f-category" class="select" required></select>
+          </div>
+          <div class="field add-only">
+            <label data-i18n="selectSubCategory">Select Sub Category</label>
+            <select id="f-subcategory" class="select"></select>
+          </div>
+          <div class="field add-only">
+            <label data-i18n="chooseCustomer">Choose Customer</label>
+            <select id="f-customer" class="select"></select>
+          </div>
+          <div class="field add-only">
+            <label data-i18n="project">Project</label>
+            <select id="f-project" class="select"></select>
+          </div>
+          <div class="field">
+            <label><span data-i18n="amount">Amount</span> *</label>
+            <input id="f-amount" class="input" type="number" step="0.01" min="0" data-i18n-placeholder="amountPlaceholder" required />
+          </div>
+          <label class="checkbox-row add-only">
+            <input id="f-vat" type="checkbox" />
+            <span data-i18n="vatIncluded">VAT included</span>
+          </label>
+          <div class="field">
+            <label><span data-i18n="selectMonth">Select Month</span> *</label>
+            <input id="f-month" class="input" type="month" required />
+          </div>
+          <div class="field">
+            <label data-i18n="paymentDate">Payment Date</label>
+            <input id="f-payment-date" class="input" type="date" />
+          </div>
+          <div class="field add-only">
+            <label data-i18n="checkNumber">Check Number</label>
+            <input id="f-check" class="input" />
+          </div>
+          <div class="field">
+            <label><span data-i18n="document">Document</span> *</label>
+            <select id="f-document" class="select" required>
+              <option value="delivery_invoice">Delivery</option>
+              <option value="invoice">Invoice</option>
+              <option value="receipt">Receipt</option>
+              <option value="receipt_tax_invoice">Tax Invoice Receipt</option>
+            </select>
+          </div>
+          <div class="field">
+            <label data-i18n="invoiceNumber">Invoice Number</label>
+            <input id="f-invoice" class="input" />
+          </div>
+          <div class="field add-only">
+            <label data-i18n="suppliers">Suppliers</label>
+            <select id="f-supplier" class="select"></select>
+          </div>
+          <div class="field add-only">
+            <label data-i18n="documentDate">Document Date</label>
+            <input id="f-document-date" class="input" type="date" />
+          </div>
+          <div class="field add-only">
+            <label data-i18n="image">Image</label>
+            <div id="uploadBox" class="upload-box" role="button" tabindex="0">
+              <div>
+                <strong id="fileLabel" data-i18n="dragDrop">Drag & Drop a file</strong>
+                <span id="fileHint" data-i18n="orTapUpload">or tap to upload</span>
+              </div>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M4 20h16" />
+              </svg>
+            </div>
+            <input id="f-file" type="file" accept="image/*,.pdf" hidden />
+            <button type="button" id="btn-remove-file" class="btn btn-ghost hidden" style="margin-top:8px;" data-i18n="removeFile">Remove file</button>
+          </div>
+          <div class="field">
+            <label data-i18n="note">Note</label>
+            <textarea id="f-notes" class="textarea" data-i18n-placeholder="notePlaceholder"></textarea>
+          </div>
+        </div>
+        <div class="sheet-footer form-actions">
+          <button type="button" class="btn btn-danger-outline" id="btn-reset" data-i18n="reset">Reset</button>
+          <button type="submit" class="btn btn-primary" id="btn-save"><span id="saveText" data-i18n="save">Save</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Detail Sheet -->
+  <div id="detailOverlay" class="sheet-overlay hidden">
+    <div class="sheet sheet-fixed" role="dialog" aria-modal="true">
+      <div class="sheet-header">
+        <h2 data-i18n="expenseDetails">Expense details</h2>
+        <button type="button" class="close-x" id="btn-close-detail" data-i18n-aria="close" aria-label="Close">×</button>
+      </div>
+      <div class="sheet-body" id="detailBody"></div>
+      <div class="sheet-footer detail-actions">
+        <button type="button" class="btn btn-danger-outline" id="btn-detail-delete" data-i18n="delete">Delete</button>
+        <button type="button" class="btn btn-ghost" id="btn-detail-edit" data-i18n="edit">Edit</button>
+        <button type="button" class="btn btn-primary" id="btn-detail-close" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Sheet -->
+  <div id="filterOverlay" class="sheet-overlay hidden">
+    <div class="sheet sheet-fixed" role="dialog" aria-modal="true">
+      <div class="sheet-header">
+        <h2 data-i18n="filters">Filters</h2>
+        <button type="button" class="close-x" id="btn-close-filters" data-i18n-aria="close" aria-label="Close">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label data-i18n="category">Category</label>
+          <select id="filterCategory" class="select"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="month">Month</label>
+          <input id="filterMonth" class="input" type="month" />
+        </div>
+        <div class="field">
+          <label data-i18n="suppliers">Suppliers</label>
+          <select id="filterSupplier" class="select"></select>
+        </div>
+      </div>
+      <div class="sheet-footer form-actions">
+        <button type="button" class="btn btn-danger-outline" id="btn-clear-filters" data-i18n="clearFilters">Clear</button>
+        <button type="button" class="btn btn-primary" id="btn-apply-filters" data-i18n="applyFilters">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="deleteOverlay" class="sheet-overlay confirm-overlay hidden">
+    <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+      <div class="confirm-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 6h18" />
+          <path d="M8 6V4h8v2" />
+          <path d="M19 6l-1 14H6L5 6" />
+          <path d="M10 11v6M14 11v6" />
+        </svg>
+      </div>
+      <h3 id="deleteTitle" data-i18n="deleteTitle">Delete expense</h3>
+      <p id="deleteMessage" data-i18n="deleteConfirm">Delete this expense?</p>
+      <p id="deleteExpenseName" class="confirm-name"></p>
+      <div class="confirm-actions">
+        <button type="button" class="btn btn-ghost" id="btn-delete-cancel" data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="btn-delete-confirm" data-i18n="delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-stack" class="toast-stack"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/biz1-sdk.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/expenses.js"></script>
+</body>
+</html>

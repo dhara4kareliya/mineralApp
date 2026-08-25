@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.content">Dynamic content — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608171209" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div id="list"><div class="spinner"></div></div>
+  </div>
+
+  <script src="../js/config.js?v=202608171209"></script>
+  <script src="../js/theme.js?v=202608171209"></script>
+  <script src="../js/i18n.js?v=202608171209"></script>
+  <script src="../js/toast.js?v=202608171209"></script>
+  <script src="../js/auth.js?v=202608171209"></script>
+  <script src="../js/api.js?v=202608171209"></script>
+  <script src="../js/realtime.js?v=202608171209"></script>
+  <script src="../js/ui.js?v=202608171209"></script>
+  <script src="../js/layout.js?v=202608171209"></script>
+  <script>
+    Layout.render({ active: 'content', titleKey: 'nav.content' });
+
+    function documentsFromPayload(d) {
+      const nested = d.pdf_signer_document || d.pdf_signer_documents || d.pdf_signer_customer;
+      if (nested) return UI.listRows(nested);
+      return UI.listRows(d).filter((r) => r.pdf_signer_id != null || r.view_url || r.pdf_name);
+    }
+
+    function section(title, items, renderItem) {
+      const rows = items || [];
+      return `<div class="card mb-2">
+        <div class="card-header">
+          <div class="card-title">${Layout.escapeHtml(title)}</div>
+          <span class="badge badge-muted">${rows.length}</span>
+        </div>
+        ${
+          rows.length
+            ? `<div class="grid" style="gap:.65rem">${rows.map(renderItem).join('')}</div>`
+            : `<p class="muted text-sm">${I18n.t('content.empty')}</p>`
+        }
+      </div>`;
+    }
+
+    function itemCard(title, meta) {
+      return `<div class="content-item" style="padding:.65rem .75rem;background:var(--bg-muted);border-radius:var(--radius-sm)">
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:600">${Layout.escapeHtml(title || I18n.t('content.item'))}</div>
+          ${meta ? `<div class="card-meta">${Layout.escapeHtml(meta)}</div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    function pdfDocumentCard(item) {
+      const name = item.pdf_name || item.filename || item.name || I18n.t('content.documentN', { id: item.id });
+      const signed = Number(item.is_signed) === 1 || !!item.date_of_sign;
+      const viewUrl = item.view_url || item.sign_url || UI.pdfDocumentUrl(item);
+      const downloadUrl = item.download_url || (item.filename ? UI.assetUrl(item.filename) : '');
+      const target = item.open_in === 'new_tab' || item.view_action === 'open_url' ? '_blank' : '_self';
+      const created = item.date_created ? UI.formatDate(item.date_created) : '';
+      const signedOn = item.date_of_sign ? UI.formatDate(item.date_of_sign) : '';
+
+      const actions = [];
+      if (viewUrl) {
+        const label = signed ? I18n.t('content.viewDocument') : I18n.t('content.sign');
+        actions.push(
+          `<a class="btn btn-sm ${signed ? 'btn-secondary' : 'btn-primary'}" href="${Layout.escapeHtml(viewUrl)}" target="${target}" rel="noopener">${label}</a>`
+        );
+      }
+      if (downloadUrl && signed) {
+        actions.push(
+          `<a class="btn btn-sm btn-ghost" href="${Layout.escapeHtml(downloadUrl)}" target="_blank" rel="noopener">${I18n.t('content.download')}</a>`
+        );
+      }
+
+      return `<div class="content-item doc-item">
+        <div class="doc-icon">📄</div>
+        <div style="min-width:0;flex:1">
+          <div class="flex wrap gap-1" style="align-items:center">
+            <div style="font-weight:700;font-size:.95rem">${Layout.escapeHtml(name)}</div>
+            <span class="badge ${signed ? 'badge-success' : 'badge-warning'}">${signed ? I18n.t('content.signed') : I18n.t('content.pending')}</span>
+          </div>
+          <div class="doc-meta-row">
+            ${item.id != null ? `<span>${I18n.t('content.id')} #${Layout.escapeHtml(item.id)}</span>` : ''}
+            ${item.type ? `<span>${I18n.t('content.type')}: ${Layout.escapeHtml(item.type)}</span>` : ''}
+            ${created ? `<span>${I18n.t('content.created')}: ${Layout.escapeHtml(created)}</span>` : ''}
+            ${signedOn ? `<span>${I18n.t('content.signedOn')}: ${Layout.escapeHtml(signedOn)}</span>` : ''}
+          </div>
+        </div>
+        <div class="doc-actions">${actions.join('')}</div>
+      </div>`;
+    }
+
+    async function loadContent() {
+      const el = document.getElementById('list');
+      try {
+        const data = await API.dynamicContentList({ limit: 25 });
+        const d = data.data || data || {};
+        const documents = documentsFromPayload(d);
+
+        el.innerHTML =
+          section(I18n.t('content.dynamicValues'), UI.listRows(d.dynamic_values), (x) =>
+            itemCard(x.name || x.title || x.key || `#${x.id}`, x.value != null ? String(x.value) : '')
+          ) +
+          section(I18n.t('content.quotes'), UI.listRows(d.quotes), (x) =>
+            itemCard(x.name || x.title || I18n.t('content.quoteN', { id: x.id }), x.status || x.amount || '')
+          ) +
+          section(I18n.t('content.forms'), UI.listRows(d.forms), (x) =>
+            itemCard(x.name || x.title || I18n.t('content.formN', { id: x.id }), x.type || '')
+          ) +
+          section(I18n.t('content.documents'), documents, pdfDocumentCard);
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    }
+
+    loadContent();
+  </script>
+</body>
+</html>

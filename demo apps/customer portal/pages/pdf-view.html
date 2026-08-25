@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="pdf.document">Document — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; flex-direction: column; background: var(--bg); }
+    .pdf-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+    .pdf-toolbar h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pdf-frame-wrap { flex: 1; min-height: 0; background: #525659; }
+    .pdf-frame-wrap embed,
+    .pdf-frame-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+    .pdf-status {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+    }
+  </style>
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div class="pdf-toolbar">
+    <h1 id="doc-title" data-i18n="pdf.document">Document</h1>
+    <div class="flex gap-1">
+      <button type="button" class="btn btn-ghost lang-toggle" data-lang-toggle>עברית</button>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="window.close()" data-i18n="pdf.close">Close</button>
+    </div>
+  </div>
+  <div class="pdf-frame-wrap" id="viewer">
+    <div class="pdf-status"><div class="spinner"></div><p style="margin-top:1rem" data-i18n="pdf.loading">Loading document…</p></div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script>
+    I18n.init();
+    if (!Auth.isLoggedIn()) {
+      location.href = 'login.html';
+    }
+
+    const name = UI.param('name') || I18n.t('pdf.document');
+    document.getElementById('doc-title').textContent = name;
+    document.title = `${name} — ${I18n.t('appName')}`;
+
+    async function loadDocument() {
+      const viewer = document.getElementById('viewer');
+      const item = {
+        id: UI.param('id'),
+        pdf_signer_id: UI.param('pdf_signer_id'),
+        pdf_name: name,
+      };
+      const srcParam = UI.param('src');
+      const base = (window.CP_CONFIG.API_BASE || '').replace(/\/$/, '');
+      const candidates = [
+        srcParam,
+        UI.pdfDocumentUrl(item),
+        item.id && item.pdf_signer_id ? `${base}/client/pdf_signer/${item.pdf_signer_id}/${item.id}` : '',
+      ].filter(Boolean);
+
+      const headers = {};
+      const token = Auth.getToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, { method: 'GET', headers, credentials: 'include' });
+          if (!res.ok) continue;
+
+          const type = res.headers.get('content-type') || '';
+          if (type.includes('pdf') || type.includes('octet-stream')) {
+            const blob = await res.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            viewer.innerHTML = `<embed src="${objectUrl}" type="application/pdf" />`;
+            return;
+          }
+
+          if (type.includes('html') && res.redirected) {
+            viewer.innerHTML = `<iframe src="${url}" title="${name.replace(/"/g, '&quot;')}"></iframe>`;
+            return;
+          }
+        } catch {
+          /* try next */
+        }
+      }
+
+      const fallback = candidates[0];
+      if (fallback) {
+        viewer.innerHTML = `<iframe src="${fallback}" title="${name.replace(/"/g, '&quot;')}"></iframe>`;
+        return;
+      }
+
+      viewer.innerHTML = `<div class="pdf-status"><p>${I18n.t('pdf.couldNotLoad')}</p></div>`;
+    }
+
+    loadDocument();
+  </script>
+</body>
+</html>

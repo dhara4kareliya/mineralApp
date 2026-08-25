@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="tickets.newTitle">New ticket — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="mb-2">
+      <a class="btn btn-ghost btn-sm" href="tickets.html">← <span data-i18n="back">Back</span></a>
+    </div>
+    <div class="card" style="max-width:640px">
+      <div class="card-title mb-2" data-i18n="tickets.create">Create ticket</div>
+      <div id="form-alert" hidden></div>
+      <form id="form">
+        <div class="form-group">
+          <label class="form-label" for="topic" data-i18n="tickets.subjectReq">Subject *</label>
+          <input class="form-control" id="topic" required maxlength="200" data-i18n-placeholder="tickets.subjectPh" placeholder="What do you need help with?" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="messages" data-i18n="tickets.messageReq">Message *</label>
+          <textarea class="form-control" id="messages" required data-i18n-placeholder="tickets.messagePh" placeholder="Describe the issue…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="ticket_department" data-i18n="tickets.department">Department</label>
+            <select class="form-control" id="ticket_department">
+              <option value="" data-i18n="tickets.select">— Select —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="tickets.urgency">Urgency</label>
+            <div class="star-rating" id="rating-wrap">
+              <input type="hidden" id="rating" name="rating" value="1" />
+              <div class="star-rating-stars" id="rating-stars" role="radiogroup" data-i18n-aria="tickets.urgencyRating" aria-label="Urgency rating">
+                <button type="button" class="star-btn" data-value="1" aria-label="1 star — Low">★</button>
+                <button type="button" class="star-btn" data-value="2" aria-label="2 stars">★</button>
+                <button type="button" class="star-btn" data-value="3" aria-label="3 stars — Normal">★</button>
+                <button type="button" class="star-btn" data-value="4" aria-label="4 stars">★</button>
+                <button type="button" class="star-btn" data-value="5" aria-label="5 stars — Critical">★</button>
+              </div>
+              <span class="star-rating-label" id="rating-label">Low</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="product_id" data-i18n="tickets.relatedProduct">Related product</label>
+          <select class="form-control" id="product_id">
+            <option value="" data-i18n="tickets.optionalDash">— Optional —</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="customername" data-i18n="tickets.name">Name</label>
+            <input class="form-control" id="customername" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="email" data-i18n="tickets.email">Email</label>
+            <input class="form-control" id="email" type="email" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-submit" data-i18n="tickets.submit">Submit ticket</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    Layout.render({ active: 'tickets', titleKey: 'tickets.newTitle' });
+
+    const RATING_LABELS = () => ({
+      1: I18n.t('tickets.low'),
+      2: I18n.t('tickets.medium'),
+      3: I18n.t('tickets.normal'),
+      4: I18n.t('tickets.high'),
+      5: I18n.t('tickets.critical'),
+    });
+    const ratingInput = document.getElementById('rating');
+    const ratingLabel = document.getElementById('rating-label');
+    const starBtns = [...document.querySelectorAll('#rating-stars .star-btn')];
+
+    function setRating(value, { hover = false } = {}) {
+      const v = Number(value) || 1;
+      if (!hover) ratingInput.value = v;
+      starBtns.forEach((btn) => {
+        const n = Number(btn.dataset.value);
+        btn.classList.toggle('is-active', !hover && n <= v);
+        btn.classList.toggle('is-hover', hover && n <= v);
+      });
+      if (!hover) {
+        ratingLabel.textContent = RATING_LABELS()[v] || '';
+        starBtns.forEach((btn) => {
+          const n = Number(btn.dataset.value);
+          const label = RATING_LABELS()[n] || '';
+          btn.setAttribute('aria-label', `${n} — ${label}`);
+        });
+      }
+    }
+
+    starBtns.forEach((btn) => {
+      btn.addEventListener('click', () => setRating(btn.dataset.value));
+      btn.addEventListener('mouseenter', () => setRating(btn.dataset.value, { hover: true }));
+    });
+    document.getElementById('rating-stars').addEventListener('mouseleave', () => {
+      starBtns.forEach((btn) => btn.classList.remove('is-hover'));
+      setRating(ratingInput.value);
+    });
+    setRating(1);
+
+    (async function loadForm() {
+      try {
+        const data = await API.ticketFormData();
+        const cust = data.customer || {};
+        if (cust.name) document.getElementById('customername').value = cust.name;
+        if (cust.email) document.getElementById('email').value = cust.email;
+
+        const dept = document.getElementById('ticket_department');
+        (data.departments || []).forEach((d) => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = d.name;
+          dept.appendChild(opt);
+        });
+
+        const prod = document.getElementById('product_id');
+        (data.products || []).forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name || p.product_name;
+          prod.appendChild(opt);
+        });
+      } catch (err) {
+        Toast.error(err.message || I18n.t('failedToLoad'));
+      }
+    })();
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const alert = document.getElementById('form-alert');
+      alert.hidden = true;
+      const body = {
+        topic: document.getElementById('topic').value.trim(),
+        messages: document.getElementById('messages').value.trim(),
+        rating: document.getElementById('rating').value,
+        ticket_department: document.getElementById('ticket_department').value,
+        customername: document.getElementById('customername').value.trim(),
+        email: document.getElementById('email').value.trim(),
+      };
+      const pid = document.getElementById('product_id').value;
+      if (pid) body.product_id = pid;
+
+      const btn = document.getElementById('btn-submit');
+      await UI.withButton(btn, async () => {
+        try {
+          const res = await API.ticketAdd(body);
+          if (String(res.success) === '0' || res.success === 0) {
+            throw new Error(res.message || res.error || I18n.t('tickets.couldNotCreate'));
+          }
+          Toast.success(I18n.t('tickets.created'));
+          Realtime.handleEvent({ type: 'ticket', message: `Ticket #${res.ticket_id || res.insert_id} created` });
+          location.href = `ticket-detail.html?id=${res.ticket_id || res.insert_id}`;
+        } catch (err) {
+          alert.hidden = false;
+          alert.className = 'alert alert-error';
+          alert.textContent = err.message;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

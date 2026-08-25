@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.projects">Projects — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input class="form-control" id="search" data-i18n-placeholder="projects.search" placeholder="Search projects…" />
+      </div>
+    </div>
+    <div id="list"><div class="spinner"></div></div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    Layout.render({ active: 'projects', titleKey: 'nav.projects' });
+    let search = '';
+    let timer;
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        search = e.target.value.trim();
+        load();
+      }, 350);
+    });
+
+    async function load() {
+      const el = document.getElementById('list');
+      Layout.loading(el);
+      try {
+        const data = await API.projectsList({ search, limit: 25 });
+        const rows = data.data || [];
+        if (!rows.length) {
+          Layout.empty(el, I18n.t('projects.none'), I18n.t('projects.noneHint'));
+          return;
+        }
+        el.innerHTML = `<div class="grid grid-2">${rows
+          .map(
+            (p) => `<div class="card">
+            <div class="card-title">${Layout.escapeHtml(p.name || I18n.t('projects.untitled'))}</div>
+            <div class="card-meta mt-1">${I18n.t('table.id')} #${p.id} · ${Layout.escapeHtml(p.type || I18n.t('projects.project'))}</div>
+            ${p.note ? `<p class="text-sm mt-2">${Layout.escapeHtml(p.note)}</p>` : ''}
+          </div>`
+          )
+          .join('')}</div>`;
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

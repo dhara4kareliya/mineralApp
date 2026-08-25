@@ -1,0 +1,10 @@
+/* Invoices page */
+#invoiceGrid .stat-value {
+  color: var(--primary);
+}
+
+@media (min-width: 961px) and (max-width: 1200px) {
+  #invoiceGrid.grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
