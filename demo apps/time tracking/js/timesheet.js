@@ -111,9 +111,19 @@ const Timesheet = (function () {
 
     if (running) {
       teamHoursId = res.team_hours_id || data.id || 0;
-      elapsedBaseSeconds = Utils.parseElapsed(data.elapsed);
-      sessionStartUtc = Date.now();
-      setShiftUI(SHIFT.ACTIVE, I18n.t('startedAt', { time: Utils.toTimeStr(data.start_time) }));
+      const startTime = Utils.parseApiDate(data.start_time || data.start);
+      const elapsedFromApi = Utils.parseElapsed(data.elapsed);
+      if (startTime) {
+        sessionStartUtc = startTime.getTime();
+        elapsedBaseSeconds = 0;
+      } else if (elapsedFromApi > 0) {
+        sessionStartUtc = Date.now();
+        elapsedBaseSeconds = elapsedFromApi;
+      } else {
+        sessionStartUtc = Date.now();
+        elapsedBaseSeconds = 0;
+      }
+      setShiftUI(SHIFT.ACTIVE, I18n.t('startedAt', { time: Utils.toTimeStr(data.start_time || data.start) }));
       startClockTick();
     } else {
       teamHoursId = 0;
