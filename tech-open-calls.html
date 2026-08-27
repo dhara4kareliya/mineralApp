@@ -116,6 +116,23 @@ mbCss('./common.css');
 <span style="width:6px; height:6px; border-radius:50%; background:{{ c.badgeColor }};"></span>{{ c.badge }}
               </div>
 </div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ c.hasProduct }}">
+<div style="display:flex; align-items:flex-start; gap:7px; margin-top:10px; padding:9px 11px; background:#f7f9fc; border-radius:10px;">
+<svg fill="none" height="14" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="14" style="flex:none; margin-top:1px;"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9z"></path><path d="M4 6.5 12 11l8-4.5M12 11v9"></path></svg>
+<div style="min-width:0; flex:1;">
+<div style="font-size:11px; color:#8a93a3; font-weight:700; margin-bottom:2px;">{{ c.productLabel }}</div>
+<sc-for as="p" hint-placeholder-count="1" list="{{ c.productItems }}">
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-top:6px;">
+<div style="min-width:0; flex:1;">
+<div style="font-size:13px; color:#1f2a3a; font-weight:700; line-height:1.35; word-break:break-word;">{{ p.label }}</div>
+<div style="font-size:12px; color:#7b8595; font-weight:600; line-height:1.4; margin-top:2px; word-break:break-word;">{{ c.productDescLabel }}: {{ p.desc }}</div>
+</div>
+<div style="font-size:13px; color:#1d60a2; font-weight:800; line-height:1.35; white-space:nowrap; flex:none; direction:ltr;">{{ p.price }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
 <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
 <div style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#5a6473;">
 <svg fill="none" height="13" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="13"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
@@ -246,6 +263,315 @@ class Component extends DCLogic {
     return this.t(n + ' days since opened', n + ' ימים מאז הפתיחה');
   }
 
+  formatProductPrice(priceRaw, coin) {
+    coin = coin || '₪';
+    if (priceRaw === '' || priceRaw == null) return '';
+    var num = Number(priceRaw);
+    if (isFinite(num)) {
+      return Math.round(num).toLocaleString('en-US') + (String(coin).indexOf('₪') >= 0 || coin === 'ILS' ? '₪' : String(coin));
+    }
+    var price = String(priceRaw).trim();
+    if (!price) return '';
+    if (coin && price.indexOf('₪') < 0 && price.indexOf(String(coin)) < 0) return price + String(coin);
+    return price;
+  }
+
+  pickProductPrice(obj, allowGenericPrice) {
+    if (!obj || typeof obj !== 'object') return '';
+    var raw = obj.product_price != null ? obj.product_price
+      : (obj.item_price != null ? obj.item_price
+        : (obj.item_total != null ? obj.item_total
+          : (obj.main_price != null ? obj.main_price
+            : (obj.sale_price != null ? obj.sale_price
+              : (allowGenericPrice && obj.price != null ? obj.price : '')))));
+    return this.formatProductPrice(raw, obj.coin || obj.currency || '₪');
+  }
+
+  pickProductDescription(obj) {
+    if (!obj || typeof obj !== 'object') return '';
+    return String(
+      obj.discription ||
+      obj.description ||
+      obj.desc ||
+      obj.product_description ||
+      obj.details ||
+      ''
+    ).trim();
+  }
+
+  catalogProductEntry(p) {
+    if (!p) return null;
+    var name = String(p.product_name || p.name || p.title || '').trim();
+    var raw = p.product_price != null ? p.product_price
+      : (p.main_price != null ? p.main_price
+        : (p.sale_price != null ? p.sale_price
+          : (p.price != null ? p.price
+            : (p.cost != null ? p.cost : ''))));
+    return {
+      name: name,
+      priceRaw: raw,
+      price: this.formatProductPrice(raw, p.coin || p.currency || '₪'),
+      desc: this.pickProductDescription(p)
+    };
+  }
+
+  unwrapProductRecord(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var row = raw.data || raw.output || raw.product || raw.item || raw;
+    if (Array.isArray(row)) row = row[0];
+    if (row && row.data && typeof row.data === 'object' && !Array.isArray(row.data)) row = row.data;
+    if (row && row.product && typeof row.product === 'object' && !Array.isArray(row.product)) row = row.product;
+    if (!row || typeof row !== 'object') return null;
+    if (row.product_name || row.name || row.title || row.id || row.product_id ||
+        row.product_price != null || row.price != null || row.main_price != null) return row;
+    return null;
+  }
+
+  catalogRowsFromList(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw.data)) return raw.data;
+    if (raw.data && Array.isArray(raw.data.rows)) return raw.data.rows;
+    if (raw.data && Array.isArray(raw.data.data)) return raw.data.data;
+    if (Array.isArray(raw.rows)) return raw.rows;
+    if (Array.isArray(raw.products)) return raw.products;
+    if (Array.isArray(raw.output)) return raw.output;
+    if (raw.output && Array.isArray(raw.output.data)) return raw.output.data;
+    return [];
+  }
+
+  extractTicketProductIds(ticket) {
+    var ids = [];
+    if (!ticket) return ids;
+    function addId(v) {
+      if (v == null || v === '') return;
+      if (Array.isArray(v)) { v.forEach(addId); return; }
+      if (typeof v === 'object') { addId(v.id != null ? v.id : v.product_id); return; }
+      String(v).split(/[,|;]+/).forEach(function (part) {
+        part = String(part || '').replace(/[\[\]"']/g, '').trim();
+        if (!part || part === '0' || !/^\d+$/.test(part)) return;
+        ids.push(part);
+      });
+    }
+    addId(ticket.product_id);
+    addId(ticket.product_ids);
+    addId(ticket.productId);
+    addId(ticket.products);
+    addId(ticket.product);
+    addId(ticket.linked_products);
+    addId(ticket.product_list);
+    var cf = ticket.custom_fields;
+    if (typeof cf === 'string') { try { cf = JSON.parse(cf); } catch (e0) { cf = null; } }
+    if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
+      Object.keys(cf).forEach(function (k) {
+        if (!/product/i.test(k) || /name|title|label|choose|sku/i.test(k)) return;
+        addId(cf[k]);
+      });
+    }
+    Object.keys(ticket).forEach(function (k) {
+      if (!(/^a-.*product/i.test(k) || k === 'a-product_id')) return;
+      if (/name|title|label|sku/i.test(k)) return;
+      addId(ticket[k]);
+    });
+    var seen = {};
+    return ids.filter(function (id) {
+      if (!id || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
+
+  extractTicketProducts(ticket) {
+    var out = [];
+    if (!ticket) return out;
+    var subject = String(ticket.subject || ticket.topic || '').trim();
+    var self = this;
+    function push(name, id, price, desc) {
+      name = String(name || '').trim();
+      if (!name || name === 'undefined' || name === 'null') return;
+      if (subject && name === subject) return;
+      var key = name.toLowerCase();
+      for (var i = 0; i < out.length; i++) {
+        if (String(out[i].label || '').toLowerCase() === key) {
+          if (!out[i].price && price) out[i].price = price;
+          if (!out[i].id && id) out[i].id = String(id);
+          if (!out[i].desc && desc) out[i].desc = desc;
+          return;
+        }
+      }
+      out.push({ label: name, id: id ? String(id) : '', price: price || '', desc: desc || '' });
+    }
+    [ticket.products, ticket.product_list, ticket.linked_products].forEach(function (list) {
+      if (!Array.isArray(list)) return;
+      list.forEach(function (item) {
+        if (!item) return;
+        if (typeof item === 'object') {
+          push(
+            item.product_name || item.name || item.title || item.label,
+            item.id || item.product_id,
+            self.pickProductPrice(item, true),
+            self.pickProductDescription(item)
+          );
+        } else if (typeof item === 'string' && !/^\d+$/.test(String(item).trim())) {
+          push(item, '', '', '');
+        }
+      });
+    });
+    if (ticket.product && typeof ticket.product === 'object' && !Array.isArray(ticket.product)) {
+      push(
+        ticket.product.product_name || ticket.product.name,
+        ticket.product.id || ticket.product.product_id,
+        self.pickProductPrice(ticket.product, true),
+        self.pickProductDescription(ticket.product)
+      );
+    }
+    push(
+      ticket.product_name || ticket.joined_product_name || ticket.item_name,
+      ticket.product_id || ticket['a-product_id'],
+      self.pickProductPrice(ticket, false),
+      self.pickProductDescription(ticket)
+    );
+    var cf = ticket.custom_fields;
+    if (typeof cf === 'string') { try { cf = JSON.parse(cf); } catch (e1) { cf = null; } }
+    if (cf && typeof cf === 'object' && !Array.isArray(cf)) {
+      var cfId = cf.product_id || cf.productId || '';
+      Object.keys(cf).forEach(function (k) {
+        if (!/product/i.test(k)) return;
+        var v = cf[k];
+        if (v == null) return;
+        if (typeof v === 'object') {
+          push(v.product_name || v.name || v.label, v.id || v.product_id, self.pickProductPrice(v, true), self.pickProductDescription(v));
+        } else if (/name|title|label/i.test(k)) {
+          var s = String(v).trim();
+          if (s && !/^\d+$/.test(s)) push(s, cfId, self.pickProductPrice(cf, true), self.pickProductDescription(cf));
+        }
+      });
+    }
+    var aId = ticket['a-product_id'] || ticket.product_id || '';
+    Object.keys(ticket).forEach(function (k) {
+      if (!/^a-.*product.*name/i.test(k) && k !== 'a-product_name') return;
+      push(ticket[k], aId, '', '');
+    });
+    return out;
+  }
+
+  rememberCatalogName(entry) {
+    if (!entry || !entry.name) return;
+    this._catalogByName = this._catalogByName || {};
+    this._catalogByName[entry.name.toLowerCase().replace(/\s+/g, ' ')] = entry;
+  }
+
+  async fetchCatalogById(client, id) {
+    var pid = String(id || '').trim();
+    if (!pid || pid === '0') return null;
+    this._catalogById = this._catalogById || {};
+    if (this._catalogById[pid]) return this._catalogById[pid];
+    try {
+      var got = await client.request('Products.Get', { id: pid, product_id: pid });
+      var entry = this.catalogProductEntry(this.unwrapProductRecord(got));
+      if (entry) {
+        this._catalogById[pid] = entry;
+        this.rememberCatalogName(entry);
+        return entry;
+      }
+    } catch (eGet) { /* ignore */ }
+    return null;
+  }
+
+  async ensureProductCatalog(client) {
+    if (this._catalogReady) return;
+    if (this._catalogPromise) {
+      try { await this._catalogPromise; } catch (e0) { /* ignore */ }
+      return;
+    }
+    var self = this;
+    this._catalogById = this._catalogById || {};
+    this._catalogByName = this._catalogByName || {};
+    this._catalogPromise = Promise.race([
+      client.request('Products.List', { limit: 200, length: 200, start: 0, draw: 1, active: 1 }),
+      new Promise(function (_, reject) { setTimeout(function () { reject(new Error('Products.List timeout')); }, 8000); })
+    ]).then(function (raw) {
+      var rows = self.catalogRowsFromList(raw) || [];
+      rows.forEach(function (r) {
+        var entry = self.catalogProductEntry(r);
+        if (!entry) return;
+        var id = r && (r.id != null ? r.id : r.product_id);
+        if (id != null && id !== '') self._catalogById[String(id)] = entry;
+        self.rememberCatalogName(entry);
+      });
+    }).catch(function (eCat) {
+      console.warn('[tech-open-calls] product catalog skipped', eCat);
+    }).then(function () {
+      self._catalogReady = true;
+    });
+    await this._catalogPromise;
+  }
+
+  async enrichTicketProductNames(client, rows) {
+    var list = Array.isArray(rows) ? rows : [];
+    if (!list.length) return list;
+    var self = this;
+    this._catalogById = this._catalogById || {};
+    this._catalogByName = this._catalogByName || {};
+    await this.ensureProductCatalog(client);
+    var idsNeeded = {};
+    list.forEach(function (ticket) {
+      self.extractTicketProductIds(ticket).forEach(function (id) { idsNeeded[id] = true; });
+      self.extractTicketProducts(ticket).forEach(function (p) {
+        if (p.id) idsNeeded[String(p.id)] = true;
+      });
+    });
+    var idList = Object.keys(idsNeeded);
+    for (var i = 0; i < idList.length && i < 20; i++) {
+      if (!this._catalogById[idList[i]]) await this.fetchCatalogById(client, idList[i]);
+    }
+    return list.map(function (t) {
+      if (!t) return t;
+      var parts = self.extractTicketProducts(t);
+      var ids = self.extractTicketProductIds(t);
+      if (parts.length === 1 && ids.length && !parts[0].id) parts[0].id = ids[0];
+      if (!parts.length && ids.length) {
+        ids.forEach(function (id) {
+          var cat0 = self._catalogById[id];
+          parts.push({
+            label: (cat0 && cat0.name) || ('#' + id),
+            id: id,
+            price: (cat0 && cat0.price) || '',
+            desc: (cat0 && cat0.desc) || ''
+          });
+        });
+      }
+      var resolved = parts.map(function (p) {
+        var cat = (p.id && self._catalogById[String(p.id)]) ||
+          self._catalogByName[String(p.label || '').toLowerCase().replace(/\s+/g, ' ')];
+        return {
+          label: p.label || (cat && cat.name) || '',
+          id: p.id || '',
+          price: p.price || (cat && cat.price) || '',
+          desc: p.desc || (cat && cat.desc) || ''
+        };
+      }).filter(function (p) { return p.label; });
+      if (!resolved.length) return t;
+      return Object.assign({}, t, { _scheduleProducts: resolved });
+    });
+  }
+
+  callProductItems(ticket) {
+    var parts = (ticket && Array.isArray(ticket._scheduleProducts) && ticket._scheduleProducts.length)
+      ? ticket._scheduleProducts
+      : this.extractTicketProducts(ticket);
+    var multi = (parts || []).length > 1;
+    return (parts || []).map(function (p, idx) {
+      var name = p.label || '';
+      var pDesc = String(p.desc || '').trim();
+      return {
+        label: multi ? ((idx + 1) + '. ' + name) : name,
+        price: p.price || '',
+        desc: pDesc || '--'
+      };
+    });
+  }
+
   isEn() {
     return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
   }
@@ -258,12 +584,12 @@ class Component extends DCLogic {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
       LiveSync.bind(() => this.initData({ silent: true }), {
         retries: false,
-        keys: /ticket|mission|task|call|service|team_hours|teamhours/i,
+        keys: /ticket|mission|task|call|service|team_hours|teamhours|product/i,
         delay: 350
       });
     } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.initData({ silent: true }), {
-        keys: /ticket|mission|task|call|service|team_hours|teamhours/i,
+        keys: /ticket|mission|task|call|service|team_hours|teamhours|product/i,
         delay: 350
       });
     }
@@ -301,7 +627,7 @@ class Component extends DCLogic {
     if (/^socket\.(connect|connected|disconnect|nudge)/i.test(key)) return;
     if (key === 'pageshow' || key === 'visible') return;
     var relevant =
-      /ticket|mission|task|call|service|appointment|reminder|team_hours|teamhours/.test(key) ||
+      /ticket|mission|task|call|service|appointment|reminder|team_hours|teamhours|product/.test(key) ||
       group === 'missions' ||
       group === 'other';
     if (!relevant) return;
@@ -331,6 +657,8 @@ class Component extends DCLogic {
         var res = await client.request('Ticket.List', { limit: 25 });
         var data = res && (res.data || res.output || res);
         var openTickets = [];
+        var rawOpen = [];
+        var loadSeq = (self._ticketsLoadSeq = (self._ticketsLoadSeq || 0) + 1);
         if (Array.isArray(data) && data.length > 0) {
           data.forEach(function (item) {
             var lastMsg = '';
@@ -398,8 +726,10 @@ class Component extends DCLogic {
               wait: wait,
               lastMsg: lastMsg,
               status: ticketStatus,
-              isClosed: false
+              isClosed: false,
+              productItems: self.callProductItems(item)
             });
+            rawOpen.push(item);
           });
         }
 
@@ -409,6 +739,23 @@ class Component extends DCLogic {
           errorMsg: ''
         });
         self._booted = true;
+        if (rawOpen.length) {
+          self.enrichTicketProductNames(client, rawOpen).then(function (enriched) {
+            if (loadSeq !== self._ticketsLoadSeq) return;
+            var byId = {};
+            (enriched || []).forEach(function (t) {
+              if (t && t.id != null) byId[String(t.id)] = t;
+            });
+            var next = (self.state.calls || []).map(function (c) {
+              var t = byId[String(c.id)];
+              if (!t) return c;
+              return Object.assign({}, c, { productItems: self.callProductItems(t) });
+            });
+            self.setState({ calls: next });
+          }).catch(function (eEn) {
+            console.warn('[tech-open-calls] product enrich skipped', eEn);
+          });
+        }
       } catch (err) {
         console.warn('[MineralBar] failed to load tickets', err);
         self.setState({
@@ -590,6 +937,7 @@ class Component extends DCLogic {
       const stMeta = ST[c.status] || ST.open;
       const wt = this.waitTone(c.wait);
       const waitLabel = this.waitLabel(c.wait);
+      const productItems = Array.isArray(c.productItems) ? c.productItems : [];
       return {
         name: c.name || fallbackCall,
         address: c.address || fallbackAddr,
@@ -601,6 +949,10 @@ class Component extends DCLogic {
         custNumberLabel: this.t('Customer number:', 'מספר לקוח:'),
         preview: preview,
         hasPreview: !!preview,
+        hasProduct: productItems.length > 0,
+        productLabel: this.t('Product', 'מוצר'),
+        productDescLabel: this.t('Description', 'תיאור'),
+        productItems: productItems,
         accent: wt.accent,
         badge: stMeta.badge,
         badgeBg: wt.bg,

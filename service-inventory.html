@@ -196,12 +196,9 @@ mbCss('./common.css');
   <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 16px 10px; flex:none;">
     <div style="width:40px;"></div>
     <div style="font-size:20px; font-weight:800; color:#1f2a3a;">inventory</div>
-    <!-- Add product button disabled
-    <button onclick="{{ openAddModal }}" style="width:40px; height:40px; border-radius:50%; border:none; background:#1d60a2; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(29,96,162,0.3);">
+    <button type="button" onclick="{{ openAddModal }}" aria-label="Add product" style="width:40px; height:40px; border-radius:50%; border:none; background:#1d60a2; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(29,96,162,0.3);">
       <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="20"><path d="M12 5v14M5 12h14"></path></svg>
     </button>
-    -->
-    <div style="width:40px;"></div>
   </div>
 
   <!-- summary cards -->
@@ -274,6 +271,7 @@ mbCss('./common.css');
               <div style="text-align:start; flex:none; min-width:42px;">
                 <div style="font-size:17px; font-weight:800; color:{{ it.qtyColor }}; line-height:1;">{{ it.qty }}</div>
               </div>
+              <svg fill="none" height="16" stroke="#c2c9d2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="16" style="flex:none;"><path d="m9 18 6-6-6-6"></path></svg>
             </div>
           </sc-for>
         </div>
@@ -295,7 +293,7 @@ mbCss('./common.css');
   </div>
 
   <!-- Add Product Modal Sheet overlay -->
-  <sc-if value="{{ addOpen }}">
+  <sc-if hint-placeholder-val="{{ false }}" value="{{ addOpen }}">
     <div class="inv-product-overlay">
       <div onclick="{{ closeAdd }}" style="position:absolute; inset:0; background:#0f1828; opacity:0.4;"></div>
       <div class="inv-product-sheet">
@@ -316,7 +314,6 @@ mbCss('./common.css');
         <label class="form-label">Suppliers</label>
         <div style="position:relative; margin-bottom:16px;">
           <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddSupplierChange }}">
-            <option value="">Select supplier</option>
             <sc-for as="sup" list="{{ suppliers }}">
               <option value="{{ sup.id }}" selected="{{ sup.selected }}">{{ sup.name }}</option>
             </sc-for>
@@ -344,7 +341,6 @@ mbCss('./common.css');
             <label class="form-label">Category</label>
             <div style="position:relative;">
               <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddCategoryChange }}">
-                <option value="">Select Category</option>
                 <sc-for as="cat" list="{{ selectableCategories }}">
                   <option value="{{ cat.id }}" selected="{{ cat.addSelected }}">{{ cat.name }}</option>
                 </sc-for>
@@ -356,7 +352,6 @@ mbCss('./common.css');
             <label class="form-label">Sub Category</label>
             <div style="position:relative;">
               <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddSubCatChange }}">
-                <option value="0">-- Select Sub Category --</option>
                 <sc-for as="sub" list="{{ subCategories }}">
                   <option value="{{ sub.id }}" selected="{{ sub.selected }}">{{ sub.name }}</option>
                 </sc-for>
@@ -382,7 +377,6 @@ mbCss('./common.css');
             <label class="form-label">Company</label>
             <div style="position:relative;">
               <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddCompanyChange }}">
-                <option value="">Company</option>
                 <sc-for as="co" list="{{ companies }}">
                   <option value="{{ co.id }}" selected="{{ co.selected }}">{{ co.name }}</option>
                 </sc-for>
@@ -397,7 +391,6 @@ mbCss('./common.css');
             <label class="form-label">Team member</label>
             <div style="position:relative;">
               <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddTeamMemberChange }}">
-                <option value="">Select Team Member</option>
                 <sc-for as="tm" list="{{ teamMembers }}">
                   <option value="{{ tm.id }}" selected="{{ tm.selected }}">{{ tm.name }}</option>
                 </sc-for>
@@ -425,9 +418,8 @@ mbCss('./common.css');
             <label class="form-label">Select Storage</label>
             <div style="position:relative;">
               <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onAddStorageSelect }}">
-                <option value="">All</option>
                 <sc-for as="st" list="{{ storages }}">
-                  <option value="{{ st.id }}">{{ st.name }}</option>
+                  <option value="{{ st.id }}" selected="{{ st.addSelected }}">{{ st.name }}</option>
                 </sc-for>
               </select>
               <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
@@ -548,22 +540,21 @@ mbCss('./common.css');
         <div class="inv-product-sheet-head">
           <div style="width:42px; height:5px; border-radius:99px; background:#dadfe6; margin:0 auto 16px;"></div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
-            <div style="font-size:19px; font-weight:800; color:#1f2a3a;">View product</div>
+            <div style="font-size:19px; font-weight:800; color:#1f2a3a;">Edit product</div>
           </div>
         </div>
-        <div class="dc-scroll inv-product-sheet-body inv-view-only">
+        <div class="dc-scroll inv-product-sheet-body">
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Basic Info</div>
         
         <label class="form-label">Product name *</label>
-        <input class="gv-in premium-input" type="text" readonly placeholder="Enter product name..." value="{{ editName }}"/>
+        <input class="gv-in premium-input" type="text" placeholder="Enter product name..." value="{{ editName }}" oninput="{{ onEditNameChange }}"/>
         
         <label class="form-label">English label</label>
-        <input class="gv-in premium-input" type="text" readonly placeholder="Enter English label..." value="{{ editEnname }}"/>
+        <input class="gv-in premium-input" type="text" placeholder="Enter English label..." value="{{ editEnname }}" oninput="{{ onEditEnnameChange }}"/>
 
         <label class="form-label">Suppliers</label>
         <div style="position:relative; margin-bottom:16px;">
-          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
-            <option value="">Select supplier</option>
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditSupplierChange }}">
             <sc-for as="sup" list="{{ suppliers }}">
               <option value="{{ sup.id }}" selected="{{ sup.editSelected }}">{{ sup.name }}</option>
             </sc-for>
@@ -574,28 +565,40 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">SKU</label>
-            <input class="gv-in premium-input" type="text" readonly placeholder="Insert product SKU" value="{{ editSku }}" style="margin-bottom:8px;"/>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:16px;">
-              <input type="checkbox" checked="{{ editGenerateSku }}" tabindex="-1" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <input class="gv-in premium-input" type="text" placeholder="Insert product SKU" value="{{ editSku }}" oninput="{{ onEditSkuChange }}" style="margin-bottom:8px;"/>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:16px; cursor:pointer;">
+              <input type="checkbox" checked="{{ editGenerateSku }}" onchange="{{ onEditGenerateSkuChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
               <span>Generate SKU</span>
             </label>
           </div>
           <div style="flex:1;">
             <label class="form-label">Internal product SKU</label>
-            <input class="gv-in premium-input" type="text" readonly placeholder="Insert internal product SKU" value="{{ editInternalSku }}"/>
+            <input class="gv-in premium-input" type="text" placeholder="Insert internal product SKU" value="{{ editInternalSku }}" oninput="{{ onEditInternalSkuChange }}"/>
           </div>
         </div>
 
-        <div style="margin-bottom:0;">
-          <label class="form-label">Category</label>
-          <div style="position:relative;">
-            <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
-              <option value="">Select Category</option>
-              <sc-for as="cat" list="{{ selectableCategories }}">
-                <option value="{{ cat.id }}" selected="{{ cat.selected }}">{{ cat.name }}</option>
-              </sc-for>
-            </select>
-            <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label class="form-label">Category</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditCategoryChange }}">
+                <sc-for as="cat" list="{{ selectableCategories }}">
+                  <option value="{{ cat.id }}" selected="{{ cat.selected }}">{{ cat.name }}</option>
+                </sc-for>
+              </select>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="form-label">Sub Category</label>
+            <div style="position:relative;">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditSubCatChange }}">
+                <sc-for as="sub" list="{{ editSubCategories }}">
+                  <option value="{{ sub.id }}" selected="{{ sub.selected }}">{{ sub.name }}</option>
+                </sc-for>
+              </select>
+              <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
+            </div>
           </div>
         </div>
 
@@ -603,7 +606,7 @@ mbCss('./common.css');
           <div style="flex:1;">
             <label class="form-label">Type</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditTypeChange }}">
                 <sc-for as="t" list="{{ productTypes }}">
                   <option value="{{ t.value }}" selected="{{ t.editSelected }}">{{ t.label }}</option>
                 </sc-for>
@@ -618,8 +621,7 @@ mbCss('./common.css');
           <div style="flex:1;">
             <label class="form-label">Team member</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
-                <option value="">Select Team Member</option>
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditTeamMemberChange }}">
                 <sc-for as="tm" list="{{ teamMembers }}">
                   <option value="{{ tm.id }}" selected="{{ tm.editSelected }}">{{ tm.name }}</option>
                 </sc-for>
@@ -633,11 +635,12 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px; align-items:flex-start;">
           <div style="flex:1.2;">
             <label class="form-label">Storage Place</label>
-            <input class="gv-in premium-input" type="text" readonly placeholder="Storage Place" value="{{ editStoragePlace }}" style="margin-bottom:8px;"/>
+            <input class="gv-in premium-input" type="text" placeholder="Storage Place" value="{{ editStoragePlace }}" oninput="{{ onEditStoragePlaceChange }}" style="margin-bottom:8px;"/>
             <div style="display:flex; flex-wrap:wrap; gap:6px; min-height:8px; margin-bottom:8px;">
               <sc-for as="chip" list="{{ editSelectedStorageChips }}">
                 <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#1d60a2; color:#fff; font-size:12px; font-weight:700;">
                   {{ chip.name }}
+                  <button type="button" onclick="{{ chip.remove }}" style="border:none; background:transparent; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0;">&times;</button>
                 </span>
               </sc-for>
             </div>
@@ -645,10 +648,9 @@ mbCss('./common.css');
           <div style="flex:1;">
             <label class="form-label">Select Storage</label>
             <div style="position:relative;">
-              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
-                <option value="">All</option>
+              <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditStorageSelect }}">
                 <sc-for as="st" list="{{ storages }}">
-                  <option value="{{ st.id }}">{{ st.name }}</option>
+                  <option value="{{ st.id }}" selected="{{ st.editSelected }}">{{ st.name }}</option>
                 </sc-for>
               </select>
               <span class="inv-select-chevron"><svg fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg></span>
@@ -660,31 +662,27 @@ mbCss('./common.css');
           <div style="flex:1; min-width:0;">
             <label class="form-label">Main Image</label>
             <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
-              <sc-if value="{{ hasEditImage }}">
-                <img src="{{ editImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
-                <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ editImageName }}</div>
-              </sc-if>
-              <sc-if value="{{ noEditImage }}">
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onEditImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+              <img id="mb-edit-main-image" alt="" referrerpolicy="no-referrer" style="display:none; width:100%; height:88px; object-fit:cover; border-radius:10px; position:relative; z-index:1;"/>
+              <div id="mb-edit-main-ph" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;">
                 <div style="width:40px; height:40px; border-radius:50%; background:#e6f4ec; color:#2bb260; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
                   <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
                 </div>
                 <div style="font-size:11.5px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; line-height:1.35;">Main picture</div>
-              </sc-if>
+              </div>
             </div>
           </div>
           <div style="flex:1; min-width:0;">
             <label class="form-label">Secondary Image</label>
             <div style="position:relative; border:1.6px dashed #cbd5e0; border-radius:14px; background:#f8fafc; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; overflow:hidden;">
-              <sc-if value="{{ hasEditSubImage }}">
-                <img src="{{ editSubImagePreviewSrc }}" alt="" style="max-width:100%; max-height:88px; border-radius:10px; object-fit:cover; position:relative; z-index:1;"/>
-                <div style="font-size:11px; font-weight:700; color:#1f2a3a; position:relative; z-index:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">{{ editSubImageName }}</div>
-              </sc-if>
-              <sc-if value="{{ noEditSubImage }}">
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" onchange="{{ onEditSubImageChange }}" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2;"/>
+              <img id="mb-edit-sub-image" alt="" referrerpolicy="no-referrer" style="display:none; width:100%; height:88px; object-fit:cover; border-radius:10px; position:relative; z-index:1;"/>
+              <div id="mb-edit-sub-ph" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;">
                 <div style="width:40px; height:40px; border-radius:50%; background:#eaf2fb; color:#1d60a2; display:flex; align-items:center; justify-content:center; position:relative; z-index:1;">
                   <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20"><rect height="18" rx="2" ry="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
                 </div>
                 <div style="font-size:11.5px; font-weight:700; color:#5a6473; text-align:center; position:relative; z-index:1; line-height:1.35;">2nd picture</div>
-              </sc-if>
+              </div>
             </div>
           </div>
         </div>
@@ -692,15 +690,15 @@ mbCss('./common.css');
         <sc-if value="{{ isEditSubscription }}">
           <div style="background:#f8fafc; border:1px solid #e4e8ee; border-radius:14px; padding:14px; margin-bottom:16px;">
             <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Subscription</div>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:12px;">
-              <input type="checkbox" checked="{{ editEndless }}" tabindex="-1" style="accent-color:#1d60a2; width:16px; height:16px;" />
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1f2a3a; margin-bottom:12px; cursor:pointer;">
+              <input type="checkbox" checked="{{ editEndless }}" onchange="{{ onEditEndlessChange }}" style="accent-color:#1d60a2; width:16px; height:16px;" />
               <span>Endless</span>
             </label>
             <div style="display:flex; gap:12px;">
               <div style="flex:1;">
                 <label class="form-label">Months</label>
                 <div style="position:relative;">
-                  <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
+                  <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditMonthsChange }}">
                     <sc-for as="m" list="{{ editMonthOptions }}">
                       <option value="{{ m.value }}" selected="{{ m.selected }}">{{ m.label }}</option>
                     </sc-for>
@@ -710,7 +708,7 @@ mbCss('./common.css');
               </div>
               <div style="flex:1;">
                 <label class="form-label">Price After</label>
-                <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="Price After" value="{{ editPriceAfter }}"/>
+                <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Price After" value="{{ editPriceAfter }}" oninput="{{ onEditPriceAfterChange }}"/>
               </div>
             </div>
           </div>
@@ -719,11 +717,11 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Stock qty</label>
-            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0" value="{{ editStockQty }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ editStockQty }}" oninput="{{ onEditStockChange }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Min stock</label>
-            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0" value="{{ editMinStock }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0" value="{{ editMinStock }}" oninput="{{ onEditMinStockChange }}"/>
           </div>
         </div>
 
@@ -732,22 +730,22 @@ mbCss('./common.css');
         <div style="display:flex; gap:12px;">
           <div style="flex:1;">
             <label class="form-label">Price</label>
-            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="Insert product price" value="{{ editPrice }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="Insert product price" value="{{ editPrice }}" oninput="{{ onEditPriceChange }}"/>
           </div>
           <div style="flex:1;">
             <label class="form-label">Cost price</label>
-            <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0.00" value="{{ editCost }}"/>
+            <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ editCost }}" oninput="{{ onEditCostChange }}"/>
           </div>
         </div>
 
         <label class="form-label">Discount price</label>
-        <input class="gv-in premium-input" type="text" readonly inputmode="decimal" placeholder="0.00" value="{{ editDiscountPrice }}"/>
+        <input class="gv-in premium-input" type="text" inputmode="decimal" placeholder="0.00" value="{{ editDiscountPrice }}" oninput="{{ onEditDiscountChange }}"/>
 
         <div style="font-size:12.5px; font-weight:800; color:#a0aec0; text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:12px;">Options</div>
         
         <label class="form-label">Status</label>
         <div style="position:relative; margin-bottom:16px;">
-          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" tabindex="-1">
+          <select class="premium-input" style="appearance:none; -webkit-appearance:none;" onchange="{{ onEditStatusChange }}">
             <option value="1" selected="{{ editStatusActive }}">Active</option>
             <option value="0" selected="{{ editStatusInactive }}">Inactive</option>
           </select>
@@ -755,11 +753,12 @@ mbCss('./common.css');
         </div>
 
         <label class="form-label">Product details</label>
-        <textarea class="premium-input" rows="6" readonly style="min-height:140px; height:140px; resize:none; line-height:1.5;" placeholder="Insert product details" value="{{ editDesc }}"></textarea>
+        <textarea class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" oninput="{{ onEditDescChange }}">{{ editDesc }}</textarea>
         
         </div>
         <div class="inv-product-sheet-actions">
           <button onclick="{{ closeDetail }}" style="flex:1; padding:14px; border:1.6px solid #cbd5e0; border-radius:12px; background:#fff; color:#2d3748; font-size:15px; font-weight:700; cursor:pointer;">Cancel</button>
+          <button onclick="{{ saveProductChanges }}" style="flex:1.5; padding:14px; border:none; border-radius:12px; background:#2bb260; color:#fff; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(43,178,96,0.24);">Save</button>
         </div>
       </div>
     </div>
@@ -873,6 +872,8 @@ class Component extends DCLogic {
     products: [],
     categories: [],
     suppliers: [],
+    formCategories: [],
+    productTypes: [],
     subCategories: [],
     teamMembers: [],
     companies: [],
@@ -1033,8 +1034,7 @@ class Component extends DCLogic {
       sku: product.product_sku || product.sku || ('SKU-' + id.slice(-5)),
       cat_id: product.cat_id ? String(product.cat_id) : (product.category_id ? String(product.category_id) : ''),
       price: Math.round(Number(product.price || product.cost || 0)),
-      stock: product.stock !== undefined ? Number(product.stock)
-        : (product.left_stock !== undefined ? Number(product.left_stock) : 0),
+      stock: this.pickProductStockQty(product),
       status: (product.status === 0 || product.status === '0') ? 0 : 1,
       type: (function () {
         var t = String(product.type || 'product').toLowerCase();
@@ -1059,6 +1059,7 @@ class Component extends DCLogic {
   componentDidUpdate() {
     this.setupDragScroll();
     this.ensureFooter();
+    this.syncEditImagePreviews();
   }
 
   ensureFooter() {
@@ -1138,15 +1139,104 @@ class Component extends DCLogic {
   }
 
   productRowsFromList(res) {
+    return this.extractListRows(res);
+  }
+
+  extractListRows(res) {
     if (!res) return [];
     if (Array.isArray(res)) return res;
     if (Array.isArray(res.data)) return res.data;
     if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.list)) return res.list;
     if (Array.isArray(res.products)) return res.products;
     if (Array.isArray(res.output)) return res.output;
     if (res.output && Array.isArray(res.output.data)) return res.output.data;
     if (res.data && Array.isArray(res.data.rows)) return res.data.rows;
+    if (res.data && Array.isArray(res.data.list)) return res.data.list;
+    if (res.data && Array.isArray(res.data.data)) return res.data.data;
     return [];
+  }
+
+  async fetchAllListPages(client, route, extra) {
+    var all = [];
+    var seen = {};
+    var start = 0;
+    var pageSize = 25;
+    extra = extra || {};
+    for (var n = 0; n < 16; n++) {
+      var payload = Object.assign({
+        start: start,
+        offset: start,
+        limit: pageSize,
+        length: pageSize,
+        per_page: pageSize
+      }, extra);
+      var res = await client.request(route, payload);
+      var rows = this.extractListRows(res);
+      if (!rows.length) break;
+      var added = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        var id = String(
+          row.id || row.category_id || row.cat_id ||
+          row.supplier_id || row.suppliers_id ||
+          row.storage_id || row.invoice_setting_id ||
+          row.user_id || (start + '-' + i)
+        );
+        if (seen[id]) continue;
+        seen[id] = true;
+        all.push(row);
+        added++;
+      }
+      if (rows.length < pageSize || added === 0) break;
+      start += pageSize;
+    }
+    return all;
+  }
+
+  normalizeTypeValue(raw) {
+    var v = String(raw || '').toLowerCase().trim();
+    if (v === 'physical') return 'product';
+    if (v === 'membership') return 'subscription';
+    return v;
+  }
+
+  productTypeLabel(value) {
+    var v = this.normalizeTypeValue(value);
+    if (v === 'product') return this.t('Physical Product', 'מוצר פיזי');
+    if (v === 'subscription') return this.t('Subscription', 'מנוי');
+    if (v === 'service') return this.t('Service', 'שירות');
+    if (v === 'donation') return this.t('Donation', 'תרומה');
+    return String(value || v);
+  }
+
+  /** Products.Add dashboard Type select: product, subscription, service, donation. */
+  getProductTypes() {
+    return [
+      { value: 'product', label: this.productTypeLabel('product') },
+      { value: 'subscription', label: this.productTypeLabel('subscription') },
+      { value: 'service', label: this.productTypeLabel('service') },
+      { value: 'donation', label: this.productTypeLabel('donation') }
+    ];
+  }
+
+  mapTeamMemberRows(team) {
+    return (Array.isArray(team) ? team : []).map(function (m) {
+      return {
+        id: String(m.id || m.user_id || m.member_id || m.team_member_id || ''),
+        name: m.name || m.full_name || m.email || ('#' + (m.id || ''))
+      };
+    }).filter(function (m) { return m.id; });
+  }
+
+  /** Dashboard Stock qty: prefer `stock`, then remaining `left_stock`. */
+  pickProductStockQty(item) {
+    if (!item) return 0;
+    var raw = item.stock;
+    if (raw === undefined || raw === null || raw === '') raw = item.left_stock;
+    if (raw === undefined || raw === null || raw === '') raw = item.qty;
+    var n = Number(raw);
+    return isFinite(n) ? n : 0;
   }
 
   mapRawProduct(item) {
@@ -1163,10 +1253,7 @@ class Component extends DCLogic {
               : (item.cost != null ? item.cost : 0))))
     ));
     if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
-    var stock = item.left_stock !== undefined ? Number(item.left_stock)
-      : (item.stock !== undefined ? Number(item.stock)
-        : (item.qty !== undefined ? Number(item.qty) : 0));
-    if (!isFinite(stock)) stock = 0;
+    var stock = this.pickProductStockQty(item);
     var rawStatus = item.status;
     var status = (rawStatus === 0 || rawStatus === '0' || rawStatus === false || rawStatus === 'inactive') ? 0 : 1;
     var typeVal = String(item.type || item.product_type || 'product').toLowerCase();
@@ -1364,81 +1451,95 @@ class Component extends DCLogic {
     return resolved;
   }
 
-  async loadInventoryFormMeta(client, loadId) {
+  async loadInventoryFormMeta(client, opts) {
     var self = this;
-    var suppliersList = [];
-    var teamMembersList = [];
-    var companiesList = [];
-    var storagesList = [];
+    opts = opts || {};
+    if (!client) return;
+    if (!opts.force && self._formMetaPromise) return self._formMetaPromise;
 
-    try {
-      if (typeof MineralBarApp.getTeamMembers === 'function') {
-        var team = MineralBarApp.getTeamMembers() || [];
-        teamMembersList = (Array.isArray(team) ? team : []).map(function (m) {
-          return {
-            id: String(m.id || m.user_id || m.member_id || ''),
-            name: m.name || m.full_name || m.email || ('#' + (m.id || ''))
-          };
-        }).filter(function (m) { return m.id; });
-      }
-    } catch (eTeam) { /* ignore */ }
+    var run = (async function () {
+      var suppliersList = [];
+      var teamMembersList = [];
+      var companiesList = [];
+      var storagesList = [];
+      var formCategories = [];
 
-    try {
-      var supRes = await client.request('Suppliers.List', { for_product: 1, limit: 100 });
-      var supData = supRes && (supRes.data || supRes.output || supRes);
-      var supRows = Array.isArray(supData) ? supData : ((supData && (supData.rows || supData.list)) || []);
-      suppliersList = (supRows || []).map(function (sup) {
+      var results = await Promise.all([
+        self.fetchAllListPages(client, 'Suppliers.List', { for_product: 1, include_shared: 1 }).catch(function (e) {
+          console.warn('[MineralBar] failed to load suppliers', e);
+          return [];
+        }),
+        self.fetchAllListPages(client, 'Categories.List', { parent: 0 }).catch(function (e) {
+          console.warn('[MineralBar] failed to load categories', e);
+          return [];
+        }),
+        self.fetchAllListPages(client, 'InvoiceSettings.List', {}).catch(function (e) {
+          console.warn('[MineralBar] failed to load companies', e);
+          return [];
+        }),
+        self.fetchAllListPages(client, 'Storage.List', {}).catch(function (e) {
+          console.warn('[MineralBar] failed to load storages', e);
+          return [];
+        }),
+        (async function () {
+          try {
+            var basic = (client.account && typeof client.account.basic === 'function')
+              ? await client.account.basic()
+              : await client.request('User.Basic', {});
+            var data = (basic && basic.data) || basic || {};
+            return data.team_members || data.users || data.members || [];
+          } catch (eTeam) {
+            console.warn('[MineralBar] failed to load team members', eTeam);
+            return [];
+          }
+        })()
+      ]);
+
+      suppliersList = (results[0] || []).map(function (sup) {
         return {
           id: String(sup.suppliers_id || sup.supplier_id || sup.id || ''),
           name: sup.name || sup.supplier_name || sup.title || ('Supplier #' + (sup.id || ''))
         };
       }).filter(function (sup) { return sup.id; });
-    } catch (supErr) {
-      console.warn('[MineralBar] failed to load suppliers', supErr);
-    }
 
-    try {
-      var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
-      var coData = coRes && (coRes.data || coRes.output || coRes);
-      var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
-      companiesList = (coRows || []).map(function (co) {
+      formCategories = self.normalizeCategoryRows({ data: results[1] || [] }).filter(function (cat) {
+        return cat.parent === undefined || cat.parent === null || Number(cat.parent) === 0;
+      });
+
+      companiesList = (results[2] || []).map(function (co) {
         return {
-          id: String(co.id || co.invoice_setting_id || co.company_id || ''),
+          id: String(co.id || co.invoice_setting_id || co.invoice_settings_id || co.company_id || ''),
           name: co.company_name || co.name || co.title || ('Company #' + (co.id || ''))
         };
       }).filter(function (co) { return co.id; });
-    } catch (coErr) {
-      console.warn('[MineralBar] failed to load companies', coErr);
-    }
 
+      storagesList = (results[3] || []).map(function (st) {
+        return {
+          id: String(st.id || st.storage_id || st.data_id || st.warehouse_id || ''),
+          name: st.name || st.storage_name || st.warehouse_name || st.title || ('Storage #' + (st.id || ''))
+        };
+      }).filter(function (st) { return st.id; });
+
+      teamMembersList = self.mapTeamMemberRows(results[4]);
+      if (!teamMembersList.length && window.MineralBarApp && typeof MineralBarApp.getTeamMembers === 'function') {
+        teamMembersList = self.mapTeamMemberRows(MineralBarApp.getTeamMembers() || []);
+      }
+
+      self.setState({
+        suppliers: suppliersList,
+        formCategories: formCategories,
+        teamMembers: teamMembersList,
+        companies: companiesList,
+        storages: storagesList
+      });
+    })();
+
+    self._formMetaPromise = run;
     try {
-      var stRes = null;
-      try { stRes = await client.request('Storage.List', { limit: 25 }); } catch (e1) {
-        try { stRes = await client.request('Storages.List', { limit: 25 }); } catch (e2) {
-          try { stRes = await client.request('Warehouse.List', { limit: 25 }); } catch (e3) { stRes = null; }
-        }
-      }
-      if (stRes) {
-        var stData = stRes && (stRes.data || stRes.output || stRes);
-        var stRows = Array.isArray(stData) ? stData : ((stData && (stData.rows || stData.list)) || []);
-        storagesList = (stRows || []).map(function (st) {
-          return {
-            id: String(st.id || st.storage_id || st.warehouse_id || ''),
-            name: st.name || st.storage_name || st.warehouse_name || st.title || ('Storage #' + (st.id || ''))
-          };
-        }).filter(function (st) { return st.id; });
-      }
-    } catch (stErr) {
-      console.warn('[MineralBar] failed to load storages', stErr);
+      await run;
+    } finally {
+      if (self._formMetaPromise === run) self._formMetaPromise = null;
     }
-
-    if (loadId != null && loadId !== self._inventoryLoadId) return;
-    self.setState({
-      suppliers: suppliersList,
-      teamMembers: teamMembersList,
-      companies: companiesList,
-      storages: storagesList
-    });
   }
 
   async initData() {
@@ -1469,14 +1570,7 @@ class Component extends DCLogic {
 
     try {
       var client = MineralBarApp.getClient();
-      var loadToken = (this._inventoryLoadId || 0) + 1;
-
-      var catsPromise = client.request('Categories.List', { parent: 0, limit: 100 }).catch(function (e) {
-        console.warn('[MineralBar] failed to load categories', e);
-        return null;
-      });
-
-      this.loadInventoryFormMeta(client, loadToken);
+      var metaPromise = this.loadInventoryFormMeta(client);
 
       // Only one Products.List page + Products.Count (no full catalog download)
       await this.loadProductsPage({
@@ -1484,21 +1578,11 @@ class Component extends DCLogic {
         silent: silent
       });
 
-      var catRes = await catsPromise;
+      await metaPromise;
       var categoryNamesMap = {};
-      if (catRes) {
-        var catData = catRes && (catRes.data || catRes.output || catRes);
-        var catRows = Array.isArray(catData) ? catData : ((catData && catData.rows) || []);
-        catRows.forEach(function (cat) {
-          var cid = cat.category_id || cat.id || cat.cat_id;
-          if (!cid) return;
-          var parentVal = cat.parent;
-          if (parentVal !== undefined && parentVal !== null && Number(parentVal) !== 0) return;
-          var catName = cat.category || cat.category_name || cat.title || cat.name || '';
-          if (!catName) return;
-          categoryNamesMap[String(cid)] = String(catName);
-        });
-      }
+      (self.state.formCategories || []).forEach(function (cat) {
+        if (cat && cat.id && cat.name) categoryNamesMap[String(cat.id)] = String(cat.name);
+      });
 
       var productsList = self.state.products || [];
       var missingIds = [];
@@ -1562,8 +1646,8 @@ class Component extends DCLogic {
     if (!(window.MineralBarApp && typeof MineralBarApp.getClient === 'function')) return;
     try {
       var client = MineralBarApp.getClient();
-      var catRes = await client.request('Categories.List', { parent: pid, limit: 100 });
-      var rows = this.normalizeCategoryRows(catRes).filter(function (cat) {
+      var raw = await this.fetchAllListPages(client, 'Categories.List', { parent: pid });
+      var rows = this.normalizeCategoryRows({ data: raw }).filter(function (cat) {
         return Number(cat.parent) === pid || cat.parent === undefined || cat.parent === null;
       });
       var nextSub = keepSubId != null && keepSubId !== '' ? String(keepSubId) : '0';
@@ -1577,8 +1661,6 @@ class Component extends DCLogic {
   }
 
   async openAddModal() {
-    var selectables = this.getSelectableCategories();
-    var firstCat = (selectables[0] || {}).id || '';
     if (this.state.addImagePreview && String(this.state.addImagePreview).indexOf('blob:') === 0) {
       try { URL.revokeObjectURL(this.state.addImagePreview); } catch (e) {}
     }
@@ -1595,7 +1677,7 @@ class Component extends DCLogic {
       addPrice: 0,
       addStock: 0,
       addMinStock: 0,
-      addCatId: firstCat,
+      addCatId: '',
       addSubCatId: '0',
       addSupplierId: '',
       addTeamMemberId: '',
@@ -1622,49 +1704,20 @@ class Component extends DCLogic {
       var descEl = document.getElementById('mb-add-product-desc');
       if (descEl) descEl.value = '';
     }, 0);
-    if (firstCat) this.loadSubCategories(firstCat);
 
     if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
       try {
-        if (typeof MineralBarApp.getTeamMembers === 'function') {
-          var team = MineralBarApp.getTeamMembers() || [];
-          var teamMembersList = (Array.isArray(team) ? team : []).map(function (m) {
-            return {
-              id: String(m.id || m.user_id || m.member_id || ''),
-              name: m.name || m.full_name || m.email || ('#' + (m.id || ''))
-            };
-          }).filter(function (m) { return m.id; });
-          if (teamMembersList.length) this.setState({ teamMembers: teamMembersList });
-        }
-        var client = MineralBarApp.getClient();
-        if (!(this.state.suppliers || []).length) {
-          var supRes = await client.request('Suppliers.List', { for_product: 1, limit: 100 });
-          var supData = supRes && (supRes.data || supRes.output || supRes);
-          var supRows = Array.isArray(supData) ? supData : ((supData && (supData.rows || supData.list)) || []);
-          var suppliersList = (supRows || []).map(function (sup) {
-            return {
-              id: String(sup.suppliers_id || sup.supplier_id || sup.id || ''),
-              name: sup.name || sup.supplier_name || sup.title || ('Supplier #' + (sup.id || ''))
-            };
-          }).filter(function (sup) { return sup.id; });
-          this.setState({ suppliers: suppliersList });
-        }
-        if (!(this.state.companies || []).length) {
-          var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
-          var coData = coRes && (coRes.data || coRes.output || coRes);
-          var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
-          var companiesList = (coRows || []).map(function (co) {
-            return {
-              id: String(co.id || co.invoice_setting_id || co.company_id || ''),
-              name: co.company_name || co.name || co.title || ('Company #' + (co.id || ''))
-            };
-          }).filter(function (co) { return co.id; });
-          this.setState({ companies: companiesList });
-        }
+        await this.loadInventoryFormMeta(MineralBarApp.getClient(), { force: true });
       } catch (err) {
         console.warn('[MineralBar] failed to refresh add-product options', err);
       }
     }
+
+    var selectables = this.getSelectableCategories();
+    var firstCat = (selectables[0] || {}).id || '';
+    this.setState({ addCatId: firstCat });
+    if (firstCat) this.loadSubCategories(firstCat);
+    try { this.forceUpdate(); } catch (eFu) { /* ignore */ }
   }
 
   onAddImageChange(e) {
@@ -1739,6 +1792,7 @@ class Component extends DCLogic {
     }
     var preview = '';
     try { preview = URL.createObjectURL(file); } catch (err2) { preview = ''; }
+    this._editImgKey = '';
     this.setState({
       editImageFile: file,
       editImagePreview: preview,
@@ -1756,6 +1810,7 @@ class Component extends DCLogic {
     }
     var preview = '';
     try { preview = URL.createObjectURL(file); } catch (err2) { preview = ''; }
+    this._editImgKey = '';
     this.setState({
       editSubImageFile: file,
       editSubImagePreview: preview,
@@ -1828,15 +1883,95 @@ class Component extends DCLogic {
 
   resolveProductImageUrl(path) {
     if (!path) return '';
+    var value = String(path).trim();
+    if (!value) return '';
+    value = value.replace(/^https?:\/\/files\.bull36\.com\//i, 'https://files.biz1.co.il/');
+    if (/^https?:\/\//i.test(value) || /^data:/i.test(value) || /^blob:/i.test(value)) return value;
+    if (value.indexOf('/') === -1) value = 'biz1upload/site/' + value;
     if (window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
-      return MineralBarApp.resolveFileUrl(path);
+      return MineralBarApp.resolveFileUrl(value);
     }
-    return String(path);
+    return 'https://files.biz1.co.il/' + value.replace(/^\/+/, '');
+  }
+
+  productImageUrlCandidates(preview, path) {
+    var seen = {};
+    var out = [];
+    function add(u) {
+      u = String(u || '').trim();
+      if (!u || seen[u]) return;
+      if (/files\.bull36\.com/i.test(u)) {
+        u = u.replace(/^https?:\/\/files\.bull36\.com\//i, 'https://files.biz1.co.il/');
+      }
+      if (seen[u]) return;
+      seen[u] = true;
+      out.push(u);
+    }
+    add(this.resolveProductImageUrl(preview));
+    var p = String(path || '').replace(/^\/+/, '').trim();
+    if (p && p.indexOf('/') === -1 && !/^https?:/i.test(p) && !/^blob:/i.test(p) && !/^data:/i.test(p)) {
+      p = 'biz1upload/site/' + p;
+    }
+    if (p && !/^https?:/i.test(p) && !/^blob:/i.test(p) && !/^data:/i.test(p)) {
+      add('https://files.biz1.co.il/' + p);
+      var domain = '';
+      try { domain = (window.MineralBarApp && MineralBarApp.DOMAIN) || ''; } catch (e) { domain = ''; }
+      if (domain) add(String(domain).replace(/\/+$/, '') + '/' + p);
+    }
+    return out;
+  }
+
+  bindPreviewImg(imgId, phId, preview, path) {
+    var img = document.getElementById(imgId);
+    var ph = document.getElementById(phId);
+    if (!img) return;
+    var urls = this.productImageUrlCandidates(preview, path);
+    if (!urls.length) {
+      img.style.display = 'none';
+      img.removeAttribute('src');
+      if (ph) ph.style.display = 'flex';
+      return;
+    }
+    var i = 0;
+    img.onload = function () {
+      if (!img.naturalWidth) {
+        if (typeof img.onerror === 'function') img.onerror();
+        return;
+      }
+      img.style.display = 'block';
+      if (ph) ph.style.display = 'none';
+    };
+    img.onerror = function () {
+      i += 1;
+      if (i < urls.length) {
+        img.src = urls[i];
+        return;
+      }
+      img.style.display = 'none';
+      if (ph) ph.style.display = 'flex';
+    };
+    img.style.display = 'block';
+    img.src = urls[0];
+  }
+
+  syncEditImagePreviews() {
+    if (!this.state.detailOpen) return;
+    if (!document.getElementById('mb-edit-main-image')) return;
+    var key = [
+      this.state.editImagePreview || '',
+      this.state.editImagePath || '',
+      this.state.editSubImagePreview || '',
+      this.state.editSubImagePath || ''
+    ].join('|');
+    if (this._editImgKey === key) return;
+    this._editImgKey = key;
+    this.bindPreviewImg('mb-edit-main-image', 'mb-edit-main-ph', this.state.editImagePreview, this.state.editImagePath);
+    this.bindPreviewImg('mb-edit-sub-image', 'mb-edit-sub-ph', this.state.editSubImagePreview, this.state.editSubImagePath);
   }
 
   pickProductMainImagePath(item) {
     if (!item) return '';
-    return String(
+    var raw = String(
       item.main_image ||
       item.site_logo ||
       item.site_logo_old ||
@@ -1848,17 +1983,36 @@ class Component extends DCLogic {
       item.thumbnail ||
       ''
     ).trim();
+    if (raw && raw.indexOf('/') === -1 && !/^https?:/i.test(raw) && !/^data:/i.test(raw) && !/^blob:/i.test(raw)) {
+      raw = 'biz1upload/site/' + raw;
+    }
+    return raw;
   }
 
   pickProductSubImagePath(item) {
     if (!item) return '';
-    return String(
+    var raw = String(
       item.sub_image ||
       item.sub_image_old ||
       item.secondary_image ||
       item.alt_image ||
       ''
     ).trim();
+    if (raw && raw.indexOf('/') === -1 && !/^https?:/i.test(raw) && !/^data:/i.test(raw) && !/^blob:/i.test(raw)) {
+      raw = 'biz1upload/site/' + raw;
+    }
+    return raw;
+  }
+
+  pickProductImagePreview(item, kind) {
+    if (!item) return '';
+    var url = kind === 'sub'
+      ? (item.sub_image_url || item.secondary_image_url || '')
+      : (item.main_image_url || item.image_url || item.site_logo_url || '');
+    url = String(url || '').trim();
+    if (url) return this.resolveProductImageUrl(url);
+    var path = kind === 'sub' ? this.pickProductSubImagePath(item) : this.pickProductMainImagePath(item);
+    return this.resolveProductImageUrl(path);
   }
 
   /** Build multipart body for Products.Add / Products.Update image fields. */
@@ -1881,7 +2035,13 @@ class Component extends DCLogic {
     var fd = new FormData();
     Object.keys(payload).forEach(function (key) {
       if (payload[key] === undefined || payload[key] === null) return;
-      fd.append(key, payload[key]);
+      var val = payload[key];
+      if (Array.isArray(val)) {
+        fd.append(key, JSON.stringify(val));
+        val.forEach(function (item) { fd.append(key + '[]', item); });
+        return;
+      }
+      fd.append(key, val);
     });
     // API: main_image (file) + optional sub_image (file). Old paths when not replacing.
     if (mainFile) {
@@ -1910,8 +2070,8 @@ class Component extends DCLogic {
     var storageIds = String(storageRaw).split(',').map(function (v) { return String(v).trim(); }).filter(Boolean);
     var imagePath = this.pickProductMainImagePath(item) || this.pickProductMainImagePath(fallback);
     var subImagePath = this.pickProductSubImagePath(item) || this.pickProductSubImagePath(fallback);
-    var imagePreview = this.resolveProductImageUrl(imagePath);
-    var subImagePreview = this.resolveProductImageUrl(subImagePath);
+    var imagePreview = this.pickProductImagePreview(item, 'main') || this.pickProductImagePreview(fallback, 'main');
+    var subImagePreview = this.pickProductImagePreview(item, 'sub') || this.pickProductImagePreview(fallback, 'sub');
 
     if (this.state.editImagePreview && String(this.state.editImagePreview).indexOf('blob:') === 0) {
       try { URL.revokeObjectURL(this.state.editImagePreview); } catch (e1) {}
@@ -1929,7 +2089,7 @@ class Component extends DCLogic {
       editInternalSku: (item && (item.product_internal_sku || item.internal_sku)) || '',
       editGenerateSku: false,
       editPrice: Number((item && (item.price || item.product_price || item.main_price)) || fallback.price || 0),
-      editStockQty: Number((item && item.stock) != null ? item.stock : (fallback.stock || 0)),
+      editStockQty: item ? this.pickProductStockQty(item) : this.pickProductStockQty(fallback),
       editMinStock: Number((item && item.min_stock) || 0),
       detailCatId: catId,
       editSubCatId: subCatId,
@@ -1943,11 +2103,11 @@ class Component extends DCLogic {
       editStorageIds: storageIds,
       editImageFile: null,
       editImagePreview: imagePreview,
-      editImageName: imagePath ? String(imagePath).split('/').pop() : '',
+      editImageName: '',
       editImagePath: imagePath,
       editSubImageFile: null,
       editSubImagePreview: subImagePreview,
-      editSubImageName: subImagePath ? String(subImagePath).split('/').pop() : '',
+      editSubImageName: '',
       editSubImagePath: subImagePath,
       editType: typeVal,
       editEndless: Number(item && item.endless) === 1,
@@ -1961,6 +2121,10 @@ class Component extends DCLogic {
 
     if (catId) this.loadSubCategories(catId, { forEdit: true, keepSubId: subCatId });
     else this.setState({ editSubCategories: [], editSubCatId: '0' });
+    this._editImgKey = '';
+    var self = this;
+    setTimeout(function () { self.syncEditImagePreviews(); }, 0);
+    setTimeout(function () { self.syncEditImagePreviews(); }, 250);
   }
 
   async onProductClick(p) {
@@ -1969,6 +2133,9 @@ class Component extends DCLogic {
     if (!(window.MineralBarApp && typeof MineralBarApp.getClient === 'function')) return;
     try {
       var client = MineralBarApp.getClient();
+      if (!(this.state.suppliers || []).length || !(this.state.storages || []).length || !(this.state.formCategories || []).length) {
+        this.loadInventoryFormMeta(client);
+      }
       var res = await client.request('Products.Get', { id: p.id });
       var item = res && (res.data || res.output || res);
       if (item && (item.id || item.product_name || item.name)) {
@@ -1996,8 +2163,7 @@ class Component extends DCLogic {
     }
 
     var catId = s.detailCatId || '';
-    var type = s.editType || 'product';
-    if (type === 'physical') type = 'product';
+    var type = this.normalizeTypeValue(s.editType) || 'product';
     var status = Number(s.editStatus);
     var price = Number(s.editPrice || 0);
     var stock = Number(s.editStockQty || 0);
@@ -2020,15 +2186,16 @@ class Component extends DCLogic {
       product_internal_sku: s.editInternalSku || '',
       discount_price: Number(s.editDiscountPrice) || 0,
       stock: stock,
+      left_stock: stock,
       min_stock: Number(s.editMinStock) || 0,
       description: desc,
       status: status
     };
 
-    if (s.editSupplierId) payload.suppliers_id = Number(s.editSupplierId) || s.editSupplierId;
+    if (s.editSupplierId) payload.suppliers_id = [String(s.editSupplierId)];
     if (s.editTeamMemberId) payload.team_member_id = Number(s.editTeamMemberId) || s.editTeamMemberId;
-    // Products.Update rejects: company_id, invoice_setting_id, storage_id, storage,
-    // generate_sku, price_as_cost, vat_included, vat
+    if (s.editCompanyId) payload.product_invoice_setting_id = Number(s.editCompanyId) || s.editCompanyId;
+    if (s.editStorageIds && s.editStorageIds[0]) payload.default_storage_id = Number(s.editStorageIds[0]) || s.editStorageIds[0];
     if (s.editStoragePlace) payload.storage_place = s.editStoragePlace;
     if (type === 'subscription') {
       payload.endless = s.editEndless ? 1 : 0;
@@ -2113,8 +2280,7 @@ class Component extends DCLogic {
     
     var selectables = this.getSelectableCategories();
     var catId = s.addCatId || (selectables[0] || {}).id || '';
-    var type = s.addType || 'product';
-    if (type === 'physical') type = 'product';
+    var type = this.normalizeTypeValue(s.addType) || 'product';
 
     var sku = s.addSku || '';
     if (s.addGenerateSku && !sku) {
@@ -2139,16 +2305,17 @@ class Component extends DCLogic {
       product_internal_sku: s.addInternalSku || '',
       discount_price: Number(s.addDiscountPrice) || 0,
       stock: Number(s.addStock) || 0,
+      left_stock: Number(s.addStock) || 0,
       min_stock: Number(s.addMinStock) || 0,
       description: desc,
       discription: desc,
       status: 1
     };
 
-    if (s.addSupplierId) payload.suppliers_id = Number(s.addSupplierId) || s.addSupplierId;
+    if (s.addSupplierId) payload.suppliers_id = [String(s.addSupplierId)];
     if (s.addTeamMemberId) payload.team_member_id = Number(s.addTeamMemberId) || s.addTeamMemberId;
-    // Products.Add rejects: company_id, invoice_setting_id, storage_id, storage,
-    // generate_sku, price_as_cost, vat_included, vat — keep only accepted fields.
+    if (s.addCompanyId) payload.product_invoice_setting_id = Number(s.addCompanyId) || s.addCompanyId;
+    if (s.addStorageIds && s.addStorageIds[0]) payload.default_storage_id = Number(s.addStorageIds[0]) || s.addStorageIds[0];
     if (s.addStoragePlace) payload.storage_place = s.addStoragePlace;
 
     if (type === 'subscription') {
@@ -2282,16 +2449,10 @@ class Component extends DCLogic {
   }
 
   getSelectableCategories() {
+    if (this.state.formCategories && this.state.formCategories.length) {
+      return this.state.formCategories;
+    }
     return (this.state.categories || []).filter(c => c.id !== 'all' && c.id !== 'low');
-  }
-
-  getProductTypes() {
-    return [
-      { value: 'product', label: 'Physical Product' },
-      { value: 'subscription', label: 'Subscription' },
-      { value: 'service', label: 'Service' },
-      { value: 'donation', label: 'Donation' }
-    ];
   }
 
   getMonthOptions(selectedValue) {
@@ -2462,7 +2623,9 @@ class Component extends DCLogic {
 
     var storagesMapped = (s.storages || []).map(st => ({
       id: st.id,
-      name: st.name
+      name: st.name,
+      addSelected: false,
+      editSelected: false
     }));
 
     var selectedStorageChips = (s.addStorageIds || []).map(id => {
@@ -2525,8 +2688,7 @@ class Component extends DCLogic {
       chipsRef: this.chipsRef,
       
       // Add Product variables
-      addOpen: false, // Add product option disabled
-      // addOpen: s.addOpen,
+      addOpen: !!s.addOpen,
       addName: s.addName,
       addEnname: s.addEnname,
       addSku: s.addSku,
@@ -2657,11 +2819,12 @@ class Component extends DCLogic {
       onEditStatusChange: (e) => this.setState({ editStatus: Number(e.target.value) }),
       onEditDescChange: (e) => this.setState({ editDesc: this.inputValue(e) }),
 
-      // openAddModal: () => this.openAddModal(), // Add product option disabled
-      openAddModal: () => {},
+      // openAddModal: () => this.openAddModal(),
+      openAddModal: () => this.openAddModal(),
       closeAdd: () => this.setState({ addOpen: false }),
       createProduct: () => this.createProduct(),
       closeDetail: () => this.setState({ detailOpen: false }),
+      saveProductChanges: () => this.saveProductChanges(),
       updateStock: () => {},
       confirmDeleteOpen: false,
       onDeleteClick: () => {},

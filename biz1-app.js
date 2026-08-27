@@ -1068,7 +1068,8 @@
   function resolveFileUrl(pathOrUrl) {
     var value = String(pathOrUrl || '').trim();
     if (!value) return '';
-    if (/^https?:\/\//i.test(value) || /^data:/i.test(value)) return value;
+    value = value.replace(/^https?:\/\/files\.bull36\.com\//i, FILES_CDN);
+    if (/^https?:\/\//i.test(value) || /^data:/i.test(value) || /^blob:/i.test(value)) return value;
     return FILES_CDN + value.replace(/^\/+/, '');
   }
 

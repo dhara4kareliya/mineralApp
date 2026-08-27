@@ -399,7 +399,10 @@ mbCss('./common.css');
 </div>
 </div>
 <div style="margin-top:11px; display:{{ cashYesDisplay }};">
-<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">{{ labelCashAmount }} <span style="color:#c0392b;">*</span></label>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin:0;">{{ labelCashAmount }} <span style="color:#c0392b;">*</span></label>
+<span id="cash-due-hint" data-no-i18n="true" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:800; color:{{ cashDueColor }}; background:{{ cashDueBg }}; padding:3px 9px; border-radius:99px; white-space:nowrap; flex:none;">{{ cashDueHint }}</span>
+</div>
 <div style="position:relative;">
 <input id="cash-amount-input" class="ds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" oninput="{{ onCashAmount }}" placeholder="0" style="width:100%; box-sizing:border-box; direction:ltr; text-align:left; padding:11px 40px 11px 14px; border:1.5px solid {{ cashAmountBorder }}; border-radius:11px; font-size:14px; font-weight:700; color:#2e8a63; background:#eaf7ef;"/>
 <span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-size:14px; font-weight:700; pointer-events:none; line-height:1; z-index:1;">₪</span>
@@ -683,6 +686,7 @@ class Component extends DCLogic {
     extraUrls: [],
     cash: null,
     cashAmount: '',
+    expectedCashAmount: '',
     viewCashLabel: '',
     warrantyMonths: '0',
     installerName: '',
@@ -959,6 +963,58 @@ class Component extends DCLogic {
     return String(r % 1 === 0 ? r : r.toFixed(2));
   }
 
+  parseAmountValue(raw) {
+    var n = parseFloat(this.priceDigits(raw));
+    return (isFinite(n) && n > 0) ? n : 0;
+  }
+
+  extractTicketCashAmount(ticket) {
+    var cf = this.parseCustomFields(ticket);
+    var ef = ticket && (ticket.extra_fields != null ? ticket.extra_fields : ticket.extra_fields_json);
+    if (typeof ef === 'string') {
+      try { ef = JSON.parse(ef); } catch (e0) { ef = null; }
+    }
+    if (!ef || typeof ef !== 'object' || Array.isArray(ef)) ef = {};
+    var raw = this.labeledField(ticket, 'cash_amount') ||
+      (cf.cash_amount != null ? cf.cash_amount : '') ||
+      (cf.cashAmount != null ? cf.cashAmount : '') ||
+      cf['a-1787203267'] ||
+      (ticket && ticket['a-1787203267']) ||
+      ef['a-1787203267'] ||
+      ef.cash_amount ||
+      cf['a-1787144048'] ||
+      (ticket && ticket['a-1787144048']) ||
+      '';
+    return String(raw == null ? '' : raw).replace(/[^0-9.]/g, '');
+  }
+
+  readExpectedCashAmount() {
+    return this.parseAmountValue(this.state.expectedCashAmount);
+  }
+
+  cashDueHintText(amount) {
+    if (amount == null) amount = this.readExpectedCashAmount();
+    var shown = this.formatMoney(amount);
+    if (!shown) shown = '0';
+    return this.t('Collect from customer: ', 'לגבות מהלקוח: ') + shown + ' ₪';
+  }
+
+  cashDueTone(amount) {
+    if (amount == null) amount = this.readExpectedCashAmount();
+    if (amount > 0) return { color: '#2e8a63', bg: '#eaf7ef' };
+    return { color: '#8a93a3', bg: '#f4f6f8' };
+  }
+
+  refreshCashDueHint() {
+    var el = document.getElementById('cash-due-hint');
+    if (!el) return;
+    var amount = this.readExpectedCashAmount();
+    var tone = this.cashDueTone(amount);
+    el.textContent = this.cashDueHintText(amount);
+    el.style.color = tone.color;
+    el.style.background = tone.bg;
+  }
+
   bindSpareInputs() {
     var wsel = document.getElementById('warranty-months-select');
     if (wsel && wsel.getAttribute('data-bound') !== '1') {
@@ -1036,6 +1092,7 @@ class Component extends DCLogic {
       this._installedValue = price;
       var instVal = document.getElementById('wd-installed-value');
       if (instVal) instVal.value = price;
+      this.refreshCashDueHint();
       return;
     }
     if (kind === 'filters') {
@@ -1046,6 +1103,7 @@ class Component extends DCLogic {
       this._filtersValue = price;
       var filVal = document.getElementById('wd-filters-value');
       if (filVal) filVal.value = price;
+      this.refreshCashDueHint();
       return;
     }
     var list = (this.state.extraProducts || []).map(function (p) {
@@ -1055,6 +1113,7 @@ class Component extends DCLogic {
     this.state.extraProducts = list;
     var valEl = document.querySelector('[data-wd-extra="' + String(extraId).replace(/"/g, '') + '"][data-wd-field="value"]');
     if (valEl) valEl.value = price;
+    this.refreshCashDueHint();
   }
 
   captureWorkDetailInputs() {
@@ -1179,6 +1238,7 @@ class Component extends DCLogic {
       this._filtersValue = v;
       this.state.filtersValue = v;
     }
+    this.refreshCashDueHint();
   }
 
   onExtraProduct(id, field, e) {
@@ -1194,6 +1254,7 @@ class Component extends DCLogic {
       return Object.assign({}, p, { value: v });
     });
     this.state.extraProducts = list;
+    this.refreshCashDueHint();
   }
 
   addProduct() {
@@ -1965,11 +2026,14 @@ class Component extends DCLogic {
       (cf.cash_collected != null ? cf.cash_collected
         : (cf.cashCollected != null ? cf.cashCollected : ''))
     ).trim().toLowerCase();
-    var amount = String(
-      this.labeledField(ticket, 'cash_amount') ||
-      (cf.cash_amount != null ? cf.cash_amount
-        : (cf.cashAmount != null ? cf.cashAmount : ''))
-    ).replace(/[^0-9]/g, '');
+    if (!collected) {
+      collected = String(
+        cf['a-1787203271'] || (ticket && ticket['a-1787203271']) ||
+        cf['a-1787141989'] || (ticket && ticket['a-1787141989']) ||
+        cf.cash || cf.take_cash || cf.takeCash || cf.collect_cash || ''
+      ).trim().toLowerCase();
+    }
+    var amount = this.extractTicketCashAmount(ticket);
 
     var text = this.ticketNotesText(ticket);
     if (text) {
@@ -2129,6 +2193,7 @@ class Component extends DCLogic {
         extraPhotos: [],
         cash: null,
         cashAmount: '',
+        expectedCashAmount: '',
         viewCashLabel: '',
         warrantyMonths: '0',
         installerName: this.resolveInstallerName() || this.state.installerName || '',
@@ -2209,6 +2274,7 @@ class Component extends DCLogic {
           });
         } else {
           var linkedForm = await this.resolveLinkedProducts(ticket);
+          var expectedCash = this.extractTicketCashAmount(ticket);
           this.setState({
             loading: false,
             mode: 'form',
@@ -2221,6 +2287,7 @@ class Component extends DCLogic {
             customerTz: this.pickCustomerTz(ticket) || this.state.customerTz,
             ticketName: name || subject || ('#' + tid),
             linkedProducts: linkedForm,
+            expectedCashAmount: expectedCash,
             installerName: this.state.installerName || this.resolveInstallerName() || '',
             warrantyMonths: this.state.warrantyMonths != null && this.state.warrantyMonths !== '' ? this.state.warrantyMonths : '0'
           });
@@ -2760,6 +2827,7 @@ class Component extends DCLogic {
     this.syncSummaryInput();
     this.syncReasonInputs();
     this.updateSubmitEnabled();
+    this.refreshCashDueHint();
   }
 
   bindProductPickers() {
@@ -3757,6 +3825,9 @@ class Component extends DCLogic {
       cashNoColor: st.cash === 'no' ? '#fff' : '#1f2a3a',
       labelCashAmount: this.t('Amount collected in cash', 'סכום שנגבה במזומן'),
       onCashAmount: (e) => this.onCashAmount(e),
+      cashDueHint: this.cashDueHintText(),
+      cashDueColor: this.cashDueTone().color,
+      cashDueBg: this.cashDueTone().bg,
       cashAmountBorder: (st.attempted && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) ? '#e8a9a4' : '#cdeeda',
       cashErrorDisplay: (st.attempted && this.needsSignature() && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) ? 'block' : 'none',
       cashErrorText: this.t('Please enter the cash amount', 'נא להזין את סכום המזומן'),

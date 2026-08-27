@@ -425,15 +425,23 @@
             </sc-if>
             <sc-if hint-placeholder-val="{{ false }}" value="{{ showReassign }}">
               <div
-                style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 20px; display:flex;">
+                style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:12px 16px 20px; display:flex; flex-direction:column; gap:10px;">
                 <a class="gv-tap" href="{{ assignTechLink }}"
-                  style="flex:1; padding:15px; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26); text-decoration:none;">
+                  style="flex:none; padding:15px; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26); text-decoration:none;">
                   <svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     viewbox="0 0 24 24" width="18">
                     <circle cx="9" cy="8" r="4"></circle>
                     <path d="M3 20c0-3.4 2.7-5.5 6-5.5M17 11v6M14 14h6"></path>
                   </svg>
                   שיבוץ טכנאי מחדש
+                </a>
+                <a class="gv-tap" href="{{ closeTicketLink }}"
+                  style="flex:none; padding:15px; border-radius:14px; background:#2e8a63; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(46,138,99,.26); text-decoration:none;">
+                  <svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                    viewbox="0 0 24 24" width="18">
+                    <path d="M20 6 9 17l-5-5"></path>
+                  </svg>
+                  {{ closeTicketLabel }}
                 </a>
               </div>
             </sc-if>
@@ -1491,6 +1499,17 @@
         callId: '#SRV-' + t.ticket_id,
         assignTechLink: 'service-assign-tech.html?ticket_id=' + encodeURIComponent(t.ticket_id || t.id || '') +
           '&back=' + encodeURIComponent(backToTicket),
+        closeTicketLink: (function () {
+          var q = new URLSearchParams();
+          var tid = t.ticket_id || t.id || '';
+          if (tid) q.set('ticket_id', String(tid));
+          if (customerId) q.set('customer_id', String(customerId));
+          if (name) q.set('name', name);
+          if (t.subject) q.set('subject', String(t.subject));
+          q.set('back', backToTicket);
+          return 'tech-call-close.html?' + q.toString();
+        })(),
+        closeTicketLabel: isEn ? 'Close ticket' : 'סגור טיקט',
         openedAt: age,
         callType: t.subject || (isEn ? 'Technical Service' : 'שירות טכני'),
         source: t.email || t.phone || '---',
