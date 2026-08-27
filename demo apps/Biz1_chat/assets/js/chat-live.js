@@ -792,6 +792,52 @@
     } catch (e) { /* ignore */ }
   }
 
+  function syncThreadFromSocket(detail) {
+    var p = currentParams;
+    var App = window.Biz1App || window.MineralBarApp;
+    if (!p || !App || typeof App.realtimeMessageFromEvent !== 'function') return false;
+
+    var message = App.realtimeMessageFromEvent(detail);
+    var cid = String(message.customer_id || '');
+    var meta = String(message.messenger_meta_id || '');
+    var text = String(message.message || '').trim();
+    if (!text) return false;
+
+    var currentCid = String(p.customer_id || p.cust_id || '');
+    var currentMeta = String(p.messenger_meta_id || '');
+    if (meta && currentMeta && meta !== currentMeta) return false;
+    if (cid && currentCid && cid !== currentCid && !meta) return false;
+    if (!meta && !cid) return false;
+
+    var rowId = String(message.id || '');
+    var duplicate = cachedRows.some(function (row) {
+      if (rowId && String(row.id || row.message_id || '') === rowId) return true;
+      return !rowId && String(row.message || '').trim() === text &&
+        String(row.time || '') === String(message.when || '');
+    });
+    if (!duplicate) {
+      cachedRows.push({
+        id: message.id || '',
+        message: text,
+        user_name: message.name || '',
+        email: message.email || '',
+        time: message.when || new Date().toISOString(),
+        direction: message.direction,
+        type: message.channel || 'whatsapp',
+        channel: message.channel || 'whatsapp',
+        user_id: message.user_id,
+        messenger_meta_id: meta || currentMeta,
+        raw: detail && detail.event ? detail.event : detail
+      });
+      cachedRows = sortRowsByTime(cachedRows);
+    }
+
+    var el = document.getElementById('mb-live-chat');
+    if (el) renderMessages(el, cachedRows);
+    syncListChannelFromThread(p, cachedRows);
+    return true;
+  }
+
   async function loadThread(el, p) {
     el.innerHTML =
       '<div class="msg-loading"><div class="msg-loading-title">' +
@@ -915,7 +961,6 @@
         statusEl.textContent = attachSnapshot ? tt('file_sent') : (res.message || tt('note_saved'));
       }
       if (attachSnapshot) showToast(tt('file_sent'));
-      await loadThread(el, p);
       try {
         window.dispatchEvent(new CustomEvent('mineralbar:messages', {
           detail: {
@@ -1423,8 +1468,7 @@
       if (el) loadThread(el, currentParams);
     }
   });
-  window.addEventListener('mineralbar:messages', function () {
-    var el = document.getElementById('mb-live-chat');
-    if (el && currentParams) loadThread(el, currentParams);
+  window.addEventListener('mineralbar:messages', function (ev) {
+    syncThreadFromSocket((ev && ev.detail) || {});
   });
 })();

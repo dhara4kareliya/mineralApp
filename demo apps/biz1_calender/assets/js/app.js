@@ -582,7 +582,15 @@
       dispatchAppEvent('mineralbar:socket', { type: 'error', error: msg });
     });
     socket.on('disconnect', function (reason) {
+      realtimeState.ready = null;
+      realtimeState.registered = [];
       if (realtimeState.status !== 'error') setRealtimeStatus('offline');
+      else dispatchAppEvent('mineralbar:socket-status', {
+        status: realtimeState.status,
+        error: realtimeState.error,
+        registered: realtimeState.registered.slice(),
+        ready: realtimeState.ready
+      });
       dispatchAppEvent('mineralbar:socket', { type: 'disconnect', reason: reason });
     });
 

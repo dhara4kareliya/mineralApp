@@ -148,6 +148,51 @@ button, input, select, textarea, summary { font-family: 'Heebo', sans-serif; col
   gap: 8px;
   margin-inline-start: auto;
 }
+.live-socket-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  line-height: 1;
+  border: 1px solid transparent;
+  user-select: none;
+  white-space: nowrap;
+}
+.live-socket-chip .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.live-socket-chip.live-on {
+  color: #1f8a57;
+  background: rgba(46, 138, 99, .16);
+  border-color: rgba(46, 138, 99, .35);
+}
+.live-socket-chip.live-on .live-dot {
+  background: #2e8a63;
+  box-shadow: 0 0 0 0 rgba(46, 138, 99, .55);
+  animation: livePulse 1.6s ease-out infinite;
+}
+.live-socket-chip.live-off {
+  color: rgba(255, 255, 255, .72);
+  background: rgba(192, 57, 43, .22);
+  border-color: rgba(192, 57, 43, .4);
+}
+.live-socket-chip.live-off .live-dot {
+  background: #e74c3c;
+  box-shadow: none;
+  animation: none;
+}
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(46, 138, 99, .55); }
+  70% { box-shadow: 0 0 0 7px rgba(46, 138, 99, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 138, 99, 0); }
+}
 .lang-label {
   font-size: 11px;
   font-weight: 600;

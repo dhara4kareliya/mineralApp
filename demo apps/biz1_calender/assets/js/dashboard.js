@@ -39,7 +39,7 @@
       syncWa: 'WhatsApp confirmations',
       syncLoyalty: 'Loyalty punch cards',
       liveSocketOn: 'Live Socket',
-      liveSocketOff: 'Socket Off',
+      liveSocketOff: 'Offline',
       loading: 'Loading…',
       weekStaffLabel: 'Week staff',
       quickBookingTitle: 'Quick Booking',
@@ -90,8 +90,8 @@
       syncGoogle: 'סנכרון דו-כיווני ליומן גוגל',
       syncWa: 'אישורי וואטסאפ',
       syncLoyalty: 'כרטיסי נאמנות',
-      liveSocketOn: 'סוקט חי',
-      liveSocketOff: 'סוקט כבוי',
+      liveSocketOn: 'שידור חי',
+      liveSocketOff: 'אופליין',
       loading: 'טוען…',
       weekStaffLabel: 'צוות שבועי',
       quickBookingTitle: 'הזמנה מהירה',
@@ -1727,7 +1727,7 @@
         state = MineralBarApp.getRealtimeState() || state;
       }
     } catch (e) { /* ignore */ }
-    const on = !!(state.connected || state.status === 'ready');
+    const on = !!(state.connected && state.status === 'ready');
     chips.forEach((el) => {
       el.classList.toggle('live-on', on);
       el.classList.toggle('live-off', !on);
@@ -1740,6 +1740,7 @@
     paintLiveChip();
     window.addEventListener('mineralbar:socket', paintLiveChip);
     window.addEventListener('mineralbar:socket-status', paintLiveChip);
+    window.addEventListener('biz1:languagechange', paintLiveChip);
     setInterval(paintLiveChip, 4000);
   }
 

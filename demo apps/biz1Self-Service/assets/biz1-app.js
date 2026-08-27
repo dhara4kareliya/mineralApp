@@ -1501,7 +1501,8 @@
       status: realtimeState.status,
       error: realtimeState.error,
       registered: realtimeState.registered.slice(),
-      ready: realtimeState.ready
+      ready: realtimeState.ready,
+      connected: !!(realtimeState.socket && realtimeState.socket.connected)
     });
   }
 
@@ -1621,11 +1622,17 @@
       });
       socket.on('connect_error', function (err) {
         var msg = (err && err.message) || String(err);
+        realtimeState.ready = null;
+        realtimeState.registered = [];
         setRealtimeStatus('error', msg);
         dispatchAppEvent('biz1demo:socket', { type: 'error', error: msg });
       });
       socket.on('disconnect', function (reason) {
+        // Clear ready catalog so UI never treats stale registration as Live
+        realtimeState.ready = null;
+        realtimeState.registered = [];
         if (realtimeState.status !== 'error') setRealtimeStatus('offline');
+        else setRealtimeStatus('error', realtimeState.error);
         dispatchAppEvent('biz1demo:socket', { type: 'disconnect', reason: reason });
       });
 
@@ -1670,6 +1677,7 @@
     realtimeState.socket = null;
     realtimeState.ready = null;
     realtimeState.registered = [];
+    realtimeState.error = null;
     setRealtimeStatus('off');
   }
 
