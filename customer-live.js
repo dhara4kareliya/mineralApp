@@ -1329,112 +1329,269 @@
     return stripHtmlText(c.region || c.area || c.zone || c.district || c.city_area || '');
   }
 
-  function staticCustomerTracks() {
-    return [
-      {
-        title: t('Filters route', 'מסלול סננים'),
-        subtitle: t('Service for 5 filters', 'שירות ל־5 סננים'),
-        tier: t('Silver', 'כסף'),
-        status: t('Active', 'פעיל'),
-        monthly: '89',
-        monthlyLabel: t('Monthly Cost', 'עלות חודשית'),
-        end: '12/2026',
-        endLabel: t('Next Update', 'עדכון הבא'),
-        next: '07/26',
-        nextLabel: t('Next Installment', 'תשלום הבא'),
-        primary: true,
-        kind: 'filter'
-      },
-      {
-        title: t('Insurance route', 'מסלול ביטוח'),
-        subtitle: t('Cover for all household goods', 'כיסוי לכל מוצרי הבית'),
-        status: t('Active', 'פעיל'),
-        end: '02/2027',
-        primary: false,
-        kind: 'insurance'
-      },
-      {
-        title: t('Warranty', 'אחריות'),
-        subtitle: t('Warranty on parts only', 'אחריות על חלקים בלבד'),
-        status: t('Active', 'פעיל'),
-        end: t('until further notice', 'עד להודעה חדשה'),
-        primary: false,
-        kind: 'warranty'
-      }
-    ];
+  function customerExtraFields(c) {
+    c = c || {};
+    var ef = c.extra_fields_json != null ? c.extra_fields_json : c.extra_fields;
+    if (typeof ef === 'string') {
+      try { ef = JSON.parse(ef); } catch (e) { ef = {}; }
+    }
+    return (ef && typeof ef === 'object' && !Array.isArray(ef)) ? ef : {};
   }
 
-  function pickPlans(c, products) {
-    var plans = [];
-    var src = c.plans || c.routes || c.subscriptions || c.customer_plans || c.plans_list;
-    if (Array.isArray(src)) {
-      src.forEach(function (p) {
-        if (!p) return;
-        plans.push({
-          title: stripHtmlText(p.name || p.title || p.plan_name || p.route_name || ''),
-          subtitle: stripHtmlText(p.subtitle || p.description || p.desc || ''),
-          tier: stripHtmlText(p.tier || p.level || p.package || ''),
-          status: stripHtmlText(p.status || p.status_name || t('Active', 'פעיל')),
-          monthly: p.monthly || p.price || p.payment || '',
-          end: p.end || p.end_date || p.expires || p.valid_until || '',
-          next: p.next || p.next_maintenance || p.maintenance || p.next_installment || '',
-          primary: !!p.primary || plans.length === 0,
-          kind: String(p.kind || p.type || 'filter')
-        });
-      });
+  function extraFieldVal(ef, key) {
+    if (!ef) return '';
+    var v = ef[key];
+    if (v && typeof v === 'object') {
+      v = v.value != null ? v.value : (v.val != null ? v.val : (v.date != null ? v.date : (v.name != null ? v.name : '')));
     }
-    if (!plans.length) {
-      var warranty = stripHtmlText(c.warranty || c.warranty_status || c.warranty_label || '');
-      var insurance = stripHtmlText(c.insurance || c.insurance_status || c.insurance_label || '');
-      if (warranty) {
-        plans.push({
-          title: t('Warranty', 'אחריות'),
-          subtitle: '',
-          status: warranty,
-          monthly: '',
-          end: c.warranty_end || c.warranty_until || '',
-          next: '',
-          primary: false,
-          kind: 'warranty'
-        });
+    return stripHtmlText(v);
+  }
+
+  function entryCell(row, key) {
+    if (!row) return '';
+    var v = row[key];
+    if (v == null || v === '') v = row[String(key).replace(/^data/, 'data_')];
+    if (v && typeof v === 'object') {
+      v = v.value != null ? v.value : (v.val != null ? v.val : (v.date != null ? v.date : (v.name != null ? v.name : '')));
+    }
+    return stripHtmlText(v);
+  }
+
+  function padDay(n) {
+    n = Number(n) || 0;
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  function dayKeyFromRaw(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s || s === 'null' || s === 'undefined' || s === '[]') return '';
+    if (/^\d{10,13}$/.test(s)) {
+      var ms = Number(s);
+      if (s.length === 10) ms *= 1000;
+      var dn = new Date(ms);
+      if (!isNaN(dn.getTime())) {
+        return dn.getFullYear() + '-' + padDay(dn.getMonth() + 1) + '-' + padDay(dn.getDate());
       }
-      if (insurance) {
-        plans.push({
-          title: t('Insurance route', 'מסלול ביטוח'),
-          subtitle: '',
-          status: insurance,
-          monthly: '',
-          end: c.insurance_end || '',
-          next: '',
-          primary: false,
-          kind: 'insurance'
-        });
+    }
+    var iso = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (iso) return iso[1] + '-' + padDay(+iso[2]) + '-' + padDay(+iso[3]);
+    var dmy = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})/);
+    if (dmy) {
+      var y = dmy[3].length === 2 ? ('20' + dmy[3]) : dmy[3];
+      return y + '-' + padDay(+dmy[2]) + '-' + padDay(+dmy[1]);
+    }
+    try {
+      var d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        return d.getFullYear() + '-' + padDay(d.getMonth() + 1) + '-' + padDay(d.getDate());
       }
-      (products || []).forEach(function (p) {
-        if (!p || !p.name) return;
-        if (/מסלול|plan|route|ביטוח|אחריות|insur|warran/i.test(p.name) && plans.length < 3) {
-          plans.push({
-            title: p.name,
-            subtitle: p.sub || '',
-            status: t('Active', 'פעיל'),
-            monthly: p.price || '',
-            end: '',
-            next: '',
-            primary: plans.length === 0,
-            kind: p.kind || 'filter'
-          });
+    } catch (e) { /* ignore */ }
+    return '';
+  }
+
+  function todayDayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + padDay(d.getMonth() + 1) + '-' + padDay(d.getDate());
+  }
+
+  function isDateActiveOrOpen(raw) {
+    var key = dayKeyFromRaw(raw);
+    if (!key) return false;
+    return key >= todayDayKey();
+  }
+
+  function normalizePlanText(s) {
+    return String(s || '')
+      .replace(/[–—]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Filters route — show when customer plan is one of these (Biz1 insurance/plan field).
+  var FILTER_ROUTE_PLANS = [
+    'רכש סנן רגיל',
+    'רכש סנן ראשי/מרכך - במסלול החלפות',
+    'רכש סנן ראשי/מרכך - ללא מסלול החלפות',
+    'רכש מערכת סינון - במסלול החלפות',
+    'רכש מערכת סינון/אוסמוזה - ללא מסלול החלפות'
+  ];
+  var INSURANCE_ROUTE_PLAN = 'רכש ביטוח (3 שנים)';
+  var NO_ROUTE_PLAN = 'לא רכש ביטוח';
+
+  function planEquals(actual, expected) {
+    return normalizePlanText(actual) === normalizePlanText(expected);
+  }
+
+  function isFilterRoutePlan(plan) {
+    var p = normalizePlanText(plan);
+    if (!p || planEquals(p, NO_ROUTE_PLAN)) return false;
+    for (var i = 0; i < FILTER_ROUTE_PLANS.length; i++) {
+      if (planEquals(p, FILTER_ROUTE_PLANS[i])) return true;
+    }
+    return false;
+  }
+
+  function isInsuranceRoutePlan(plan) {
+    var p = normalizePlanText(plan);
+    if (!p || planEquals(p, NO_ROUTE_PLAN)) return false;
+    return planEquals(p, INSURANCE_ROUTE_PLAN);
+  }
+
+  function extractEntryRows(res) {
+    if (!res) return [];
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.output)) return res.output;
+    if (Array.isArray(res.list)) return res.list;
+    if (Array.isArray(res.entries)) return res.entries;
+    if (res.data && Array.isArray(res.data.rows)) return res.data.rows;
+    return [];
+  }
+
+  async function listCustomerTabEntries(tabId, customerId) {
+    var cid = String(customerId || '').trim();
+    if (!cid || !window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return [];
+    var client = MineralBarApp.getClient();
+    if (!client || !client.request) return [];
+    try {
+      var res = await client.request('Entries.List', {
+        tab_id: tabId,
+        cust_id: cid,
+        customer_id: cid,
+        contactus_id: cid,
+        limit: 25,
+        length: 25,
+        start: 0,
+        draw: 1
+      });
+      if (res && String(res.success) === '0') return [];
+      return extractEntryRows(res);
+    } catch (e) {
+      console.warn('[CustomerLive] Entries.List tab ' + tabId + ' failed', e);
+      return [];
+    }
+  }
+
+  function pickRoutePlanText(ef, insuranceRows) {
+    var fromTab = '';
+    if (insuranceRows && insuranceRows.length) {
+      for (var i = 0; i < insuranceRows.length; i++) {
+        fromTab = entryCell(insuranceRows[i], 'data1');
+        if (fromTab) break;
+      }
+    }
+    return fromTab ||
+      extraFieldVal(ef, 'insurance') ||
+      extraFieldVal(ef, 'a-1786435666') ||
+      '';
+  }
+
+  function pickWarrantyFromEntries(warrantyRows) {
+    var best = { end: '', months: '', product: '' };
+    (warrantyRows || []).forEach(function (row) {
+      var end = entryCell(row, 'data8');
+      if (!end) return;
+      var months = entryCell(row, 'data7');
+      var product = entryCell(row, 'data10');
+      if (!best.end || (dayKeyFromRaw(end) || '') > (dayKeyFromRaw(best.end) || '')) {
+        best = { end: end, months: months, product: product };
+      }
+    });
+    return best;
+  }
+
+  function pickInsuranceDates(ef, insuranceRows) {
+    var row = null;
+    if (insuranceRows && insuranceRows.length) {
+      for (var i = 0; i < insuranceRows.length; i++) {
+        if (entryCell(insuranceRows[i], 'data1') || entryCell(insuranceRows[i], 'data3')) {
+          row = insuranceRows[i];
+          break;
         }
+      }
+      if (!row) row = insuranceRows[0];
+    }
+    return {
+      start: (row && entryCell(row, 'data2')) || extraFieldVal(ef, 'a-1786435790') || '',
+      until: (row && entryCell(row, 'data3')) || extraFieldVal(ef, 'a-1786435853') || '',
+      nextReminder: (row && entryCell(row, 'data5')) || ''
+    };
+  }
+
+  function pickPlans(c, products, routeExtras) {
+    routeExtras = routeExtras || {};
+    var ef = customerExtraFields(c);
+    var warrantyRows = routeExtras.warrantyEntries || [];
+    var insuranceRows = routeExtras.insuranceEntries || [];
+    var plan = pickRoutePlanText(ef, insuranceRows);
+    var dates = pickInsuranceDates(ef, insuranceRows);
+    var plans = [];
+
+    if (isFilterRoutePlan(plan)) {
+      plans.push({
+        title: plan,
+        subtitle: '',
+        tier: '',
+        status: '',
+        monthly: '',
+        end: dates.nextReminder || '',
+        endLabel: t('Next Update', 'עדכון הבא'),
+        next: '',
+        start: '',
+        months: '',
+        primary: true,
+        kind: 'filter'
       });
     }
-    plans = plans.filter(function (p) { return p.title; });
-    // Fallback demo tracks when API has no route/plan data
-    if (!plans.length) return staticCustomerTracks();
-    return plans;
+
+    if (isInsuranceRoutePlan(plan)) {
+      var until = dates.until;
+      plans.push({
+        title: t('Insurance route', 'מסלול ביטוח'),
+        subtitle: plan,
+        tier: '',
+        status: until
+          ? (isDateActiveOrOpen(until) ? t('Active', 'פעיל') : t('Expired', 'פג תוקף'))
+          : t('Active', 'פעיל'),
+        monthly: '',
+        end: until,
+        endLabel: t('Until', 'עד'),
+        next: '',
+        start: dates.start || '',
+        startLabel: t('Start', 'התחלה'),
+        months: '',
+        primary: !plans.length,
+        kind: 'insurance'
+      });
+    }
+
+    var war = pickWarrantyFromEntries(warrantyRows);
+    var warEnd = war.end || extraFieldVal(ef, 'a-1786435543');
+    var warMonths = war.months || extraFieldVal(ef, 'a-1786435486');
+    if (warEnd) {
+      plans.push({
+        title: t('Warranty', 'אחריות'),
+        subtitle: war.product || '',
+        tier: '',
+        status: isDateActiveOrOpen(warEnd) ? t('Active', 'פעיל') : t('Expired', 'פג תוקף'),
+        monthly: '',
+        end: warEnd,
+        endLabel: t('Until', 'עד'),
+        next: '',
+        start: '',
+        months: warMonths,
+        monthsLabel: t('Months', 'חודשים'),
+        primary: false,
+        kind: 'warranty'
+      });
+    }
+
+    return plans.filter(function (p) { return p && p.title; });
   }
 
   async function fetchCustomerExtras(customerId) {
     var cid = String(customerId || '').trim();
-    var empty = { products: [], tickets: [], missions: [], history: [] };
+    var empty = { products: [], tickets: [], missions: [], history: [], warrantyEntries: [], insuranceEntries: [] };
     if (!cid || !window.MineralBarApp) return empty;
 
     var productsP = (async function () {
@@ -1514,22 +1671,85 @@
       }
     })();
 
-    var settled = await Promise.all([productsP, ticketsP, missionsP, historyP]);
+    // tab 755 = products/warranty entries; tab 756 = insurance / filters plan entries
+    var warrantyEntriesP = listCustomerTabEntries(755, cid);
+    var insuranceEntriesP = listCustomerTabEntries(756, cid);
+
+    var settled = await Promise.all([
+      productsP, ticketsP, missionsP, historyP, warrantyEntriesP, insuranceEntriesP
+    ]);
     return {
       products: settled[0],
       tickets: settled[1],
       missions: settled[2],
-      history: settled[3]
+      history: settled[3],
+      warrantyEntries: settled[4],
+      insuranceEntries: settled[5]
     };
   }
 
   function formatPlanDate(v) {
     if (!v) return '';
-    // Keep display strings like 12/2026 or "until further notice" as-is
-    if (/[/\u05d0-\u05ea]/.test(String(v)) || /until|notice|הודעה|NIS|₪/i.test(String(v))) {
-      return String(v);
+    var key = dayKeyFromRaw(v);
+    if (key) {
+      var parts = key.split('-');
+      return parts[2] + '/' + parts[1] + '/' + parts[0].slice(-2);
     }
-    return fmtShortDate(v) || String(v);
+    // Keep free-text (e.g. Hebrew open-ended) as-is
+    return String(v);
+  }
+
+  function planPrimaryMetrics(p) {
+    var metrics = [];
+    if (!p) return metrics;
+    if (p.monthly) {
+      var monthlyVal = /nis|₪|ש״ח/i.test(String(p.monthly))
+        ? String(p.monthly)
+        : (fmtMoney(p.monthly) || String(p.monthly));
+      metrics.push({ label: p.monthlyLabel || t('Monthly Cost', 'עלות חודשית'), value: monthlyVal });
+    }
+    if (p.start) {
+      metrics.push({ label: p.startLabel || t('Start', 'התחלה'), value: formatPlanDate(p.start) });
+    }
+    if (p.end) {
+      metrics.push({ label: p.endLabel || t('Until', 'עד'), value: formatPlanDate(p.end) });
+    }
+    if (p.months) {
+      metrics.push({ label: p.monthsLabel || t('Months', 'חודשים'), value: String(p.months) });
+    }
+    if (p.next) {
+      metrics.push({ label: p.nextLabel || t('Next Installment', 'תשלום הבא'), value: formatPlanDate(p.next) });
+    }
+    return metrics;
+  }
+
+  function renderPrimaryPlanMetrics(metrics) {
+    if (!metrics || !metrics.length) return '';
+    var cols = Math.min(metrics.length, 3);
+    var html = '<div style="display:grid;grid-template-columns:repeat(' + cols + ',1fr);gap:0;margin-top:14px;">';
+    metrics.slice(0, 3).forEach(function (m, i) {
+      var pad =
+        i === 0
+          ? 'padding-inline-end:10px;'
+          : (i === cols - 1
+            ? 'padding-inline-start:10px;'
+            : 'padding:0 10px;');
+      var borders = '';
+      if (cols > 1 && i > 0) borders += 'border-inline-start:1px solid rgba(255,255,255,.22);';
+      html +=
+        '<div style="' + pad + borders + '">' +
+        '<div style="font-size:10.5px;opacity:.8;">' + esc(m.label) + '</div>' +
+        '<div style="font-size:15px;font-weight:800;margin-top:3px;">' + esc(m.value) + '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function primaryPlanIcon(kind) {
+    if (kind === 'insurance' || kind === 'warranty') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"/></svg>';
+    }
+    return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 4h18l-7 9v6l-4 2v-8z"/></svg>';
   }
 
   function renderPlansSection(plans) {
@@ -1540,9 +1760,7 @@
     html += '<div style="font-size:14px;font-weight:800;color:#1f2a3a;margin:2px 2px 11px;">' +
       esc(t("The customer's routes", 'המסלולים של הלקוח')) + '</div>';
     if (primary) {
-      var monthlyVal = primary.monthly
-        ? (/nis|₪|ש״ח/i.test(String(primary.monthly)) ? String(primary.monthly) : (fmtMoney(primary.monthly) || String(primary.monthly)))
-        : '—';
+      var metrics = planPrimaryMetrics(primary);
       html +=
         '<div style="background:linear-gradient(135deg,#1d60a2,#16487c);border-radius:16px;padding:15px;color:#fff;margin-bottom:11px;position:relative;overflow:hidden;">' +
         '<div style="position:absolute;top:-20px;left:-12px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.07);"></div>' +
@@ -1561,19 +1779,10 @@
             ? '<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.18);font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;margin-top:6px;">' +
               '<span style="width:5px;height:5px;border-radius:50%;background:#5fd497;"></span>' + esc(primary.status) + '</div>'
             : '')) +
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:14px;">' +
-        '<div style="padding-inline-end:10px;">' +
-        '<div style="font-size:10.5px;opacity:.8;">' + esc(primary.monthlyLabel || t('Monthly Cost', 'עלות חודשית')) + '</div>' +
-        '<div style="font-size:15px;font-weight:800;margin-top:3px;">' + esc(monthlyVal) + '</div></div>' +
-        '<div style="padding:0 10px;border-inline-start:1px solid rgba(255,255,255,.22);border-inline-end:1px solid rgba(255,255,255,.22);">' +
-        '<div style="font-size:10.5px;opacity:.8;">' + esc(primary.endLabel || t('Next Update', 'עדכון הבא')) + '</div>' +
-        '<div style="font-size:15px;font-weight:800;margin-top:3px;">' + esc(primary.end ? formatPlanDate(primary.end) : '—') + '</div></div>' +
-        '<div style="padding-inline-start:10px;">' +
-        '<div style="font-size:10.5px;opacity:.8;">' + esc(primary.nextLabel || t('Next Installment', 'תשלום הבא')) + '</div>' +
-        '<div style="font-size:15px;font-weight:800;margin-top:3px;">' + esc(primary.next ? formatPlanDate(primary.next) : '—') + '</div></div>' +
-        '</div></div>' +
+        renderPrimaryPlanMetrics(metrics) +
+        '</div>' +
         '<div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex:none;">' +
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 4h18l-7 9v6l-4 2v-8z"/></svg>' +
+        primaryPlanIcon(primary.kind) +
         '</div></div></div></div>';
     }
     if (secondary.length) {
@@ -1582,6 +1791,7 @@
         var isIns = p.kind === 'insurance';
         var accent = isIns ? '#2e8a63' : '#50439d';
         var iconBg = isIns ? '#e9f5ee' : '#eef0fb';
+        var statusColor = /expir|פג/i.test(String(p.status || '')) ? '#c0392b' : '#2e8a63';
         html +=
           '<div style="flex:1;background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);border-top:3px solid ' + accent + ';">' +
           '<div style="width:34px;height:34px;border-radius:50%;background:' + iconBg + ';color:' + accent + ';display:flex;align-items:center;justify-content:center;margin-bottom:10px;">' +
@@ -1591,12 +1801,21 @@
           '</div>' +
           '<div style="font-size:13.5px;font-weight:800;color:#1f2a3a;">' + esc(p.title) + '</div>' +
           (p.subtitle ? '<div style="font-size:11.5px;color:#9aa3b0;margin-top:3px;line-height:1.4;">' + esc(p.subtitle) + '</div>' : '') +
-          '<div style="font-size:12px;color:#5a6473;margin-top:10px;">' +
-          esc(t('Status', 'סטטוס')) + ': <span style="color:#2e8a63;font-weight:800;">' + esc(p.status || t('Active', 'פעיל')) + '</span>' +
-          '</div>' +
+          (p.status
+            ? '<div style="font-size:12px;color:#5a6473;margin-top:10px;">' +
+              esc(t('Status', 'סטטוס')) + ': <span style="color:' + statusColor + ';font-weight:800;">' + esc(p.status) + '</span></div>'
+            : '') +
+          (p.start
+            ? '<div style="font-size:12px;color:#5a6473;margin-top:4px;">' +
+              esc(p.startLabel || t('Start', 'התחלה')) + ': <span style="font-weight:700;color:#1f2a3a;">' + esc(formatPlanDate(p.start)) + '</span></div>'
+            : '') +
           (p.end
             ? '<div style="font-size:12px;color:#5a6473;margin-top:4px;">' +
-              esc(t('Until', 'עד')) + ': <span style="font-weight:700;color:#1f2a3a;">' + esc(formatPlanDate(p.end)) + '</span></div>'
+              esc(p.endLabel || t('Until', 'עד')) + ': <span style="font-weight:700;color:#1f2a3a;">' + esc(formatPlanDate(p.end)) + '</span></div>'
+            : '') +
+          (p.months
+            ? '<div style="font-size:12px;color:#5a6473;margin-top:4px;">' +
+              esc(p.monthsLabel || t('Months', 'חודשים')) + ': <span style="font-weight:700;color:#1f2a3a;">' + esc(String(p.months)) + '</span></div>'
             : '') +
           '</div>';
       });
@@ -2075,7 +2294,10 @@
     var tickets = extras.tickets || [];
     var missions = extras.missions || [];
     var history = extras.history || [];
-    var plans = pickPlans(c, products);
+    var plans = pickPlans(c, products, {
+      warrantyEntries: extras.warrantyEntries || [],
+      insuranceEntries: extras.insuranceEntries || []
+    });
 
     var qs = 'customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id) +
       '&name=' + encodeURIComponent(name) +

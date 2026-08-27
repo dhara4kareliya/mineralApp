@@ -161,9 +161,19 @@
       transfer: 'transference',
       masav: 'masav',
       bit: 'others',
-      standing: 'cc'
+      // Standing order UI is bank debit — not CC without card fields.
+      standing: 'masav'
     };
     return map[method] || 'cash';
+  }
+
+  function normalizeCardExp(exp) {
+    var raw = String(exp || '').trim().replace(/\s+/g, '');
+    var m = raw.match(/^(\d{1,2})[\/\-](\d{2}|\d{4})$/);
+    if (!m) return raw;
+    var mm = m[1].length === 1 ? '0' + m[1] : m[1];
+    var year = m[2].length === 4 ? m[2] : ('20' + m[2]);
+    return mm + '-' + year;
   }
 
   function gatherPayload(state) {
@@ -173,6 +183,8 @@
     var noteHeader = (document.getElementById('mb-note-header') || {}).value || '';
     var noteFooter = (document.getElementById('mb-note-footer') || {}).value || '';
     var note = [noteInternal, noteFooter].filter(Boolean).join('\n');
+    var installmentsEl = document.getElementById('mb-pay-installments');
+    var installments = num(installmentsEl && installmentsEl.value) || 1;
     var payload = {
       customer_id: state.customerId,
       name: state.customerName || '',
@@ -181,9 +193,15 @@
       phone: state.mobile || '',
       address: state.address && state.address !== '-' ? state.address : '',
       document_type: 'receipt',
+      type: 'receipt',
       final_amount: amount,
       payment_method: mapPaymentMethod(state.method),
       payment_date: new Date(),
+      number_of_payments: installments,
+      c_type_pay: state.method === 'standing'
+        ? 'standing_order'
+        : (installments > 1 ? 'installments' : 'regular'),
+      items: '[]',
       note: note,
       note_header: noteHeader,
       send_email: (document.getElementById('mb-send-mail') || {}).checked ? 1 : 0,
@@ -191,17 +209,26 @@
       source: 'collection-payment-live'
     };
     if (state.method === 'card') {
-      payload.card_name = (document.getElementById('mb-pay-card-holder') || {}).value || '';
-      payload.card_no = (document.getElementById('mb-pay-card-number') || {}).value || '';
-      payload.month_year = (document.getElementById('mb-pay-card-exp') || {}).value || '';
-      payload.cvc = (document.getElementById('mb-pay-card-cvv') || {}).value || '';
+      var cardNo = String((document.getElementById('mb-pay-card-number') || {}).value || '').replace(/\D/g, '');
+      var cardName = String((document.getElementById('mb-pay-card-holder') || {}).value || '').trim();
+      var monthYear = normalizeCardExp((document.getElementById('mb-pay-card-exp') || {}).value || '');
+      var cvc = String((document.getElementById('mb-pay-card-cvv') || {}).value || '').replace(/\D/g, '');
+      if (!cardNo || cardNo.length < 12) throw new Error('Card number is required');
+      if (!monthYear) throw new Error('Card expiry is required');
+      if (!cvc) throw new Error('CVV is required');
+      if (!cardName) throw new Error('Cardholder name is required');
+      payload.payment_method = 'cc';
+      payload.card_no = cardNo;
+      payload.card_name = cardName;
+      payload.month_year = monthYear;
+      payload.cvc = cvc;
     }
     if (state.method === 'check') {
       payload.check_bank = (document.getElementById('mb-check-bank') || {}).value || '';
       payload.check_number = (document.getElementById('mb-check-number') || {}).value || '';
       payload.check_amount = (document.getElementById('mb-check-amount') || {}).value || '';
     }
-    if (state.method === 'transfer' || state.method === 'masav') {
+    if (state.method === 'transfer' || state.method === 'masav' || state.method === 'standing') {
       payload.transfer_bank = (document.getElementById('mb-transfer-bank') || {}).value || '';
       payload.transfer_branch = (document.getElementById('mb-transfer-branch') || {}).value || '';
       payload.transfer_account = (document.getElementById('mb-transfer-account') || {}).value || '';
@@ -211,7 +238,6 @@
     }
     if (state.selectedDocId) {
       payload.document_to_pay = state.selectedDocId;
-      payload.related_document_id = state.selectedDocId;
     }
     return payload;
   }

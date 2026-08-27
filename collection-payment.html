@@ -449,7 +449,7 @@ mbCss('./common.css');
                   Hello {{ firstName }} ??<br/>
                   Thank you for signing the quote!<br/>
                   Click to enter secure payment details:<br/>
-<span style="color:#1d60a2; font-weight:700;">aquacrm.co.il/pay/QT-0041</span>
+<span style="color:#1d60a2; font-weight:700;">{{ paymentLink }}</span>
 <div style="display:flex; align-items:center; gap:5px; color:#8a93a3; font-size:12px; margin-top:8px;">
 <svg fill="none" height="12" stroke="#c99a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
                     Secure — Validity: 48 hours
@@ -473,14 +473,17 @@ mbCss('./common.css');
 </select>
 </div>
 </div>
-<button style="width:100%; margin-top:13px; padding:14px; border:none; border-radius:13px; background:#25b35e; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+<button type="button" onclick="{{ onSendWaLink }}" style="width:100%; margin-top:13px; padding:14px; border:none; border-radius:13px; background:#25b35e; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
 <svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M21 11.5a8.4 8.4 0 0 1-1.1 4.2A8.5 8.5 0 0 1 8.5 19L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"></path></svg>
                 Send on WhatsApp
               </button>
-<button style="width:100%; margin-top:9px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; background:#fff; color:#1f2a3a; font-size:14.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+<button type="button" onclick="{{ onSendSmsLink }}" style="width:100%; margin-top:9px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; background:#fff; color:#1f2a3a; font-size:14.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
 <svg fill="none" height="17" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="17"><path d="M21 11.5a8.4 8.4 0 0 1-1.1 4.2A8.5 8.5 0 0 1 8.5 19L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"></path></svg>
                 Send by SMS
               </button>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ linkStatusMsg }}">
+<div style="margin-top:10px; font-size:12.5px; color:#6f7786; text-align:center;">{{ linkStatusMsg }}</div>
+</sc-if>
 </div>
 </sc-if>
 </div>
@@ -533,6 +536,49 @@ class Component extends DCLogic {
     var rounded = Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100;
     if (Math.abs(rounded - Math.round(rounded)) < 0.001) return Math.round(rounded) + '₪';
     return rounded.toFixed(2) + '₪';
+  }
+
+  /** Documents.Add expects month_year like 12-2028; accept MM/YY or MM/YYYY. */
+  normalizeCardExp(exp) {
+    var raw = String(exp || '').trim().replace(/\s+/g, '');
+    var m = raw.match(/^(\d{1,2})[\/\-](\d{2}|\d{4})$/);
+    if (!m) return raw;
+    var mm = m[1].length === 1 ? '0' + m[1] : m[1];
+    var year = m[2].length === 4 ? m[2] : ('20' + m[2]);
+    return mm + '-' + year;
+  }
+
+  mapPaymentMethod(uiMethod) {
+    var map = {
+      cash: 'cash',
+      card: 'cc',
+      check: 'check',
+      transfer: 'transference',
+      masav: 'masav',
+      bit: 'others',
+      // Standing order UI is bank debit — not a raw CC charge without card fields.
+      standing: 'masav'
+    };
+    return map[uiMethod] || 'cash';
+  }
+
+  attachCardPaymentFields(payload) {
+    var cardNo = String(this.state.cardNumber || '').replace(/\D/g, '');
+    var cardName = String(this.state.cardHolder || '').trim();
+    var monthYear = this.normalizeCardExp(this.state.cardExpiry);
+    var cvc = String(this.state.cardCvv || '').replace(/\D/g, '');
+    var tz = String(this.state.cardTz || '').replace(/\D/g, '');
+    if (!cardNo || cardNo.length < 12) throw new Error('Card number is required');
+    if (!monthYear) throw new Error('Card expiry is required');
+    if (!cvc) throw new Error('CVV is required');
+    if (!cardName) throw new Error('Cardholder name is required');
+    payload.payment_method = 'cc';
+    payload.card_no = cardNo;
+    payload.card_name = cardName;
+    payload.month_year = monthYear;
+    payload.cvc = cvc;
+    if (tz) payload.corporation = tz;
+    return payload;
   }
 
   getQueryAmount() {
@@ -658,6 +704,121 @@ class Component extends DCLogic {
 
   pick(m) { this.setState({ method: m }); }
   setEntry(e) { this.setState({ entry: e }); }
+
+  phoneDigits(raw) {
+    var s = String(raw || '').replace(/\D/g, '');
+    if (!s) return '';
+    if (s.indexOf('972') === 0) return s;
+    if (s.charAt(0) === '0') return '972' + s.slice(1);
+    return s;
+  }
+
+  getPaymentLink() {
+    try {
+      var q = new URLSearchParams(window.location.search || '');
+      var fromQuery = String(q.get('payment_link') || q.get('pay_link') || q.get('link') || '').trim();
+      if (fromQuery) return fromQuery;
+    } catch (e0) { /* ignore */ }
+    var docs = this.state.docs || [];
+    var sel = docs.find(function (d) { return String(d.id) === String(this.state.selectedDocId); }.bind(this));
+    if (sel && (sel.payment_link || sel.pay_link || sel.link)) {
+      return String(sel.payment_link || sel.pay_link || sel.link);
+    }
+    var ref = '';
+    if (sel && sel.label) {
+      var m = String(sel.label).match(/#([A-Za-z0-9_-]+)/);
+      if (m) ref = m[1];
+    }
+    if (!ref && this.state.selectedDocId && this.state.selectedDocId !== 'from-order') {
+      ref = String(this.state.selectedDocId);
+    }
+    if (!ref) ref = 'PAY-' + String(Math.round(Number(this.state.amount) || 0) || Date.now()).slice(-6);
+    return 'https://aquacrm.co.il/pay/' + encodeURIComponent(ref);
+  }
+
+  buildPaymentMessage() {
+    var first = String(this.state.customerName || 'Customer').trim().split(/\s+/)[0] || 'Customer';
+    var link = this.getPaymentLink();
+    var amount = this.fmtAmount(this.state.amount);
+    var installments = Number(this.state.installments || 1) || 1;
+    var payLine = installments > 1
+      ? (amount + ' · ' + installments + ' payments')
+      : amount;
+    return (
+      'Hello ' + first + '!\n' +
+      'Thank you for signing the quote!\n' +
+      'Click to enter secure payment details:\n' +
+      link + '\n' +
+      '🔒 Secure — Validity: 48 hours\n' +
+      'Amount: ' + payLine
+    );
+  }
+
+  openExternal(url) {
+    if (!url) return;
+    try {
+      var a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      try { window.open(url, '_blank'); } catch (e2) { window.location.href = url; }
+    }
+  }
+
+  async sendPaymentWhatsApp() {
+    var phone = this.state.customerPhone || '';
+    var digits = this.phoneDigits(phone);
+    var msg = this.buildPaymentMessage();
+    if (!digits) {
+      this.setState({ statusMsg: 'Customer phone is required to send WhatsApp' });
+      return;
+    }
+    this.setState({ busy: true, statusMsg: 'Sending WhatsApp…' });
+    var customerId = this.getCustomerId();
+    try {
+      if (customerId && window.MineralBarApp && typeof MineralBarApp.sendCustomerMessage === 'function') {
+        await MineralBarApp.sendCustomerMessage({
+          customer_id: customerId,
+          cust_id: customerId,
+          message: msg,
+          msg: msg,
+          from: 'send_whatsapp',
+          phone: phone,
+          mobile: phone,
+          chart_selected_phone_no: phone
+        });
+        this.setState({ statusMsg: 'Payment link sent on WhatsApp' });
+        return;
+      }
+    } catch (err) {
+      // Fall through to wa.me (API window/template failures are common)
+      console.warn('[collection-payment] Chat.SendCustomer WhatsApp failed — opening WhatsApp app', err);
+    } finally {
+      this.setState({ busy: false });
+    }
+    this.openExternal('https://wa.me/' + digits + '?text=' + encodeURIComponent(msg));
+    this.setState({ statusMsg: 'Opened WhatsApp with payment link' });
+  }
+
+  sendPaymentSms() {
+    var phone = String(this.state.customerPhone || '').trim();
+    var digits = this.phoneDigits(phone);
+    var msg = this.buildPaymentMessage();
+    if (!digits && !phone) {
+      this.setState({ statusMsg: 'Customer phone is required to send SMS' });
+      return;
+    }
+    var to = phone || ('+' + digits);
+    // sms: URI — works on mobile; body param supported on iOS / Android
+    var href = 'sms:' + encodeURIComponent(to).replace(/%2B/gi, '+') +
+      '?&body=' + encodeURIComponent(msg);
+    this.openExternal(href);
+    this.setState({ statusMsg: 'Opened SMS with payment link' });
+  }
 
   addCheck() {
     this.setState(s => ({ checks: [...s.checks, { id: Date.now() }] }));
@@ -875,15 +1036,6 @@ class Component extends DCLogic {
         if (this.state.busy) return;
         this.setState({ busy: true, statusMsg: 'Saving collection...' });
         try {
-          var methodMap = {
-            cash: 'cash',
-            card: 'cc',
-            check: 'check',
-            transfer: 'transference',
-            masav: 'masav',
-            bit: 'others',
-            standing: 'cc'
-          };
           var uiMethod = this.state.method || 'cash';
           var amount = Number(this.state.amount || 0);
           if (!(amount > 0) && uiMethod === 'cash') {
@@ -897,6 +1049,7 @@ class Component extends DCLogic {
           var noteInternal = this.noteValue(this.state.noteInternal);
           var noteHeader = this.noteValue(this.state.noteHeader);
           var noteFooter = this.noteValue(this.state.noteFooter);
+          var installments = Number(this.state.installments || 1) || 1;
           var payload = {
             customer_id: customerId,
             name: this.state.customerName || '',
@@ -905,11 +1058,15 @@ class Component extends DCLogic {
             phone: this.state.customerPhone || '',
             address: this.state.customerAddress && this.state.customerAddress !== '-' ? this.state.customerAddress : '',
             document_type: 'receipt',
+            type: 'receipt',
             final_amount: amount,
-            payment_method: methodMap[uiMethod] || 'cash',
+            payment_method: this.mapPaymentMethod(uiMethod),
             payment_date: new Date(),
-            number_of_payments: Number(this.state.installments || 1) || 1,
-            c_type_pay: uiMethod === 'standing' ? 'standing_order' : (Number(this.state.installments || 1) > 1 ? 'installments' : 'regular'),
+            number_of_payments: installments,
+            c_type_pay: uiMethod === 'standing'
+              ? 'standing_order'
+              : (installments > 1 ? 'installments' : 'regular'),
+            items: '[]',
             note: [noteInternal, noteFooter].filter(Boolean).join('\n'),
             note_header: noteHeader,
             send_email: this.state.sendMail ? 1 : 0,
@@ -918,7 +1075,11 @@ class Component extends DCLogic {
           };
           if (docId) {
             payload.document_to_pay = docId;
-            payload.related_document_id = docId;
+            // Prefer document_to_pay for receipts; related_document_id can spawn another invoice.
+          }
+          // payment_method=cc requires card fields (Biz1: "Please fill required fields").
+          if (uiMethod === 'card') {
+            this.attachCardPaymentFields(payload);
           }
           var created = await MineralBarApp.getClient().request('Documents.Add', payload);
           var pdfUrl = this.findPdfUrl(created, 0) || '';
@@ -1028,6 +1189,9 @@ class Component extends DCLogic {
       customerAddress: this.state.customerAddress,
       companyId: this.state.companyId,
       firstName: String(this.state.customerName || 'Customer').split(' ')[0],
+      paymentLink: this.getPaymentLink().replace(/^https?:\/\//i, ''),
+      onSendWaLink: () => this.sendPaymentWhatsApp(),
+      onSendSmsLink: () => this.sendPaymentSms(),
       amountText: this.fmtAmount(this.state.amount),
       totalMonthlyText: this.fmtAmount(this.state.amount) + '/month',
       currentDate: this.state.currentDate || this.todayText(),
@@ -1051,7 +1215,8 @@ class Component extends DCLogic {
       showTransferForm: isTransfer,
       showBitForm: isBit,
       showPreview,
-      showSubmit: !showPreview,
+  showSubmit: !showPreview,
+      linkStatusMsg: showPreview ? (this.state.statusMsg || '') : '',
 
       checks,
       checkCountLabel: this.state.checks.length + ' checks',
