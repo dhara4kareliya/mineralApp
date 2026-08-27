@@ -181,6 +181,9 @@
                   <div style="display:flex; align-items:center; gap:6px; margin-top:5px;">
                     <span style="font-size:15px; font-weight:800; color:{{ cashColor }};">{{ cashLabel }}</span>
                   </div>
+                  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasCashAmount }}">
+                    <div style="font-size:12.5px; font-weight:800; color:{{ cashColor }}; margin-top:4px;">{{ cashAmountText }}</div>
+                  </sc-if>
                 </div>
               </div>
               <!-- closing status + reason (from Ticket.Edit custom_fields) -->
@@ -681,6 +684,35 @@
       }
       if (raw === '2' || raw === 'no' || raw === 'false' || raw === 'לא') return false;
       return raw === 'yes' || raw === '1' || raw === 'true' || raw === 'כן' || raw === 'y';
+    }
+
+    extractCashAmount(ticket) {
+      var raw = this.labeledField(ticket, 'cash_amount');
+      if (!raw) {
+        var cf = this.parseCustomFields(ticket);
+        raw = cf.cash_amount || cf.cashAmount || cf['a-1787203267'] || cf['a-1787144048'] || '';
+      }
+      if (!raw && ticket) {
+        raw = ticket.cash_amount || ticket['a-1787203267'] || ticket['a-1787144048'] || '';
+      }
+      if (!raw) {
+        var notes = this.ticketNotesText(ticket);
+        var m = notes.match(/(?:Service fee(?: amount)?|Cash amount|סכום דמי שירות|דמי שירות)\s*[:：]\s*([0-9]+(?:\.[0-9]+)?)/i)
+          || notes.match(/(?:Service fee collected|נגבו דמי שירות)\s*[:：]\s*([0-9]+)/i);
+        if (m && m[1]) raw = m[1];
+      }
+      var n = Number(String(raw || '').replace(/[^\d.]/g, ''));
+      return (isFinite(n) && n > 0) ? n : 0;
+    }
+
+    formatCashAmount(n, isEn) {
+      n = Number(n) || 0;
+      if (!(n > 0)) return '';
+      var rounded = Math.round((n + Number.EPSILON) * 100) / 100;
+      var text = (Math.abs(rounded - Math.round(rounded)) < 0.001)
+        ? String(Math.round(rounded))
+        : rounded.toFixed(2);
+      return text + '₪';
     }
 
     extractProductIds(ticket) {
@@ -1185,7 +1217,9 @@
     resolveTicketDetailsBack() {
       var defaultBack = this.defaultTicketDetailsBack();
       var selfRe = /service-call-details/i;
-      var childRe = /service-customer-card|tech-customer-card|lead-card|chat-customer/i;
+      // Create / pick-customer forms must never be "back" from ticket details
+      var createRe = /service-open-call|service-select-customer|sales-add-lead/i;
+      var childRe = /service-customer-card|tech-customer-card|lead-card|chat-customer|service-assign-tech|tech-call-close/i;
       var q = new URLSearchParams(location.search || '');
       var tid = String(q.get('ticket_id') || '').trim();
       var self = this;
@@ -1197,6 +1231,7 @@
         if (!href) return '';
         var file = String(href).split('?')[0];
         if (selfRe.test(file)) return '';
+        if (createRe.test(file)) return '';
         if (childRe.test(file) && selfRe.test(self.nestedBackParam(href))) return '';
         return href;
       }
@@ -1449,6 +1484,8 @@
       }
 
       const takeCashYes = this.isTakeCashYes(t);
+      const cashAmountNum = takeCashYes ? this.extractCashAmount(t) : 0;
+      const cashAmountText = this.formatCashAmount(cashAmountNum, isEn);
 
       return {
         callId: '#SRV-' + t.ticket_id,
@@ -1471,6 +1508,8 @@
         ticketStateBorder: ticketStateBorder,
         cashTitle: isEn ? 'Service fee' : 'דמי שירות',
         cashLabel: takeCashYes ? (isEn ? 'Yes' : 'כן') : (isEn ? 'No' : 'לא'),
+        hasCashAmount: !!(takeCashYes && cashAmountText),
+        cashAmountText: cashAmountText,
         cashColor: takeCashYes ? '#2e8a63' : '#5a6473',
         cashBg: takeCashYes ? '#e6f4ec' : '#f6f7f9',
         cashBorder: takeCashYes ? '#c2e6d1' : '#e2e6ec',

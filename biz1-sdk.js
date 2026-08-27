@@ -99,6 +99,27 @@
       || name.indexOf('date_of_due') !== -1;
   }
 
+  // Date-only columns (attendance day, month key). Converting to UTC shifts the
+  // calendar day (e.g. IST midnight → previous day 18:30).
+  function isDateOnlyField(key) {
+    var name = String(key || '').toLowerCase();
+    return name === 'work_dairy_add_date'
+      || name === 'work_dairy_exit_date'
+      || name === 'sm_date'
+      || /_add_date$/.test(name)
+      || name === 'from_date'
+      || name === 'to_date';
+  }
+
+  function formatDateOnly(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return [
+      date.getFullYear(),
+      pad2(date.getMonth() + 1),
+      pad2(date.getDate())
+    ].join('-');
+  }
+
   // Customer.followup is a reminder wall-clock. Converting it to UTC shifts the
   // selected time by the browser offset (e.g. 4–5.5h) and that shifted value
   // is what Customer.Get shows after reload.
@@ -121,6 +142,7 @@
   }
 
   function formatDateField(key, date) {
+    if (isDateOnlyField(key)) return formatDateOnly(date);
     return isWallClockDateField(key) ? formatWallClockDateTime(date) : formatUtcDateTime(date);
   }
 
@@ -131,6 +153,9 @@
     var text = value.trim();
     if (!text) return value;
     if (/^\d{2}:\d{2}(:\d{2})?$/.test(text)) return text.length === 5 ? text + ':00' : text;
+
+    // Keep pure Y-m-d for date-only fields (do not expand to UTC datetime).
+    if (isDateOnlyField(key) && /^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
 
     var localDate = localDateStringToDate(text);
     if (localDate) return formatDateField(key, localDate);

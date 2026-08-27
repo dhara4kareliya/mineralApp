@@ -3510,15 +3510,42 @@ class Component extends DCLogic {
     }
   }
 
+  ticketDetailsHref(ticketId) {
+    var tid = String(ticketId || (this.state && this.state.ticketId) || '').replace(/^#/, '').trim();
+    if (!tid) {
+      try {
+        tid = String(new URLSearchParams(location.search || '').get('ticket_id') ||
+          new URLSearchParams(location.search || '').get('id') || '').trim();
+      } catch (e) { tid = ''; }
+    }
+    if (!tid) return 'tech-open-calls.html';
+    var listBack = 'tech-open-calls.html';
+    return 'service-call-details.html?ticket_id=' + encodeURIComponent(tid) +
+      '&back=' + encodeURIComponent(listBack) +
+      '&rt=' + Date.now();
+  }
+
   goBack() {
+    var fallback = this.ticketDetailsHref();
     if (typeof window.mbGoEntryBack === 'function') {
-      window.mbGoEntryBack(null, { fallback: 'tech-open-calls.html', selfRe: /tech-call-close/i });
+      window.mbGoEntryBack(null, {
+        fallback: fallback,
+        selfRe: /tech-call-close/i,
+        useReferrer: false
+      });
       return;
     }
     try {
-      if (window.history.length > 1) { window.history.back(); return; }
-    } catch (e) { /* ignore */ }
-    window.location.href = 'tech-open-calls.html';
+      var qBack = new URLSearchParams(location.search || '').get('back') || '';
+      if (qBack) {
+        try { qBack = decodeURIComponent(qBack); } catch (eDec) { /* keep */ }
+        if (qBack && qBack.indexOf('..') < 0 && !/^javascript:/i.test(qBack)) {
+          window.location.href = qBack.replace(/^\//, '');
+          return;
+        }
+      }
+    } catch (eQ) { /* ignore */ }
+    window.location.href = fallback;
   }
 
   openPhoto(url, caption) {
@@ -3855,8 +3882,8 @@ class Component extends DCLogic {
       lightboxCaption: st.lightboxCaption || '',
       closeLightbox: () => this.closeLightbox(),
       keepLightbox: (e) => this.keepLightbox(e),
-      backLabel: this.t('Back to open tickets', 'חזרה לטיקטים פתוחים'),
-      backTickets: () => { window.location.href = 'tech-open-calls.html'; },
+      backLabel: this.t('Back to ticket', 'חזרה לטיקט'),
+      backTickets: () => { window.location.replace(this.ticketDetailsHref()); },
       onClose: () => this.goBack()
     };
   }

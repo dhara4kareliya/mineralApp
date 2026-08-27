@@ -120,7 +120,7 @@
           if (m.message && m.message.indexOf('biz1upload/') !== -1) {
             photos.push({
               label: 'תמונה ' + (idx + 1),
-              grad: `url(https://mineral.bull36.com/${m.message}) center/cover no-repeat`
+              grad: `url(https://mineral.biz1.co.il/${m.message}) center/cover no-repeat`
             });
           }
         });

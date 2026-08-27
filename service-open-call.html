@@ -386,7 +386,7 @@ mbCss('./common.css');
 </div>
 
 <div class="soc-section-title" data-no-i18n="true">{{ takeCashLabel }}</div>
-<div style="display:flex; gap:9px; margin-bottom:18px;">
+<div style="display:flex; gap:9px; margin-bottom:{{ cashAmountMb }};">
   <sc-for as="o" hint-placeholder-count="2" list="{{ cashOpts }}">
     <button type="button" onclick="{{ o.pick }}"
       style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:12px; border-radius:12px; cursor:pointer; background:{{ o.bg }}; border:1.6px solid {{ o.border }}; color:{{ o.color }}; font-size:13.5px; font-weight:700;">
@@ -394,6 +394,17 @@ mbCss('./common.css');
     </button>
   </sc-for>
 </div>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showCashAmount }}">
+  <div style="margin-bottom:18px;">
+    <label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:7px;" data-no-i18n="true">{{ cashAmountLabel }} <span style="color:#c0392b;">*</span></label>
+    <div style="position:relative;">
+      <input class="soc-field ds-input" type="text" inputmode="decimal" autocomplete="off"
+        value="{{ cashAmount }}" oninput="{{ onCashAmount }}" placeholder="0"
+        style="width:100%; box-sizing:border-box; direction:ltr; text-align:left; padding:12px 40px 12px 14px; border:1.5px solid {{ cashAmountBorder }}; border-radius:12px; font-size:15px; font-weight:700; color:#2e8a63; background:#eaf7ef;"/>
+      <span aria-hidden="true" style="position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-size:14px; font-weight:700; pointer-events:none;">₪</span>
+    </div>
+  </div>
+</sc-if>
 
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
   <div role="alert" style="margin-bottom:12px; padding:10px 12px; border-radius:10px; background:#fbeeed; color:#a3302e; font-size:12.5px; font-weight:600;">{{ errorMsg }}</div>
@@ -430,7 +441,7 @@ mbCss('./common.css');
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = {
-    callType: 'tech', charge: false, priority: 'normal', cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '',
+    callType: 'tech', charge: false, cashAmount: '', priority: 'normal', cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '',
     products: [], productId: '', productSku: '', productName: '', productScanError: '', productLookupLoading: false, scannerOpen: false,
     productsLoading: false, fileName: '', file: null, dragOver: false, submitting: false, errorMsg: '', successMsg: '', langTick: 0
   };
@@ -474,12 +485,22 @@ class Component extends DCLogic {
   }
 
   /** Prefer URL customer (from customer card) over stale localStorage. */
+  usablePhone(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s) return '';
+    // Placeholders used when CRM has no real number
+    if (/^(--|—|–|-|n\/?a|null|undefined|none|no.?phone|אין|ללא)$/i.test(s)) return '';
+    // Must contain at least one digit to be a real phone
+    if (!/\d/.test(s)) return '';
+    return s;
+  }
+
   readQueryCustomer() {
     var q = new URLSearchParams(window.location.search || '');
     var id = String(q.get('customer_id') || q.get('cust_id') || q.get('contactus_id') || q.get('id') || '').trim();
     if (id === '0' || id === 'null' || id === 'undefined') id = '';
     var name = String(q.get('name') || '').trim();
-    var phone = String(q.get('phone') || '').trim();
+    var phone = this.usablePhone(q.get('phone'));
     var email = String(q.get('email') || '').trim();
     var address = String(q.get('address') || '').trim();
     var city = String(q.get('city') || '').trim();
@@ -501,10 +522,10 @@ class Component extends DCLogic {
   applyCustomer(cust) {
     if (!cust) return;
     var id = String(cust.customer_id || cust.id || '').trim();
-    var phone = String(cust.phone || cust.mobile || '').trim();
+    var phone = this.usablePhone(cust.phone || cust.mobile);
     var email = String(cust.email || '').trim();
     var name = String(cust.name || '').trim() || (id ? ('#' + id) : '');
-    var phone2 = String(cust.phone2 || cust.second_phone || cust.phone_2 || '').trim();
+    var phone2 = this.usablePhone(cust.phone2 || cust.second_phone || cust.phone_2);
     var parts = this.parseAddressParts(cust);
     var normalized = Object.assign({}, cust, {
       customer_id: id,
@@ -982,11 +1003,19 @@ class Component extends DCLogic {
   }
 
   buildTicketAddForm(payload, file) {
-    if (!file) return payload;
+    if (!file) {
+      // Still strip empty/placeholder phone fields for plain object payloads
+      var clean = Object.assign({}, payload || {});
+      if (!this.usablePhone(clean.phone)) delete clean.phone;
+      if (!this.usablePhone(clean.mobile)) delete clean.mobile;
+      if (!this.usablePhone(clean.phone_two)) delete clean.phone_two;
+      return clean;
+    }
     var form = new FormData();
     Object.keys(payload || {}).forEach(function (key) {
       var val = payload[key];
       if (val === undefined || val === null || val === '') return;
+      if ((key === 'phone' || key === 'mobile' || key === 'phone_two') && !this.usablePhone(val)) return;
       if (key === 'custom_fields') {
         var cf = val;
         if (typeof cf === 'string') {
@@ -1021,7 +1050,7 @@ class Component extends DCLogic {
         return;
       }
       form.append(key, String(val));
-    });
+    }.bind(this));
     var uploadName = String(this.state.fileName || file.name || 'upload.jpg').trim() || 'upload.jpg';
     form.append('image_upload', file, uploadName);
     return form;
@@ -1353,6 +1382,14 @@ class Component extends DCLogic {
       });
       return;
     }
+    var cashAmount = String(this.state.cashAmount || '').replace(/[^\d.]/g, '');
+    if (this.state.charge && !(Number(cashAmount) > 0)) {
+      this.setState({
+        errorMsg: this.isEn() ? 'Enter the service fee amount.' : 'יש להזין את סכום דמי השירות.',
+        successMsg: ''
+      });
+      return;
+    }
 
     try {
       var client = window.MineralBarApp && window.MineralBarApp.getClient
@@ -1377,12 +1414,16 @@ class Component extends DCLogic {
         messages: problem,
         customername: customer.name || '',
         email: String(this.state.email || '').trim(),
-        phone: String(this.state.phone || '').trim(),
-        mobile: String(this.state.phone2 || '').trim(),
-        phone_two: String(this.state.phone2 || '').trim(),
         address: fullAddress,
         rating: rating
       };
+      var phone = this.usablePhone(this.state.phone);
+      if (phone) payload.phone = phone;
+      var phone2 = this.usablePhone(this.state.phone2);
+      if (phone2) {
+        payload.mobile = phone2;
+        payload.phone_two = phone2;
+      }
       if (customerId) {
         payload.cust_id = customerId;
         payload.customer_id = customerId;
@@ -1404,6 +1445,16 @@ class Component extends DCLogic {
       }
       if (window.MineralBarApp && typeof MineralBarApp.applyTicketCashField === 'function') {
         await MineralBarApp.applyTicketCashField(payload, this.state.charge ? 'yes' : 'no');
+      }
+      if (this.state.charge && cashAmount) {
+        if (window.MineralBarApp && typeof MineralBarApp.applyTicketLabeledCustomFields === 'function') {
+          await MineralBarApp.applyTicketLabeledCustomFields(payload, { cash_amount: cashAmount });
+        } else {
+          if (!payload.custom_fields || typeof payload.custom_fields !== 'object') payload.custom_fields = {};
+          payload.custom_fields.cash_amount = cashAmount;
+          payload.custom_fields['a-1787203267'] = cashAmount;
+          payload['a-1787203267'] = cashAmount;
+        }
       }
 
       var attachFile = this.state.file || null;
@@ -1441,11 +1492,41 @@ class Component extends DCLogic {
       try { localStorage.removeItem('mineral_new_call_customer'); } catch (e) {}
 
       window.setTimeout(function () {
-        // Bust BFCache so Service calls list always re-fetches after create.
+        // Replace create-ticket in history so Back never returns here.
         var bust = 'rt=' + Date.now();
-        window.location.href = ticketId
-          ? 'service-call-details.html?ticket_id=' + encodeURIComponent(ticketId) + '&' + bust
-          : 'service-all-calls.html?' + bust;
+        var listBack = 'service-all-calls.html';
+        try {
+          var role = (window.MineralBarApp && MineralBarApp.getRole && MineralBarApp.getRole()) || '';
+          if (String(role) === 'tech') listBack = 'tech-open-calls.html';
+        } catch (eRole) { /* ignore */ }
+        var entryBack = '';
+        try {
+          var qBack = new URLSearchParams(window.location.search || '').get('back') || '';
+          if (qBack) {
+            try { qBack = decodeURIComponent(qBack); } catch (eDec) { /* keep */ }
+            if (qBack && qBack.indexOf('..') < 0 && !/^javascript:/i.test(qBack) &&
+                !/service-open-call|service-select-customer/i.test(qBack.split('?')[0])) {
+              entryBack = qBack.replace(/^\//, '');
+            }
+          }
+        } catch (eB) { /* ignore */ }
+        if (!entryBack) {
+          var cid = String(customerId || '').trim();
+          if (cid) {
+            entryBack = 'service-customer-card.html?customer_id=' + encodeURIComponent(cid) +
+              '&cust_id=' + encodeURIComponent(cid);
+          } else {
+            entryBack = listBack;
+          }
+        }
+        if (ticketId) {
+          var detailsUrl = 'service-call-details.html?ticket_id=' + encodeURIComponent(ticketId) +
+            '&back=' + encodeURIComponent(entryBack) + '&' + bust;
+          try { sessionStorage.setItem('mb_ticket_details_back', JSON.stringify({ id: String(ticketId), href: entryBack })); } catch (eS) { /* ignore */ }
+          window.location.replace(detailsUrl);
+        } else {
+          window.location.replace(listBack + '?' + bust);
+        }
       }, 900);
     } catch (e) {
       console.error('[service-open-call] Ticket.Add failed', e && (e.raw || e));
@@ -1497,8 +1578,18 @@ class Component extends DCLogic {
       topic: this.typeLabel(t)
     });
   }
-  toggleCharge() { this.setState(s => ({ charge: !s.charge })); }
-  setCharge(val) { this.setState({ charge: !!val }); }
+  toggleCharge() { this.setState(s => ({ charge: !s.charge, cashAmount: !s.charge ? s.cashAmount : '' })); }
+  setCharge(val) {
+    var on = !!val;
+    this.setState({ charge: on, cashAmount: on ? (this.state.cashAmount || '') : '' });
+  }
+  onCashAmount(e) {
+    var raw = (e && e.target && e.target.value != null) ? e.target.value : (e || '');
+    var cleaned = String(raw).replace(/[^\d.]/g, '');
+    var parts = cleaned.split('.');
+    if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
+    this.setState({ cashAmount: cleaned });
+  }
   pickPrio(id) {
     var val = String(id || 'normal').toLowerCase();
     if (val !== 'high' && val !== 'low') val = 'normal';
@@ -1676,6 +1767,12 @@ class Component extends DCLogic {
       toggleCharge: () => this.toggleCharge(),
       cashOpts,
       takeCashLabel: this.isEn() ? 'Take service fee from the customer?' : 'האם לגבות דמי שירות מהלקוח?',
+      showCashAmount: !!this.state.charge,
+      cashAmountMb: this.state.charge ? '10px' : '18px',
+      cashAmount: this.state.cashAmount || '',
+      cashAmountLabel: this.isEn() ? 'Service fee amount' : 'סכום דמי שירות',
+      cashAmountBorder: '#cdeeda',
+      onCashAmount: (e) => this.onCashAmount(e),
       createTicket: () => this.createTicket(),
       submitDisabled: this.state.submitting,
       submitLabel: this.state.submitting ? 'Creating ticket...' : 'Create Ticket',

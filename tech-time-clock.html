@@ -64,13 +64,21 @@ mbCss('./common.css');
 </div>
 </div>
 <!-- action button -->
-<div style="display:flex; gap:10px; margin-bottom:16px;">
-<button onclick="{{ primaryAction }}" disabled="{{ busy }}" style="flex:1; padding:16px; border:none; border-radius:15px; background:{{ primaryBg }}; color:#fff; font-size:16px; font-weight:800; cursor:{{ primaryCursor }}; opacity:{{ primaryOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ primaryShadow }};">
+<div style="display:flex; gap:10px; margin-bottom:10px;">
+<button onclick="{{ primaryAction }}" disabled="{{ primaryDisabled }}" style="flex:1; padding:16px; border:none; border-radius:15px; background:{{ primaryBg }}; color:#fff; font-size:16px; font-weight:800; cursor:{{ primaryCursor }}; opacity:{{ primaryOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:{{ primaryShadow }};">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ iconIn }}"><svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="18"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5M15 12H3"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ true }}" value="{{ iconOut }}"><svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5M21 12H9"></path></svg></sc-if>
             {{ primaryLabel }}
           </button>
 </div>
+<button type="button" onclick="{{ sickAction }}" disabled="{{ sickDisabled }}"
+  style="width:100%; padding:13px 14px; margin-bottom:16px; border:1.6px solid {{ sickBorder }}; border-radius:14px; background:{{ sickBg }}; color:{{ sickColor }}; font-size:14.5px; font-weight:800; cursor:{{ sickCursor }}; opacity:{{ sickOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; box-shadow:{{ sickShadow }};">
+  <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path><path d="M9.5 12h5M12 9.5v5"></path></svg>
+  {{ sickLabel }}
+</button>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ hasSuccess }}">
+  <div style="background:#e9f4ec; border:1px solid #c2e6d1; border-radius:14px; padding:11px 14px; margin-bottom:13px; color:#257550; font-size:13px; font-weight:700;">{{ successMsg }}</div>
+</sc-if>
 <!-- today summary -->
 <div style="display:flex; gap:11px; margin-bottom:13px;">
 <div style="flex:1; background:#fff; border-radius:16px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
@@ -101,6 +109,7 @@ mbCss('./common.css');
 <div style="width:30px; height:30px; border-radius:8px; background:{{ e.iconBg }}; color:{{ e.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
 <sc-if hint-placeholder-val="{{ true }}" value="{{ e.isEnter }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5M15 12H3"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ e.isLeave }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5M21 12H9"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ e.isSick }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path><path d="M9.5 12h5M12 9.5v5"></path></svg></sc-if>
 </div>
 <div style="flex:1; font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ e.label }}</div>
 <div style="font-size:13.5px; font-weight:700; color:#5a6473;">{{ e.time }}</div>
@@ -167,6 +176,10 @@ class Component extends DCLogic {
     fetchedAt: Date.now(),
     tickNow: Date.now(),
     sessions: [],
+    sickDays: [],
+    todaySick: false,
+    sickBusy: false,
+    successMsg: '',
     hoursTodayApi: null,
     historyPage: 1,
     historyPageSize: 5,
@@ -188,12 +201,12 @@ class Component extends DCLogic {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
       LiveSync.bind(() => this.refreshQuiet(), {
         retries: false,
-        keys: /team_hours|teamhours/i,
+        keys: /team_hours|teamhours|workdiary|attendance/i,
         delay: 400
       });
     } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.refreshQuiet(), {
-        keys: /team_hours|teamhours/i,
+        keys: /team_hours|teamhours|workdiary|attendance/i,
         delay: 400
       });
     }
@@ -285,6 +298,129 @@ class Component extends DCLogic {
     if (Array.isArray(res.list)) return res.list;
     if (Array.isArray(res)) return res;
     return [];
+  }
+
+  /** Workdiary.Entries.List dates may be DD-MM-YYYY or YYYY-MM-DD. */
+  parseWorkdiaryDate(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s) return null;
+    var iso = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3], 12, 0, 0);
+    var dmy = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+    if (dmy) return new Date(+dmy[3], +dmy[2] - 1, +dmy[1], 12, 0, 0);
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  isSickRow(row) {
+    if (!row) return false;
+    if (Number(row.sick_day) === 1 || Number(row.sick) === 1 || row.sick_day === true || row.sick === true) return true;
+    var note = String(row.note || row.work_dairy_notes || row.notes || '').toLowerCase();
+    return /(sick\s*day|sick|מחלה|יום\s*מחלה)/i.test(note);
+  }
+
+  sessionDateKey(row) {
+    if (!row) return '';
+    var start = this.parseDateTime(row.start_time || row.from_time);
+    if (start) return this.ymdLocal(start);
+    var d = this.parseWorkdiaryDate(row.date || row.work_dairy_add_date || row.from_date || row.start_date);
+    return d ? this.ymdLocal(d) : '';
+  }
+
+  normalizeSickRows(list) {
+    var byKey = {};
+    (list || []).forEach(function (row) {
+      if (!row || !this.isSickRow(row)) return;
+      var d = this.parseWorkdiaryDate(row.date || row.work_dairy_add_date || row.start_time || row.from_date);
+      if (!d) {
+        var start = this.parseDateTime(row.start_time);
+        if (start) d = start;
+      }
+      if (!d) return;
+      var key = this.ymdLocal(d);
+      byKey[key] = {
+        dateKey: key,
+        date: d,
+        note: String(row.note || row.work_dairy_notes || '').trim(),
+        teamHoursId: row.team_hours_id || row.id || row.teamHoursId || null,
+        raw: row
+      };
+    }.bind(this));
+    return Object.keys(byKey).sort().reverse().map(function (k) { return byKey[k]; });
+  }
+
+  /** Merge Workdiary sick rows + TeamHours sick sessions (one entry per calendar day). */
+  mergeSickDays(workdiarySick, sessions) {
+    var byKey = {};
+    (workdiarySick || []).forEach(function (s) {
+      if (!s || !s.dateKey) return;
+      byKey[s.dateKey] = s;
+    });
+    (sessions || []).forEach(function (row) {
+      if (!this.isSickRow(row)) return;
+      var key = this.sessionDateKey(row);
+      if (!key) return;
+      if (!byKey[key]) {
+        var d = this.parseDateTime(row.start_time) || this.parseWorkdiaryDate(row.date || row.work_dairy_add_date);
+        byKey[key] = {
+          dateKey: key,
+          date: d || new Date(),
+          note: String(row.note || row.work_dairy_notes || '').trim(),
+          teamHoursId: row.id || row.team_hours_id || null,
+          raw: row
+        };
+      } else if (!byKey[key].teamHoursId) {
+        byKey[key].teamHoursId = row.id || row.team_hours_id || null;
+      }
+    }.bind(this));
+    return Object.keys(byKey).sort().reverse().map(function (k) { return byKey[k]; });
+  }
+
+  isDateSick(dateKey, sickList) {
+    var key = String(dateKey || '').trim();
+    if (!key) return false;
+    return (sickList || []).some(function (s) { return s && String(s.dateKey) === key; });
+  }
+
+  async fetchSickDays(client, monthsBack) {
+    var now = new Date();
+    var n = Math.max(1, Number(monthsBack) || 3);
+    var months = [];
+    for (var i = 0; i < n; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.getFullYear() + '-' + this.pad(d.getMonth() + 1));
+    }
+    var results = await Promise.all(months.map(function (sm) {
+      // Prefer unfiltered month list, then keep sick rows client-side (filter APIs vary by tenant)
+      return client.request('Workdiary.Entries.List', {
+        sm_date: sm,
+        this_day: 'all_data',
+        limit: 25
+      }).catch(function () {
+        return client.request('Workdiary.Entries.List', {
+          sm_date: sm,
+          this_day: 'all_data',
+          sick: 1,
+          sick_day: 1,
+          limit: 25
+        }).catch(function () { return null; });
+      });
+    }));
+    var merged = [];
+    results.forEach(function (res) {
+      merged = merged.concat(this.extractRows(res));
+    }.bind(this));
+    if (!merged.length) {
+      try {
+        var alt = await client.request('Workdiary.Get', {
+          sm_date: months[0],
+          this_day: 'all_data',
+          limit: 25
+        });
+        merged = this.extractRows(alt);
+      } catch (eAlt) { /* ignore */ }
+    }
+    return this.normalizeSickRows(merged);
   }
 
   elapsedToSeconds(val) {
@@ -520,7 +656,7 @@ class Component extends DCLogic {
     }
   }
 
-  applyApiBundle(statusRes, listRes, whenStop, showLoading) {
+  applyApiBundle(statusRes, listRes, whenStop, showLoading, sickDays) {
     var historySessions = this.extractRows(listRes);
     var byId = {};
     historySessions.forEach((r) => {
@@ -601,6 +737,13 @@ class Component extends DCLogic {
       hoursTodayApi = whenStop.hours_today;
     }
 
+    var sickList = this.mergeSickDays(
+      Array.isArray(sickDays) ? sickDays : (this.state.sickDays || []),
+      sessions
+    );
+    var todayKey = this.ymdLocal(new Date());
+    var todaySick = this.isDateSick(todayKey, sickList);
+
     this.setState({
       loading: false,
       errorMsg: '',
@@ -611,6 +754,8 @@ class Component extends DCLogic {
       elapsedRaw: elapsedRaw,
       fetchedAt: Date.now(),
       sessions: sessions,
+      sickDays: sickList,
+      todaySick: todaySick,
       hoursTodayApi: hoursTodayApi,
       historyPage: showLoading ? 1 : (this.state.historyPage || 1),
       tickNow: Date.now()
@@ -653,9 +798,10 @@ class Component extends DCLogic {
         var results = await Promise.all([
           client.request('TeamHours.Get', {}),
           client.request('TeamHours.List', { page: 1, limit: 200, from_date: fromHistory }),
-          client.request('TeamHours.WhenStop', {}).catch(function () { return null; })
+          client.request('TeamHours.WhenStop', {}).catch(function () { return null; }),
+          self.fetchSickDays(client, 6)
         ]);
-        self.applyApiBundle(results[0], results[1], results[2], !!showLoading);
+        self.applyApiBundle(results[0], results[1], results[2], !!showLoading, results[3]);
       } catch (e) {
         console.error('[TimeClock] refresh failed', e);
         self.setState({
@@ -677,6 +823,18 @@ class Component extends DCLogic {
 
   async primary() {
     if (this.state.busy) return;
+    var todayKey = this.ymdLocal(new Date());
+    var sickNow = this.isDateSick(todayKey, this.mergeSickDays(this.state.sickDays, this.state.sessions));
+    if (sickNow || this.state.todaySick) {
+      if (!this.state.todaySick) this.setState({ todaySick: true });
+      this.setState({
+        errorMsg: this.t(
+          'Today is marked as a sick day — clock in/out is disabled.',
+          'היום מסומן כיום מחלה — לא ניתן להחתים כניסה או יציאה.'
+        )
+      });
+      return;
+    }
     var client = this.getClient();
     if (!client) {
       this.setState({ errorMsg: 'SDK not ready' });
@@ -779,15 +937,117 @@ class Component extends DCLogic {
     }
   }
 
+  async markSickDay() {
+    if (this.state.busy || this.state.sickBusy) return;
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ errorMsg: 'SDK not ready' });
+      return;
+    }
+    if (this.state.running) {
+      this.setState({
+        errorMsg: this.t('Clock out before marking a sick day.', 'יש להחתים יציאה לפני סימון יום מחלה.')
+      });
+      return;
+    }
+
+    // Local calendar day only (Y-m-d). Do not send Date/datetime — SDK UTC
+    // conversion was shifting IST midnight to the previous day 18:30.
+    var now = new Date();
+    var todayIso = now.getFullYear() + '-' + this.pad(now.getMonth() + 1) + '-' + this.pad(now.getDate());
+    var sickMerged = this.mergeSickDays(this.state.sickDays, this.state.sessions);
+    var alreadySick = this.isDateSick(todayIso, sickMerged);
+    var clearing = alreadySick;
+    var todaySickRow = sickMerged.find(function (s) { return s && s.dateKey === todayIso; });
+
+    // Never create a second sick row for today
+    if (!clearing && alreadySick) {
+      this.setState({
+        todaySick: true,
+        sickDays: sickMerged,
+        errorMsg: this.t('Today is already marked as a sick day.', 'היום כבר מסומן כיום מחלה.')
+      });
+      return;
+    }
+
+    this.setState({ sickBusy: true, busy: true, errorMsg: '', successMsg: '', todaySick: alreadySick });
+
+    try {
+      var payload = {
+        work_dairy_add_date: todayIso,
+        work_dairy_check_in: '',
+        work_dairy_check_out: '',
+        work_dairy_notes: clearing ? '' : this.t('Sick day', 'יום מחלה'),
+        sick_day: clearing ? '0' : '1'
+      };
+      if (todaySickRow && todaySickRow.teamHoursId) {
+        payload.team_hours_id = todaySickRow.teamHoursId;
+      }
+      var res = await client.request('Workdiary.Attendance.Save', payload);
+      var ok = res && (Number(res.success) === 1 || res.success === true);
+      if (!ok) {
+        // Alias route used by some tenants
+        res = await client.request('Workdiary.Entry.Save', payload);
+        ok = res && (Number(res.success) === 1 || res.success === true);
+      }
+      if (!ok) {
+        throw new Error((res && res.message) || this.t('Failed to save sick day', 'שמירת יום מחלה נכשלה'));
+      }
+      // Optimistic lock so clock in/out is blocked immediately
+      var nextSick = clearing
+        ? sickMerged.filter(function (s) { return !(s && s.dateKey === todayIso); })
+        : sickMerged.filter(function (s) { return !(s && s.dateKey === todayIso); }).concat([{
+          dateKey: todayIso,
+          date: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0),
+          note: this.t('Sick day', 'יום מחלה'),
+          teamHoursId: (res && (res.team_hours_id || res.id)) || (todaySickRow && todaySickRow.teamHoursId) || null
+        }]);
+      this.setState({
+        sickBusy: false,
+        busy: false,
+        todaySick: !clearing,
+        sickDays: nextSick,
+        successMsg: clearing
+          ? this.t('Sick day removed', 'יום המחלה בוטל')
+          : this.t('Sick day saved', 'יום מחלה נשמר')
+      });
+      await this.refreshAll(false);
+      var self = this;
+      setTimeout(function () {
+        if (self.state.successMsg) self.setState({ successMsg: '' });
+      }, 2500);
+    } catch (e) {
+      console.error('[TimeClock] sick day save failed', e);
+      this.setState({
+        sickBusy: false,
+        busy: false,
+        errorMsg: (e && e.message) || this.t('Failed to save sick day', 'שמירת יום מחלה נכשלה')
+      });
+    }
+  }
+
   // Newest entry/exit first so latest punches are visible at the top
   buildTodayEvents(sessions, running, startTime) {
     var events = [];
     var now = new Date();
     var enterLabel = this.t('Entry', 'כניסה');
     var exitLabel = this.t('Exit', 'יציאה');
+    var sickLabel = this.t('Sick day', 'יום מחלה');
+    var todayKey = this.ymdLocal(now);
+    var todaySick = this.state.todaySick || this.isDateSick(todayKey, this.mergeSickDays(this.state.sickDays, sessions));
+
+    if (todaySick) {
+      events.push({
+        kind: 'sick',
+        at: now,
+        ts: now.getTime() + 1,
+        label: sickLabel
+      });
+    }
 
     (sessions || []).forEach((row) => {
       if (!this.isTodaySession(row)) return;
+      if (this.isSickRow(row)) return;
       var start = this.parseDateTime(row.start_time);
       if (start) events.push({ kind: 'enter', at: start, ts: start.getTime(), label: enterLabel });
       var end = this.parseDateTime(row.end_time);
@@ -796,7 +1056,7 @@ class Component extends DCLogic {
       }
     });
 
-    if (running && startTime) {
+    if (!todaySick && running && startTime) {
       var liveStart = this.parseDateTime(startTime);
       var key = this.dateKey(startTime);
       if (liveStart && (this.isSameLocalDay(liveStart, now) || key === this.ymdLocal(now) || key === this.ymdUtc(now))) {
@@ -807,27 +1067,58 @@ class Component extends DCLogic {
 
     events.sort((a, b) => b.ts - a.ts);
 
-    // Show only the most recent punch (last entry or exit)
-    return events.slice(0, 1).map((e) => ({
+    // Show only the most recent punch (last entry or exit), but always keep sick if present
+    var top = events.slice(0, 1);
+    if (todaySick && !top.some(function (e) { return e.kind === 'sick'; })) {
+      top = events.filter(function (e) { return e.kind === 'sick'; }).slice(0, 1).concat(top).slice(0, 2);
+    }
+    return top.map((e) => ({
       label: e.label,
-      time: this.localTimeLabel(e.at),
+      time: e.kind === 'sick' ? this.t('All day', 'כל היום') : this.localTimeLabel(e.at),
       isEnter: e.kind === 'enter',
       isLeave: e.kind === 'leave',
-      iconBg: e.kind === 'enter' ? '#e9f5ee' : '#fbeeed',
-      iconColor: e.kind === 'enter' ? '#2e8a63' : '#c0392b'
+      isSick: e.kind === 'sick',
+      iconBg: e.kind === 'sick' ? '#fdf6e8' : (e.kind === 'enter' ? '#e9f5ee' : '#fbeeed'),
+      iconColor: e.kind === 'sick' ? '#bd8324' : (e.kind === 'enter' ? '#2e8a63' : '#c0392b')
     }));
   }
 
   buildHistoryRows(sessions) {
-    return (sessions || [])
+    var sickMerged = this.mergeSickDays(this.state.sickDays, sessions);
+    var sickDayKeys = {};
+    sickMerged.forEach(function (s) {
+      if (s && s.dateKey) sickDayKeys[s.dateKey] = true;
+    });
+
+    // Regular (non-sick) punches only — sick days rendered once below
+    var rows = (sessions || [])
       .map((row) => {
+        if (this.isSickRow(row)) return null;
+        var key = this.sessionDateKey(row);
+        if (key && sickDayKeys[key]) return null;
         var start = this.parseDateTime(row.start_time);
         var end = this.parseDateTime(row.end_time);
         var sec = this.sessionSeconds(row, true);
-        return { row: row, start: start, end: end, sec: sec };
+        return { row: row, start: start, end: end, sec: sec, sick: false };
       })
-      .filter((x) => x.start)
-      .sort((a, b) => b.start - a.start);
+      .filter(function (x) { return x && x.start; });
+
+    sickMerged.forEach(function (s) {
+      if (!s || !s.date) return;
+      rows.push({
+        row: {
+          sick_day: 1,
+          note: s.note || this.t('Sick day', 'יום מחלה'),
+          id: s.teamHoursId || ('sick-' + s.dateKey)
+        },
+        start: s.date,
+        end: s.date,
+        sec: 0,
+        sick: true
+      });
+    }.bind(this));
+
+    return rows.sort((a, b) => b.start - a.start);
   }
 
   buildHistoryPage(sessions) {
@@ -841,19 +1132,23 @@ class Component extends DCLogic {
     var to = Math.min(startIdx + slice.length, all.length);
 
     var history = slice.map((x, i, arr) => {
-      var running = Number(x.row.status) === 1 || (!x.end && this.state.running && String(x.row.id) === String(this.state.teamHoursId));
-      var range = this.localTimeLabel(x.start) + ' – ' + (x.end ? this.localTimeLabel(x.end) : (running ? '…' : '--:--:--'));
-      var note = running
-        ? this.t('In progress', 'בתהליך')
-        : (x.row.note || x.row.project_name || (x.sec >= 8 * 3600 ? this.t('Full day', 'יום מלא') : this.t('Session', 'משמרת')));
+      var running = !x.sick && (Number(x.row.status) === 1 || (!x.end && this.state.running && String(x.row.id) === String(this.state.teamHoursId)));
+      var range = x.sick
+        ? this.t('Sick day', 'יום מחלה')
+        : (this.localTimeLabel(x.start) + ' – ' + (x.end ? this.localTimeLabel(x.end) : (running ? '…' : '--:--:--')));
+      var note = x.sick
+        ? (x.row.note || this.t('Sick day', 'יום מחלה'))
+        : (running
+          ? this.t('In progress', 'בתהליך')
+          : (x.row.note || x.row.project_name || (x.sec >= 8 * 3600 ? this.t('Full day', 'יום מלא') : this.t('Session', 'משמרת'))));
       var ok = x.sec >= 7 * 3600;
       return {
         day: String(x.start.getDate()),
         dow: this.dowLabel(x.start),
         range: range,
         note: note,
-        hours: this.formatHm(x.sec),
-        hoursColor: running ? '#1d60a2' : (ok ? '#2e8a63' : '#bd8324'),
+        hours: x.sick ? this.t('Sick', 'מחלה') : this.formatHm(x.sec),
+        hoursColor: x.sick ? '#bd8324' : (running ? '#1d60a2' : (ok ? '#2e8a63' : '#bd8324')),
         border: i === arr.length - 1 ? 'transparent' : '#f0f2f5'
       };
     });
@@ -929,6 +1224,9 @@ class Component extends DCLogic {
     var st = this.state;
     var running = !!st.running;
     var liveSec = this.liveElapsedSeconds();
+    var sickMerged = this.mergeSickDays(st.sickDays, st.sessions);
+    var todayKey = this.ymdLocal(new Date());
+    var todaySick = !!(st.todaySick || this.isDateSick(todayKey, sickMerged));
     var todayEvents = this.buildTodayEvents(st.sessions, running, st.startTime);
     var hist = this.buildHistoryPage(st.sessions);
 
@@ -937,7 +1235,7 @@ class Component extends DCLogic {
 
     var sinceLabel;
     var displaySec;
-    if (running) {
+    if (running && !todaySick) {
       var start = st.startTime ? this.parseDateTime(st.startTime) : null;
       sinceLabel = start
         ? (this.t('Since ', 'מ־') + this.localTimeLabel(start))
@@ -945,14 +1243,19 @@ class Component extends DCLogic {
       displaySec = liveSec;
     } else {
       // Off shift: always 00:00:00 — live timer only runs after clock in
-      sinceLabel = this.t('Total today', 'סה״כ היום');
+      sinceLabel = todaySick ? this.t('Sick day', 'יום מחלה') : this.t('Total today', 'סה״כ היום');
       displaySec = 0;
     }
 
     var primaryLabel, primaryBg, primaryShadow;
+    var primaryLocked = !!st.busy || todaySick;
     if (st.busy) {
       primaryLabel = this.t('Saving…', 'שומר…');
       primaryBg = '#cdd2da';
+      primaryShadow = 'none';
+    } else if (todaySick) {
+      primaryLabel = this.t('Sick day — clock locked', 'יום מחלה — שעון נעול');
+      primaryBg = 'linear-gradient(#d4a84b,#bd8324)';
       primaryShadow = 'none';
     } else if (!running) {
       primaryLabel = this.t('Clock in', 'החתם כניסה');
@@ -974,11 +1277,15 @@ class Component extends DCLogic {
       hasError: !!st.errorMsg,
       errorMsg: st.errorMsg || '',
 
-      statusLabel: running ? this.t('On shift', 'בעבודה') : this.t('Off shift', 'לא בעבודה'),
-      statusBg: running ? '#e6f4ec' : '#f0f1f4',
-      statusColor: running ? '#2e8a63' : '#8a93a3',
+      statusLabel: todaySick
+        ? this.t('Sick day', 'יום מחלה')
+        : (running ? this.t('On shift', 'בעבודה') : this.t('Off shift', 'לא בעבודה')),
+      statusBg: todaySick ? '#fdf6e8' : (running ? '#e6f4ec' : '#f0f1f4'),
+      statusColor: todaySick ? '#bd8324' : (running ? '#2e8a63' : '#8a93a3'),
 
-      clockCaption: running ? this.t('Shift active', 'משמרת פעילה') : this.t('Shift ended', 'משמרת הסתיימה'),
+      clockCaption: todaySick
+        ? this.t('Marked as sick day', 'סומן כיום מחלה')
+        : (running ? this.t('Shift active', 'משמרת פעילה') : this.t('Shift ended', 'משמרת הסתיימה')),
       elapsed: this.formatClock(displaySec),
       sinceLabel: sinceLabel,
 
@@ -986,11 +1293,28 @@ class Component extends DCLogic {
       primaryLabel: primaryLabel,
       primaryBg: primaryBg,
       primaryShadow: primaryShadow,
-      primaryCursor: st.busy ? 'wait' : 'pointer',
-      primaryOpacity: st.busy ? '0.75' : '1',
+      primaryDisabled: primaryLocked,
+      primaryCursor: primaryLocked ? 'not-allowed' : 'pointer',
+      primaryOpacity: primaryLocked ? '0.75' : '1',
       busy: !!st.busy,
-      iconIn: !running,
-      iconOut: running,
+      iconIn: !running && !todaySick,
+      iconOut: running && !todaySick,
+
+      sickAction: () => this.markSickDay(),
+      sickLabel: st.sickBusy
+        ? this.t('Saving…', 'שומר…')
+        : (todaySick
+          ? this.t('Remove sick day', 'בטל יום מחלה')
+          : this.t('Mark sick day', 'סמן יום מחלה')),
+      sickDisabled: !!(st.busy || st.sickBusy || running),
+      sickBg: todaySick ? '#fdf6e8' : '#fff',
+      sickBorder: todaySick ? '#ecd7a4' : '#e4e8ee',
+      sickColor: todaySick ? '#9a7320' : '#5a6473',
+      sickCursor: (st.busy || st.sickBusy || running) ? 'not-allowed' : 'pointer',
+      sickOpacity: (st.busy || st.sickBusy || running) ? '0.65' : '1',
+      sickShadow: 'none',
+      hasSuccess: !!st.successMsg,
+      successMsg: st.successMsg || '',
 
       todayHours: this.formatHm(todaySec),
       monthHours: this.formatHm(monthSec),

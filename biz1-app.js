@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
 
-  var DOMAIN = 'https://mineral.bull36.com';
+  var DOMAIN = 'https://mineral.biz1.co.il';
   var USER_KEY = 'mineralbar_user_basic';
   var ROLE_KEY = 'mineralbar_role';
   var EMAIL_KEY = 'mineralbar_email';
@@ -60,7 +60,7 @@
       ]
     },
     'הודעות / צ׳אט Inbox': { routes: ['Chat.Inbox', 'Chat.Conversations', 'Chat.CustomerMessages'], status: 'live' },
-    'שעון נוכחות': { routes: ['TeamHours.Get', 'TeamHours.StartStop', 'TeamHours.List', 'TeamHours.WhenStop'], status: 'ready' },
+    'שעון נוכחות': { routes: ['TeamHours.Get', 'TeamHours.StartStop', 'TeamHours.List', 'TeamHours.WhenStop', 'Workdiary.Entries.List', 'Workdiary.Attendance.Save'], status: 'ready' },
     'מלאי': { routes: ['Products.List', 'Products.Count'], status: 'live' },
     'מסמכים / הצעות / הזמנות': { routes: ['Documents.List', 'Documents.Count', 'Forms.*', 'PaymentForms.*'], status: 'partial' },
     'גבייה': { routes: ['Documents.Add', 'Documents.List'], status: 'live' }

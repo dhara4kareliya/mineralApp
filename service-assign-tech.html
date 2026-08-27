@@ -37,7 +37,7 @@ mbCss('./common.css');
 <div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;">
 <!-- navy header -->
 <div style="background:#16223a; padding:15px 18px; flex:none; display:flex; align-items:center; justify-content:space-between;">
-<button onclick="(function(e){if(window.mbGoEntryBack){window.mbGoEntryBack(e,{fallback:'service-all-calls.html',selfRe:/service-assign-tech/i});}else{history.back();}})(event)" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+<button onclick="(function(e){if(window.mbGoEntryBack){window.mbGoEntryBack(e,{fallback:'service-all-calls.html',selfRe:/service-assign-tech/i,useReferrer:false});}else{var b=(new URLSearchParams(location.search||'')).get('back');location.href=b?decodeURIComponent(b):'service-all-calls.html';}})(event)" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
 <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
 </button>
 <div style="text-align:center;">
@@ -222,7 +222,19 @@ class Component extends DCLogic {
       if (!result || !(Number(result.success) === 1 || result.success === true || result.ticket_id || result.output)) {
         throw new Error((result && (result.message || result.error)) || 'Technician assignment failed.');
       }
-      window.location.href = 'service-all-calls.html?refresh=' + Date.now();
+      var next = '';
+      try {
+        var qBack = new URLSearchParams(window.location.search || '').get('back') || '';
+        if (qBack) {
+          try { qBack = decodeURIComponent(qBack); } catch (eDec) { /* keep */ }
+          if (qBack && qBack.indexOf('..') < 0 && !/^javascript:/i.test(qBack)) next = qBack.replace(/^\//, '');
+        }
+      } catch (eB) { /* ignore */ }
+      if (!next) {
+        next = 'service-call-details.html?ticket_id=' + encodeURIComponent(ticketId) +
+          '&rt=' + Date.now();
+      }
+      window.location.replace(next);
     } catch (e) {
       console.error('[service-assign-tech] Ticket.Edit failed', e);
       this.setState({ submitting: false });
