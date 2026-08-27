@@ -24,6 +24,8 @@
       brandName: 'תצוגת Biz1',
       brandSub: 'התחברות למערכת המלאי',
       loginTitle: 'כניסה לחשבון',
+      socketLive: 'שידור חי',
+      socketOffline: 'אופליין',
       emailLabel: 'אימייל / שם משתמש / טלפון / מזהה',
       emailPlaceholder: 'email / username / phone / id',
       passwordLabel: 'סיסמה',
@@ -145,6 +147,8 @@
       brandName: 'Biz1 Showcase',
       brandSub: 'Sign in to inventory',
       loginTitle: 'Sign in',
+      socketLive: 'Live Socket',
+      socketOffline: 'Offline',
       emailLabel: 'Email / Username / Phone / ID',
       emailPlaceholder: 'email / username / phone / id',
       passwordLabel: 'Password',
@@ -300,6 +304,8 @@
     poLines: [],
     html5Qr: null,
     scanning: false,
+    inventoryLoading: false,
+    realtimeReadySeen: false,
     realtimeWired: false,
     pulseIds: {},
     theme: 'light'
@@ -309,6 +315,7 @@
   var productSyncTimer = null;
   var fullRefreshTimer = null;
   var inventoryPollTimer = null;
+  var socketStatusPollTimer = null;
   var lastKnownCount = null;
 
   var els = {
@@ -337,6 +344,8 @@
     searchBar: document.getElementById('searchBar'),
     searchInput: document.getElementById('searchInput'),
     userLabel: document.getElementById('userLabel'),
+    socketStatusChip: document.getElementById('socketStatusChip'),
+    socketStatusText: document.getElementById('socketStatusText'),
     shell: document.getElementById('appShell'),
     lowBanner: document.getElementById('lowStockBanner'),
     lowBannerText: document.getElementById('lowStockBannerText'),
@@ -508,6 +517,7 @@
     applyStaticI18n();
     syncLangButtons();
     renderLoginControls();
+    paintSocketStatus();
     if (!els.inventory.classList.contains('hidden') && state.products.length) renderInventory();
     if (!els.po.classList.contains('hidden')) renderPOLines();
     updateStockNewQty();
@@ -915,13 +925,16 @@
   }
 
   function inventoryPageInfo(list) {
-    var total = list.length;
     var pageSize = Math.max(1, Number(state.pageSize) || 25);
+    var hasLocalFilter = state.cat !== 'all' || !!state.query.trim();
+    var total = hasLocalFilter
+      ? list.length
+      : Math.max(Number(state.totalCount) || 0, list.length);
     var pages = Math.max(1, Math.ceil(total / pageSize) || 1);
     var page = Math.min(Math.max(1, Number(state.page) || 1), pages);
     state.page = page;
     var start = (page - 1) * pageSize;
-    var end = Math.min(start + pageSize, total);
+    var end = hasLocalFilter ? list.length : Math.min(start + list.length, total);
     return {
       total: total,
       page: page,
@@ -929,7 +942,7 @@
       pageSize: pageSize,
       start: start,
       end: end,
-      slice: list.slice(start, end)
+      slice: list
     };
   }
 
@@ -963,9 +976,10 @@
       btn.addEventListener('click', function () {
         if (btn.disabled) return;
         var dir = btn.getAttribute('data-page-nav');
-        if (dir === 'prev') state.page = Math.max(1, state.page - 1);
-        if (dir === 'next') state.page += 1;
-        renderInventory();
+        var page = state.page;
+        if (dir === 'prev') page = Math.max(1, page - 1);
+        if (dir === 'next') page += 1;
+        if (page !== state.page) loadInventory({ page: page });
         if (els.body.scrollIntoView) {
           try { els.body.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* ignore */ }
         }
@@ -1113,26 +1127,65 @@
     );
   }
 
+  function paintSocketStatus() {
+    if (!els.socketStatusChip || !els.socketStatusText) return;
+    var state = {
+      connected: false,
+      status: 'offline'
+    };
+    try {
+      state = App.getRealtimeState() || state;
+    } catch (e) { /* socket status is optional while booting */ }
+    var on = !!(state.connected && state.status === 'ready');
+    els.socketStatusChip.classList.toggle('live-on', on);
+    els.socketStatusChip.classList.toggle('live-off', !on);
+    els.socketStatusText.textContent = t(on ? 'socketLive' : 'socketOffline');
+  }
+
   function ensureInventoryRealtime() {
     if (!state.realtimeWired) {
       state.realtimeWired = true;
       window.addEventListener('biz1demo:products', onProductRealtime);
       window.addEventListener('biz1demo:socket', onSocketStatus);
+      window.addEventListener('biz1demo:socket-status', onSocketStatus);
     }
+    paintSocketStatus();
+    startSocketStatusPolling();
     startInventoryPolling();
     if (!App.connectRealtime) return;
     App.connectRealtime().then(function () {
+      paintSocketStatus();
       console.info('[Inventory] realtime ready', App.getRealtimeState && App.getRealtimeState());
     }).catch(function (err) {
+      paintSocketStatus();
       console.warn('[Inventory] realtime connect failed', err);
     });
   }
 
   function onSocketStatus(e) {
+    paintSocketStatus();
     var detail = (e && e.detail) || {};
-    if (detail.type === 'ready' || detail.type === 'connect') {
-      // socket reconnected — pull latest list once
-      queueFullInventoryRefresh();
+    if (detail.type === 'ready') {
+      var shouldRefresh = state.realtimeReadySeen && state.products.length && !state.inventoryLoading;
+      state.realtimeReadySeen = true;
+      // Refresh only on later ready/reconnect events, never during first load.
+      if (shouldRefresh) {
+        queueFullInventoryRefresh();
+      }
+    }
+  }
+
+  function startSocketStatusPolling() {
+    stopSocketStatusPolling();
+    socketStatusPollTimer = setInterval(function () {
+      if (!els.inventory.classList.contains('hidden')) paintSocketStatus();
+    }, 4000);
+  }
+
+  function stopSocketStatusPolling() {
+    if (socketStatusPollTimer) {
+      clearInterval(socketStatusPollTimer);
+      socketStatusPollTimer = null;
     }
   }
 
@@ -1162,7 +1215,7 @@
       if (lastKnownCount == null) {
         lastKnownCount = state.totalCount || state.products.length;
       }
-      if (total !== lastKnownCount || total !== state.products.length) {
+      if (total !== lastKnownCount) {
         console.info('[Inventory] count changed', lastKnownCount, '->', total);
         lastKnownCount = total;
         await refreshInventorySilent(true);
@@ -1213,6 +1266,7 @@
   function queueFullInventoryRefresh(fromRealtime) {
     clearTimeout(fullRefreshTimer);
     fullRefreshTimer = setTimeout(function () {
+      fullRefreshTimer = null;
       refreshInventorySilent(fromRealtime);
     }, 350);
   }
@@ -1251,8 +1305,16 @@
   }
 
   async function refreshInventorySilent(fromRealtime) {
+    if (state.inventoryLoading) return;
     try {
-      var result = await App.listProducts({});
+      state.inventoryLoading = true;
+      var start = (Math.max(1, Number(state.page) || 1) - 1) * state.pageSize;
+      var result = await App.listProducts({
+        start: start,
+        offset: start,
+        length: state.pageSize,
+        limit: state.pageSize
+      });
       state.products = (result.rows || []).map(normalizeProduct);
       state.totalCount = result.total;
       lastKnownCount = state.totalCount;
@@ -1260,6 +1322,8 @@
       if (fromRealtime) pulseStats();
     } catch (err) {
       console.warn('[Inventory] silent refresh failed', err);
+    } finally {
+      state.inventoryLoading = false;
     }
   }
 
@@ -1274,7 +1338,15 @@
     }
   }
 
-  async function loadInventory() {
+  async function loadInventory(options) {
+    options = options || {};
+    if (state.inventoryLoading) return;
+    if (options.page != null) {
+      state.page = Math.max(1, Number(options.page) || 1);
+    } else {
+      state.page = 1;
+    }
+    state.inventoryLoading = true;
     els.body.innerHTML =
       '<div style="text-align:center; padding:48px 20px;">' +
       '<div style="font-size:14px; font-weight:700; color:var(--text-muted);">' + esc(t('loadingFromServer')) + '</div>' +
@@ -1284,11 +1356,16 @@
     els.statOut.textContent = '…';
 
     try {
-      var result = await App.listProducts({});
+      var start = (state.page - 1) * state.pageSize;
+      var result = await App.listProducts({
+        start: start,
+        offset: start,
+        length: state.pageSize,
+        limit: state.pageSize
+      });
       state.products = (result.rows || []).map(normalizeProduct);
       state.totalCount = result.total;
       lastKnownCount = state.totalCount;
-      state.page = 1;
       renderInventory();
     } catch (err) {
       console.error('[Inventory] load failed', err);
@@ -1303,6 +1380,8 @@
       els.body.innerHTML = apiErrorHtml(err);
       var btn = document.getElementById('invRetry');
       if (btn) btn.addEventListener('click', loadInventory);
+    } finally {
+      state.inventoryLoading = false;
     }
   }
 
@@ -1798,12 +1877,15 @@
     } catch (e) { /* ignore */ }
     state.products = [];
     state.page = 1;
+    state.realtimeReadySeen = false;
     pendingProductSync = {};
     clearTimeout(productSyncTimer);
     productSyncTimer = null;
     clearTimeout(fullRefreshTimer);
     fullRefreshTimer = null;
     stopInventoryPolling();
+    stopSocketStatusPolling();
+    paintSocketStatus();
     lastKnownCount = null;
     state.waitingOtp = false;
     state.requestInFlight = false;

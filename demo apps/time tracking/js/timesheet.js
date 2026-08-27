@@ -12,6 +12,10 @@ const Timesheet = (function () {
   let lastMeta = '';
   let todayBaseSeconds = 0;
   let monthBaseSeconds = 0;
+  let todayDisplayFloor = 0;
+  let todayFloorDate = '';
+  let monthDisplayFloor = 0;
+  let monthFloorKey = '';
 
   function sumCompletedSeconds(rows, dateFilter) {
     return rows.reduce((acc, row) => {
@@ -29,10 +33,17 @@ const Timesheet = (function () {
   function updateTodayDisplay() {
     const el = document.getElementById('total-today');
     if (!el) return;
+    const today = Utils.todayISO();
+    if (todayFloorDate !== today) {
+      todayFloorDate = today;
+      todayDisplayFloor = 0;
+    }
     let seconds = todayBaseSeconds;
     if (shiftState === SHIFT.ACTIVE) {
       seconds += getSessionSeconds();
     }
+    seconds = Math.max(seconds, todayDisplayFloor);
+    todayDisplayFloor = seconds;
     el.textContent = Utils.formatClock(seconds);
   }
 
@@ -40,10 +51,16 @@ const Timesheet = (function () {
     const el = document.getElementById('total-month');
     if (!el) return;
     const monthKey = document.getElementById('history-month')?.value || Utils.toMonthKey();
+    if (monthFloorKey !== monthKey) {
+      monthFloorKey = monthKey;
+      monthDisplayFloor = 0;
+    }
     let seconds = monthBaseSeconds;
     if (shiftState === SHIFT.ACTIVE && monthKey === Utils.toMonthKey()) {
       seconds += getSessionSeconds();
     }
+    seconds = Math.max(seconds, monthDisplayFloor);
+    monthDisplayFloor = seconds;
     el.textContent = Utils.formatClock(seconds);
   }
 
@@ -113,16 +130,14 @@ const Timesheet = (function () {
       teamHoursId = res.team_hours_id || data.id || 0;
       const startTime = Utils.parseApiDate(data.start_time || data.start);
       const elapsedFromApi = Utils.parseElapsed(data.elapsed);
-      if (startTime) {
-        sessionStartUtc = startTime.getTime();
-        elapsedBaseSeconds = 0;
-      } else if (elapsedFromApi > 0) {
-        sessionStartUtc = Date.now();
-        elapsedBaseSeconds = elapsedFromApi;
-      } else {
-        sessionStartUtc = Date.now();
-        elapsedBaseSeconds = 0;
+      const prevElapsed = shiftState === SHIFT.ACTIVE ? getSessionSeconds() : 0;
+      let elapsed = elapsedFromApi;
+      if (elapsed <= 0 && startTime) {
+        elapsed = Math.max(0, Math.floor((Date.now() - startTime.getTime()) / 1000));
       }
+      // Tick from local now so client/server clock skew cannot jump the timer backwards.
+      elapsedBaseSeconds = Math.max(elapsed, prevElapsed);
+      sessionStartUtc = Date.now();
       setShiftUI(SHIFT.ACTIVE, I18n.t('startedAt', { time: Utils.toTimeStr(data.start_time || data.start) }));
       startClockTick();
     } else {
@@ -137,12 +152,25 @@ const Timesheet = (function () {
   }
 
   async function startShift() {
-    const res = await Api.teamHoursStartStop({ timer_action: 'start' });
-    AppUI.flash(res.message || I18n.t('shiftStarted'), 'success');
-    await refreshStatus();
-    await refreshTotals();
-    await refreshHistory();
-    return res;
+    elapsedBaseSeconds = 0;
+    sessionStartUtc = Date.now();
+    setShiftUI(SHIFT.ACTIVE);
+    startClockTick();
+
+    try {
+      const res = await Api.teamHoursStartStop({ timer_action: 'start' });
+      AppUI.flash(res.message || I18n.t('shiftStarted'), 'success');
+      await refreshStatus();
+      await refreshTotals();
+      await refreshHistory();
+      return res;
+    } catch (err) {
+      sessionStartUtc = null;
+      elapsedBaseSeconds = 0;
+      setShiftUI(SHIFT.OFF);
+      stopClockTick();
+      throw err;
+    }
   }
 
   function countList(val) {
@@ -204,6 +232,9 @@ const Timesheet = (function () {
       note: note || 'End of shift'
     });
 
+    const sessionSec = getSessionSeconds();
+    todayBaseSeconds += sessionSec;
+    monthBaseSeconds += sessionSec;
     teamHoursId = 0;
     sessionStartUtc = null;
     elapsedBaseSeconds = 0;
@@ -237,8 +268,11 @@ const Timesheet = (function () {
       const listRes = await Api.teamHoursList({ from_date: from, to_date: to, limit: 25 });
       const rows = listRes.rows || [];
 
-      todayBaseSeconds = sumCompletedSeconds(rows, (day) => day === today);
-      monthBaseSeconds = sumCompletedSeconds(rows);
+      const apiToday = sumCompletedSeconds(rows, (day) => day === today);
+      const apiMonth = sumCompletedSeconds(rows);
+      const isCurrentMonth = monthKey === Utils.toMonthKey();
+      todayBaseSeconds = isCurrentMonth ? Math.max(apiToday, todayBaseSeconds) : apiToday;
+      monthBaseSeconds = isCurrentMonth ? Math.max(apiMonth, monthBaseSeconds) : apiMonth;
       updateTodayDisplay();
       updateMonthDisplay();
 

@@ -353,13 +353,13 @@ html[dir='rtl'] .sync-bar {
 }
 
 .sync-pill.live-chip.live-off {
-  color: #b45309;
-  background: #fff7ed;
+  color: var(--text-muted);
+  background: var(--danger-soft);
   border-color: transparent;
 }
 
 .sync-pill.live-chip.live-off .pulse-dot {
-  background: #f59e0b;
+  background: var(--danger);
   animation: none;
 }
 
@@ -374,8 +374,8 @@ html[dir='rtl'] .sync-bar {
 }
 
 [data-theme='dark'] .sync-pill.live-chip.live-off {
-  color: #fdba74;
-  background: rgba(245, 158, 11, 0.15);
+  color: var(--text-muted);
+  background: rgba(248, 113, 113, 0.15);
 }
 
 [data-theme='dark'] .sync-pill.live-chip.live-on {

@@ -14,6 +14,11 @@ const AppConfig = {
     path: '/realtime/socket.io',
     platform: 'web'
   },
+  /** Domain path 404s; CDN keeps REST boot from hanging on realtime. */
+  SOCKET_IO_CLIENTS: [
+    '/realtime/socket.io/socket.io.js',
+    'https://cdn.socket.io/4.7.5/socket.io.min.js'
+  ],
   SOCKET_EVENTS: [
     'files.deleted',
     'files.updated',

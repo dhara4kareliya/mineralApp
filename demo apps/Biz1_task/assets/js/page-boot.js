@@ -3,6 +3,10 @@
  * - Requires Biz1 login (auto-refreshes expired token, else redirects to login.html)
  * - Shows a small connection status chip (REST + Socket RT)
  * - Connects / registers realtime for messages + missions
+ *
+ * Live Socket chip (same rules as Biz1 field ticket):
+ *   on = !!(state.connected && state.status === 'ready')
+ *   Never treat state.registered (array) as a live signal.
  */
 (function () {
   'use strict';
@@ -12,44 +16,64 @@
     else fn();
   }
 
-  function rtDotColor(status) {
-    if (status === 'ready') return '#3dce7c';
-    if (status === 'connecting' || status === 'loading_io') return '#e6b422';
-    if (status === 'error') return '#e35d4f';
-    if (status === 'offline') return '#9aa3b0';
-    return '#3dce7c';
+  function tt(key, fallback) {
+    if (window.t) {
+      var v = window.t(key);
+      if (v && v !== key) return v;
+    }
+    return fallback || key;
   }
 
-  function rtLabel(status, registered) {
-    if (status === 'ready') {
-      var n = (registered && registered.length) || 0;
-      return 'RT·' + n;
-    }
-    if (status === 'connecting' || status === 'loading_io') return 'RT…';
-    if (status === 'error') return 'RT✕';
-    if (status === 'offline') return 'RT–';
-    return 'SDK';
+  /** Strict live ON — connected socket + biz1:ready only. */
+  function isRealtimeLive(state) {
+    return !!(state && state.connected && state.status === 'ready');
+  }
+
+  function roleLabel(role) {
+    return ({
+      sales: tt('sales', 'Sales'),
+      service: tt('service', 'Service'),
+      tech: tt('tech', 'Tech')
+    })[role] || role;
   }
 
   function updateChipRealtime(chip, state) {
-    if (!chip || !state) return;
+    if (!chip) return;
+    state = state || { connected: false, status: 'offline' };
+    var live = isRealtimeLive(state);
     var dot = chip.querySelector('[data-mb-dot]');
     var label = chip.querySelector('[data-mb-label]');
-    if (dot) dot.style.background = rtDotColor(state.status);
+
+    chip.classList.toggle('live-on', live);
+    chip.classList.toggle('live-off', !live);
+
+    if (dot) {
+      dot.removeAttribute('style');
+      dot.setAttribute('data-status', state.status || '');
+    }
+
     if (label) {
       var email = MineralBarApp.getEmail() || '';
       var role = MineralBarApp.getRole();
-      var roleLabel = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role] || role;
       var user = MineralBarApp.getUser() || {};
+      var liveText = live
+        ? tt('live_socket', 'Live Socket')
+        : tt('offline', 'Offline');
       label.textContent =
-        (email || user.name || 'מחובר') + ' · ' + roleLabel + ' · ' + rtLabel(state.status, state.registered);
+        (email || user.name || tt('connected', 'Connected')) +
+        ' · ' + roleLabel(role) + ' · ' + liveText;
     }
-    if (state.status === 'ready' && state.registered) {
+
+    if (live) {
       chip.title =
         'Socket registered:\n' +
-        state.registered.join('\n');
+        ((state.registered && state.registered.length)
+          ? state.registered.join('\n')
+          : 'Connected');
     } else if (state.error) {
       chip.title = 'Socket error: ' + state.error;
+    } else {
+      chip.title = tt('offline', 'Offline');
     }
   }
 
@@ -60,47 +84,57 @@
 
     var chip = document.createElement('div');
     chip.id = 'mb-sdk-chip';
-    chip.className = 'mb-sdk-chip';
-    chip.setAttribute('dir', 'rtl');
+    chip.className = 'mb-sdk-chip live-off';
+    chip.setAttribute('dir', document.documentElement.dir || 'rtl');
+    chip.setAttribute('role', 'status');
+    chip.setAttribute('aria-live', 'polite');
 
-    var roleLabel = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role] || role;
     chip.innerHTML =
-      '<span data-mb-dot class="mb-sdk-dot" style="background:#e6b422;"></span>' +
+      '<span data-mb-dot class="mb-sdk-dot"></span>' +
       '<span data-mb-label class="mb-sdk-label">' +
-      (email || user.name || 'מחובר') + ' · ' + roleLabel + ' · RT…' +
+      (email || user.name || tt('connected', 'Connected')) +
+      ' · ' + roleLabel(role) + ' · ' + tt('offline', 'Offline') +
       '</span>' +
-      '<button type="button" id="mb-logout-btn" class="mb-sdk-logout">יציאה</button>';
+      '<button type="button" id="mb-logout-btn" class="mb-sdk-logout">' +
+      tt('logout', 'Logout') +
+      '</button>';
 
     document.body.appendChild(chip);
+    updateChipRealtime(chip, MineralBarApp.getRealtimeState() || { status: 'offline', connected: false });
+
     document.getElementById('mb-logout-btn').addEventListener('click', function () {
       MineralBarApp.clearSession();
       location.href = 'login.html';
     });
 
-    window.addEventListener('mineralbar:socket-status', function (ev) {
-      updateChipRealtime(chip, ev.detail || {});
+    function refreshChip() {
+      updateChipRealtime(
+        chip,
+        MineralBarApp.getRealtimeState() || { status: 'offline', connected: false }
+      );
+    }
+
+    window.addEventListener('mineralbar:socket-status', refreshChip);
+    window.addEventListener('mineralbar:socket', refreshChip);
+    window.addEventListener('mineralbar:auth-refreshed', refreshChip);
+    window.addEventListener('mineralbar:ready', refreshChip);
+    window.addEventListener('mineralbar:lang', function () {
+      chip.setAttribute('dir', document.documentElement.dir || 'rtl');
+      var btn = document.getElementById('mb-logout-btn');
+      if (btn) btn.textContent = tt('logout', 'Logout');
+      refreshChip();
     });
-    window.addEventListener('mineralbar:auth-refreshed', function () {
-      updateChipRealtime(chip, MineralBarApp.getRealtimeState() || { status: 'ready' });
-      var label = chip.querySelector('[data-mb-label]');
-      if (label) {
-        var role2 = MineralBarApp.getRole();
-        var roleLabel2 = { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' }[role2] || role2;
-        label.textContent =
-          (MineralBarApp.getEmail() || 'מחובר') + ' · ' + roleLabel2 + ' · ' +
-          rtLabel((MineralBarApp.getRealtimeState() || {}).status || 'ready',
-            (MineralBarApp.getRealtimeState() || {}).registered);
-      }
-    });
+    window.setInterval(refreshChip, 4000);
 
     try {
       var name = user.name || (email.split('@')[0] || '');
       if (name) {
         document.querySelectorAll('div').forEach(function (el) {
           if (el.children.length) return;
-          var t = (el.textContent || '').trim();
-          if (/^בוקר טוב,/.test(t) || /^צהריים טובים,/.test(t) || /^ערב טוב,/.test(t)) {
-            el.textContent = t.replace(/,.*/, ', ' + name + ' 👋');
+          var text = (el.textContent || '').trim();
+          if (/^בוקר טוב,/.test(text) || /^צהריים טובים,/.test(text) || /^ערב טוב,/.test(text) ||
+              /^Good /.test(text) || /^Hello,/.test(text)) {
+            el.textContent = text.replace(/,.*/, ', ' + name + ' 👋');
           }
         });
       }
@@ -120,11 +154,13 @@
             missions: registered.filter(function (k) { return /mission|task/i.test(k); }),
             all: registered
           });
+          refreshChip();
           return payload;
         });
       })
       .catch(function (err) {
         console.warn('[Biz1] socket connect failed', err);
+        refreshChip();
       });
   }
 

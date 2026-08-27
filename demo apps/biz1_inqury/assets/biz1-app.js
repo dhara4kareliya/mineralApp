@@ -554,51 +554,30 @@
   }
 
   /**
-   * Products.List — pages until all rows loaded (≤25 per page).
+   * Products.List — fetch one server-side page (≤25 rows).
    * Returns { rows, total, raw, countRaw }.
    */
   async function listProducts(extra) {
     var client = getClient();
-    var all = [];
-    var start = 0;
-    var pageSize = 25;
-    var safety = 0;
-    var reportedTotal = null;
-    var lastRaw = null;
-    var base = Object.assign({
+    var options = extra || {};
+    var pageSize = Number(options.pageSize || options.length || options.limit || 25);
+    if (!pageSize || pageSize > 25) pageSize = 25;
+    var start = Number(options.start != null ? options.start : (options.offset != null ? options.offset : 0));
+    if (!Number.isFinite(start) || start < 0) start = 0;
+    start = Math.floor(start);
+    var request = Object.assign({}, options, {
       length: pageSize,
       limit: pageSize,
-      draw: 1
-    }, extra || {});
+      draw: options.draw || 1,
+      start: start,
+      offset: start
+    });
+    delete request.pageSize;
 
-    while (safety < 40) {
-      safety++;
-      lastRaw = await client.products.list(Object.assign({}, base, {
-        start: start,
-        offset: start
-      }));
-      var rows = extractProductRows(lastRaw);
-      if (reportedTotal == null) reportedTotal = extractProductTotal(lastRaw, rows);
-      all = all.concat(rows);
-      if (!rows.length || rows.length < pageSize) break;
-      if (reportedTotal != null && all.length >= reportedTotal) break;
-      start += pageSize;
-    }
-
-    var countRaw = null;
-    try {
-      countRaw = await client.products.count(extra || {});
-    } catch (e) {
-      console.warn('[Biz1Demo] Products.Count failed', e);
-    }
-
-    var total = reportedTotal != null ? reportedTotal : all.length;
-    if (countRaw && countRaw.count != null) {
-      var c = Number(countRaw.count);
-      if (!Number.isNaN(c)) total = c;
-    }
-
-    return { rows: all, total: total, raw: lastRaw, countRaw: countRaw };
+    var raw = await client.products.list(request);
+    var rows = extractProductRows(raw);
+    var total = extractProductTotal(raw, rows);
+    return { rows: rows, total: total, raw: raw, countRaw: null };
   }
 
   async function countProducts(extra) {
@@ -1441,7 +1420,8 @@
       status: realtimeState.status,
       error: realtimeState.error,
       registered: realtimeState.registered.slice(),
-      ready: realtimeState.ready
+      ready: realtimeState.ready,
+      connected: !!(realtimeState.socket && realtimeState.socket.connected)
     });
   }
 
@@ -1559,7 +1539,13 @@
         dispatchAppEvent('biz1demo:socket', { type: 'error', error: msg });
       });
       socket.on('disconnect', function (reason) {
-        if (realtimeState.status !== 'error') setRealtimeStatus('offline');
+        realtimeState.ready = null;
+        realtimeState.registered = [];
+        if (realtimeState.status !== 'error') {
+          setRealtimeStatus('offline');
+        } else {
+          setRealtimeStatus('error');
+        }
         dispatchAppEvent('biz1demo:socket', { type: 'disconnect', reason: reason });
       });
 
@@ -1604,7 +1590,11 @@
     realtimeState.socket = null;
     realtimeState.ready = null;
     realtimeState.registered = [];
-    setRealtimeStatus('off');
+    if (realtimeState.status !== 'error') {
+      setRealtimeStatus('offline');
+    } else {
+      setRealtimeStatus('error');
+    }
   }
 
   function getRealtimeState() {

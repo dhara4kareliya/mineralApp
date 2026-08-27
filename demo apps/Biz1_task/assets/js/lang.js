@@ -13,6 +13,9 @@ var translations = {
         'sales': 'מכירות',
         'service': 'שירות',
         'tech': 'טכנאי',
+        'connected': 'מחובר',
+        'live_socket': 'שידור חי',
+        'offline': 'אופליין',
         'crm_system': 'ביז1 תצוגה · דמו',
         'choose_customer': 'בחר לקוח',
         'placeholder_email': 'אימייל, שם משתמש, טלפון או מזהה',
@@ -196,6 +199,9 @@ var translations = {
         'sales': 'Sales',
         'service': 'Service',
         'tech': 'Tech',
+        'connected': 'Connected',
+        'live_socket': 'Live Socket',
+        'offline': 'Offline',
         'crm_system': 'Biz1 Showcase · Demo',
         'choose_customer': 'Choose Customer',
         'placeholder_email': 'email, username, phone or ID',
@@ -497,6 +503,9 @@ function initLanguage() {
     syncLangPills(currentLang);
     startHeaderClock();
     if (window.setGreeting) window.setGreeting();
+    try {
+      window.dispatchEvent(new CustomEvent('mineralbar:lang', { detail: { lang: currentLang } }));
+    } catch (e) { /* ignore */ }
 }
 
 window.setGreeting = function() {

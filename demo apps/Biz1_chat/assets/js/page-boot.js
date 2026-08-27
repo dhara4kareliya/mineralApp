@@ -12,23 +12,17 @@
     else fn();
   }
 
-  function rtDotColor(status) {
-    if (status === 'ready') return '#3dce7c';
-    if (status === 'connecting' || status === 'loading_io') return '#e6b422';
-    if (status === 'error') return '#e35d4f';
-    if (status === 'offline') return '#9aa3b0';
-    return '#3dce7c';
+  function isRealtimeLive(state) {
+    return !!(state && state.connected && state.status === 'ready');
   }
 
-  function rtLabel(status, registered) {
-    if (status === 'ready') {
-      var n = (registered && registered.length) || 0;
-      return 'RT·' + n;
-    }
-    if (status === 'connecting' || status === 'loading_io') return 'RT…';
-    if (status === 'error') return 'RT✕';
-    if (status === 'offline') return 'RT–';
-    return 'SDK';
+  function rtDotColor(live) {
+    return live ? '#3dce7c' : '#e35d4f';
+  }
+
+  function rtLabel(live) {
+    var tt = window.t || function (k) { return k; };
+    return live ? tt('live_socket') : tt('offline');
   }
 
   function roleLabel(role) {
@@ -44,10 +38,13 @@
     if (!chip || !state) return;
     var tt = window.t || function (k) { return k; };
     var App = window.Biz1App || window.MineralBarApp;
+    var live = isRealtimeLive(state);
     var dot = chip.querySelector('[data-mb-dot]');
     var label = chip.querySelector('[data-mb-label]');
+    chip.classList.toggle('live-on', live);
+    chip.classList.toggle('live-off', !live);
     if (dot) {
-      dot.style.background = rtDotColor(state.status);
+      dot.style.background = rtDotColor(live);
       dot.setAttribute('data-status', state.status || '');
     }
     if (label) {
@@ -55,14 +52,16 @@
       var role = App.getRole();
       var user = App.getUser() || {};
       label.textContent =
-        (email || user.name || tt('connected')) + ' · ' + roleLabel(role) + ' · ' + rtLabel(state.status, state.registered);
+        (email || user.name || tt('connected')) + ' · ' + roleLabel(role) + ' · ' + rtLabel(live);
     }
-    if (state.status === 'ready' && state.registered) {
+    if (live) {
       chip.title =
         'Socket registered:\n' +
-        state.registered.join('\n');
+        ((state.registered && state.registered.length) ? state.registered.join('\n') : 'Connected');
     } else if (state.error) {
       chip.title = 'Socket error: ' + state.error;
+    } else {
+      chip.title = tt('offline');
     }
   }
 
@@ -81,28 +80,38 @@
     chip.innerHTML =
       '<span data-mb-dot class="mb-sdk-dot"></span>' +
       '<span data-mb-label class="mb-sdk-label">' +
-      (email || user.name || tt('connected')) + ' · ' + roleLabel(role) + ' · RT…' +
+      (email || user.name || tt('connected')) + ' · ' + roleLabel(role) + ' · ' + tt('offline') +
       '</span>' +
       '<button type="button" id="mb-logout-btn" class="mb-sdk-logout">' + tt('exit') + '</button>';
 
     document.body.appendChild(chip);
+    updateChipRealtime(chip, App.getRealtimeState() || { status: 'off', connected: false });
     document.getElementById('mb-logout-btn').addEventListener('click', function () {
       App.clearSession();
       location.href = 'login.html';
     });
 
+    function refreshChip() {
+      updateChipRealtime(chip, App.getRealtimeState() || { status: 'off', connected: false });
+    }
+
     window.addEventListener('mineralbar:socket-status', function (ev) {
-      updateChipRealtime(chip, ev.detail || {});
+      refreshChip();
+    });
+    window.addEventListener('mineralbar:socket', function () {
+      // Covers connect, disconnect, connect_error and biz1:ready events.
+      refreshChip();
     });
     window.addEventListener('mineralbar:auth-refreshed', function () {
-      updateChipRealtime(chip, App.getRealtimeState() || { status: 'ready' });
+      refreshChip();
     });
     window.addEventListener('mineralbar:lang', function () {
       chip.setAttribute('dir', document.documentElement.dir || 'rtl');
       var btn = document.getElementById('mb-logout-btn');
       if (btn) btn.textContent = (window.t && window.t('exit')) || 'Exit';
-      updateChipRealtime(chip, App.getRealtimeState() || { status: 'ready' });
+      refreshChip();
     });
+    window.setInterval(refreshChip, 4000);
 
     try {
       var name = user.name || (email.split('@')[0] || '');
@@ -136,6 +145,7 @@
       })
       .catch(function (err) {
         console.warn('[Biz1Showcase] socket connect failed', err);
+        refreshChip();
       });
   }
 

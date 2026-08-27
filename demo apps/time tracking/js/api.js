@@ -14,10 +14,35 @@ const Api = (function () {
       }
       const s = document.createElement('script');
       s.src = src;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error(`Failed to load ${src}`));
+      const timer = setTimeout(() => {
+        s.remove();
+        reject(new Error(`Timed out loading ${src}`));
+      }, 15000);
+      s.onload = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      s.onerror = () => {
+        clearTimeout(timer);
+        reject(new Error(`Failed to load ${src}`));
+      };
       document.head.appendChild(s);
     });
+  }
+
+  async function loadSocketIo(base) {
+    if (window.io) return;
+    const candidates = [
+      AppConfig.SOCKET_IO_CDN,
+      `${base}/realtime/socket.io/socket.io.js`
+    ].filter(Boolean);
+
+    for (const src of candidates) {
+      try {
+        await loadScript(src);
+        if (window.io) return;
+      } catch (_) { /* try next candidate */ }
+    }
   }
 
   async function ensureSdk(domain) {
@@ -26,9 +51,8 @@ const Api = (function () {
       await loadScript(`${base}/app/sdk/biz1-sdk.js`);
       sdkLoaded = true;
     }
-    if (!window.io) {
-      await loadScript(`${base}/realtime/socket.io/socket.io.js`);
-    }
+    // Realtime client is optional — a missing socket.io.js must not block login.
+    await loadSocketIo(base);
     return base;
   }
 
@@ -143,8 +167,13 @@ const Api = (function () {
   }
 
   function logout() {
-    if (client) client.logout();
-    client = null;
+    if (client) {
+      try { client.logout(); } catch (_) { /* ignore */ }
+      client = null;
+    }
+    try {
+      localStorage.removeItem('biz1_sdk_bearer_token');
+    } catch (_) { /* ignore */ }
   }
 
   return {

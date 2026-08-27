@@ -10,6 +10,9 @@ const AppConfig = {
 
   DEFAULT_DOMAIN: 'https://eli.bull36.com',
 
+  /** CDN fallback — the domain does not host socket.io.js */
+  SOCKET_IO_CDN: 'https://cdn.socket.io/4.7.5/socket.io.min.js',
+
   REALTIME: {
     path: '/realtime/socket.io',
     platform: 'web'

@@ -1953,7 +1953,7 @@
   };
 
   var realtimeState = {
-    status: 'off', // off | loading_io | connecting | ready | offline | error
+    status: 'offline', // offline | loading_io | connecting | ready | error | off
     ready: null,
     error: null,
     socket: null,
@@ -1984,7 +1984,8 @@
       status: realtimeState.status,
       error: realtimeState.error,
       registered: realtimeState.registered.slice(),
-      ready: realtimeState.ready
+      ready: realtimeState.ready,
+      connected: !!(realtimeState.socket && realtimeState.socket.connected)
     });
   }
 
@@ -2083,11 +2084,17 @@
     });
     socket.on('connect_error', function (err) {
       var msg = (err && err.message) || String(err);
+      realtimeState.ready = null;
+      realtimeState.registered = [];
       setRealtimeStatus('error', msg);
       dispatchAppEvent('mineralbar:socket', { type: 'error', error: msg });
     });
     socket.on('disconnect', function (reason) {
+      // Clear ready state immediately so chip cannot stay on "Live Socket"
+      realtimeState.ready = null;
+      realtimeState.registered = [];
       if (realtimeState.status !== 'error') setRealtimeStatus('offline');
+      else setRealtimeStatus('error');
       dispatchAppEvent('mineralbar:socket', { type: 'disconnect', reason: reason });
     });
 
@@ -2118,6 +2125,7 @@
   }
 
   function disconnectRealtime() {
+    var keepError = realtimeState.status === 'error';
     try {
       var client = getClient();
       if (client && client.realtime) client.realtime.disconnect();
@@ -2125,7 +2133,7 @@
     realtimeState.socket = null;
     realtimeState.ready = null;
     realtimeState.registered = [];
-    setRealtimeStatus('off');
+    setRealtimeStatus(keepError ? 'error' : 'offline');
   }
 
   function getRealtimeState() {

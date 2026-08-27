@@ -32,6 +32,8 @@
       verifyOtp: 'אמת והמשך',
       verifying: 'מאמת…',
       changePhone: 'שנה מספר',
+      liveSocketOn: 'שידור חי',
+      liveSocketOff: 'אופליין',
       trustLine: 'הצפנה · Biz1 · ללא שמירת כרטיס במכשיר',
       footerNote: 'Biz1 Showcase · פורטל לקוחות',
       hello: 'שלום',
@@ -131,6 +133,8 @@
       verifyOtp: 'Verify & continue',
       verifying: 'Verifying…',
       changePhone: 'Change number',
+      liveSocketOn: 'Live Socket',
+      liveSocketOff: 'Offline',
       trustLine: 'Encrypted · Biz1 · Card not stored on device',
       footerNote: 'Biz1 Showcase · Customer portal',
       hello: 'Hello',
@@ -231,6 +235,7 @@
   };
 
   var docsRefreshTimer = null;
+  var liveSocketPollTimer = null;
   var els = {};
 
   function t(key) {
@@ -279,6 +284,30 @@
     document.querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.getAttribute('data-lang') === state.lang);
     });
+    paintLiveSocketChip();
+  }
+
+  /**
+   * Live Socket chip — strict ON only when socket connected AND biz1:ready.
+   * Never treat registered[] as truthy (empty array is truthy in JS).
+   */
+  function paintLiveSocketChip() {
+    var chip = document.getElementById('liveSocketChip');
+    if (!chip) return;
+    var st = { connected: false, status: 'off' };
+    try {
+      var MB = app();
+      if (MB && typeof MB.getRealtimeState === 'function') {
+        st = MB.getRealtimeState() || st;
+      }
+    } catch (e) { /* ignore */ }
+
+    var on = !!(st.connected && st.status === 'ready');
+    chip.classList.toggle('live-on', on);
+    chip.classList.toggle('live-off', !on);
+    var label = chip.querySelector('[data-live-label]');
+    if (label) label.textContent = on ? t('liveSocketOn') : t('liveSocketOff');
+    chip.setAttribute('title', on ? t('liveSocketOn') : t('liveSocketOff'));
   }
 
   function setLang(lang) {
@@ -857,16 +886,22 @@
 
   function startPortalRealtime() {
     var MB = app();
-    if (state.realtimeStarted) return;
+    if (state.realtimeStarted) {
+      paintLiveSocketChip();
+      return;
+    }
     state.realtimeStarted = true;
+    paintLiveSocketChip();
 
     MB.connectRealtime().then(function (res) {
       var ready = res && res.ready;
       var events = (ready && ready.events) || MB.getRegisteredRealtimeEvents() || [];
       console.info('[Portal] realtime ready', events.length, 'events');
+      paintLiveSocketChip();
     }).catch(function (err) {
       state.realtimeStarted = false;
       console.warn('[Portal] realtime connect failed', err && err.message ? err.message : err);
+      paintLiveSocketChip();
     });
   }
 
@@ -877,6 +912,7 @@
       docsRefreshTimer = null;
     }
     try { app().disconnectRealtime(); } catch (e) { /* ignore */ }
+    paintLiveSocketChip();
   }
 
   function onPortalDocumentsRealtime(ev) {
@@ -1457,10 +1493,21 @@
       if (d.type === 'ready') {
         console.info('[Portal] socket ready', (d.registered || []).length, 'registered events');
       }
+      paintLiveSocketChip();
     });
+    window.addEventListener('biz1demo:socket-status', function () {
+      paintLiveSocketChip();
+    });
+    // Light poll fallback so chip stays accurate if an event is missed
+    if (liveSocketPollTimer) clearInterval(liveSocketPollTimer);
+    liveSocketPollTimer = setInterval(function () {
+      paintLiveSocketChip();
+    }, 4000);
+    paintLiveSocketChip();
     // When user returns to the tab, soft-refresh once (covers missed socket events).
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState !== 'visible') return;
+      paintLiveSocketChip();
       var dash = $('screenDash');
       if (dash && !dash.classList.contains('hidden') && state.realtimeStarted) {
         scheduleDocsRefresh('visibility');

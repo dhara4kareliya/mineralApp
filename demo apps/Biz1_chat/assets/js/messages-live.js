@@ -11,6 +11,7 @@
   var allRows = [];
   var channelFilter = 'all'; // all | whatsapp | email | web
   var SEEN_KEY = 'biz1demo_inbox_seen_v1';
+  var started = false;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -146,6 +147,73 @@
       var search = document.getElementById('mb-messages-search');
       if (el) renderFiltered(el, search && search.value);
     }
+  }
+
+  function syncRowFromSocket(detail) {
+    var App = window.Biz1App || window.MineralBarApp;
+    if (!App || typeof App.realtimeMessageFromEvent !== 'function') return false;
+    var message = App.realtimeMessageFromEvent(detail);
+    var cid = String(message.customer_id || '');
+    var meta = String(message.messenger_meta_id || '');
+    var text = String(message.message || '').trim();
+    if ((!cid && !meta) || !text) return false;
+
+    var row = null;
+    for (var i = 0; i < allRows.length; i++) {
+      var candidate = allRows[i];
+      if ((meta && String(candidate.messenger_meta_id || '') === meta) ||
+          (cid && String(candidate.customer_id || candidate.cust_id || candidate.client_id || '') === cid)) {
+        row = candidate;
+        break;
+      }
+    }
+
+    if (!row) {
+      row = {
+        id: message.id || meta || cid,
+        customer_id: cid,
+        cust_id: cid,
+        client_id: cid,
+        message_id: message.id || '',
+        name: message.name || (cid ? 'Customer #' + cid : ''),
+        email: message.email || '',
+        phone: message.phone || '',
+        subject: text,
+        message: text,
+        last_message: text,
+        when: message.when || new Date().toISOString(),
+        channel: message.channel || 'whatsapp',
+        unread: 0,
+        messenger_meta_id: meta
+      };
+      allRows.unshift(row);
+    } else {
+      row.message = text;
+      row.last_message = text;
+      row.subject = text;
+      if (message.when) row.when = message.when;
+      if (message.channel) row.channel = message.channel;
+      if (message.messenger_meta_id) row.messenger_meta_id = message.messenger_meta_id;
+      if (message.name && !row.name) row.name = message.name;
+      if (message.email && !row.email) row.email = message.email;
+      if (message.phone && !row.phone) row.phone = message.phone;
+      row.unread = 0;
+      allRows.splice(allRows.indexOf(row), 1);
+      allRows.unshift(row);
+    }
+
+    row.unread = 0;
+    row._fp = rowFingerprint(row);
+    row._seenKey = rowSeenKey(row);
+    var seen = loadSeenMap();
+    seen[row._seenKey] = row._fp;
+    saveSeenMap(seen);
+
+    var el = document.getElementById('mb-live-messages');
+    var search = document.getElementById('mb-messages-search');
+    if (el) renderFiltered(el, search && search.value);
+    updateTotalLabel();
+    return true;
   }
 
   function loadingHtml() {
@@ -510,9 +578,11 @@
   }
 
   function start() {
+    if (started) return;
     if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     var el = document.getElementById('mb-live-messages');
     if (!el) return;
+    started = true;
     bindListClicks(el);
     ensureFilterBar();
     var search = document.getElementById('mb-messages-search');
@@ -523,7 +593,6 @@
       });
     }
     loadMessages(el);
-    startPolling(el);
   }
 
   window.addEventListener('mineralbar:ready', start);
@@ -543,37 +612,10 @@
     var el = document.getElementById('mb-live-messages');
     if (!el || !window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     var detail = (ev && ev.detail) || {};
-    // Outgoing messages sent by us — refresh silently and pre-mark row as seen
-    // so polling never shows an unread badge for our own sent message.
-    if (detail.direction === 'out') {
-      clearTimeout(window.__mbMessagesRtTimer);
-      window.__mbMessagesRtTimer = setTimeout(function () {
-        loadMessages(el, { silent: true, outgoingCustomerId: String(detail.customer_id || '') });
-      }, 500);
-      return;
-    }
     var ch = detail.channel ? channelMeta(detail.channel).label : 'Inbox';
     showToast((window.t ? window.t('toast_new_message') : 'New message') + ' · ' + ch);
-    clearTimeout(window.__mbMessagesRtTimer);
-    window.__mbMessagesRtTimer = setTimeout(function () {
-      loadMessages(el, { silent: true }).then(function () {
-        var first = el.querySelector('.conv-row');
-        if (first) {
-          first.classList.add('is-pulse');
-          setTimeout(function () { first.classList.remove('is-pulse'); }, 2200);
-        }
-      });
-    }, 350);
+    syncRowFromSocket(detail);
   });
-
-  // Poll every 30 seconds for incoming messages (no WebSocket needed)
-  function startPolling(el) {
-    clearInterval(window.__mbInboxPollTimer);
-    window.__mbInboxPollTimer = setInterval(function () {
-      if (!window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
-      loadMessages(el, { silent: true }).catch(function () { /* ignore poll errors */ });
-    }, 3000);
-  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 50); });

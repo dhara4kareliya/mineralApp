@@ -7,11 +7,19 @@ const Realtime = (function () {
 
   function connect(onEvent) {
     disconnect();
-    const client = Api.getClient();
-    client.realtime.connect({
-      path: AppConfig.REALTIME.path,
-      platform: AppConfig.REALTIME.platform
-    });
+    let client;
+    try {
+      client = Api.getClient();
+      client.realtime.connect({
+        path: AppConfig.REALTIME.path,
+        platform: AppConfig.REALTIME.platform
+      });
+    } catch (err) {
+      connected = false;
+      AppUI.setSocketStatus(false);
+      console.warn('Realtime unavailable', err);
+      return;
+    }
 
     unsubscribers.push(
       client.realtime.on('biz1:ready', (payload) => {

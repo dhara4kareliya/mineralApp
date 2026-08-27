@@ -60,8 +60,14 @@
   };
 
   document.body.classList.add('auth-checking');
-  const ok = await Auth.restoreSession();
-  if (!ok) {
+  try {
+    const ok = await Auth.restoreSession();
+    if (!ok) {
+      location.replace('login.html');
+      return;
+    }
+  } catch (err) {
+    console.error('Session restore failed', err);
     location.replace('login.html');
     return;
   }

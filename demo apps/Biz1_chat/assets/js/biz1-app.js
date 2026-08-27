@@ -2199,6 +2199,69 @@
     return '';
   }
 
+  /**
+   * Normalize the message data carried by a realtime event.
+   * Socket payloads differ between WhatsApp, email and Biz1 events, so keep
+   * this adapter tolerant without making another REST request.
+   */
+  function realtimeMessageFromEvent(detail) {
+    var event = (detail && detail.event) || detail || {};
+    var sources = [];
+    var seenSources = [];
+
+    function addSource(value, depth) {
+      if (!value || typeof value !== 'object' || depth > 3) return;
+      if (seenSources.indexOf(value) !== -1) return;
+      seenSources.push(value);
+      sources.push(value);
+      addSource(value.payload, depth + 1);
+      addSource(value.data, depth + 1);
+      addSource(value.message, depth + 1);
+    }
+
+    addSource(event, 0);
+    addSource(detail, 0);
+
+    function pick(keys) {
+      for (var i = 0; i < sources.length; i++) {
+        for (var j = 0; j < keys.length; j++) {
+          var value = sources[i][keys[j]];
+          if (value != null && value !== '' && typeof value !== 'object') return value;
+        }
+      }
+      return '';
+    }
+
+    function pickText(keys) {
+      var value = pick(keys);
+      return value == null ? '' : String(value).trim();
+    }
+
+    var channel = pickText(['channel', 'type', 'msg_type', 'message_type', 'last_message_type']);
+    if (!channel && detail && detail.channel) channel = String(detail.channel);
+    if (/^mision$|^mission$/i.test(channel)) channel = 'biz1';
+
+    var when = pick(['time', 'created_at', 'created', 'create_date', 'inserted_date', 'last_updated', 'updated_at', 'date']);
+    if (when && typeof when === 'object' && when.$date) {
+      var dateMs = Number(when.$date.$numberLong || when.$date);
+      if (!Number.isNaN(dateMs)) when = new Date(dateMs < 1e12 ? dateMs * 1000 : dateMs).toISOString();
+    }
+
+    return {
+      id: pickText(['message_id', 'id', '_id']),
+      customer_id: pickText(['customer_id', 'cust_id', 'contactus_id', 'client_id', 'customerId']),
+      messenger_meta_id: pickText(['messenger_meta_id', 'messanger_meta_id', 'meta_id', 'chat_id', 'conversation_id', 'room_id', 'messengerMetaId']),
+      message: pickText(['message', 'msg', 'text', 'body', 'content', 'last_message', 'whatsapp_message', 'note']),
+      name: pickText(['name', 'cust_name', 'customer_name', 'user_name', 'sender_name', 'from_name']),
+      email: pickText(['email', 'cust_email']),
+      phone: pickText(['phone', 'cust_phone', 'mobile']),
+      when: when || '',
+      channel: channel || 'whatsapp',
+      direction: pick(['direction', 'message_direction']),
+      user_id: pick(['user_id', 'sender_id'])
+    };
+  }
+
   function setRealtimeStatus(status, error) {
     realtimeState.status = status;
     if (error != null) realtimeState.error = error;
@@ -2206,7 +2269,8 @@
       status: realtimeState.status,
       error: realtimeState.error,
       registered: realtimeState.registered.slice(),
-      ready: realtimeState.ready
+      ready: realtimeState.ready,
+      connected: !!(realtimeState.socket && realtimeState.socket.connected)
     });
   }
 
@@ -2255,7 +2319,9 @@
         payload: payload,
         registered: realtimeState.registered,
         messages: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'messages'; }),
-        missions: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'missions'; })
+        missions: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'missions'; }),
+        connected: !!(realtimeState.socket && realtimeState.socket.connected),
+        status: realtimeState.status
       });
     });
 
@@ -2313,7 +2379,9 @@
       dispatchAppEvent('mineralbar:socket', { type: 'error', error: msg });
     });
     socket.on('disconnect', function (reason) {
-      if (realtimeState.status !== 'error') setRealtimeStatus('offline');
+      realtimeState.ready = null;
+      realtimeState.registered = [];
+      setRealtimeStatus(realtimeState.status === 'error' ? 'error' : 'offline');
       dispatchAppEvent('mineralbar:socket', { type: 'disconnect', reason: reason });
     });
 
@@ -2344,6 +2412,7 @@
   }
 
   function disconnectRealtime() {
+    var keepError = realtimeState.status === 'error';
     try {
       var client = getClient();
       if (client && client.realtime) client.realtime.disconnect();
@@ -2351,7 +2420,7 @@
     realtimeState.socket = null;
     realtimeState.ready = null;
     realtimeState.registered = [];
-    setRealtimeStatus('off');
+    setRealtimeStatus(keepError ? 'error' : 'offline');
   }
 
   function getRealtimeState() {
@@ -2417,6 +2486,7 @@
     listEmails: listEmails,
     listChatConversations: listChatConversations,
     conversationListChannel: conversationListChannel,
+    realtimeMessageFromEvent: realtimeMessageFromEvent,
     listChatInbox: listChatInbox,
     listOmnichannelConversations: listOmnichannelConversations,
     listSingleConversations: listSingleConversations,
