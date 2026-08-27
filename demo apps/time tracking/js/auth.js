@@ -47,7 +47,9 @@ const Auth = (function () {
   }
 
   function logout() {
-    Realtime.disconnect();
+    if (typeof Realtime !== 'undefined' && Realtime.disconnect) {
+      Realtime.disconnect();
+    }
     Api.logout();
     userBasic = null;
     pendingCredentials = null;

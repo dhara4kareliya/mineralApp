@@ -6,18 +6,47 @@ const Api = (function () {
   let sdkLoaded = false;
   let basicCache = null;
 
-  function loadScript(src) {
+  function loadScript(src, timeoutMs) {
     return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
-        resolve();
-        return;
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        if (existing.getAttribute('data-load-ok') === '1') {
+          resolve();
+          return;
+        }
+        existing.remove();
       }
       const s = document.createElement('script');
       s.src = src;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error('Failed to load ' + src));
+      const timer = setTimeout(() => {
+        s.remove();
+        reject(new Error('Timed out loading ' + src));
+      }, timeoutMs || 12000);
+      s.onload = () => {
+        clearTimeout(timer);
+        s.setAttribute('data-load-ok', '1');
+        resolve();
+      };
+      s.onerror = () => {
+        clearTimeout(timer);
+        s.remove();
+        reject(new Error('Failed to load ' + src));
+      };
       document.head.appendChild(s);
     });
+  }
+
+  async function ensureSocketIo(base) {
+    if (window.io) return;
+    const candidates = (AppConfig.SOCKET_IO_CLIENTS || []).map((src) =>
+      src.indexOf('http') === 0 ? src : base + src
+    );
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        await loadScript(candidates[i]);
+        if (window.io) return;
+      } catch (_) { /* try next */ }
+    }
   }
 
   async function ensureSdk(domain) {
@@ -26,9 +55,7 @@ const Api = (function () {
       await loadScript(base + '/app/sdk/biz1-sdk.js');
       sdkLoaded = true;
     }
-    if (!window.io) {
-      await loadScript(base + '/realtime/socket.io/socket.io.js');
-    }
+    await ensureSocketIo(base);
     return base;
   }
 

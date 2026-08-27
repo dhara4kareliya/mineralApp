@@ -101,20 +101,18 @@ const Utils = {
     return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   },
 
-  /** Seconds for a session row — uses elapsed or calculates from start/end */
+  /** Seconds for a session row — uses the larger of elapsed vs start/end span */
   sessionDurationSeconds(row) {
     const elapsedSec = Utils.parseElapsed(row.elapsed);
-    if (elapsedSec > 0) return elapsedSec;
-
     const start = Utils.parseApiDate(row.start_time || row.start);
     const end = Utils.parseApiDate(row.end_time || row.stop_time || row.end);
+    let span = 0;
     if (start && end && end > start) {
-      return Math.floor((end - start) / 1000);
+      span = Math.floor((end - start) / 1000);
+    } else if (Number(row.status) === 1 && start) {
+      span = Math.max(0, Math.floor((Date.now() - start) / 1000));
     }
-    if (Number(row.status) === 1 && start) {
-      return Math.max(0, Math.floor((Date.now() - start) / 1000));
-    }
-    return 0;
+    return Math.max(elapsedSec, span);
   },
 
   formatSessionDuration(row) {
