@@ -753,7 +753,7 @@ mbCss('./common.css');
         </div>
 
         <label class="form-label">Product details</label>
-        <textarea class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" oninput="{{ onEditDescChange }}">{{ editDesc }}</textarea>
+        <textarea id="mb-edit-product-desc" class="premium-input" rows="6" style="min-height:140px; height:140px; resize:vertical; line-height:1.5;" placeholder="Insert product details" oninput="{{ onEditDescChange }}">{{ editDesc }}</textarea>
         
         </div>
         <div class="inv-product-sheet-actions">
@@ -969,6 +969,33 @@ class Component extends DCLogic {
     return '';
   }
 
+  productDetailsValue(value) {
+    if (value == null) return '';
+    if (typeof value === 'object') {
+      return this.productDetailsValue(
+        value.description ||
+        value.discription ||
+        value.product_description ||
+        value.product_details ||
+        value.details ||
+        value.detail ||
+        value.desc ||
+        value.text ||
+        value.value ||
+        value.content
+      );
+    }
+    var text = String(value).trim();
+    return /^\[object[\s,]+object\]$/i.test(text) ? '' : text;
+  }
+
+  sanitizeEditDetailsField() {
+    var el = document.getElementById('mb-edit-product-desc');
+    if (!el) return;
+    var value = String(el.value || '').trim();
+    if (/^\[object[\s,]+object\]$/i.test(value)) el.value = '';
+  }
+
   componentDidMount() {
     // Keep live pointer so socket handlers always hit the mounted DC instance
     // (HTML re-fetch / logic hot-swap can orphan old `this` listeners).
@@ -976,6 +1003,7 @@ class Component extends DCLogic {
     this.initData();
     this.setupDragScroll();
     this.ensureFooter();
+    this.sanitizeEditDetailsField();
     if (!window.__mbInventoryLiveWired) {
       window.__mbInventoryLiveWired = true;
       wireInventoryLiveOnce();
@@ -1060,6 +1088,7 @@ class Component extends DCLogic {
     this.setupDragScroll();
     this.ensureFooter();
     this.syncEditImagePreviews();
+    this.sanitizeEditDetailsField();
   }
 
   ensureFooter() {
@@ -2116,7 +2145,9 @@ class Component extends DCLogic {
       editCost: Number((item && (item.cost || item.cost_price)) || 0),
       editDiscountPrice: Number((item && item.discount_price) || 0),
       editStatus: ((item && (item.status === 0 || item.status === '0')) || fallback.status === 0) ? 0 : 1,
-      editDesc: (item && (item.discription || item.description || item.desc)) || fallback.sub || ''
+      editDesc: this.productDetailsValue(
+        (item && (item.discription || item.description || item.desc)) || fallback.sub
+      )
     });
 
     if (catId) this.loadSubCategories(catId, { forEdit: true, keepSubId: subCatId });
@@ -2167,7 +2198,7 @@ class Component extends DCLogic {
     var status = Number(s.editStatus);
     var price = Number(s.editPrice || 0);
     var stock = Number(s.editStockQty || 0);
-    var desc = s.editDesc || '';
+    var desc = this.productDetailsValue(s.editDesc);
 
     var payload = {
       id: targetId,
@@ -2735,7 +2766,7 @@ class Component extends DCLogic {
       editMinStock: s.editMinStock || 0,
       editCost: s.editCost || 0,
       editDiscountPrice: s.editDiscountPrice || 0,
-      editDesc: String(s.editDesc == null || typeof s.editDesc === 'object' ? '' : s.editDesc),
+      editDesc: this.productDetailsValue(s.editDesc),
       editEndless: !!s.editEndless,
       editPriceAfter: s.editPriceAfter || 0,
       editStoragePlace: s.editStoragePlace || '',
