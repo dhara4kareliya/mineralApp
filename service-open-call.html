@@ -963,12 +963,28 @@ class Component extends DCLogic {
     return parts[0][0] + parts[1][0];
   }
 
+  isUploadBlob(file) {
+    if (!file) return false;
+    try {
+      if (typeof Blob !== 'undefined' && file instanceof Blob) return file.size > 0;
+      if (typeof File !== 'undefined' && file instanceof File) return file.size > 0;
+    } catch (e) { /* ignore */ }
+    return false;
+  }
+
+  getAttachFile() {
+    var file = this._attachFile || this.state.file || null;
+    return this.isUploadBlob(file) ? file : null;
+  }
+
   setFile(file) {
-    if (!file) {
+    if (!this.isUploadBlob(file)) {
+      this._attachFile = null;
       this.setState({ file: null, fileName: '', dragOver: false });
       return;
     }
-    this.setState({ file: file, fileName: file.name || 'Selected file', dragOver: false });
+    this._attachFile = file;
+    this.setState({ file: file, fileName: file.name || 'Selected photo', dragOver: false });
   }
 
   onFileChange(e) {
@@ -1002,18 +1018,131 @@ class Component extends DCLogic {
     return localDate;
   }
 
-  buildTicketAddForm(payload, file) {
-    if (!file) {
-      // Still strip empty/placeholder phone fields for plain object payloads
-      var clean = Object.assign({}, payload || {});
-      if (!this.usablePhone(clean.phone)) delete clean.phone;
-      if (!this.usablePhone(clean.mobile)) delete clean.mobile;
-      if (!this.usablePhone(clean.phone_two)) delete clean.phone_two;
-      return clean;
+  dateToLocalSql(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return date.getFullYear() + '-' + p(date.getMonth() + 1) + '-' + p(date.getDate()) +
+      ' ' + p(date.getHours()) + ':' + p(date.getMinutes()) + ':' + p(date.getSeconds());
+  }
+
+  isImageFile(file) {
+    var type = String((file && file.type) || '').toLowerCase();
+    var name = String((file && file.name) || this.state.fileName || '').toLowerCase();
+    if (type.indexOf('image/') === 0) return true;
+    return /\.(png|jpe?g|gif|webp|heic|heif|bmp)$/i.test(name);
+  }
+
+  ticketUploadName(file, forceJpg) {
+    var name = String((file && file.name) || this.state.fileName || '').trim();
+    if (!name || name === 'blob' || name === 'undefined' || name === 'Selected file' || name === 'Selected photo') {
+      name = 'ticket-photo';
     }
+    name = name.replace(/[\\/:*?"<>|]+/g, '_');
+    if (/[^\w.\- ]/.test(name)) name = 'ticket-photo';
+    if (forceJpg) return name.replace(/\.[^.]+$/, '') + '.jpg';
+    if (/\.[a-z0-9]{2,5}$/i.test(name)) return name;
+    var type = String((file && file.type) || '').toLowerCase();
+    var ext = type === 'image/png' ? '.png'
+      : type === 'image/gif' ? '.gif'
+      : type === 'image/webp' ? '.webp'
+      : type === 'application/pdf' ? '.pdf'
+      : (type.indexOf('image/') === 0 ? '.jpg' : '.bin');
+    return name + ext;
+  }
+
+  asNamedFile(blob, fileName, mime) {
+    var type = mime || (blob && blob.type) || 'application/octet-stream';
+    try {
+      if (typeof File === 'function') {
+        return new File([blob], fileName, { type: type });
+      }
+    } catch (e) { /* older WebViews */ }
+    try {
+      blob.lastModifiedDate = new Date();
+      blob.name = fileName;
+    } catch (e2) { /* ignore */ }
+    return blob;
+  }
+
+  dataUrlToFile(dataUrl, fileName) {
+    var parts = String(dataUrl || '').split(',');
+    var meta = parts[0] || '';
+    var data = parts[1] || '';
+    var mime = (meta.match(/data:(.*?);/) || [])[1] || 'image/jpeg';
+    var bin = atob(data);
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return this.asNamedFile(new Blob([arr], { type: mime }), fileName, mime);
+  }
+
+  compressImage(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function () {
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function () {
+          var max = 1280;
+          var w = img.width, h = img.height;
+          if (w > max || h > max) {
+            var scale = Math.min(max / w, max / h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async prepareTicketFile(file) {
+    if (!this.isUploadBlob(file)) return null;
+    if (this.isImageFile(file)) {
+      try {
+        var dataUrl = await this.compressImage(file);
+        return this.dataUrlToFile(dataUrl, this.ticketUploadName(file, true));
+      } catch (e) { /* send original if compress fails */ }
+    }
+    return this.asNamedFile(file, this.ticketUploadName(file, false), file.type || 'application/octet-stream');
+  }
+
+  formatTicketAddError(err) {
+    var raw = err && err.raw;
+    var msg = '';
+    if (err && err.message) msg = String(err.message);
+    if (raw && raw.message && String(raw.message) !== msg) {
+      msg = msg ? (msg + ' — ' + raw.message) : String(raw.message);
+    }
+    if (!msg && raw && raw.error) msg = String(raw.error);
+    if (raw && raw.missing) {
+      var missing = raw.missing;
+      if (typeof missing === 'object' && missing.message) msg = String(missing.message);
+      else if (typeof missing === 'string') msg = missing;
+    }
+    if (!msg) msg = 'Ticket.Add failed.';
+    if (err && err.route) msg += ' [' + err.route + ']';
+    if (err && err.status) msg += ' HTTP ' + err.status;
+    return msg;
+  }
+
+  buildTicketAddForm(payload, file) {
+    var clean = Object.assign({}, payload || {});
+    if (!this.usablePhone(clean.phone)) delete clean.phone;
+    if (!this.usablePhone(clean.mobile)) delete clean.mobile;
+    if (!this.usablePhone(clean.phone_two)) delete clean.phone_two;
+    if (!this.isUploadBlob(file)) return clean;
+
     var form = new FormData();
-    Object.keys(payload || {}).forEach(function (key) {
-      var val = payload[key];
+    Object.keys(clean).forEach(function (key) {
+      var val = clean[key];
       if (val === undefined || val === null || val === '') return;
       if ((key === 'phone' || key === 'mobile' || key === 'phone_two') && !this.usablePhone(val)) return;
       if (key === 'custom_fields') {
@@ -1036,11 +1165,18 @@ class Component extends DCLogic {
         return;
       }
       if (key === 'product_id') {
-        form.append('product_id[]', String(val));
+        // Multipart product_id[] becomes a PHP array; Ticket.Add then stores
+        // the string "Array". Send a scalar, same as the no-file payload.
+        var ids = Array.isArray(val) ? val : [val];
+        var joined = ids.map(function (item) {
+          return String(item == null ? '' : item).trim();
+        }).filter(Boolean).join(',');
+        if (joined) form.append('product_id', joined);
         return;
       }
       if (val instanceof Date) {
-        form.append(key, val);
+        var sql = this.dateToLocalSql(val);
+        if (sql) form.append(key, sql);
         return;
       }
       if (Array.isArray(val)) {
@@ -1051,17 +1187,9 @@ class Component extends DCLogic {
       }
       form.append(key, String(val));
     }.bind(this));
-    var uploadName = String(this.state.fileName || file.name || 'upload.jpg').trim() || 'upload.jpg';
+    var uploadName = this.ticketUploadName(file, this.isImageFile(file));
     form.append('image_upload', file, uploadName);
     return form;
-  }
-
-  ticketFilesFromResult(result) {
-    if (!result) return [];
-    if (Array.isArray(result.files)) return result.files;
-    if (result.output && Array.isArray(result.output.files)) return result.output.files;
-    if (result.data && Array.isArray(result.data.files)) return result.data.files;
-    return [];
   }
 
   todayDateKey() {
@@ -1457,7 +1585,24 @@ class Component extends DCLogic {
         }
       }
 
-      var attachFile = this.state.file || null;
+      var attachFile = this.getAttachFile();
+      if (this.state.fileName && !attachFile) {
+        throw new Error(
+          this.isEn()
+            ? 'The selected photo could not be read. Please attach it again.'
+            : 'לא ניתן לקרוא את התמונה שנבחרה. יש לצרף אותה מחדש.'
+        );
+      }
+      if (attachFile) {
+        attachFile = await this.prepareTicketFile(attachFile);
+        if (!this.isUploadBlob(attachFile)) {
+          throw new Error(
+            this.isEn()
+              ? 'The photo could not be prepared for Ticket.Add. Try another image.'
+              : 'לא ניתן להכין את התמונה ל-Ticket.Add. נסה תמונה אחרת.'
+          );
+        }
+      }
       var requestBody = this.buildTicketAddForm(payload, attachFile);
       var result = await client.request('Ticket.Add', requestBody);
       var output = result && result.output;
@@ -1468,25 +1613,16 @@ class Component extends DCLogic {
         (output && typeof output === 'object' && (output.ticket_id || output.insert_id || output.id))
       );
       if (!result || !(Number(result.success) === 1 || result.success === true || ticketId)) {
-        throw new Error(
-          (result && (result.message || result.error || (result.data && result.data.message))) ||
-          'Ticket could not be created.'
-        );
-      }
-
-      var uploadWarning = '';
-      if (attachFile) {
-        var uploadedFiles = this.ticketFilesFromResult(result);
-        if (!uploadedFiles.length) {
-          uploadWarning = this.isEn()
-            ? ' Ticket created, but the photo was not attached to the ticket.'
-            : ' הקריאה נוצרה, אך התמונה לא צורפה לטיקט.';
-        }
+        throw new Error(this.formatTicketAddError({
+          message: (result && (result.message || result.error)) || 'Ticket.Add failed.',
+          raw: result,
+          route: 'Ticket.Add'
+        }));
       }
 
       this.setState({
         submitting: false,
-        successMsg: (this.isEn() ? 'Ticket created successfully.' : 'הקריאה נוצרה בהצלחה.') + uploadWarning,
+        successMsg: this.isEn() ? 'Ticket created successfully.' : 'הקריאה נוצרה בהצלחה.',
         errorMsg: ''
       });
       try { localStorage.removeItem('mineral_new_call_customer'); } catch (e) {}
@@ -1533,7 +1669,7 @@ class Component extends DCLogic {
       this.setState({
         submitting: false,
         successMsg: '',
-        errorMsg: (e && (e.message || (e.raw && e.raw.message))) || 'Ticket could not be created.'
+        errorMsg: this.formatTicketAddError(e)
       });
     }
   }

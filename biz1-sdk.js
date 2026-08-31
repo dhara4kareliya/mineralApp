@@ -182,15 +182,35 @@
     body.append(key, String(value));
   }
 
+  function guessBlobFileName(key, value) {
+    var name = '';
+    try { name = String((value && value.name) || '').trim(); } catch (eN) { name = ''; }
+    if (name && name !== 'blob' && name !== 'undefined' && name !== 'null') return name;
+    var mime = '';
+    try { mime = String((value && value.type) || '').toLowerCase(); } catch (eT) { mime = ''; }
+    var ext = mime === 'image/png' ? '.png'
+      : mime === 'image/gif' ? '.gif'
+      : mime === 'image/webp' ? '.webp'
+      : mime === 'application/pdf' ? '.pdf'
+      : (mime.indexOf('image/') === 0 ? '.jpg' : '.bin');
+    var base = String(key || 'upload').replace(/[^\w.-]+/g, '_') || 'upload';
+    return base + ext;
+  }
+
   function convertFormData(data) {
     var body = new FormData();
     data.forEach(function (value, key) {
+      if (typeof Blob !== 'undefined' && value instanceof Blob) {
+        // Copying a Blob without a filename makes some WebViews send name
+        // "blob"/"" — Ticket.Add then creates the ticket but drops image_upload.
+        body.append(key, value, guessBlobFileName(key, value));
+        return;
+      }
       if (typeof value === 'string' || value instanceof Date) {
         body.append(key, normalizeDateInput(key, value));
-      } else {
-        // Preserve File/Blob entries exactly so upload routes keep the binary.
-        body.append(key, value);
+        return;
       }
+      body.append(key, value);
     });
     return body;
   }
