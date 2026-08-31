@@ -13,6 +13,11 @@
   var SEEN_KEY = 'biz1demo_inbox_seen_v1';
   var started = false;
 
+  function isInboxRefreshEvent(detail) {
+    var key = String((detail && detail.key) || '').toLowerCase();
+    return /inbox\.refresh|rooms:refresh|rooms\.refresh/.test(key);
+  }
+
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
@@ -612,6 +617,7 @@
     var el = document.getElementById('mb-live-messages');
     if (!el || !window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     var detail = (ev && ev.detail) || {};
+    if (isInboxRefreshEvent(detail)) return;
     var ch = detail.channel ? channelMeta(detail.channel).label : 'Inbox';
     showToast((window.t ? window.t('toast_new_message') : 'New message') + ' · ' + ch);
     syncRowFromSocket(detail);

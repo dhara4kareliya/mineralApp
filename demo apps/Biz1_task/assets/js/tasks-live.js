@@ -51,6 +51,42 @@
     return '';
   }
 
+  function createdTimestamp(m) {
+    var raw = String((m && (m.date_created || m.created_at)) || '').trim();
+    if (!raw) return 0;
+    var dd = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (dd) {
+      return Date.UTC(
+        Number(dd[3]),
+        Number(dd[2]) - 1,
+        Number(dd[1]),
+        Number(dd[4] || 0),
+        Number(dd[5] || 0),
+        Number(dd[6] || 0)
+      );
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+      var iso = new Date(raw.indexOf('T') === -1 ? raw.replace(' ', 'T') : raw);
+      if (!Number.isNaN(iso.getTime())) return iso.getTime();
+    }
+    var t = Date.parse(raw);
+    return Number.isNaN(t) ? 0 : t;
+  }
+
+  function missionNumericId(m) {
+    return Number((m && (m.mission_id != null ? m.mission_id : m.id)) || 0) || 0;
+  }
+
+  /** Newest created first — matches the date badge on each card. */
+  function sortRowsByTime(rows) {
+    return (rows || []).slice().sort(function (a, b) {
+      var bt = createdTimestamp(b);
+      var at = createdTimestamp(a);
+      if (bt !== at) return bt - at;
+      return missionNumericId(b) - missionNumericId(a);
+    });
+  }
+
   function formatWhen(m, today) {
     var created = parseCreatedDate(m);
     if (!created) return 'ללא תאריך';
@@ -400,14 +436,8 @@
           note: title,
           date_to_do: dateToDo
         };
-        if (memberId) {
-          payload.member_id = [Number(memberId) || memberId];
-          payload.organizations_user = memberId;
-          payload.assigned_to = memberId;
-        }
-        if (customerId) {
-          payload.customer_id = customerId;
-        }
+        if (memberId) payload.organizations_user = memberId;
+        if (customerId) payload.customer_id = customerId;
 
         var res = await MineralBarApp.createMission(payload);
 
@@ -466,7 +496,10 @@
         length: 25,
         start: 0,
         draw: 1,
-        include_counts: 1
+        include_counts: 1,
+        order_by: 'date_created',
+        order_dir: 'desc',
+        sort: 'date_created_desc'
       });
       var columnsPromise = getProjectColumns();
       var result = await missionsPromise;
@@ -493,6 +526,7 @@
           seenIds[id] = true;
           return true;
         });
+        rows = sortRowsByTime(rows);
         return Object.assign({}, g, { rows: rows, total: rows.length });
       }).filter(function (g) { return g.rows && g.rows.length; });
       

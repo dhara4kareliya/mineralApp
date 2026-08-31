@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entries</title>
+  <script>
+    (function () {
+      var token = '';
+      try {
+        token = localStorage.getItem('entries_biz1_token') || sessionStorage.getItem('entries_biz1_token') || '';
+      } catch (e) {}
+      location.replace(token ? 'entries.html' : 'login.html');
+    })();
+  </script>
+</head>
+<body>
+  <p><a href="login.html">Go to login</a></p>
+</body>
+</html>

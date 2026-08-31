@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Entries</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/entries.css" />
+</head>
+<body class="app-body">
+  <div id="boot" class="boot-screen">
+    <div class="boot-spinner"></div>
+    <p data-i18n="loadingSession">Loading session…</p>
+  </div>
+
+  <div id="app" class="app-fullscreen hidden">
+    <header class="topbar topbar--full">
+      <div class="topbar__brand">
+        <div class="auth-mark auth-mark--sm" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 7h16M4 12h10M4 17h14" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div>
+          <strong>Entries</strong>
+          <span class="muted" id="pageSubtitle">Biz1</span>
+        </div>
+      </div>
+
+      <div class="user-chip" title="Logged in user">
+        <span class="user-avatar" id="userAvatar">U</span>
+        <div class="user-chip__text">
+          <strong id="userName">—</strong>
+          <span class="muted" id="userEmail"></span>
+        </div>
+      </div>
+
+      <div class="topbar__actions">
+        <span class="live-pill" id="livePill"><i></i><span id="liveText" data-i18n="offline">Offline</span></span>
+        <button type="button" class="icon-btn" data-lang-toggle aria-label="Switch language">EN</button>
+        <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle theme">☾</button>
+        <button type="button" class="btn btn--ghost" id="syncTabsBtn" data-i18n="sync">Sync</button>
+        <button type="button" class="btn btn--ghost" id="logoutBtn" data-i18n="logout">Log out</button>
+      </div>
+    </header>
+
+    <section class="toolbar toolbar--full">
+      <div class="nav-bar">
+        <button type="button" class="btn btn--ghost btn--sm hidden" id="navBackBtn" data-i18n="back">Back</button>
+        <div class="nav-title" id="navTitle" data-i18n="groupsTitle">Entry groups</div>
+        <button type="button" class="btn btn--primary btn--sm nav-add-entry" id="addEntryTopBtn" data-i18n="addEntry">+ Add Entry</button>
+      </div>
+
+      <div id="groupPicker" class="picker-panel"></div>
+      <div id="entryPicker" class="picker-panel hidden"></div>
+
+      <div class="toolbar__row hidden" id="dataToolbar">
+        <div class="field-picker" id="fieldPicker">
+          <button type="button" class="field-picker__trigger" id="fieldPickerBtn" aria-expanded="false" aria-haspopup="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M8 6h13M8 12h13M8 18h13" stroke-linecap="round" />
+              <circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none" />
+              <circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none" />
+              <circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+            <span data-i18n="field">Field</span>
+          </button>
+          <div class="field-picker__panel hidden" id="fieldPickerPanel" role="dialog" aria-label="Fields">
+            <div class="field-picker__search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" stroke-linecap="round" />
+              </svg>
+              <input id="fieldPickerSearch" type="search" autocomplete="off" data-i18n-placeholder="fieldSearch" placeholder="Search..." />
+            </div>
+            <div class="field-picker__list" id="fieldPickerList"></div>
+          </div>
+        </div>
+        <form class="search-form" id="searchForm">
+          <input id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="Search field values…" aria-label="Search entries" />
+          <button type="submit" class="btn btn--primary" data-i18n="search">Search</button>
+          <button type="button" class="btn btn--ghost hidden" id="clearSearchBtn" data-i18n="clear">Clear</button>
+        </form>
+        <button type="button" class="btn btn--primary" id="addEntryDataBtn" data-i18n="addEntryData">+ Add Entry Data</button>
+        <button type="button" class="btn btn--ghost" id="addRowBtn" data-i18n="addRow">+ Add Row</button>
+        <button type="button" class="btn btn--ghost bulk-bar__run" id="exportDataBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 3v12M8 11l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M5 21h14" stroke-linecap="round" />
+          </svg>
+          <span data-i18n="export">Export</span>
+        </button>
+        <button type="button" class="btn btn--danger btn--ghost" id="deleteEntrySettingsBtn" data-i18n="deleteEntrySettings">Delete entry</button>
+      </div>
+    </section>
+
+    <section class="table-panel hidden" id="tablePanel">
+      <div id="listError" class="alert alert--error hidden" role="alert"></div>
+      <div id="emptyState" class="empty-state hidden">
+        <h3 data-i18n="emptyTitle">No rows yet</h3>
+        <p data-i18n="emptyText">Select an entry tab, then add a row or adjust your search.</p>
+        <button type="button" class="btn btn--primary" id="emptyAddBtn" data-i18n="addFirst">Add first row</button>
+      </div>
+      <div class="table-scroll" id="tableScroll">
+        <table class="data-table" id="entryTable">
+          <thead id="entryTableHead"></thead>
+          <tbody id="entryTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="bulk-bar hidden" id="bulkBar">
+      <button type="button" class="btn btn--ghost bulk-bar__run" id="runAutomationBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round" />
+        </svg>
+        <span data-i18n="runAutomation">Run Automation</span>
+      </button>
+      <button type="button" class="btn btn--ghost bulk-bar__run" id="exportDataBulkBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M12 3v12M8 11l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M5 21h14" stroke-linecap="round" />
+        </svg>
+        <span data-i18n="export">Export</span>
+      </button>
+      <span class="bulk-bar__meta" id="bulkMeta"></span>
+    </div>
+
+    <footer class="pager-bar hidden" id="pagerBar">
+      <div class="pager-bar__meta" id="listMeta">—</div>
+      <div class="pager-bar__pages" id="pagerPages"></div>
+    </footer>
+  </div>
+
+  <div id="settingsModal" class="modal-backdrop modal-backdrop--settings hidden" role="presentation">
+    <div class="modal settings-modal" role="dialog" aria-modal="true">
+      <header class="settings-modal__header">
+        <h2 data-i18n="createEntryTitle">Entries</h2>
+        <button type="button" class="icon-btn settings-modal__close" data-close-settings aria-label="Close">×</button>
+      </header>
+      <form id="settingsForm" class="settings-modal__body">
+        <div id="settingsError" class="alert alert--error hidden" role="alert"></div>
+
+        <section class="settings-section">
+          <div class="settings-grid settings-grid--3">
+            <label class="settings-field">
+              <span data-i18n="entryNameEn">Entry name english</span>
+              <input id="setTabNameEn" type="text" required data-i18n-placeholder="entryNameEn" placeholder="Entry name english" />
+            </label>
+            <label class="settings-field">
+              <span data-i18n="entryNameHe">Entry name Hebrew</span>
+              <input id="setTabNameHe" type="text" required data-i18n-placeholder="entryNameHe" placeholder="Entry name Hebrew" />
+            </label>
+            <label class="settings-field">
+              <span data-i18n="selectFolder">Select folder</span>
+              <div class="tag-input" id="folderPicker">
+                <div class="tag-input__tags" id="folderTags"></div>
+                <select id="folderSelect" class="tag-input__select settings-select settings-select--dropdown"></select>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-section settings-section--fields">
+          <div id="customFieldRows" class="settings-custom-field-rows"></div>
+          <div class="settings-field-actions">
+            <button type="button" class="settings-add-field-btn" id="addCustomFieldBtn" aria-label="Add custom field" title="Add custom field">+</button>
+          </div>
+        </section>
+
+        <hr class="settings-divider" />
+
+        <label class="settings-field settings-field--full">
+          <span data-i18n="sharedWith">Team member shared with</span>
+          <div class="row-customer-picker" id="customerPickerWrap">
+            <div class="tag-input__tags" id="customerTags"></div>
+            <div class="row-customer-trigger-wrap">
+              <input
+                id="customerSearch"
+                type="text"
+                class="row-customer-display"
+                readonly
+                data-i18n-placeholder="selectMembers"
+                placeholder="Select team members…"
+              />
+              <span class="row-customer-chevron" aria-hidden="true">▾</span>
+            </div>
+            <div id="customerPanel" class="row-customer-panel hidden">
+              <div id="customerMenu" class="row-customer-list" role="listbox"></div>
+              <button type="button" id="customerLoadMore" class="row-customer-load-more hidden" data-i18n="loadMore">Load more</button>
+            </div>
+          </div>
+        </label>
+
+        <hr class="settings-divider" />
+
+        <div class="settings-toggles">
+          <label class="toggle-row">
+            <span data-i18n="showInHeader">Show in header</span>
+            <input type="checkbox" id="setShowInHeader" checked />
+            <span class="toggle-ui" aria-hidden="true"></span>
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="copyCustomer">Copy team member in entry</span>
+            <input type="checkbox" id="setCopyCustomer" />
+            <span class="toggle-ui" aria-hidden="true"></span>
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="useCustomer">Use team member for this entry</span>
+            <input type="checkbox" id="setUseCustomer" />
+            <span class="toggle-ui" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <label class="settings-field settings-field--full hidden" id="setEntryFolderWrap">
+          <span>Entry customer folder ID</span>
+          <input id="setEntryFolderId" type="number" placeholder="12" />
+        </label>
+
+        <footer class="settings-modal__footer">
+          <button type="button" class="btn btn--ghost settings-btn-cancel" data-close-settings data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn--primary btn--save" id="settingsSaveBtn" data-i18n="save">Save</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div id="fieldModal" class="modal-backdrop modal-backdrop--field hidden" role="presentation">
+    <div class="modal field-modal" role="dialog" aria-modal="true" aria-labelledby="fieldModalTitle">
+      <header class="field-modal__header">
+        <h2 id="fieldModalTitle">Entries</h2>
+        <button type="button" class="icon-btn field-modal__close" data-close-field aria-label="Close">×</button>
+      </header>
+      <form id="fieldForm" class="field-modal__body">
+        <div id="fieldModalError" class="alert alert--error hidden" role="alert"></div>
+
+        <label class="settings-field settings-field--full">
+          <span data-i18n="customFields">Custom fields</span>
+          <select id="fieldTypeSelect" class="settings-select settings-select--dropdown"></select>
+        </label>
+
+        <div id="fieldDetailsWrap" class="field-modal__details hidden">
+          <div class="settings-grid settings-grid--2">
+            <label class="settings-field">
+              <span data-i18n="fieldLabelEn">English label</span>
+              <input id="fieldLabelEn" type="text" data-i18n-placeholder="fieldLabelEnPlaceholder" placeholder="English label" />
+            </label>
+            <label class="settings-field">
+              <span data-i18n="fieldLabelHe">Hebrew name</span>
+              <input id="fieldLabelHe" type="text" data-i18n-placeholder="fieldLabelHePlaceholder" placeholder="Hebrew Name" />
+            </label>
+          </div>
+          <label class="settings-field settings-field--full">
+            <span data-i18n="defaultValue">Default value</span>
+            <input id="fieldDefaultValue" type="text" data-i18n-placeholder="defaultValuePlaceholder" placeholder="Default value" />
+          </label>
+        </div>
+
+        <footer class="field-modal__footer">
+          <button type="submit" class="btn btn--primary btn--save" id="fieldSaveBtn" data-i18n="save">Save</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div id="formModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="formModalTitle">
+      <header class="modal__header">
+        <div>
+          <h2 id="formModalTitle">Add entry</h2>
+          <p id="formModalSubtitle">—</p>
+        </div>
+        <button type="button" class="icon-btn" data-close-modal aria-label="Close">×</button>
+      </header>
+      <form id="entryForm" class="modal__body">
+        <div id="formError" class="alert alert--error hidden" role="alert"></div>
+        <label class="field" id="rowCustomerField">
+          <span data-i18n="customer">Customer</span>
+          <div class="row-customer-picker" id="rowCustomerPickerWrap">
+            <div class="row-customer-trigger-wrap">
+              <input
+                id="rowCustomerDisplay"
+                type="text"
+                class="row-customer-display"
+                readonly
+                data-i18n-placeholder="selectCustomer"
+                placeholder="Select customer…"
+              />
+              <span class="row-customer-chevron" aria-hidden="true">▾</span>
+            </div>
+            <div id="rowCustomerPanel" class="row-customer-panel hidden">
+              <div id="rowCustomerList" class="row-customer-list" role="listbox"></div>
+              <button type="button" id="rowCustomerLoadMore" class="row-customer-load-more hidden" data-i18n="loadMore">Load more</button>
+            </div>
+          </div>
+        </label>
+        <div id="dynamicFields"></div>
+        <label class="field hidden" id="entryCustWrap">
+          <span>Entry customer ID <em>*</em></span>
+          <input id="entryCustIdInput" type="number" placeholder="456" />
+        </label>
+        <footer class="modal__footer">
+          <button type="button" class="btn btn--ghost" data-close-modal data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="saveBtn">Add entry</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div id="automationModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal card modal--sm automation-modal" role="dialog" aria-modal="true" aria-labelledby="automationModalTitle">
+      <header class="modal__header">
+        <h2 id="automationModalTitle" data-i18n="runAutomation">Run Automation</h2>
+        <button type="button" class="icon-btn" data-close-automation aria-label="Close">×</button>
+      </header>
+      <form id="automationForm" class="modal__body">
+        <div id="automationError" class="alert alert--error hidden" role="alert"></div>
+        <label class="field">
+          <span class="automation-label" data-i18n="automationName">Automation name</span>
+          <select id="automationSelect">
+            <option value="" data-i18n="selectAutomation">Select Automation</option>
+          </select>
+        </label>
+        <footer class="modal__footer">
+          <button type="submit" class="btn btn--primary" id="automationSubmitBtn" data-i18n="submit">SUBMIT</button>
+          <button type="button" class="btn btn--reset" id="automationResetBtn" data-i18n="reset">RESET</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div id="deleteSettingsModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal card modal--sm" role="dialog" aria-modal="true" aria-labelledby="deleteSettingsTitle">
+      <header class="modal__header">
+        <h2 id="deleteSettingsTitle" data-i18n="deleteEntrySettingsTitle">Delete entry tab?</h2>
+        <button type="button" class="icon-btn" data-close-delete-settings aria-label="Close">×</button>
+      </header>
+      <div class="modal__body">
+        <p id="deleteSettingsText" data-i18n="deleteEntrySettingsText">This removes the entry tab definition and all its settings. Row data may also be removed. This cannot be undone.</p>
+        <footer class="modal__footer">
+          <button type="button" class="btn btn--ghost" data-close-delete-settings data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn--danger" id="confirmDeleteSettingsBtn" data-i18n="delete">Delete</button>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <div id="deleteModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal card modal--sm" role="dialog" aria-modal="true">
+      <header class="modal__header">
+        <h2 data-i18n="deleteEntryTitle">Delete entry?</h2>
+        <button type="button" class="icon-btn" data-close-delete aria-label="Close">×</button>
+      </header>
+      <div class="modal__body">
+        <p data-i18n="deleteEntryText">This removes the row from the selected entry tab. This cannot be undone.</p>
+        <footer class="modal__footer">
+          <button type="button" class="btn btn--ghost" data-close-delete data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn--danger" id="confirmDeleteBtn" data-i18n="delete">Delete</button>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://eli.bull36.com/realtime/socket.io/socket.io.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/entries.js"></script>
+</body>
+</html>

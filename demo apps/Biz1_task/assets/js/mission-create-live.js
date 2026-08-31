@@ -706,21 +706,16 @@
       note: note + (productName ? '\nProduct: ' + productName : ''),
       private: isPrivate,
       project_column: column,
-      member_id: memberId ? [Number(memberId) || memberId] : undefined,
-      assigned_to: memberId || undefined,
+      organizations_user: memberId || undefined,
       customer_id: customerId || undefined,
       project_name: projectName,
       project_id: projectId,
       color: colorVal,
-      mission_color: colorVal,
-      mission_step: step,
-      step_id: step,
+      missions_steps_id: step || undefined,
       recording_link: recordingLink,
       date_to_do: dateToDo,
       use_as_template: templateCb ? (templateCb.checked ? 1 : 0) : 0,
-      email_reminder: emailCb ? (emailCb.checked ? 1 : 0) : 0,
       email_me_employee: emailCb ? (emailCb.checked ? 1 : 0) : 0,
-      whatsapp_reminder: whatsappCb ? (whatsappCb.checked ? 1 : 0) : 0,
       whatsApp_reminder: whatsappCb ? (whatsappCb.checked ? 1 : 0) : 0,
       notify_client: notifyCb ? (notifyCb.checked ? 1 : 0) : 0
     };
@@ -914,6 +909,8 @@
     }
 
     if (!saveBtn) return;
+    if (saveBtn.dataset.wired === 'true') return;
+    saveBtn.dataset.wired = 'true';
     saveBtn.addEventListener('click', async function () {
       showStatus(statusEl, null, '');
       var titleIn = qs('#mb-mission-title');
@@ -962,16 +959,15 @@
             project_column: payload.project_column || 'to_do',
             private_mission: payload.private ? 1 : 0,
             project_id: payload.project_id ? Number(payload.project_id) : 0,
-            step_id: payload.step_id ? Number(payload.step_id) : 0,
-            missions_steps_id: payload.step_id ? Number(payload.step_id) : 0,
             notify_client: payload.notify_client ? 1 : 0,
-            email_me_employee: payload.email_reminder ? 1 : 0,
-            whatsApp_reminder: payload.whatsapp_reminder ? 1 : 0,
+            email_me_employee: payload.email_me_employee ? 1 : 0,
+            whatsApp_reminder: payload.whatsApp_reminder ? 1 : 0,
             use_as_template: payload.use_as_template ? 1 : 0
           };
           if (payload.date_to_do) fields.date_to_do = payload.date_to_do;
           if (payload.customer_id) fields.lead_id = payload.customer_id;
-          if (payload.member_id) fields.member_id = payload.member_id;
+          if (payload.organizations_user) fields.member_id = payload.organizations_user;
+          if (payload.missions_steps_id) fields.missions_steps_id = payload.missions_steps_id;
           if (typeof MineralBarApp.updateMissionFields === 'function') {
             res = await MineralBarApp.updateMissionFields(editingId, fields, loadedMissionData || {});
           } else {

@@ -33,6 +33,13 @@
   var startedStandalone = false;
   var cachedRows = [];
   var pendingAttachment = null; // { file, kind, name, previewUrl }
+
+  function subscribeChatRoom(p) {
+    var App = window.Biz1App || window.MineralBarApp;
+    if (!App || typeof App.subscribeChatRoom !== 'function' || !p) return;
+    App.subscribeChatRoom(p.messenger_meta_id || '');
+  }
+
   var lastAttachToken = '';
   var isSending = false;
   var mediaRecorder = null;
@@ -493,6 +500,39 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
+  function finalizePendingBubble(el, finalMsg, channelType) {
+    if (!el) return;
+    var bubbles = el.querySelectorAll('.msg-bubble-out');
+    var last = bubbles.length ? bubbles[bubbles.length - 1] : null;
+    if (!last) return;
+    var clock = nowTime();
+    last.outerHTML = bubbleOut(finalMsg, clock, false, tt('me'), channelHeader({ type: channelType }, true));
+    el.scrollTop = el.scrollHeight;
+    return clock;
+  }
+
+  function appendSentMessageToCache(p, finalMsg, channelType, clock) {
+    if (!p || !finalMsg) return;
+    var row = {
+      id: 'local-' + Date.now(),
+      message: finalMsg,
+      user_name: tt('me'),
+      time: clock || nowTime(),
+      direction: 1,
+      type: channelType,
+      channel: channelType,
+      user_id: 1,
+      messenger_meta_id: p.messenger_meta_id || '',
+      raw: {}
+    };
+    var App = window.Biz1App || window.MineralBarApp;
+    if (App && typeof App.messageSortTs === 'function') {
+      row.sort_ts = App.messageSortTs(row);
+    }
+    cachedRows.push(row);
+    cachedRows = sortRowsByTime(cachedRows);
+  }
+
   function ensureTypeTabs() {
     var head = document.querySelector('.chat-head-text') || document.querySelector('.chat-header');
     if (!head) return null;
@@ -759,6 +799,24 @@
     return { from: 'send_whatsapp', label: 'WA' };
   }
 
+  function isSendActuallySucceeded(err) {
+    var App = window.Biz1App || window.MineralBarApp;
+    var raw = null;
+    if (App && typeof App.parseBiz1SendPayload === 'function') {
+      raw = App.parseBiz1SendPayload((err && err.raw) || (err && err.response) || (err && err.message));
+    }
+    if (!raw && err && typeof err === 'object') {
+      raw = (err.raw || err.response) || null;
+      if (!raw && err.message && String(err.message).trim().charAt(0) === '{') {
+        try { raw = JSON.parse(err.message); } catch (e) { /* ignore */ }
+      }
+    }
+    if (App && typeof App.isBiz1SendCustomerSuccess === 'function') {
+      return App.isBiz1SendCustomerSuccess(raw);
+    }
+    return false;
+  }
+
   function isPermissionDeniedError(err) {
     var text = '';
     try {
@@ -838,11 +896,14 @@
     return true;
   }
 
-  async function loadThread(el, p) {
-    el.innerHTML =
-      '<div class="msg-loading"><div class="msg-loading-title">' +
-      esc(tt('loading_thread')) +
-      '</div></div>';
+  async function loadThread(el, p, opts) {
+    opts = opts || {};
+    if (!opts.silent) {
+      el.innerHTML =
+        '<div class="msg-loading"><div class="msg-loading-title">' +
+        esc(tt('loading_thread')) +
+        '</div></div>';
+    }
 
     try {
       var meta = await resolveMessengerMetaId(p);
@@ -956,11 +1017,11 @@
         channel: sendVia,
         from: ch.from
       });
-      if (statusEl) {
-        statusEl.style.color = 'var(--success)';
-        statusEl.textContent = attachSnapshot ? tt('file_sent') : (res.message || tt('note_saved'));
-      }
+      var sentClock = finalizePendingBubble(el, finalMsg, sendVia) || nowTime();
+      appendSentMessageToCache(p, finalMsg, sendVia, sentClock);
+      syncListChannelFromThread(p, cachedRows);
       if (attachSnapshot) showToast(tt('file_sent'));
+      updateComposerForSendVia();
       try {
         window.dispatchEvent(new CustomEvent('mineralbar:messages', {
           detail: {
@@ -968,11 +1029,22 @@
             key: 'message.created',
             direction: 'out',
             channel: sendVia === 'biz1' ? 'web' : sendVia,
-            customer_id: p.customer_id
+            customer_id: p.customer_id,
+            messenger_meta_id: p.messenger_meta_id,
+            message: finalMsg,
+            time: sentClock
           }
         }));
       } catch (e) { /* ignore */ }
     } catch (err) {
+      if (isSendActuallySucceeded(err)) {
+        var recoveredMsg = previewText.replace(/\n…$/, '');
+        var recoveredClock = finalizePendingBubble(el, recoveredMsg, sendVia) || nowTime();
+        appendSentMessageToCache(p, recoveredMsg, sendVia, recoveredClock);
+        syncListChannelFromThread(p, cachedRows);
+        updateComposerForSendVia();
+        return;
+      }
       console.error('[Biz1Showcase] Chat.SendCustomer failed', err);
       var errDetail = apiErrorText(err);
       if (isPermissionDeniedError(err)) {
@@ -986,6 +1058,7 @@
         errDetail = tt('permission_denied_channel');
       }
       el.insertAdjacentHTML('beforeend', notice('error', tt('send_failed'), errDetail));
+      finalizePendingBubble(el, previewText.replace(/\n…$/, ''), sendVia);
       if (statusEl) {
         statusEl.style.color = 'var(--danger)';
         statusEl.textContent = tt('send_failed');
@@ -1366,6 +1439,7 @@
     fillHeader(p);
     bindComposer();
     await loadThread(el, p);
+    subscribeChatRoom(p);
 
     if (opts.updateUrl !== false && document.getElementById('inboxLayout')) {
       var q = new URLSearchParams();
@@ -1442,6 +1516,7 @@
     fillHeader(p);
     bindComposer();
     await loadThread(el, p);
+    subscribeChatRoom(p);
     startedStandalone = true;
   }
 

@@ -1178,81 +1178,115 @@
     return { count: Number(raw.count || raw.total || 0), raw: raw };
   }
 
+  function optionalMissionId(value) {
+    if (value == null || value === '') return undefined;
+    var n = Number(value);
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+  }
+
+  /** One comma-separated assignee id. Arrays / JSON / aliases must not all be sent. */
+  function normalizeMissionAssignees(value) {
+    if (value == null || value === '') return undefined;
+    if (Array.isArray(value)) {
+      var list = value.map(function (item) { return String(item).trim(); }).filter(Boolean);
+      return list.length ? list.join(',') : undefined;
+    }
+    var text = String(value).trim();
+    if (!text) return undefined;
+    if (text.charAt(0) === '[') {
+      try {
+        var parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          return parsed.map(function (item) { return String(item).trim(); }).filter(Boolean).join(',') || undefined;
+        }
+      } catch (e) { /* keep as-is */ }
+    }
+    return text.replace(/^\[|\]$/g, '').replace(/\s+/g, '') || undefined;
+  }
+
   /**
-   * Mission.Create — title/mission/note/date_to_do/member_id work.
-   * Optional customer_id when linking from a card.
-   * Note: some accounts reject relative date_to_do values like "today" — convert to UTC.
+   * Mission.Create — documented fields only.
+   * Sending member_id + assigned_to + organizations_user together made the live
+   * API spawn extra missions (one per assignee field).
    */
+  var createMissionInFlight = null;
+
   async function createMission(params) {
-    var client = getClient();
-    var p = params || {};
-    var title = String(p.title || p.mission || '').trim();
-    var payload = {
-      title: title,
-      mission: title,
-      description: String(p.description || '').trim(),
-      note: String(p.note || '').trim()
-    };
-    if (p.date_to_do) {
-      var rawDate = String(p.date_to_do).trim().toLowerCase();
-      if (rawDate === 'today' || rawDate === 'tomorrow' || rawDate === 'next_week') {
-        var d = new Date();
-        if (rawDate === 'tomorrow') d.setUTCDate(d.getUTCDate() + 1);
-        if (rawDate === 'next_week') d.setUTCDate(d.getUTCDate() + 7);
-        function pad2(n) { return n < 10 ? '0' + n : String(n); }
-        payload.date_to_do = d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()) +
-          ' ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ':' + pad2(d.getUTCSeconds());
-      } else {
-        payload.date_to_do = p.date_to_do;
+    if (createMissionInFlight) return createMissionInFlight;
+
+    createMissionInFlight = (async function () {
+      var client = getClient();
+      var p = params || {};
+      var title = String(p.mission || p.title || '').trim();
+      if (!title) {
+        var missing = new Error('Missing required parameter: mission');
+        missing.route = 'Mission.Create';
+        throw missing;
       }
+
+      var payload = {
+        mission: title,
+        note: String(p.note || p.description || '').trim()
+      };
+
+      if (p.date_to_do) {
+        var rawDate = String(p.date_to_do).trim().toLowerCase();
+        if (rawDate === 'today' || rawDate === 'tomorrow' || rawDate === 'next_week') {
+          var d = new Date();
+          if (rawDate === 'tomorrow') d.setUTCDate(d.getUTCDate() + 1);
+          if (rawDate === 'next_week') d.setUTCDate(d.getUTCDate() + 7);
+          function pad2(n) { return n < 10 ? '0' + n : String(n); }
+          payload.date_to_do = d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()) +
+            ' ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ':' + pad2(d.getUTCSeconds());
+        } else {
+          payload.date_to_do = p.date_to_do;
+        }
+      }
+
+      var assignees = normalizeMissionAssignees(
+        p.organizations_user || p.member_id || p.members || p.assigned_to
+      );
+      if (assignees) payload.organizations_user = assignees;
+
+      var customerId = optionalMissionId(p.customer_id || p.lead_id || p.client_id);
+      if (customerId !== undefined) payload.customer_id = customerId;
+
+      var createProjectId = optionalMissionId(p.project_id);
+      if (createProjectId !== undefined) payload.project_id = createProjectId;
+
+      var createStepId = optionalMissionId(p.missions_steps_id || p.mission_step_id);
+      if (createStepId !== undefined) payload.missions_steps_id = String(createStepId);
+
+      if (p.project_column) payload.project_column = String(p.project_column);
+      if (p.color) payload.color = p.color;
+      if (p.sub_missions != null && p.sub_missions !== '') payload.sub_missions = p.sub_missions;
+
+      payload.notify_client = p.notify_client ? 1 : 0;
+      payload.email_me_employee = (p.email_me_employee || p.email_reminder) ? 1 : 0;
+      payload.whatsApp_reminder = (p.whatsApp_reminder || p.whatsapp_reminder) ? 1 : 0;
+      payload.use_as_template = p.use_as_template ? 1 : 0;
+      payload.private_mission = (p.private_mission || p.private) ? 1 : 0;
+
+      var raw = await client.request('Mission.Create', payload);
+      if (!raw || !(Number(raw.success) === 1 || raw.success === true || raw.insert_id || raw.mission_id)) {
+        var err = new Error((raw && raw.message) || 'יצירת משימה נכשלה');
+        err.route = 'Mission.Create';
+        err.status = raw && raw.status;
+        err.raw = raw;
+        throw err;
+      }
+      return {
+        id: raw.mission_id || raw.insert_id || (raw.output && raw.output.id) || null,
+        message: raw.message || 'משימה נוספה',
+        raw: raw
+      };
+    })();
+
+    try {
+      return await createMissionInFlight;
+    } finally {
+      createMissionInFlight = null;
     }
-    if (p.color) payload.color = p.color;
-    if (p.mission_color) payload.mission_color = p.mission_color;
-    if (p.private != null) payload.private = p.private ? 1 : 0;
-    if (p.project_column) payload.project_column = p.project_column;
-    if (p.project_id) payload.project_id = p.project_id;
-    if (p.mission_step) payload.mission_step = p.mission_step;
-    if (p.step_id) {
-      payload.step_id = p.step_id;
-      payload.missions_steps_id = p.step_id;
-    }
-    if (p.email_me_employee != null) payload.email_me_employee = p.email_me_employee ? 1 : 0;
-    if (p.whatsApp_reminder != null) payload.whatsApp_reminder = p.whatsApp_reminder ? 1 : 0;
-    if (p.recording_link) payload.recording_link = p.recording_link;
-    if (p.sub_missions) payload.sub_missions = p.sub_missions;
-    if (p.time_estimate) payload.time_estimate = p.time_estimate;
-    if (p.duration) payload.duration = p.duration;
-    if (p.return_freq || p.repeat) payload.return = p.return_freq || p.repeat;
-    if (p.reminders) payload.reminders = p.reminders;
-    if (p.use_as_template != null) payload.use_as_template = p.use_as_template ? 1 : 0;
-    if (p.email_reminder != null) payload.email_reminder = p.email_reminder ? 1 : 0;
-    if (p.whatsapp_reminder != null) payload.whatsapp_reminder = p.whatsapp_reminder ? 1 : 0;
-    if (p.notify_client != null) payload.notify_client = p.notify_client ? 1 : 0;
-    if (p.customer_id != null && p.customer_id !== '') payload.customer_id = p.customer_id;
-    if (p.organizations_user != null && p.organizations_user !== '') {
-      payload.organizations_user = p.organizations_user;
-    }
-    if (p.assigned_to != null && p.assigned_to !== '') {
-      payload.assigned_to = p.assigned_to;
-    }
-    if (p.member_id != null && p.member_id !== '') {
-      payload.member_id = typeof p.member_id === 'string'
-        ? p.member_id
-        : JSON.stringify(Array.isArray(p.member_id) ? p.member_id : [p.member_id]);
-    }
-    var raw = await client.request('Mission.Create', payload);
-    if (!raw || !(Number(raw.success) === 1 || raw.success === true || raw.insert_id || raw.mission_id)) {
-      var err = new Error((raw && raw.message) || 'יצירת משימה נכשלה');
-      err.route = 'Mission.Create';
-      err.status = raw && raw.status;
-      err.raw = raw;
-      throw err;
-    }
-    return {
-      id: raw.mission_id || raw.insert_id || (raw.output && raw.output.id) || null,
-      message: raw.message || 'משימה נוספה',
-      raw: raw
-    };
   }
 
   function requireId(value, names) {

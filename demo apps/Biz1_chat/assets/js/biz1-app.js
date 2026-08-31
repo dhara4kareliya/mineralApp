@@ -92,6 +92,8 @@
       });
       installAuthInterceptor(global.__biz1DemoClient);
     }
+    installSendCustomerPatch(global.__biz1DemoClient);
+    installRealtimeDedupFix(global.__biz1DemoClient);
     return global.__biz1DemoClient;
   }
 
@@ -2073,6 +2075,105 @@
     };
   }
 
+  function parseBiz1SendPayload(data) {
+    if (data == null) return null;
+    if (typeof data === 'object') {
+      if (typeof data.message === 'string') {
+        var nested = parseBiz1SendPayload(data.message);
+        if (nested && (
+          nested.message_return ||
+          nested.output != null ||
+          (nested.success != null && nested.success !== 0 && nested.success !== '0')
+        )) {
+          return nested;
+        }
+      }
+      if (data.raw) {
+        var fromRaw = parseBiz1SendPayload(data.raw);
+        if (fromRaw) return fromRaw;
+      }
+      if (data.response) {
+        var fromRes = parseBiz1SendPayload(data.response);
+        if (fromRes) return fromRes;
+      }
+      if (data.success != null || data.output != null || data.message_return != null) return data;
+      return null;
+    }
+    if (typeof data !== 'string') return null;
+    var s = data.trim();
+    if (!s || s.charAt(0) !== '{') return null;
+    try {
+      return JSON.parse(s);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function isBiz1SendCustomerSuccess(raw) {
+    raw = parseBiz1SendPayload(raw);
+    if (!raw || typeof raw !== 'object') return false;
+    if (raw.ok === false) return false;
+    if (raw.success === 0 || raw.success === '0') return false;
+    if (Number(raw.success) === 1 || raw.success === true) return true;
+    if (Number(raw.output) === 1) return true;
+    if (raw.message_return && String(raw.message_return).trim().length > 0) return true;
+    if (raw.message_id != null && raw.message_id !== '' && raw.message_id !== 0) return true;
+    if (raw.id != null && raw.id !== '' && raw.id !== 0) return true;
+    if (String(raw.success) === '4') return true;
+    if (/^\d+$/.test(String(raw.success || '')) && Number(raw.success) > 0) return true;
+    return /נשלח|נוספה|הצלח/i.test(String(raw.message_return || raw.message || ''));
+  }
+
+  function makeSendCustomerError(raw) {
+    var err = new Error((raw && (raw.message_return || raw.message)) || 'שליחת הודעה נכשלה');
+    err.route = 'Chat.SendCustomer';
+    err.status = raw && raw.status;
+    err.raw = raw;
+    return err;
+  }
+
+  function installRealtimeDedupFix(client) {
+    if (!client || !client.realtime || client.realtime.__biz1DedupFix) return;
+    client.realtime.__biz1DedupFix = true;
+    var rt = client.realtime;
+    var storage = rt.storage;
+    var KEY = 'biz1_realtime_last_event_id';
+    rt.setLastEventId = function (eventId) {
+      if (!eventId) return true;
+      var n = Number(eventId);
+      if (!Number.isFinite(n)) return true;
+      var last = Number(storage.getItem(KEY) || 0);
+      if (n > last) storage.setItem(KEY, String(n));
+      return true;
+    };
+  }
+
+  function installSendCustomerPatch(client) {
+    if (!client || client.__biz1SendPatch) return;
+    client.__biz1SendPatch = true;
+    var original = client.request.bind(client);
+    client.request = async function (route, data, options) {
+      if (String(route) !== 'Chat.SendCustomer') {
+        return original(route, data, options);
+      }
+      options = Object.assign({}, options || {}, { throwOnError: false });
+      try {
+        var json = await original(route, data, options);
+        var raw = parseBiz1SendPayload(json);
+        if (isBiz1SendCustomerSuccess(raw)) return raw || json;
+        throw makeSendCustomerError(raw || json);
+      } catch (err) {
+        var recovered = parseBiz1SendPayload(
+          (err && err.raw) || (err && err.response) || (err && err.message)
+        );
+        if (isBiz1SendCustomerSuccess(recovered)) return recovered;
+        if (!err.route) err.route = 'Chat.SendCustomer';
+        if (!err.raw && recovered) err.raw = recovered;
+        throw err;
+      }
+    };
+  }
+
   /**
    * Chat.SendCustomer — always send customer_id (and cust_id alias).
    * Supports dashboard channels via `from`:
@@ -2123,25 +2224,7 @@
     if (p.channel_type) payload.channel_type = p.channel_type;
     if (p.message_id) payload.message_id = p.message_id;
     var raw = await client.request('Chat.SendCustomer', payload);
-    var ok = raw && (
-      Number(raw.success) === 1 ||
-      raw.success === true ||
-      Number(raw.output) === 1 ||
-      (raw.message_return && String(raw.message_return).length > 0) ||
-      (raw.message_id != null && raw.message_id !== '' && raw.message_id !== 0) ||
-      (raw.id != null && raw.id !== '' && raw.id !== 0) ||
-      /נשלח|נוספה|הצלח/i.test(String(raw.message_return || raw.message || ''))
-    );
-    // success "4" is a known Biz1 "note added" code; also treat any non-zero numeric success
-    if (!ok && raw && String(raw.success) === '4') ok = true;
-    if (!ok && raw && /^\d+$/.test(String(raw.success || '')) && Number(raw.success) > 0) ok = true;
-    if (!ok) {
-      var err = new Error((raw && (raw.message_return || raw.message)) || 'שליחת הודעה נכשלה');
-      err.route = 'Chat.SendCustomer';
-      err.status = raw && raw.status;
-      err.raw = raw;
-      throw err;
-    }
+    if (!isBiz1SendCustomerSuccess(raw)) throw makeSendCustomerError(raw);
     return {
       ok: true,
       message: raw.message_return || raw.message || 'נשלח',
@@ -2152,6 +2235,8 @@
   /** Event keys from biz1:ready that belong to messages / missions. */
   var MESSAGE_EVENT_KEYS = {
     'chat.message.received': 1,
+    'chat.message.recorded': 1,
+    'chat.embed.message': 1,
     'whatsapp.message.received': 1,
     'whatsapp.inbox.refresh': 1,
     'rooms.chat.message': 1,
@@ -2217,6 +2302,9 @@
       addSource(value.payload, depth + 1);
       addSource(value.data, depth + 1);
       addSource(value.message, depth + 1);
+      addSource(value.event, depth + 1);
+      addSource(value.chat, depth + 1);
+      addSource(value.record, depth + 1);
     }
 
     addSource(event, 0);
@@ -2226,7 +2314,16 @@
       for (var i = 0; i < sources.length; i++) {
         for (var j = 0; j < keys.length; j++) {
           var value = sources[i][keys[j]];
-          if (value != null && value !== '' && typeof value !== 'object') return value;
+          if (value == null || value === '') continue;
+          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            return value;
+          }
+          if (typeof value === 'object') {
+            if (value.text != null && value.text !== '') return value.text;
+            if (value.body != null && value.body !== '') return value.body;
+            if (value.content != null && value.content !== '') return value.content;
+            if (value.message != null && typeof value.message === 'string') return value.message;
+          }
         }
       }
       return '';
@@ -2251,7 +2348,7 @@
       id: pickText(['message_id', 'id', '_id']),
       customer_id: pickText(['customer_id', 'cust_id', 'contactus_id', 'client_id', 'customerId']),
       messenger_meta_id: pickText(['messenger_meta_id', 'messanger_meta_id', 'meta_id', 'chat_id', 'conversation_id', 'room_id', 'messengerMetaId']),
-      message: pickText(['message', 'msg', 'text', 'body', 'content', 'last_message', 'whatsapp_message', 'note']),
+      message: pickText(['message', 'msg', 'text', 'body', 'content', 'last_message', 'whatsapp_message', 'note', 'caption']),
       name: pickText(['name', 'cust_name', 'customer_name', 'user_name', 'sender_name', 'from_name']),
       email: pickText(['email', 'cust_email']),
       phone: pickText(['phone', 'cust_phone', 'mobile']),
@@ -2323,6 +2420,12 @@
         connected: !!(realtimeState.socket && realtimeState.socket.connected),
         status: realtimeState.status
       });
+      try {
+        var open = window.MineralBarChat && window.MineralBarChat.getCurrentParams
+          ? window.MineralBarChat.getCurrentParams()
+          : null;
+        if (open && open.messenger_meta_id) subscribeChatRoom(open.messenger_meta_id);
+      } catch (e0) { /* ignore */ }
     });
 
     client.realtime.on('*', function (event) {
@@ -2340,7 +2443,9 @@
     });
 
     client.realtime.on('rooms:refresh', function (event) {
-      dispatchAppEvent('mineralbar:realtime', { group: 'rooms', key: 'rooms:refresh', event: event });
+      var detail = { group: 'rooms', key: 'rooms:refresh', event: event };
+      dispatchAppEvent('mineralbar:realtime', detail);
+      dispatchAppEvent('mineralbar:messages', detail);
     });
   }
 
@@ -2437,6 +2542,18 @@
     return realtimeState.registered.slice();
   }
 
+  function subscribeChatRoom(messengerMetaId) {
+    var meta = String(messengerMetaId || '').trim();
+    if (!meta) return;
+    var socket = realtimeState.socket;
+    if (!socket || typeof socket.emit !== 'function') return;
+    try {
+      socket.emit('rooms:join', { messenger_meta_id: meta });
+      socket.emit('rooms:join', { roomId: meta });
+      socket.emit('rooms:join', meta);
+    } catch (e) { /* ignore */ }
+  }
+
   global.Biz1App = {
     DOMAIN: DOMAIN,
     getDomain: function () { return DOMAIN; },
@@ -2495,10 +2612,13 @@
     sortTsFromWhen: sortTsFromWhen,
     parseEmailsHtml: parseEmailsHtml,
     sendCustomerMessage: sendCustomerMessage,
+    parseBiz1SendPayload: parseBiz1SendPayload,
+    isBiz1SendCustomerSuccess: isBiz1SendCustomerSuccess,
     uploadCustomerFile: uploadCustomerFile,
     resolveFileUrl: resolveFileUrl,
     connectRealtime: connectRealtime,
     disconnectRealtime: disconnectRealtime,
+    subscribeChatRoom: subscribeChatRoom,
     getRealtimeState: getRealtimeState,
     getRegisteredRealtimeEvents: getRegisteredRealtimeEvents,
     MESSAGE_EVENT_KEYS: MESSAGE_EVENT_KEYS,

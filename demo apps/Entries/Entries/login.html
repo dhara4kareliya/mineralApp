@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Entries — Login</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/entries.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <button type="button" class="lang-fab" data-lang-toggle aria-label="Switch language">EN</button>
+    <button type="button" class="theme-fab" data-theme-toggle aria-label="Toggle theme">☾</button>
+
+    <div class="auth-card card">
+      <div class="auth-brand">
+        <div class="auth-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 7h16M4 12h10M4 17h14" stroke-linecap="round" />
+          </svg>
+        </div>
+        <h1 data-i18n="loginTitle">Entries</h1>
+        <p data-i18n="loginSubtitle">Sign in with your Biz1 account to manage dynamic entry tabs.</p>
+      </div>
+
+      <form id="loginForm" class="auth-form" novalidate>
+        <div id="errorBox" class="alert alert--error hidden" role="alert"></div>
+
+        <label class="field">
+          <span data-i18n="loginUsernameLabel">Email / Username / Phone / ID</span>
+          <input id="username" autocomplete="username" data-i18n-placeholder="loginUsernamePlaceholder" placeholder="you@company.com" required />
+        </label>
+
+        <label class="field">
+          <span data-i18n="loginPasswordLabel">Password</span>
+          <div class="input-with-action">
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            <button type="button" class="ghost-btn" id="togglePassword" aria-label="Show or hide password" data-i18n="loginShowPassword">Show</button>
+          </div>
+        </label>
+
+        <div id="otpWrap" class="otp-block hidden">
+          <label class="field">
+            <span data-i18n="loginOtpLabel">Verification code (OTP)</span>
+            <input id="otp" class="otp-input" autocomplete="one-time-code" inputmode="numeric" data-i18n-placeholder="loginOtpPlaceholder" placeholder="6-digit code" />
+          </label>
+          <button type="button" class="link-btn" id="resendOtpBtn" disabled data-i18n="loginResendOtp">Resend OTP</button>
+        </div>
+
+        <label class="check-row">
+          <input id="remember" type="checkbox" checked />
+          <span data-i18n="loginRemember">Remember me</span>
+        </label>
+
+        <button type="submit" class="btn btn--primary btn--block" id="loginBtn">
+          <span id="loginBtnText" data-i18n="loginSignIn">Sign in</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/login.js"></script>
+</body>
+</html>

@@ -1922,7 +1922,8 @@
       status: realtimeState.status,
       error: realtimeState.error,
       registered: realtimeState.registered.slice(),
-      ready: realtimeState.ready
+      ready: realtimeState.ready,
+      connected: !!(realtimeState.socket && realtimeState.socket.connected)
     });
   }
 
@@ -2024,7 +2025,13 @@
       dispatchAppEvent('mineralbar:socket', { type: 'error', error: msg });
     });
     socket.on('disconnect', function (reason) {
-      if (realtimeState.status !== 'error') setRealtimeStatus('offline');
+      realtimeState.ready = null;
+      realtimeState.registered = [];
+      if (realtimeState.status !== 'error') {
+        setRealtimeStatus('offline');
+      } else {
+        setRealtimeStatus('error');
+      }
       dispatchAppEvent('mineralbar:socket', { type: 'disconnect', reason: reason });
     });
 
@@ -2062,7 +2069,11 @@
     realtimeState.socket = null;
     realtimeState.ready = null;
     realtimeState.registered = [];
-    setRealtimeStatus('off');
+    if (realtimeState.status !== 'error') {
+      setRealtimeStatus('offline');
+    } else {
+      setRealtimeStatus('error');
+    }
   }
 
   function getRealtimeState() {
@@ -3866,7 +3877,7 @@
           state = MineralBarApp.getRealtimeState() || state;
         }
       } catch (e) { /* ignore */ }
-      var on = !!(state.connected || state.status === 'connected' || state.registered);
+      var on = !!(state.connected && state.status === 'ready');
       chips.forEach(function (el) {
         el.classList.toggle('live-on', on);
         el.classList.toggle('live-off', !on);
@@ -3876,6 +3887,7 @@
     }
     paint();
     global.addEventListener('mineralbar:socket', paint);
+    global.addEventListener('mineralbar:socket-status', paint);
     global.addEventListener('mineralbar:ready', paint);
     global.addEventListener('mineralbar:lang', paint);
     setInterval(paint, 4000);

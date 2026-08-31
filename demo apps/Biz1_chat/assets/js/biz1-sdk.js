@@ -239,8 +239,11 @@
   };
 
   Biz1RealtimeClient.prototype.setLastEventId = function (eventId) {
-    if (!eventId || Number(eventId) <= this.lastEventId()) return false;
-    this.storage.setItem(LAST_EVENT_ID_KEY, String(Number(eventId)));
+    if (!eventId) return true;
+    var n = Number(eventId);
+    if (!Number.isFinite(n)) return true;
+    if (n <= this.lastEventId()) return true;
+    this.storage.setItem(LAST_EVENT_ID_KEY, String(n));
     return true;
   };
 
@@ -282,10 +285,10 @@
     });
 
     this.socket.on('biz1:event', function (event) {
-      if (!self.setLastEventId(event && event.id)) return;
+      self.setLastEventId(event && event.id);
       self.emitLocal(event && event.key, event);
       self.emitLocal('*', event);
-      self.socket.emit('realtime:ack', { eventId: event.id });
+      if (event && event.id) self.socket.emit('realtime:ack', { eventId: event.id });
     });
 
     this.socket.on('biz1:ready', function (payload) {
