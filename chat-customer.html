@@ -915,8 +915,18 @@ Internal notes
     const img = s.mediaTab === 'images';
     const inFolder = s.mediaView === 'folder' && !!s.activeFolderId;
     var q = new URLSearchParams(window.location.search);
+    // Do not forward the chat's own entry route into operation pages.
+    // Duplicate `back` values can make those pages use calls-list.html
+    // instead of returning to this chat thread.
+    q.delete('back');
+    q.delete('from');
+    q.delete('return');
     var paramsStr = q.toString();
     var qs = paramsStr ? ('?' + paramsStr) : '';
+    var chatReturnUrl = 'chat-customer.html' + qs;
+    var withChatBack = function (url) {
+      return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'back=' + encodeURIComponent(chatReturnUrl);
+    };
 
     var folders = (s.mediaProducts || []).map(f => {
       var photoCount = (f.photos || []).length;
@@ -1009,17 +1019,17 @@ Internal notes
       sendBtnCursor: hasSel ? 'pointer' : 'not-allowed',
       sendBtnShadow: hasSel ? '0 6px 16px rgba(29,96,162,.26)' : 'none',
       sendBtnOpacity: hasSel ? '1' : '0.8',
-      reminderUrl: 'reminders.html?' + paramsStr,
+      reminderUrl: withChatBack('reminders.html?' + paramsStr),
       attachLabel: this.t('Attach', 'צרף'),
       sendReminderLabel: this.t('Send reminder', 'שלח תזכורת'),
       reminderActionTitle: this.t('Send a reminder', 'שליחת תזכורת'),
       reminderActionSub: this.t('Send a follow-up message to the customer', 'שלח הודעת מעקב ללקוח'),
-      createTaskUrl: 'service-create-task.html?' + paramsStr + (paramsStr ? '&' : '') + 'from=messages',
+      createTaskUrl: withChatBack('service-create-task.html?' + paramsStr + (paramsStr ? '&' : '') + 'from=messages'),
       customerCardUrl: 'service-customer-card.html?' + paramsStr + (paramsStr ? '&' : '') + 'back=' + encodeURIComponent('chat-customer.html?' + paramsStr),
       leadsListUrl: 'leads-list.html?' + paramsStr,
-      quoteUrl: 'service-quote-form.html' + qs,
-      paymentUrl: 'collection-payment.html' + qs,
-      orderUrl: 'service-order-form.html' + qs,
+      quoteUrl: withChatBack('service-quote-form.html' + qs),
+      paymentUrl: withChatBack('collection-payment.html' + qs),
+      orderUrl: withChatBack('service-order-form.html' + qs),
     };
   }
 }</script>

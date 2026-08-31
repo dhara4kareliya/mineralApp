@@ -125,6 +125,76 @@
     return Number.isNaN(d.getTime()) ? new Date() : d;
   }
 
+  function pickerSelect(id) {
+    return document.getElementById(id);
+  }
+
+  function prepareDatePicker(date) {
+    var day = pickerSelect('mb-note-picker-day');
+    var month = pickerSelect('mb-note-picker-month');
+    var year = pickerSelect('mb-note-picker-year');
+    var hour = pickerSelect('mb-note-picker-hour');
+    var minute = pickerSelect('mb-note-picker-minute');
+    if (!day || !month || !year || !hour || !minute) return;
+
+    day.value = String(date.getDate());
+    month.value = String(date.getMonth() + 1);
+    year.value = String(date.getFullYear());
+    hour.value = String(date.getHours());
+    minute.value = String(date.getMinutes());
+  }
+
+  function openDatePicker() {
+    var input = document.getElementById('mb-note-datetime');
+    var picker = document.getElementById('mb-note-picker');
+    if (!picker) return;
+    prepareDatePicker(parseDatetimeLocalValue(input && input.value));
+    picker.style.display = 'block';
+
+    var dateBox = document.getElementById('mb-note-date-box');
+    var frame = document.querySelector('[data-screen-label="Add Note"]');
+    if (!dateBox || !frame) return;
+    var boxRect = dateBox.getBoundingClientRect();
+    var frameRect = frame.getBoundingClientRect();
+    var width = frameRect.width - 24;
+    var left = frameRect.left + 12;
+    var pickerHeight = picker.getBoundingClientRect().height;
+    var top = boxRect.bottom + 8;
+    if (top + pickerHeight > frameRect.bottom - 12) top = boxRect.top - pickerHeight - 8;
+    top = Math.max(frameRect.top + 12, top);
+    picker.style.width = width + 'px';
+    picker.style.left = left + 'px';
+    picker.style.top = top + 'px';
+  }
+
+  function closeDatePicker() {
+    var picker = document.getElementById('mb-note-picker');
+    if (picker) picker.style.display = 'none';
+  }
+
+  function applyDatePicker() {
+    var day = pickerSelect('mb-note-picker-day');
+    var month = pickerSelect('mb-note-picker-month');
+    var year = pickerSelect('mb-note-picker-year');
+    var hour = pickerSelect('mb-note-picker-hour');
+    var minute = pickerSelect('mb-note-picker-minute');
+    var input = document.getElementById('mb-note-datetime');
+    if (!day || !month || !year || !hour || !minute || !input) return;
+
+    var selected = new Date(
+      Number(year.value),
+      Number(month.value) - 1,
+      Number(day.value),
+      Number(hour.value),
+      Number(minute.value),
+      0,
+      0
+    );
+    input.value = toDatetimeLocalValue(selected);
+    updateDateLabel();
+    closeDatePicker();
+  }
+
   function showToast(msg, kind) {
     var el = document.getElementById('mb-note-toast');
     if (!el) return;
@@ -194,10 +264,14 @@
       var dateBox = document.getElementById('mb-note-date-box');
       if (dateBox) {
         dateBox.addEventListener('click', function () {
-          try { dtInput.showPicker(); } catch (e0) { dtInput.focus(); }
+          openDatePicker();
         });
       }
     }
+    var pickerCancel = document.getElementById('mb-note-picker-cancel');
+    if (pickerCancel) pickerCancel.addEventListener('click', closeDatePicker);
+    var pickerApply = document.getElementById('mb-note-picker-apply');
+    if (pickerApply) pickerApply.addEventListener('click', applyDatePicker);
 
     var saveBtn = document.getElementById('mb-note-save');
     if (saveBtn) saveBtn.addEventListener('click', saveNote);
@@ -369,6 +443,12 @@
 
     var dtTitle = document.getElementById('mb-note-datetime-title');
     if (dtTitle) dtTitle.textContent = t('Date and time', 'תאריך ושעה');
+    var pickerTitle = document.getElementById('mb-note-picker-title');
+    if (pickerTitle) pickerTitle.textContent = t('Date and time', 'תאריך ושעה');
+    var pickerCancel = document.getElementById('mb-note-picker-cancel');
+    if (pickerCancel) pickerCancel.textContent = t('Cancel', 'ביטול');
+    var pickerApply = document.getElementById('mb-note-picker-apply');
+    if (pickerApply) pickerApply.textContent = t('Apply', 'אישור');
 
     var contentEl = document.getElementById('mb-note-content');
     if (contentEl) contentEl.placeholder = t('Write the comment here...', 'כתוב את ההערה כאן...');

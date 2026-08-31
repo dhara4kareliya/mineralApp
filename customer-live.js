@@ -146,20 +146,13 @@
     return String(href || '').split('?')[0];
   }
 
-  /** Prefer list/entry pages — never bounce Customer Card Back into a chat thread. */
+  /** Preserve an explicit chat thread when the card was opened from chat. */
   function unwrapCustomerCardBack(href) {
     href = safeCardBackHref(href);
     if (!href) return '';
     var file = hrefFile(href);
     if (/^chat-customer\.html$/i.test(file)) {
-      try {
-        var nested = safeCardBackHref(new URLSearchParams(href.split('?')[1] || '').get('back') || '');
-        if (nested && !/^chat-customer\.html$/i.test(hrefFile(nested)) &&
-            !CARD_SELF_RE.test(hrefFile(nested)) && !CARD_CHILD_RE.test(hrefFile(nested))) {
-          return nested;
-        }
-      } catch (e0) { /* ignore */ }
-      return 'calls-list.html';
+      return href;
     }
     if (CARD_SELF_RE.test(file) || CARD_CHILD_RE.test(file)) return '';
     return href;
