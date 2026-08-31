@@ -8,6 +8,7 @@
   var CHAT_PAGE = 'chat-customer.html';
   var allRows = [];
   var lastTotal = 0;
+  var socketRefreshTimer = null;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -293,12 +294,25 @@
       if (mid && String(row.messenger_meta_id || '') === mid) { idx = i; break; }
     }
     if (idx < 0) return false;
+    // A new message can change the conversation ordering and can create a
+    // conversation that was not in the initial page. Let the authoritative
+    // list endpoint handle those cases.
     if (text) allRows[idx].subject = text;
     var when = payload.time || payload.created || payload.date || payload.created_at || payload.create_date;
     if (when) allRows[idx].when = String(when);
     var search = document.getElementById('mb-messages-search');
     renderFiltered('mb-live-messages', search && search.value);
     return true;
+  }
+
+  function scheduleSocketConversationRefresh() {
+    if (socketRefreshTimer || !document.getElementById('mb-live-messages')) return;
+    socketRefreshTimer = setTimeout(function () {
+      socketRefreshTimer = null;
+      loadMessages('mb-live-messages', { silent: true }).catch(function (err) {
+        console.warn('[MessagesLive] socket refresh failed', err);
+      });
+    }, 250);
   }
 
   async function loadMessages(elId, opts) {
@@ -380,7 +394,11 @@
   window.addEventListener('mineralbar:messages', function (ev) {
     var elId = 'mb-live-messages';
     if (!document.getElementById(elId)) return;
-    applySocketToConversationList((ev && ev.detail) || {});
+    var detail = (ev && ev.detail) || {};
+    applySocketToConversationList(detail);
+    // Refresh even when the packet has no matching row or contains only
+    // metadata; the conversation list endpoint remains authoritative.
+    scheduleSocketConversationRefresh();
   });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 50); });
@@ -394,6 +412,7 @@
       var key = String((detail && detail.key) || '').toLowerCase();
       if (/socket\.nudge/i.test(key)) return;
       applySocketToConversationList(detail);
+      scheduleSocketConversationRefresh();
     }, {
       keys: /message|chat|whatsapp|inbox/i,
       mount: '#mb-live-messages',
@@ -406,6 +425,7 @@
       var key = String((detail && detail.key) || '').toLowerCase();
       if (/socket\.nudge/i.test(key)) return;
       applySocketToConversationList(detail);
+      scheduleSocketConversationRefresh();
     }, { keys: /message|chat|whatsapp|inbox/i, delay: 200 });
   }
 

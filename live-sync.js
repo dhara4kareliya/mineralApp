@@ -164,6 +164,7 @@
     }, {
       keys: options.keys || /ticket|mission|task|call|service|socket\.nudge/i,
       groups: options.groups,
+      retries: options.retries,
       delay: options.delay != null ? options.delay : 300
     });
   }

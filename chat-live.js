@@ -202,6 +202,7 @@
   var _threadInFlight = null;
   var _chatBooted = false;
   var _chatBootAt = 0;
+  var _socketThreadRefreshTimer = null;
 
   var dragClickBlockUntil = {};
 
@@ -412,9 +413,14 @@
   }
 
   function messageDedupeKey(row) {
+    var rawId = row && (row.id || row.message_id || row.messageId || row._id);
+    if (rawId && typeof rawId === 'object') rawId = rawId.$oid || rawId.id || '';
+    if (rawId != null && String(rawId).trim()) return 'id|' + String(rawId).trim();
     var text = String((row && (row.message || row.msg || row.body)) || '').trim().replace(/\s+/g, ' ');
     var type = String((row && row.type) || '').toLowerCase();
-    return type + '|' + text;
+    var time = String((row && (row.time || row.created || row.created_at || row.create_date)) || '').trim();
+    var direction = String((row && row.direction) == null ? '' : row.direction);
+    return type + '|' + text + '|' + time + '|' + direction;
   }
 
   function mergeServerAndLocalMessages(serverRows, localRows) {
@@ -2055,6 +2061,8 @@
     var mid = payload.messenger_meta_id;
     if (mid && typeof mid === 'object') mid = mid.$oid || mid.id || '';
     return {
+      id: payload.id || payload.message_id || (payload._id && (payload._id.$oid || payload._id)) || '',
+      message_id: payload.message_id || payload.id || '',
       message: text || String(file),
       user_name: payload.user_name || payload.email || payload.from_name || payload.sender_name || '',
       time: payload.time || payload.created || payload.date || payload.created_at || payload.create_date || '',
@@ -2085,7 +2093,12 @@
     if (/socket\.nudge/i.test(key)) return false;
     if (!document.getElementById('mb-live-chat')) return false;
     var row = pickSocketMessageRow(detail);
-    if (!row) return false;
+    // Some message.created packets contain only an event id or nest the
+    // message differently. In that case REST is the source of truth.
+    if (!row) {
+      scheduleSocketThreadRefresh();
+      return false;
+    }
     var p = currentParams || params();
     if (!socketEventMatchesThread(row, p)) return false;
     var pending = (currentMessages || []).filter(function (r) { return r && r._pending; });
@@ -2097,7 +2110,22 @@
     existing.push(row);
     currentMessages = mergeServerAndLocalMessages(existing, pending);
     renderMessages('mb-live-chat', currentMessages, p);
+    // Confirm the server row and update messages that arrive without a full
+    // payload (media, internal notes, or provider-specific wrappers).
+    scheduleSocketThreadRefresh();
     return true;
+  }
+
+  function scheduleSocketThreadRefresh() {
+    if (_socketThreadRefreshTimer || !document.getElementById('mb-live-chat')) return;
+    _socketThreadRefreshTimer = setTimeout(function () {
+      _socketThreadRefreshTimer = null;
+      var p = currentParams || params();
+      if (!p || (!p.customer_id && !p.messenger_meta_id)) return;
+      loadThread('mb-live-chat', p, { silent: true }).catch(function (err) {
+        console.warn('[ChatLive] socket refresh failed', err);
+      });
+    }, 250);
   }
 
   window.addEventListener('mineralbar:ready', function () {

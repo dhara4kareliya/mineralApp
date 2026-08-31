@@ -279,7 +279,7 @@
     if (named && !/^\d+$/.test(named)) {
       var byNamed = statusMapByName[named.toLowerCase()];
       return {
-        label: named,
+        label: localizeCustomerStatus(named),
         color: (byNamed && byNamed.color) || String(row.status_color || row.color || '#1d60a2').trim() || '#1d60a2'
       };
     }
@@ -288,7 +288,7 @@
     if (rawStatus && !/^\d+$/.test(rawStatus)) {
       var byRaw = statusMapByName[rawStatus.toLowerCase()];
       return {
-        label: rawStatus,
+        label: localizeCustomerStatus(rawStatus),
         color: (byRaw && byRaw.color) || '#1d60a2'
       };
     }
@@ -305,7 +305,7 @@
       if (!sid || !/^\d+$/.test(sid)) continue;
       if (statusMapById[sid]) {
         return {
-          label: statusMapById[sid].name,
+          label: localizeCustomerStatus(statusMapById[sid].name),
           color: statusMapById[sid].color || '#1d60a2'
         };
       }
@@ -544,6 +544,38 @@
     if (typeof window.mbT === 'function') return window.mbT(en, he);
     var lang = (typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage()) || 'he';
     return lang === 'en' ? en : he;
+  }
+
+  function localizeCustomerStatus(label) {
+    var raw = stripHtmlText(label);
+    if (!raw) return '';
+    if (typeof window.getCurrentLanguage !== 'function' || window.getCurrentLanguage() !== 'en') return raw;
+    var translations = {
+      'שמור': 'Saved',
+      'שמורה': 'Saved',
+      'פולואפ': 'Follow up',
+      'פולו אפ': 'Follow up',
+      'ליד חדש': 'New lead',
+      'הצעה נשלחה': 'Offer sent',
+      'נשלחה הצעה': 'Offer sent',
+      'חדש': 'New',
+      'חדשה': 'New',
+      'פתוח': 'Open',
+      'פתוחה': 'Open',
+      'סגור': 'Closed',
+      'סגורה': 'Closed',
+      'בטיפול': 'In progress',
+      'ממתין': 'Waiting',
+      'ממתינה': 'Waiting',
+      'שולם': 'Paid',
+      'שולמה': 'Paid',
+      'לא שולם': 'Unpaid',
+      'לא שולמה': 'Unpaid',
+      'מבוטל': 'Cancelled',
+      'מבוטלת': 'Cancelled',
+      'לא רלוונטי': 'Not relevant'
+    };
+    return translations[raw] || raw;
   }
 
   function loadingHtml() {

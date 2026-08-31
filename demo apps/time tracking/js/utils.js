@@ -122,16 +122,17 @@ const Utils = {
     return '—';
   },
 
-  populateMonthSelect(selectEl, monthsBack) {
+  populateMonthSelect(selectEl, monthsBack, monthsForward) {
     if (!selectEl) return;
     const count = monthsBack || 24;
+    const forwardCount = monthsForward || 0;
     const now = new Date();
     const currentKey = Utils.toMonthKey(now);
     const prev = selectEl.value;
 
     selectEl.innerHTML = '';
-    for (let i = 0; i < count; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    function addMonthOption(offset) {
+      const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
       const key = Utils.toMonthKey(d);
       const opt = document.createElement('option');
       opt.value = key;
@@ -139,14 +140,17 @@ const Utils = {
       selectEl.appendChild(opt);
     }
 
+    for (let i = forwardCount; i >= 0; i--) addMonthOption(i);
+    for (let i = 1; i < count; i++) addMonthOption(-i);
+
     selectEl.value = prev && [...selectEl.options].some((o) => o.value === prev) ? prev : currentKey;
   },
 
   monthStartEnd(monthKey) {
     const [y, m] = monthKey.split('-').map(Number);
-    const from = `${y}-${Utils.pad2(m)}-01`;
+    const from = new Date(Date.UTC(y, m - 1, 1)).toISOString();
     const lastDay = new Date(y, m, 0).getDate();
-    const to = `${y}-${Utils.pad2(m)}-${Utils.pad2(lastDay)}`;
+    const to = new Date(Date.UTC(y, m - 1, lastDay)).toISOString();
     return { from, to };
   },
 

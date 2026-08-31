@@ -52,7 +52,7 @@ const CalendarPage = (function () {
   }
 
   function sessionIso(row) {
-    const parsed = parseDateString(row.start_time || row.start);
+    const parsed = parseDateString(row.date_iso || row.date || row.start_time || row.start);
     return parsed ? parsed.iso : '';
   }
 
@@ -90,7 +90,16 @@ const CalendarPage = (function () {
   }
 
   function getSessionsForIso(iso) {
-    return teamHoursRows.filter((r) => sessionIso(r) === iso);
+    const seen = new Set();
+    return [...teamHoursRows, ...workdiaryRows]
+      .filter((row) => sessionIso(row) === iso)
+      .filter((row) => {
+        const key = row.id || row.team_hours_id;
+        if (!key) return true;
+        if (seen.has(String(key))) return false;
+        seen.add(String(key));
+        return true;
+      });
   }
 
   function normalizeMetaState(raw) {
@@ -501,7 +510,9 @@ const CalendarPage = (function () {
       ]);
 
       workdiaryRows = splitWorkdiaryResponse(wdRes);
-      teamHoursRows = thRes.rows || [];
+      teamHoursRows = Array.isArray(thRes.rows)
+        ? thRes.rows
+        : (Array.isArray(thRes.data) ? thRes.data : []);
       calendarMeta = extractCalendarMeta(wdRes);
       dayStateMap = buildDayStateMap();
 

@@ -2416,6 +2416,8 @@
     var data = (raw && Array.isArray(raw.data)) ? raw.data : [];
     var rows = data.map(function (r) {
       return {
+        id: r.id || r.message_id || (r._id && (r._id.$oid || r._id)) || '',
+        message_id: r.message_id || r.id || '',
         message: chatSnippet(r),
         user_name: r.user_name || r.email || '',
         time: r.time || chatWhen(r),
@@ -2451,6 +2453,8 @@
     var data = (raw && Array.isArray(raw.data)) ? raw.data : [];
     var rows = data.map(function (r) {
       return {
+        id: r.id || r.message_id || (r._id && (r._id.$oid || r._id)) || '',
+        message_id: r.message_id || r.id || '',
         message: r.message || chatSnippet(r),
         user_name: r.user_name || r.email || '',
         time: r.time || chatWhen(r),
@@ -3275,12 +3279,13 @@
       (entry._retries || []).forEach(clearTimeout);
       entry._retries = [];
       var baseDelay = entry.delay != null ? entry.delay : 400;
+      var entryRetryDelays = entry.retries === false ? [0] : retryDelays;
       entry._timer = setTimeout(function () {
         socketTestLog('LiveReload RUN', { key: key, group: group, delay: baseDelay });
         try { entry.fn(detail); } catch (err) {
           console.warn('[LiveReload] handler failed', err);
         }
-        retryDelays.slice(1).forEach(function (extraMs) {
+        entryRetryDelays.slice(1).forEach(function (extraMs) {
           entry._retries.push(setTimeout(function () {
             socketTestLog('LiveReload RETRY', { key: key, extraMs: extraMs });
             try { entry.fn(detail); } catch (err2) {
@@ -3323,6 +3328,7 @@
       fn: fn,
       keys: options.keys || null,
       groups: options.groups || null,
+      retries: options.retries,
       delay: options.delay != null ? options.delay : 400,
       _timer: null
     };
