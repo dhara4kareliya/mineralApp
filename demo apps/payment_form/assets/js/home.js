@@ -1414,6 +1414,7 @@
       row ? t('modal_edit_title') : t('modal_title');
 
     applyRowToForm(null);
+    clearFormErrors();
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
 
@@ -1442,7 +1443,130 @@
     }, 50);
   }
 
+  function formErrorEl(wrap) {
+    if (!wrap) return null;
+    var err = wrap.querySelector('.field-error');
+    if (err) return err;
+    err = document.createElement('div');
+    err.className = 'field-error';
+    err.setAttribute('role', 'alert');
+    wrap.appendChild(err);
+    return err;
+  }
+
+  function fieldWrapFor(el) {
+    return el && el.closest ? el.closest('.field') : null;
+  }
+
+  function showFormBanner(msg) {
+    var el = document.getElementById('formEditorError');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('hidden', !msg);
+  }
+
+  function clearFieldError(el) {
+    if (!el) return;
+    el.classList.remove('is-invalid');
+    el.removeAttribute('aria-invalid');
+    var wrap = fieldWrapFor(el);
+    if (!wrap) return;
+    wrap.classList.remove('is-invalid');
+    var err = wrap.querySelector('.field-error');
+    if (err) {
+      err.textContent = '';
+      err.classList.add('hidden');
+    }
+    var hint = wrap.querySelector('[data-i18n="req_hint"]');
+    if (hint) hint.classList.remove('is-error');
+  }
+
+  function clearFormErrors() {
+    showFormBanner('');
+    if (!editor) return;
+    var invalids = editor.querySelectorAll('.is-invalid, .ds-input.is-invalid');
+    for (var i = 0; i < invalids.length; i++) {
+      invalids[i].classList.remove('is-invalid');
+      invalids[i].removeAttribute('aria-invalid');
+    }
+    var msgs = editor.querySelectorAll('.field-error');
+    for (var j = 0; j < msgs.length; j++) {
+      msgs[j].textContent = '';
+      msgs[j].classList.add('hidden');
+    }
+    var hints = editor.querySelectorAll('.field-hint.is-error');
+    for (var k = 0; k < hints.length; k++) hints[k].classList.remove('is-error');
+  }
+
+  function setFieldError(inputOrId, message) {
+    var el = typeof inputOrId === 'string' ? document.getElementById(inputOrId) : inputOrId;
+    if (!el) return;
+    el.classList.add('is-invalid');
+    el.setAttribute('aria-invalid', 'true');
+    var wrap = fieldWrapFor(el);
+    if (!wrap) return;
+    wrap.classList.add('is-invalid');
+    var err = formErrorEl(wrap);
+    if (err) {
+      err.textContent = message || '';
+      err.classList.toggle('hidden', !message);
+    }
+  }
+
+  function setRequiredContactError(on) {
+    var email = document.getElementById('pfReqEmail');
+    var wrap = fieldWrapFor(email);
+    var hint = wrap && wrap.querySelector('[data-i18n="req_hint"]');
+    if (wrap) wrap.classList.toggle('is-invalid', on);
+    if (hint) hint.classList.toggle('is-error', on);
+  }
+
+  function validatePaymentFormEditor() {
+    clearFormErrors();
+    var first = null;
+    function fail(id, msg) {
+      setFieldError(id, msg);
+      if (!first) first = document.getElementById(id);
+    }
+
+    var name = document.getElementById('pfName').value.trim();
+    var reqEmail = document.getElementById('pfReqEmail').checked;
+    var reqPhone = document.getElementById('pfReqPhone').checked;
+    var company = document.getElementById('pfCompany').value;
+    var gateway = document.getElementById('pfGateway').value;
+    var itemType = document.getElementById('pfProductType').value || 'product';
+    var itemId = resolveItemIdFromForm();
+    var wildcard = document.getElementById('pfWildcard').checked;
+
+    if (!name) fail('pfName', t('err_name_required'));
+    if (!reqEmail && !reqPhone) {
+      setRequiredContactError(true);
+      if (!first) first = document.getElementById('pfReqEmail');
+    }
+    if (!company) fail('pfCompany', t('err_company_required'));
+    if (!gateway) fail('pfGateway', t('err_gateway_required'));
+    if (!itemId && !(isProductType(itemType) && wildcard)) {
+      fail('pfProductItem', t('err_product_required'));
+    }
+    if (!isSubscriptionType(itemType)) {
+      var regDoc = document.getElementById('pfRegularDocType').value;
+      if (!regDoc) fail('pfRegularDocType', t('err_document_required'));
+      if (document.getElementById('pfAllowInstallmentsFlag').checked) {
+        var maxI = Number(document.getElementById('pfMaxInstallmentsFlag').value);
+        if (!maxI || maxI <= 0) fail('pfMaxInstallmentsFlag', t('err_max_installments'));
+      }
+    }
+
+    if (first) {
+      try { first.focus(); } catch (eFocus) { /* ignore */ }
+      try { first.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (eScroll) { /* ignore */ }
+      return false;
+    }
+    return true;
+  }
+
   function closeModal() {
+    clearFormErrors();
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
     editingId = null;
@@ -1902,55 +2026,7 @@
 
   editor.addEventListener('submit', async function (e) {
     e.preventDefault();
-    var name = document.getElementById('pfName').value.trim();
-    var reqEmail = document.getElementById('pfReqEmail').checked;
-    var reqPhone = document.getElementById('pfReqPhone').checked;
-    var company = document.getElementById('pfCompany').value;
-    var gateway = document.getElementById('pfGateway').value;
-    var itemType = document.getElementById('pfProductType').value || 'product';
-    var itemId = resolveItemIdFromForm();
-    var wildcard = document.getElementById('pfWildcard').checked;
-
-    if (!name) {
-      alert(t('err_name_required'));
-      document.getElementById('pfName').focus();
-      return;
-    }
-    if (!reqEmail && !reqPhone) {
-      alert(t('req_hint'));
-      return;
-    }
-    if (!company) {
-      alert(t('err_company_required'));
-      document.getElementById('pfCompany').focus();
-      return;
-    }
-    if (!gateway) {
-      alert(t('err_gateway_required'));
-      document.getElementById('pfGateway').focus();
-      return;
-    }
-    if (!itemId && !(isProductType(itemType) && wildcard)) {
-      alert(t('err_product_required'));
-      document.getElementById('pfProductItem').focus();
-      return;
-    }
-    if (!isSubscriptionType(itemType)) {
-      var regDoc = document.getElementById('pfRegularDocType').value;
-      if (!regDoc) {
-        alert(t('err_document_required'));
-        document.getElementById('pfRegularDocType').focus();
-        return;
-      }
-      if (document.getElementById('pfAllowInstallmentsFlag').checked) {
-        var maxI = Number(document.getElementById('pfMaxInstallmentsFlag').value);
-        if (!maxI || maxI <= 0) {
-          alert(t('err_max_installments'));
-          document.getElementById('pfMaxInstallmentsFlag').focus();
-          return;
-        }
-      }
-    }
+    if (!validatePaymentFormEditor()) return;
 
     var payload = buildPayloadFromForm();
     if (submitBtn) {
@@ -1971,13 +2047,31 @@
       await loadForms();
       notifyFormsChanged();
     } catch (err) {
-      alert(apiErrorMessage(err));
+      var msg = apiErrorMessage(err) || t('err_load_forms');
+      showFormBanner(msg);
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = t('submit');
       }
     }
   });
+
+  function clearEditorFieldFromEvent(e) {
+    var el = e && e.target;
+    if (!el || !editor.contains(el)) return;
+    if (el.id === 'pfReqEmail' || el.id === 'pfReqPhone' || el.id === 'pfReqName') {
+      setRequiredContactError(false);
+      return;
+    }
+    if (el.classList && (el.classList.contains('ds-input') || el.type === 'checkbox' || el.type === 'number' || el.type === 'text' || el.tagName === 'SELECT')) {
+      clearFieldError(el);
+    }
+    if (el.id === 'pfWildcard') clearFieldError(document.getElementById('pfProductItem'));
+    if (el.id === 'pfAllowInstallmentsFlag') clearFieldError(document.getElementById('pfMaxInstallmentsFlag'));
+  }
+
+  editor.addEventListener('input', clearEditorFieldFromEvent);
+  editor.addEventListener('change', clearEditorFieldFromEvent);
 
   document.getElementById('themeToggle').addEventListener('click', function () {
     var current = document.documentElement.getAttribute('data-theme');

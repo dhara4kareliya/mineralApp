@@ -812,6 +812,49 @@ html[dir="rtl"] .btn-header-add {
   background: var(--bg-card);
 }
 
+.form-banner-error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--danger) 38%, transparent);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.field.is-invalid .field-label,
+.field.is-invalid .check-row {
+  color: var(--danger);
+}
+
+.field.is-invalid .ds-input,
+.ds-input.is-invalid {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, var(--bg-input));
+}
+
+.field.is-invalid .ds-input:focus,
+.ds-input.is-invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--danger);
+  line-height: 1.35;
+}
+
+.field-hint.is-error,
+#pfGatewayHint:not(.hidden),
+#pfItemSelectHint:not(.hidden) {
+  color: var(--danger);
+}
+
 .input--ltr { direction: ltr; text-align: left; }
 
 .check-row {
