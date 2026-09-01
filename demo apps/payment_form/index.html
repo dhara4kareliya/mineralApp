@@ -45,9 +45,9 @@
   document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
 })();
 </script>
-<script src="assets/js/lang.js?v=pay-54"></script>
+<script src="assets/js/lang.js?v=pay-55"></script>
 <script src="assets/js/biz1-app.js?v=pay-53"></script>
-<link rel="stylesheet" href="assets/css/home.css?v=pay-54">
+<link rel="stylesheet" href="assets/css/home.css?v=pay-55">
 </head>
 <body>
 <div class="app-shell hidden" id="appShell">
@@ -213,7 +213,7 @@
       <div id="formEditorError" class="form-banner-error hidden" role="alert"></div>
 
       <div class="field field--full">
-        <label class="field-label" for="pfName" data-i18n="field_name">NAME</label>
+        <label class="field-label is-required" for="pfName" data-i18n="field_name">NAME</label>
         <input id="pfName" class="ds-input" type="text" autocomplete="off">
       </div>
 
@@ -232,7 +232,7 @@
         </div>
 
         <div class="field">
-          <div class="field-label" data-i18n="field_required">REQUIRED FIELDS</div>
+          <div class="field-label is-required" data-i18n="field_required">REQUIRED FIELDS</div>
           <div class="check-group">
             <label class="check-row"><input id="pfReqName" type="checkbox" checked> <span data-i18n="req_name">Name</span></label>
             <label class="check-row"><input id="pfReqEmail" type="checkbox"> <span data-i18n="req_email">Email</span></label>
@@ -243,7 +243,7 @@
         <div class="field"></div>
 
         <div class="field">
-          <label class="field-label" for="pfAmount" data-i18n="field_amount">AMOUNT</label>
+          <label class="field-label is-required" for="pfAmount" data-i18n="field_amount">AMOUNT</label>
           <input id="pfAmount" class="ds-input input--ltr" type="text" inputmode="decimal">
         </div>
         <div class="field">
@@ -254,13 +254,13 @@
         </div>
 
         <div class="field">
-          <label class="field-label" for="pfCompany" data-i18n="field_company">COMPANY</label>
+          <label class="field-label is-required" for="pfCompany" data-i18n="field_company">COMPANY</label>
           <select id="pfCompany" class="ds-input">
             <option value="">company</option>
           </select>
         </div>
         <div class="field">
-          <label class="field-label" for="pfGateway" data-i18n="field_gateway">GATWAY</label>
+          <label class="field-label is-required" for="pfGateway" data-i18n="field_gateway">GATWAY</label>
           <select id="pfGateway" class="ds-input">
             <option value="" data-i18n="field_gateway">Gatway</option>
           </select>
@@ -283,7 +283,7 @@
               <input id="pfWildcard" type="checkbox">
               <span data-i18n="field_wildcard">ALLOW WILD CARD PRODUCT</span>
             </label>
-            <label class="field-label" for="pfProductItem" data-i18n="field_product_item">PRODUCT / ITEM</label>
+            <label class="field-label is-required" for="pfProductItem" data-i18n="field_product_item">PRODUCT / ITEM</label>
             <select id="pfProductItem" class="ds-input">
               <option value="" data-i18n="field_item_select_ph">Select item…</option>
             </select>
@@ -357,7 +357,7 @@
             </label>
           </div>
           <div class="field" id="pfMaxInstallmentsWrap">
-            <label class="field-label" for="pfMaxInstallmentsFlag" data-i18n="field_max_installments">MAX INSTALLMENTS</label>
+            <label class="field-label is-required" for="pfMaxInstallmentsFlag" data-i18n="field_max_installments">MAX INSTALLMENTS</label>
             <input id="pfMaxInstallmentsFlag" class="ds-input input--ltr" type="number" min="1" step="1">
           </div>
           <div class="field">
@@ -367,7 +367,7 @@
             </label>
           </div>
           <div class="field">
-            <label class="field-label" for="pfRegularDocType" data-i18n="field_document_type">DOCUMENT TYPE</label>
+            <label class="field-label is-required" for="pfRegularDocType" data-i18n="field_document_type">DOCUMENT TYPE</label>
             <select id="pfRegularDocType" class="ds-input">
               <option value="">Document</option>
               <option value="gi_ir">GR/IR</option>
@@ -398,6 +398,6 @@
   </div>
 </div>
 
-<script src="assets/js/home.js?v=pay-54"></script>
+<script src="assets/js/home.js?v=pay-56"></script>
 </body>
 </html>

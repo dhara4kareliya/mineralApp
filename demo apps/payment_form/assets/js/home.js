@@ -1539,6 +1539,11 @@
     var wildcard = document.getElementById('pfWildcard').checked;
 
     if (!name) fail('pfName', t('err_name_required'));
+    var amountRaw = document.getElementById('pfAmount').value.trim();
+    var amountNum = Number(String(amountRaw).replace(/[^\d.-]/g, ''));
+    if (!amountRaw || !Number.isFinite(amountNum)) {
+      fail('pfAmount', t('err_amount_required'));
+    }
     if (!reqEmail && !reqPhone) {
       setRequiredContactError(true);
       if (!first) first = document.getElementById('pfReqEmail');

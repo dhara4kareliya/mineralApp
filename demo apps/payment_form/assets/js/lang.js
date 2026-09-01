@@ -144,6 +144,7 @@ var translations = {
     submit: 'שמור',
     back: 'חזרה',
     err_name_required: 'יש להזין שם לטופס',
+    err_amount_required: 'יש להזין סכום',
     page_prev: 'הקודם',
     page_next: 'הבא',
     page_of: 'עמוד {page} מתוך {pages}'
@@ -293,6 +294,7 @@ var translations = {
     submit: 'SUBMIT',
     back: 'Back',
     err_name_required: 'Please enter a form name',
+    err_amount_required: 'Please enter an amount',
     page_prev: 'Previous',
     page_next: 'Next',
     page_of: 'Page {page} of {pages}'
