@@ -1943,7 +1943,11 @@
       var meta = missionOverdueMeta(m);
       var pri = missionPriorityMeta(m);
       var mid = m.mission_id || m.id || '';
-      var href = mid ? 'sales-tasks.html?mission_id=' + encodeURIComponent(mid) : createUrl;
+      var href = mid
+        ? 'service-create-task.html?mission_id=' + encodeURIComponent(mid) +
+          '&from=' + encodeURIComponent(fromKind) +
+          (opts.back ? '&back=' + encodeURIComponent(opts.back) : '')
+        : createUrl;
       var assignee = stripHtmlText(m.user_name || m.assignee_name || m.assigned_to_name || '');
       html +=
         '<a href="' + esc(href) + '" style="display:block;padding:12px 0;text-decoration:none;' +
