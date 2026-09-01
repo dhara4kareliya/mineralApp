@@ -35,8 +35,6 @@ window.Biz1Config = {
     subscription: []
   },
 
-  guestTokenSecret: 'pf-payment-form-guest-v1',
-
   /** App display name — Hebrew + English */
   brand: {
     he: 'טופס תשלום',

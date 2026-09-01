@@ -239,7 +239,8 @@
   };
 
   Biz1RealtimeClient.prototype.setLastEventId = function (eventId) {
-    if (!eventId || Number(eventId) <= this.lastEventId()) return false;
+    if (!eventId) return true;
+    if (Number(eventId) <= this.lastEventId()) return false;
     this.storage.setItem(LAST_EVENT_ID_KEY, String(Number(eventId)));
     return true;
   };

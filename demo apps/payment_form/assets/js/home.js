@@ -20,7 +20,6 @@
   var paymentGateways = [];
   var itemOptionsByType = {};
   var itemSelectLoading = false;
-  var guestMode = false;
   var currentView = 'leads';
   var selectedLead = null;
   var leads = [];
@@ -77,11 +76,11 @@
   var profileEmailEl = document.getElementById('profileEmail');
 
   function isTemplatesView() {
-    return guestMode || currentView === 'templates';
+    return currentView === 'templates';
   }
 
   function isCustomerFormsView() {
-    return !guestMode && currentView === 'forms' && !!selectedLead;
+    return currentView === 'forms' && !!selectedLead;
   }
 
   function t(key) {
@@ -133,35 +132,6 @@
     if (!ok) throw new Error(t('err_copy_failed'));
   }
 
-  async function copyShareLinkForRow(row) {
-    // Module guest link (same list + add popup), not Biz1 dashboard URL
-    if (!App.createModuleGuestLink) throw new Error(t('err_no_link'));
-    var formId = row && (row.id != null ? row.id : row.payment_form_id);
-    if (formId == null || formId === '') throw new Error(t('err_no_link'));
-    var link = await App.createModuleGuestLink(location.href, { id: formId });
-    link = String(link || '').trim();
-    if (!link || link.indexOf('[object ') === 0) throw new Error(t('err_no_link'));
-    await copyTextToClipboard(link);
-    return link;
-  }
-
-  function applyGuestUi() {
-    var banner = document.getElementById('guestBanner');
-    if (banner) {
-      if (guestMode) banner.classList.remove('hidden');
-      else banner.classList.add('hidden');
-    }
-    var shareBtn = document.getElementById('btnShareLink');
-    if (shareBtn) shareBtn.classList.add('hidden');
-    var logoutBtn = document.getElementById('btnLogout');
-    if (logoutBtn && guestMode) {
-      logoutBtn.setAttribute('data-i18n-title', 'guest_exit');
-      logoutBtn.setAttribute('title', t('guest_exit'));
-    }
-    applyViewUi();
-    fillProfile();
-  }
-
   function getProfileDetails() {
     var user = (App.getUser && App.getUser()) || {};
     var loginId = String((App.getEmail && App.getEmail()) || '').trim();
@@ -188,11 +158,6 @@
 
   function fillProfile() {
     if (!profileWrap) return;
-    if (guestMode) {
-      profileWrap.classList.add('hidden');
-      closeProfileMenu();
-      return;
-    }
     profileWrap.classList.remove('hidden');
     var info = getProfileDetails();
     if (profileUsernameEl) profileUsernameEl.textContent = info.username;
@@ -212,7 +177,7 @@
   }
 
   function toggleProfileMenu() {
-    if (!profileMenu || guestMode) return;
+    if (!profileMenu) return;
     var open = profileMenu.classList.contains('hidden');
     if (open) {
       fillProfile();
@@ -253,7 +218,7 @@
   }
 
   function applyViewUi() {
-    var showLeads = !guestMode && currentView === 'leads';
+    var showLeads = currentView === 'leads';
     var showForms = isTemplatesView() || isCustomerFormsView();
     if (leadsView) {
       if (showLeads) leadsView.classList.remove('hidden');
@@ -265,21 +230,14 @@
       formsView.classList.toggle('forms-view--lead', isCustomerFormsView());
     }
 
-    var shareBtn = document.getElementById('btnShareLink');
     var addBtn = document.getElementById('btnAddForm');
-    if (shareBtn) shareBtn.classList.add('hidden');
     if (btnNavLeads) {
-      if (guestMode) btnNavLeads.classList.add('hidden');
-      else btnNavLeads.classList.remove('hidden');
-      btnNavLeads.classList.toggle('is-active', !guestMode && (currentView === 'leads' || currentView === 'forms'));
+      btnNavLeads.classList.remove('hidden');
+      btnNavLeads.classList.toggle('is-active', currentView === 'leads' || currentView === 'forms');
     }
-    if (btnHeaderAdd) {
-      if (guestMode || currentView === 'leads' || currentView === 'forms' || currentView === 'templates') {
-        btnHeaderAdd.classList.remove('hidden');
-      }
-    }
+    if (btnHeaderAdd) btnHeaderAdd.classList.remove('hidden');
 
-    if (guestMode || currentView === 'templates') {
+    if (currentView === 'templates') {
       if (btnBackLeads) btnBackLeads.classList.add('hidden');
       fillSelectedLeadChip(null);
       if (assignFormWrap) assignFormWrap.classList.remove('hidden');
@@ -309,7 +267,7 @@
     }
     syncTemplatesTableWrap();
     renderFormsHeader();
-    var key = (guestMode ? 'g-' : '') + currentView;
+    var key = currentView;
     if (key !== paintedViewKey) {
       paintedViewKey = key;
       if (showLeads) playViewEnter(leadsView);
@@ -711,16 +669,13 @@
       var actionsHtml =
         '<button type="button" class="action-btn" data-action="copy" title="' + escapeHtml(t('action_copy')) + '">' +
           uiIcon('copy') +
+        '</button>' +
+        '<button type="button" class="action-btn" data-action="edit" title="' + escapeHtml(t('action_edit')) + '">' +
+          uiIcon('edit') +
+        '</button>' +
+        '<button type="button" class="action-btn action-btn--danger" data-action="delete" title="' + escapeHtml(t('action_delete')) + '">' +
+          uiIcon('trash') +
         '</button>';
-      if (!guestMode) {
-        actionsHtml +=
-          '<button type="button" class="action-btn" data-action="edit" title="' + escapeHtml(t('action_edit')) + '">' +
-            uiIcon('edit') +
-          '</button>' +
-          '<button type="button" class="action-btn action-btn--danger" data-action="delete" title="' + escapeHtml(t('action_delete')) + '">' +
-            uiIcon('trash') +
-          '</button>';
-      }
       return (
         '<tr data-id="' + escapeHtml(row.id) + '">' +
           '<td class="col-id">' + escapeHtml(row.id) + '</td>' +
@@ -948,12 +903,79 @@
     }
   } catch (eCh) { /* ignore */ }
 
+  function setSocketUi(status, lastKey, error) {
+    var el = document.getElementById('socketStatus');
+    var text = document.getElementById('socketStatusText');
+    if (!el) return;
+    var st = status || 'off';
+    el.setAttribute('data-status', st);
+    var labels = {
+      ready: t('socket_live'),
+      connecting: t('socket_connecting'),
+      loading_io: t('socket_connecting'),
+      offline: t('socket_offline'),
+      error: t('socket_error'),
+      off: t('socket_offline')
+    };
+    var label = labels[st] || st;
+    if (text) text.textContent = label;
+    var title = label;
+    if (lastKey) title += ' · ' + lastKey;
+    if (error) title += ' · ' + error;
+    el.title = title;
+    el.setAttribute('aria-label', title);
+  }
+
+  function flashSocketUi() {
+    var el = document.getElementById('socketStatus');
+    if (!el) return;
+    el.classList.remove('is-flash');
+    void el.offsetWidth;
+    el.classList.add('is-flash');
+    setTimeout(function () {
+      el.classList.remove('is-flash');
+    }, 700);
+  }
+
+  function refreshSocketUiFromState() {
+    var state = App.getRealtimeState ? App.getRealtimeState() : null;
+    if (!state) {
+      setSocketUi('off');
+      return;
+    }
+    var lastKey = state.lastEvent && state.lastEvent.key;
+    setSocketUi(state.status, lastKey, state.error);
+  }
+
+  function realtimeTouchesSelectedLead(detail) {
+    if (!isCustomerFormsView() || !selectedLead) return false;
+    var payload = detail && detail.event && detail.event.payload;
+    if (!payload) return true;
+    var cid = payload.customer_id != null
+      ? payload.customer_id
+      : (payload.customer && (payload.customer.id || payload.customer.customer_id));
+    if (cid == null || cid === '') return true;
+    return String(cid) === String(selectedLead.id);
+  }
+
   function startRealtimeUpdates() {
     if (!App.connectRealtime) return;
 
-    window.addEventListener('mineralbar:leads', function () {
-      if (!guestMode && currentView === 'leads') {
+    setSocketUi('connecting');
+
+    window.addEventListener('mineralbar:socket-status', function (ev) {
+      var detail = (ev && ev.detail) || {};
+      var lastKey = App.getRealtimeState && App.getRealtimeState().lastEvent
+        ? App.getRealtimeState().lastEvent.key
+        : '';
+      setSocketUi(detail.status, lastKey, detail.error);
+    });
+    window.addEventListener('mineralbar:leads', function (ev) {
+      if (currentView === 'leads') {
         loadLeads({ silent: true });
+      }
+      if (realtimeTouchesSelectedLead((ev && ev.detail) || {})) {
+        scheduleFormsReload('leads-event');
       }
     });
     window.addEventListener('mineralbar:payment-forms', function () {
@@ -961,6 +983,9 @@
     });
     window.addEventListener('mineralbar:realtime', function (ev) {
       var detail = (ev && ev.detail) || {};
+      flashSocketUi();
+      var lastKey = detail.key || (detail.lastEvent && detail.lastEvent.key);
+      setSocketUi('ready', lastKey);
       if (detail.group === 'paymentForms') {
         scheduleFormsReload(detail.key || 'realtime');
         return;
@@ -968,26 +993,46 @@
       var key = String(detail.key || '').toLowerCase();
       if (/payment[_\s-]?form|paymentforms|gvia|collection.?form/.test(key)) {
         scheduleFormsReload(key);
+        return;
+      }
+      if (detail.group === 'leads' || /customer|crm\.lead/.test(key)) {
+        if (currentView === 'leads') loadLeads({ silent: true });
+        if (realtimeTouchesSelectedLead(detail)) scheduleFormsReload(key || 'customer');
       }
     });
     window.addEventListener('mineralbar:socket', function (ev) {
       var detail = (ev && ev.detail) || {};
       if (detail.type === 'ready') {
-        console.info('[PaymentForms] socket ready', (detail.registered || []).length, 'events');
+        setSocketUi('ready');
+        console.info('[PaymentForms] socket ready', (detail.registered || []).length, 'events', detail.registered);
+      } else if (detail.type === 'event') {
+        flashSocketUi();
+        setSocketUi('ready', detail.key);
+      } else if (detail.type === 'connect') {
+        setSocketUi('connecting');
+      } else if (detail.type === 'error') {
+        setSocketUi('error', '', detail.error);
+      } else if (detail.type === 'disconnect') {
+        setSocketUi('offline');
       }
     });
 
     var state = App.getRealtimeState ? App.getRealtimeState() : null;
-    if (state && state.connected && state.status === 'ready') return;
+    if (state && state.connected && state.status === 'ready') {
+      setSocketUi('ready', state.lastEvent && state.lastEvent.key);
+      return;
+    }
 
     App.connectRealtime()
       .then(function (res) {
         return res && res.promise ? res.promise : res;
       })
       .then(function (ready) {
-        console.info('[PaymentForms] realtime connected', ready && ready.events ? ready.events.length : '');
+        setSocketUi('ready');
+        console.info('[PaymentForms] realtime connected', ready && ready.userId, ready && ready.events ? ready.events.length : 0, ready && ready.events);
       })
       .catch(function (err) {
+        setSocketUi('error', '', (err && err.message) || String(err));
         console.warn('[PaymentForms] realtime connect failed', err);
       });
   }
@@ -1633,7 +1678,6 @@
     }
 
     if (action === 'edit') {
-      if (guestMode) return;
       openModal(row);
       return;
     }
@@ -1686,7 +1730,6 @@
     }
 
     if (action === 'delete') {
-      if (guestMode) return;
       if (!confirm(t('confirm_delete'))) return;
       btn.disabled = true;
       try {
@@ -1707,7 +1750,7 @@
 
   if (assignFormSelect) {
     assignFormSelect.addEventListener('change', function () {
-      if (!isTemplatesView() || guestMode || loading) return;
+      if (!isTemplatesView() || loading) return;
       var id = assignFormSelect.value;
       if (!id) return;
       var row = findById(id);
@@ -1717,7 +1760,7 @@
 
   if (btnAssignForm) {
     btnAssignForm.addEventListener('click', async function () {
-      if (guestMode || !selectedLead || loading) return;
+      if (!selectedLead || loading) return;
       var formId = assignFormSelect ? assignFormSelect.value : '';
       if (!formId) {
         alert(t('err_select_form'));
@@ -1740,7 +1783,7 @@
 
   if (btnNavLeads) {
     btnNavLeads.addEventListener('click', function () {
-      if (guestMode || currentView === 'leads') return;
+      if (currentView === 'leads') return;
       showLeadsView({ keepList: true });
     });
   }
@@ -1807,22 +1850,6 @@
       if (leadsLoading || leadsPage >= leadsTotalPages()) return;
       leadsPage += 1;
       loadLeads();
-    });
-  }
-
-  var btnShareLink = document.getElementById('btnShareLink');
-  if (btnShareLink) {
-    btnShareLink.addEventListener('click', async function () {
-      if (guestMode) return;
-      btnShareLink.disabled = true;
-      try {
-        await copyShareLinkForRow(forms[0] || {});
-        alert(t('link_copied'));
-      } catch (err) {
-        alert(err && err.message ? err.message : t('err_no_link'));
-      } finally {
-        btnShareLink.disabled = false;
-      }
     });
   }
 
@@ -1990,9 +2017,6 @@
 
   function doLogout() {
     try {
-      if (App.clearGuestMode) App.clearGuestMode();
-    } catch (e0) { /* ignore */ }
-    try {
       if (App.clearSession) App.clearSession({});
     } catch (e1) { /* ignore */ }
     try { localStorage.removeItem('biz1_sdk_bearer_token'); } catch (e2) { /* ignore */ }
@@ -2014,9 +2038,10 @@
 
   window.addEventListener('mineralbar:lang', function () {
     applyViewUi();
+    refreshSocketUiFromState();
     renderLeadsTable();
     renderTable();
-    applyGuestUi();
+    fillProfile();
     if (isCustomerFormsView()) fillAssignSelect(assignTemplates);
     else fillAssignSelect(forms);
     if (!lookupsReady) return;
@@ -2028,142 +2053,37 @@
     fillItemSelectForType(document.getElementById('pfProductType').value || 'product', document.getElementById('pfProductItem').value || '');
   });
 
-  function urlHasGuestToken() {
-    try {
-      if (/(^|[?&])(token|guest)=/.test(String(location.search || ''))) return true;
-      if (/#(token|guest)=/.test(String(location.hash || ''))) return true;
-    } catch (e) { /* ignore */ }
-    return false;
-  }
-
-  function showInvalidTokenGate(message) {
-    guestMode = false;
-    try {
-      if (App.clearGuestMode) App.clearGuestMode();
-    } catch (e0) { /* ignore */ }
-    try {
-      if (App.clearSession) App.clearSession({});
-    } catch (e1) { /* ignore */ }
-
-    var shell = document.getElementById('appShell');
-    if (shell) shell.classList.add('hidden');
-
-    var modal = document.getElementById('formModal');
-    if (modal) modal.classList.add('hidden');
-
-    var gate = document.getElementById('invalidTokenGate');
-    var text = document.getElementById('invalidTokenText');
-    var msg = message || t('err_invalid_token');
-    if (text) text.textContent = msg;
-    if (gate) {
-      var title = gate.querySelector('h1');
-      if (title) title.textContent = t('err_invalid_token_title');
-      gate.classList.remove('hidden');
-    } else {
-      document.body.innerHTML =
-        '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;padding:24px;text-align:center">' +
-          '<div><h1 style="margin:0 0 8px">Invalid token</h1><p style="margin:0;color:#5d6b82">' +
-          escapeHtml(msg) +
-          '</p></div></div>';
-    }
-  }
-
   async function boot() {
     try {
-      var guestCode = App.getGuestCodeFromLocation
-        ? App.getGuestCodeFromLocation(location)
-        : '';
-      var guestToken = App.getGuestTokenFromLocation
-        ? App.getGuestTokenFromLocation(location)
-        : '';
-      var tokenInUrl = !!(guestToken || guestCode || urlHasGuestToken());
-      var guestPayload = null;
-
-      if (tokenInUrl) {
-        try {
-          if (App.resolveGuestShareFromLocation) {
-            guestPayload = await App.resolveGuestShareFromLocation(location);
-          } else if (App.parseGuestShareFromLocation) {
-            guestPayload = App.parseGuestShareFromLocation(location);
-          }
-        } catch (resolveErr) {
-          console.warn('[PaymentForms] guest resolve failed', resolveErr);
-          if (typeof initLanguage === 'function') initLanguage();
-          showInvalidTokenGate(t('err_invalid_token'));
-          return;
-        }
-
-        if (!guestPayload) {
-          if (typeof initLanguage === 'function') initLanguage();
-          showInvalidTokenGate(t('err_invalid_token'));
-          return;
-        }
-
-        try {
-          await App.acceptGuestShare(guestPayload);
-          guestMode = true;
-          if (App.normalizeGuestUrl) App.normalizeGuestUrl(guestToken || guestCode);
-        } catch (guestErr) {
-          console.warn('[PaymentForms] guest accept failed', guestErr);
-          if (typeof initLanguage === 'function') initLanguage();
-          showInvalidTokenGate(t('err_invalid_token'));
-          return;
-        }
-
-        if (!App.isAuthenticated || !App.isAuthenticated()) {
-          if (typeof initLanguage === 'function') initLanguage();
-          showInvalidTokenGate(t('err_invalid_token'));
-          return;
-        }
-      } else if (App.isGuestMode && App.isGuestMode()) {
-        guestMode = true;
-      }
-
-      if (!guestMode) {
-        if (App.ensureAuth) {
-          var client = await App.ensureAuth('login.html');
-          if (!client) return;
-        } else if (!App.isAuthenticated || !App.isAuthenticated()) {
-          location.replace('login.html');
-          return;
-        }
-      }
-      // Guest mode: never call ensureAuth → login.html
-    } catch (e) {
-      console.warn('[PaymentForms] boot failed', e);
-      if (urlHasGuestToken() || (App.isGuestMode && App.isGuestMode())) {
-        if (typeof initLanguage === 'function') initLanguage();
-        showInvalidTokenGate(t('err_invalid_token'));
+      if (App.ensureAuth) {
+        var client = await App.ensureAuth('login.html');
+        if (!client) return;
+      } else if (!App.isAuthenticated || !App.isAuthenticated()) {
+        location.replace('login.html');
         return;
       }
+    } catch (e) {
+      console.warn('[PaymentForms] boot failed', e);
       location.replace('login.html');
       return;
     }
 
     if (typeof initLanguage === 'function') initLanguage();
-    applyGuestUi();
+    fillProfile();
     var shell = document.getElementById('appShell');
     if (shell) shell.classList.remove('hidden');
     startRealtimeUpdates();
-    if (guestMode) {
-      currentView = 'templates';
-      applyViewUi();
-      await loadLookups();
-      await loadForms();
-    } else {
-      currentView = 'leads';
-      applyViewUi();
-      await loadLeads();
-      var hashLeadId = leadFromHash();
-      if (hashLeadId) {
-        var hashed = findLeadById(hashLeadId) || { id: hashLeadId, name: '#' + hashLeadId };
-        showFormsForLead(hashed, { fromHistory: true });
-      }
+    currentView = 'leads';
+    applyViewUi();
+    await loadLeads();
+    var hashLeadId = leadFromHash();
+    if (hashLeadId) {
+      var hashed = findLeadById(hashLeadId) || { id: hashLeadId, name: '#' + hashLeadId };
+      showFormsForLead(hashed, { fromHistory: true });
     }
   }
 
   window.addEventListener('popstate', function () {
-    if (guestMode) return;
     var id = leadFromHash();
     if (id) {
       var lead = findLeadById(id) || { id: id, name: '#' + id };

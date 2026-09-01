@@ -37,7 +37,6 @@
   var CRED_KEY = 'biz1demo_cred';
   var SESSION_PASS_KEY = 'biz1demo_session_pass';
   var EXPIRES_KEY = 'biz1demo_token_expires_at';
-  var GUEST_MODE_KEY = 'biz1_guest_mode';
 
   /** Biz1 folder ids (from User.Basic) */
   var FOLDERS = {
@@ -628,8 +627,6 @@
         }
         // Avoid refresh loop on Login itself
         if (String(route) === 'Login') throw err;
-        // Guest share must never bounce to login.html
-        if (isGuestMode()) throw err;
         try {
           await refreshSession();
         } catch (refreshErr) {
@@ -643,12 +640,6 @@
   }
 
   function redirectToLogin(loginPage) {
-    // Share / guest links: stay on index — never send customer to login
-    try {
-      if (isGuestMode()) return;
-      if (getGuestTokenFromLocation() || getGuestCodeFromLocation()) return;
-      if (/(^|[?&])(token|guest)=/.test(String((global.location && global.location.search) || ''))) return;
-    } catch (e0) { /* ignore */ }
     var target = loginPage || 'login.html';
     var here = (global.location && global.location.pathname) || '';
     if (here.indexOf('login.html') !== -1 || here.indexOf('%D7%94%D7%AA%D7%97%D7%91%D7%A8%D7%95%D7%AA') !== -1) {
@@ -685,7 +676,6 @@
         if (!options.keepEmail) global.localStorage.removeItem(EMAIL_KEY);
       }
       if (global.sessionStorage) global.sessionStorage.removeItem(SESSION_PASS_KEY);
-      try { global.sessionStorage.removeItem(GUEST_MODE_KEY); } catch (eG) { /* ignore */ }
       try {
         // Drop gateway caches so next login cannot see another account's list
         var keys = [];
@@ -882,12 +872,6 @@
    * Also refreshes when the stored bearer is a stale bridge token.
    */
   async function ensureAuth(loginPage) {
-    // Guest share URL: never force login.html
-    if (isGuestMode()) {
-      if (isAuthenticated()) return getClient();
-      return null;
-    }
-
     var authed = isAuthenticated();
     if (authed && !tokenNeedsRefresh()) return getClient();
 
@@ -1450,476 +1434,6 @@
     }
     var detail2 = await getPaymentForm(paymentFormIdOrRow);
     return formatPublicPaymentLink(detail2.form && detail2.form.template_payment_link);
-  }
-
-  var GUEST_SHARE_MS = 7 * 24 * 60 * 60 * 1000;
-  var GUEST_CODE_LEN = 6;
-  var GUEST_CODE_RE = /^[A-Za-z0-9]{6}$/;
-  var GUEST_TOKEN_API = 'guest-token.php';
-  var GUEST_LOCAL_KEY = 'pf_guest_tokens_v1';
-  var GUEST_EXACT_KEY = 'pf_guest_exact_v1';
-
-  function toUrlSafeBase64(str) {
-    return global.btoa(unescape(encodeURIComponent(String(str))))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/g, '');
-  }
-
-  function fromUrlSafeBase64(raw) {
-    var s = String(raw || '').replace(/-/g, '+').replace(/_/g, '/');
-    while (s.length % 4) s += '=';
-    return decodeURIComponent(escape(global.atob(s)));
-  }
-
-  function bytesToUrlSafeBase64(bytes) {
-    var bin = '';
-    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return global.btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  }
-
-  function getGuestSigSecret() {
-    var cfg = global.Biz1Config || {};
-    if (cfg.guestTokenSecret) return String(cfg.guestTokenSecret);
-    return 'pf-guest-sig-v1|' + String(getTenantUser() || '');
-  }
-
-  function guestCanonical(payload) {
-    return [
-      'v=' + String(payload && payload.v != null ? payload.v : ''),
-      'exp=' + String(payload && payload.exp != null ? payload.exp : ''),
-      'tenant=' + String(payload && payload.tenant != null ? payload.tenant : ''),
-      'id=' + String(payload && payload.id != null ? payload.id : ''),
-      'u=' + String(payload && payload.u != null ? payload.u : ''),
-      'p=' + String(payload && payload.p != null ? payload.p : ''),
-      't=' + String(payload && payload.t != null ? payload.t : '')
-    ].join('&');
-  }
-
-  function fallbackGuestSig(secret, message) {
-    var mixed = String(secret) + '|' + String(message) + '|' + String(secret).length;
-    var h1 = 0x811c9dc5;
-    var h2 = 0x811c9dc5 ^ 0x1a2b3c4d;
-    for (var i = 0; i < mixed.length; i++) {
-      var c = mixed.charCodeAt(i);
-      h1 ^= c;
-      h1 = Math.imul(h1, 0x01000193);
-      h2 = Math.imul(h2 ^ c, 0x01000193) >>> 0;
-    }
-    var out = '';
-    for (var n = 0; n < 8; n++) {
-      h1 = Math.imul(h1 ^ (h2 >>> (n % 16)), 0x01000193) >>> 0;
-      h2 = Math.imul(h2 ^ (h1 >>> ((n * 3) % 16)), 0x01000193) >>> 0;
-      out += String.fromCharCode((h1 >>> 24) & 255, (h1 >>> 16) & 255, (h1 >>> 8) & 255, h1 & 255);
-      out += String.fromCharCode((h2 >>> 24) & 255, (h2 >>> 16) & 255, (h2 >>> 8) & 255, h2 & 255);
-    }
-    return toUrlSafeBase64(out.slice(0, 32));
-  }
-
-  async function computeGuestSig(payload) {
-    var secret = getGuestSigSecret();
-    var message = guestCanonical(payload);
-    try {
-      if (global.crypto && global.crypto.subtle) {
-        var enc = new TextEncoder();
-        var key = await global.crypto.subtle.importKey(
-          'raw',
-          enc.encode(secret),
-          { name: 'HMAC', hash: 'SHA-256' },
-          false,
-          ['sign']
-        );
-        var sigBuf = await global.crypto.subtle.sign('HMAC', key, enc.encode(message));
-        return bytesToUrlSafeBase64(new Uint8Array(sigBuf));
-      }
-    } catch (e) { /* fall through */ }
-    return fallbackGuestSig(secret, message);
-  }
-
-  async function assertGuestPayloadIntegrity(payload) {
-    if (!payload || typeof payload !== 'object' || !payload.sig) {
-      var e0 = new Error('Invalid guest link');
-      e0.code = 'GUEST_TAMPERED';
-      throw e0;
-    }
-    var expected = await computeGuestSig(payload);
-    if (String(payload.sig) !== String(expected)) {
-      var e1 = new Error('Invalid guest link');
-      e1.code = 'GUEST_TAMPERED';
-      throw e1;
-    }
-  }
-
-  function readExactGuestMap() {
-    try {
-      var raw = global.localStorage.getItem(GUEST_EXACT_KEY);
-      var parsed = raw ? JSON.parse(raw) : {};
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function writeExactGuestMap(map) {
-    try {
-      global.localStorage.setItem(GUEST_EXACT_KEY, JSON.stringify(map || {}));
-    } catch (e) { /* ignore */ }
-  }
-
-  async function registerExactGuestToken(token, payload) {
-    var exact = String(token || '');
-    if (!exact) return false;
-    var map = readExactGuestMap();
-    map[exact] = payload;
-    writeExactGuestMap(map);
-    try {
-      var res = await fetch(GUEST_TOKEN_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: exact, payload: payload })
-      });
-      var data = await res.json().catch(function () { return null; });
-      return !!(res.ok && data && data.ok);
-    } catch (e0) {
-      return true; // local registry still set
-    }
-  }
-
-  async function verifyExactGuestToken(token) {
-    var exact = String(token || '');
-    if (!exact) return null;
-    try {
-      var res = await fetch(GUEST_TOKEN_API + '?token=' + encodeURIComponent(exact), {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-      var data = await res.json().catch(function () { return null; });
-      if (res.ok && data && data.ok && data.payload && typeof data.payload === 'object') {
-        return data.payload;
-      }
-      if (res.status === 404 || res.status === 400 || res.status === 410) {
-        return null;
-      }
-    } catch (e0) { /* fall back local */ }
-    var map = readExactGuestMap();
-    return map[exact] && typeof map[exact] === 'object' ? map[exact] : null;
-  }
-
-  function guestTamperError() {
-    var err = new Error('Invalid guest link');
-    err.code = 'GUEST_TAMPERED';
-    return err;
-  }
-
-  function getGuestParamFromLocation(loc) {
-    loc = loc || global.location;
-    if (!loc) return '';
-    try {
-      var q = new URLSearchParams(String(loc.search || '').replace(/^\?/, ''));
-      // Prefer ?token= (display name); keep legacy ?guest= for old links
-      var t = q.get('token');
-      if (t && t !== '1') return t;
-      var g = q.get('guest');
-      if (g && g !== '1') return g;
-    } catch (e) { /* ignore */ }
-    var hash = String(loc.hash || '');
-    var mToken = hash.match(/(?:^#|#|&)token=([^&]+)/);
-    if (mToken && mToken[1]) return decodeURIComponent(mToken[1]);
-    var mGuest = hash.match(/(?:^#|#|&)guest=([^&]+)/);
-    return mGuest && mGuest[1] ? decodeURIComponent(mGuest[1]) : '';
-  }
-
-  function isShortGuestCode(raw) {
-    return GUEST_CODE_RE.test(String(raw || ''));
-  }
-
-  function isLongGuestToken(raw) {
-    var g = String(raw || '');
-    return !!g && g !== '1' && !isShortGuestCode(g) && g.length > 8;
-  }
-
-  function getGuestCodeFromLocation(loc) {
-    var g = getGuestParamFromLocation(loc);
-    return isShortGuestCode(g) ? g : '';
-  }
-
-  function getGuestTokenFromLocation(loc) {
-    var g = getGuestParamFromLocation(loc);
-    return isLongGuestToken(g) ? g : '';
-  }
-
-  function readLocalGuestMap() {
-    try {
-      var raw = global.localStorage.getItem(GUEST_LOCAL_KEY);
-      var parsed = raw ? JSON.parse(raw) : {};
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function writeLocalGuestMap(map) {
-    try {
-      global.localStorage.setItem(GUEST_LOCAL_KEY, JSON.stringify(map || {}));
-    } catch (e) { /* ignore */ }
-  }
-
-  function makeLocalGuestCode() {
-    var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-    var map = readLocalGuestMap();
-    for (var n = 0; n < 20; n++) {
-      var out = '';
-      for (var i = 0; i < GUEST_CODE_LEN; i++) {
-        out += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-      }
-      if (!map[out]) return out;
-    }
-    return alphabet.charAt(0) + String(Date.now()).slice(-5);
-  }
-
-  async function saveGuestTokenPayload(payload) {
-    try {
-      var res = await fetch(GUEST_TOKEN_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload: payload })
-      });
-      var data = await res.json().catch(function () { return null; });
-      if (res.ok && data && data.ok && isShortGuestCode(data.code)) {
-        return String(data.code);
-      }
-    } catch (e0) { /* fall back to localStorage */ }
-    var code = makeLocalGuestCode();
-    var map = readLocalGuestMap();
-    map[code] = payload;
-    writeLocalGuestMap(map);
-    return code;
-  }
-
-  async function loadGuestTokenPayload(code) {
-    if (!isShortGuestCode(code)) return null;
-    try {
-      var res = await fetch(GUEST_TOKEN_API + '?guest=' + encodeURIComponent(code), {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-      var data = await res.json().catch(function () { return null; });
-      if (res.ok && data && data.ok && data.payload && typeof data.payload === 'object') {
-        return data.payload;
-      }
-    } catch (e0) { /* fall back */ }
-    var map = readLocalGuestMap();
-    return map[code] && typeof map[code] === 'object' ? map[code] : null;
-  }
-
-  /** Build share URL: index.html?token=<signed long token> — tampered URLs reject. */
-  async function createModuleGuestLink(pageUrl, opts) {
-    opts = opts || {};
-    var cred = getSavedCredentials();
-    var bearer = '';
-    try { bearer = getClient().getToken() || ''; } catch (e0) { /* ignore */ }
-    if ((!cred || !cred.username || !cred.password) && !bearer) {
-      var err = new Error('Login required to create a share link');
-      err.code = 'NO_SESSION';
-      throw err;
-    }
-    var formId = opts.id != null && opts.id !== ''
-      ? opts.id
-      : (opts.formId != null ? opts.formId : '');
-    var payload = {
-      v: 1,
-      exp: Date.now() + GUEST_SHARE_MS,
-      tenant: getTenantUser()
-    };
-    if (formId !== '' && formId != null) payload.id = formId;
-    if (cred && cred.username && cred.password) {
-      payload.u = cred.username;
-      payload.p = cred.password;
-    } else {
-      payload.t = bearer;
-    }
-    payload.sig = await computeGuestSig(payload);
-    var guestToken = toUrlSafeBase64(JSON.stringify(payload));
-    var registered = await registerExactGuestToken(guestToken, payload);
-    if (!registered) {
-      // Still usable via local exact map; registerExact always writes local first
-    }
-    var base = String(pageUrl || '').split('#')[0].split('?')[0];
-    if (!base && global.location) {
-      base = global.location.origin + global.location.pathname;
-    }
-    base = base.replace(/login\.html$/i, 'index.html');
-    if (!/index\.html$/i.test(base) && /\/$/.test(base)) {
-      base += 'index.html';
-    }
-    return base + '?token=' + encodeURIComponent(guestToken);
-  }
-
-  function parseGuestSharePayload(raw) {
-    if (!raw) return null;
-    try {
-      var parsed = JSON.parse(fromUrlSafeBase64(decodeURIComponent(String(raw))));
-      return parsed && typeof parsed === 'object' ? parsed : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function parseGuestShareFromLocation(loc) {
-    loc = loc || global.location;
-    if (!loc) return null;
-    var g = getGuestParamFromLocation(loc);
-    if (isLongGuestToken(g)) return parseGuestSharePayload(g);
-    return null;
-  }
-
-  async function resolveGuestShareFromLocation(loc) {
-    loc = loc || global.location;
-    var longToken = getGuestTokenFromLocation(loc);
-    if (longToken) {
-      var parsed = parseGuestSharePayload(longToken);
-      if (!parsed) throw guestTamperError();
-      await assertGuestPayloadIntegrity(parsed);
-
-      // Registry is optional (revocation / exact match). Signed payload is enough to open.
-      try {
-        await verifyExactGuestToken(longToken);
-      } catch (eReg) { /* ignore */ }
-
-      return parsed;
-    }
-
-    var code = getGuestCodeFromLocation(loc);
-    if (code) {
-      var fromStore = await loadGuestTokenPayload(code);
-      if (fromStore) {
-        if (fromStore.sig) await assertGuestPayloadIntegrity(fromStore);
-        return fromStore;
-      }
-      var miss = new Error('Guest link not found');
-      miss.code = 'GUEST_NOT_FOUND';
-      throw miss;
-    }
-    return parseGuestShareFromLocation(loc);
-  }
-
-  function getGuestFormIdFromLocation(loc) {
-    loc = loc || global.location;
-    if (!loc) return '';
-    try {
-      var q = new URLSearchParams(String(loc.search || '').replace(/^\?/, ''));
-      return q.get('id') || '';
-    } catch (e) {
-      return '';
-    }
-  }
-
-  async function acceptGuestShare(payload) {
-    if (!payload || typeof payload !== 'object') {
-      var e0 = new Error('Invalid guest link');
-      e0.code = 'GUEST_INVALID';
-      throw e0;
-    }
-    await assertGuestPayloadIntegrity(payload);
-    if (payload.exp && Date.now() > Number(payload.exp)) {
-      var e1 = new Error('Guest link expired');
-      e1.code = 'GUEST_EXPIRED';
-      throw e1;
-    }
-
-    // Bind API domain to the account that created the share (before Login)
-    if (payload.tenant) {
-      var tenantUser = normalizeTenantUser(payload.tenant);
-      if (tenantUser) {
-        if (!global.Biz1Config) global.Biz1Config = {};
-        global.Biz1Config.user = tenantUser;
-        DOMAIN = 'https://' + tenantUser + '.bull36.com';
-        try {
-          global.__biz1DemoClient = null;
-          global.__biz1DemoClientDomain = '';
-        } catch (eT) { /* ignore */ }
-      }
-    }
-
-    // Mark guest early so any auth failure cannot redirect to login.html
-    try { global.sessionStorage.setItem(GUEST_MODE_KEY, '1'); } catch (eEarly) { /* ignore */ }
-
-    if (payload.u && payload.p) {
-      var result = await login({
-        username: payload.u,
-        password: payload.p,
-        remember: false
-      });
-      if (result && result.otpRequired) {
-        var e2 = new Error(result.message || 'OTP required for guest link');
-        e2.code = 'GUEST_OTP';
-        throw e2;
-      }
-      if (!result || !result.ok) {
-        var e2b = new Error((result && result.message) || 'Guest login failed');
-        e2b.code = 'GUEST_INVALID';
-        throw e2b;
-      }
-    } else if (payload.t) {
-      getClient().setToken(payload.t);
-      var userBasic = await getClient().account.basic();
-      var email = (userBasic.data && userBasic.data.user && userBasic.data.user.email) ||
-        (userBasic.user && userBasic.user.email) || '';
-      var role = detectRole(email, userBasic);
-      saveSession(userBasic, role, email, {});
-    } else {
-      var e3 = new Error('Invalid guest link');
-      e3.code = 'GUEST_INVALID';
-      throw e3;
-    }
-    try { global.sessionStorage.setItem(GUEST_MODE_KEY, '1'); } catch (e4) { /* ignore */ }
-    return true;
-  }
-
-  function isGuestMode() {
-    try {
-      if (global.sessionStorage.getItem(GUEST_MODE_KEY) === '1') return true;
-    } catch (e) { /* ignore */ }
-    if (getGuestTokenFromLocation()) return true;
-    if (getGuestCodeFromLocation()) return true;
-    return !!parseGuestShareFromLocation();
-  }
-
-  function clearGuestMode() {
-    try { global.sessionStorage.removeItem(GUEST_MODE_KEY); } catch (e) { /* ignore */ }
-  }
-
-  /** Keep address bar as ?token=<long token> (or legacy short guest code). */
-  function normalizeGuestUrl(tokenOrCode) {
-    try {
-      if (!global.history || !global.location) return;
-      var token = getGuestTokenFromLocation();
-      if (!isLongGuestToken(token) && isLongGuestToken(tokenOrCode)) {
-        token = String(tokenOrCode);
-      }
-      if (isLongGuestToken(token)) {
-        global.history.replaceState(
-          null,
-          '',
-          global.location.pathname + '?token=' + encodeURIComponent(token)
-        );
-        return;
-      }
-      var code = getGuestCodeFromLocation();
-      if (!isShortGuestCode(code) && isShortGuestCode(tokenOrCode)) {
-        code = String(tokenOrCode);
-      }
-      if (isShortGuestCode(code)) {
-        global.history.replaceState(null, '', global.location.pathname + '?token=' + encodeURIComponent(code));
-        return;
-      }
-      global.history.replaceState(null, '', global.location.pathname);
-    } catch (e) { /* ignore */ }
-  }
-
-  /** @deprecated use normalizeGuestUrl */
-  function stripGuestHashFromUrl() {
-    normalizeGuestUrl(getGuestTokenFromLocation() || getGuestCodeFromLocation());
   }
 
   function extractPaymentFormRows(raw) {
@@ -3348,9 +2862,79 @@
     ready: null,
     error: null,
     socket: null,
-    registered: []
+    registered: [],
+    lastEvent: null,
+    lastEvents: []
   };
   var realtimeHandlersWired = false;
+  var realtimeSeenIds = {};
+  var LAST_EVENT_ID_STORAGE_KEY = 'biz1_realtime_last_event_id';
+
+  function patchRemoteRealtimeSdk() {
+    try {
+      var SDK = global.Biz1SDK;
+      var proto = SDK && SDK.Biz1RealtimeClient && SDK.Biz1RealtimeClient.prototype;
+      if (!proto || proto.__mbAllowEventsWithoutId) return;
+      proto.__mbAllowEventsWithoutId = true;
+      proto.setLastEventId = function (eventId) {
+        if (!eventId) return true;
+        if (Number(eventId) <= this.lastEventId()) return false;
+        this.storage.setItem(LAST_EVENT_ID_STORAGE_KEY, String(Number(eventId)));
+        return true;
+      };
+    } catch (e) { /* ignore */ }
+  }
+
+  function realtimeEventSeenId(event) {
+    if (event && event.id != null && event.id !== '') return 'id:' + event.id;
+    var payload = event && event.payload != null ? event.payload : event;
+    var stamp = (event && (event.createdAt || event.created_at)) || '';
+    var key = String((event && event.key) || '');
+    var blob = '';
+    try { blob = JSON.stringify(payload); } catch (e) { blob = String(payload); }
+    return 'k:' + key + ':' + stamp + ':' + blob;
+  }
+
+  function rememberRealtimeEvent(event, source) {
+    var key = String((event && event.key) || '');
+    var rec = {
+      id: event && event.id,
+      key: key,
+      at: (event && (event.createdAt || event.created_at)) || new Date().toISOString(),
+      source: source || 'socket',
+      group: classifyRealtimeEvent(event)
+    };
+    realtimeState.lastEvent = rec;
+    realtimeState.lastEvents.unshift(rec);
+    if (realtimeState.lastEvents.length > 25) realtimeState.lastEvents.length = 25;
+    try {
+      console.info('[PaymentForms] socket event', rec.key || '(no key)', rec.id || '', event && event.payload);
+    } catch (eLog) { /* ignore */ }
+    return rec;
+  }
+
+  function ingestRealtimeEvent(event, source) {
+    if (!event) return null;
+    var sid = realtimeEventSeenId(event);
+    if (realtimeSeenIds[sid]) return null;
+    realtimeSeenIds[sid] = 1;
+    var rec = rememberRealtimeEvent(event, source);
+    var group = rec.group;
+    var detail = {
+      group: group,
+      key: event.key,
+      channel: channelFromRealtimeEvent(event),
+      event: event,
+      lastEvent: rec
+    };
+    dispatchAppEvent('mineralbar:realtime', detail);
+    if (group === 'messages') dispatchAppEvent('mineralbar:messages', detail);
+    if (group === 'missions') dispatchAppEvent('mineralbar:missions', detail);
+    if (group === 'leads') dispatchAppEvent('mineralbar:leads', detail);
+    if (group === 'paymentForms') dispatchAppEvent('mineralbar:payment-forms', detail);
+    dispatchAppEvent('mineralbar:socket', { type: 'event', key: event.key, group: group, event: event });
+    return rec;
+  }
 
   function dispatchAppEvent(name, detail) {
     try {
@@ -3372,7 +2956,7 @@
     }
     if (MESSAGE_EVENT_KEYS[key] || /chat|whatsapp|message|inbox|email/i.test(key)) return 'messages';
     if (MISSION_EVENT_KEYS[key] || /mission|task/i.test(key)) return 'missions';
-    if (/lead|crm/i.test(key)) return 'leads';
+    if (/lead|crm|customer/i.test(key)) return 'leads';
     return 'other';
   }
 
@@ -3447,18 +3031,17 @@
     });
 
     client.realtime.on('*', function (event) {
-      var group = classifyRealtimeEvent(event);
-      var detail = {
-        group: group,
-        key: event && event.key,
-        channel: channelFromRealtimeEvent(event),
-        event: event
-      };
-      dispatchAppEvent('mineralbar:realtime', detail);
-      if (group === 'messages') dispatchAppEvent('mineralbar:messages', detail);
-      if (group === 'missions') dispatchAppEvent('mineralbar:missions', detail);
-      if (group === 'leads') dispatchAppEvent('mineralbar:leads', detail);
-      if (group === 'paymentForms') dispatchAppEvent('mineralbar:payment-forms', detail);
+      ingestRealtimeEvent(event, 'sdk');
+    });
+    [
+      'crm.lead.created',
+      'customer.updated',
+      'customer.followup',
+      'customer.restored'
+    ].forEach(function (key) {
+      client.realtime.on(key, function (event) {
+        ingestRealtimeEvent(event, key);
+      });
     });
 
     client.realtime.on('rooms:refresh', function (event) {
@@ -3479,6 +3062,7 @@
     }
 
     await ensureSocketIo();
+    patchRemoteRealtimeSdk();
     wireRealtimeHandlers(client);
     setRealtimeStatus('connecting');
 
@@ -3490,6 +3074,15 @@
       token: options.token
     });
     realtimeState.socket = socket;
+
+    socket.on('biz1:event', function (event) {
+      ingestRealtimeEvent(event, 'biz1:event');
+    });
+    socket.on('biz1:ready', function (payload) {
+      try {
+        console.info('[PaymentForms] socket biz1:ready', payload && payload.userId, payload && payload.events);
+      } catch (eReady) { /* ignore */ }
+    });
 
     socket.on('connect', function () {
       if (realtimeState.status !== 'ready') setRealtimeStatus('connecting');
@@ -3548,6 +3141,8 @@
       error: realtimeState.error,
       registered: realtimeState.registered.slice(),
       ready: realtimeState.ready,
+      lastEvent: realtimeState.lastEvent,
+      lastEvents: realtimeState.lastEvents.slice(),
       connected: !!(realtimeState.socket && realtimeState.socket.connected)
     };
   }
@@ -3611,17 +3206,6 @@
     getPaymentForm: getPaymentForm,
     formatPublicPaymentLink: formatPublicPaymentLink,
     resolvePaymentFormShareLink: resolvePaymentFormShareLink,
-    createModuleGuestLink: createModuleGuestLink,
-    parseGuestShareFromLocation: parseGuestShareFromLocation,
-    resolveGuestShareFromLocation: resolveGuestShareFromLocation,
-    getGuestCodeFromLocation: getGuestCodeFromLocation,
-    getGuestTokenFromLocation: getGuestTokenFromLocation,
-    getGuestFormIdFromLocation: getGuestFormIdFromLocation,
-    acceptGuestShare: acceptGuestShare,
-    isGuestMode: isGuestMode,
-    clearGuestMode: clearGuestMode,
-    normalizeGuestUrl: normalizeGuestUrl,
-    stripGuestHashFromUrl: stripGuestHashFromUrl,
     addPaymentForm: addPaymentForm,
     updatePaymentForm: updatePaymentForm,
     deletePaymentForm: deletePaymentForm,
