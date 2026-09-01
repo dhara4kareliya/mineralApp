@@ -920,22 +920,134 @@
     return null;
   }
 
+  function getLoggedInUserId() {
+    var user = getUser();
+    if (!user || typeof user !== 'object') return '';
+    var id = user.id != null ? user.id
+      : (user.user_id != null ? user.user_id
+        : (user.uid != null ? user.uid : ''));
+    return id === '' || id == null ? '' : String(id);
+  }
+
+  function normalizeCustomerRow(row) {
+    if (!row || typeof row !== 'object') return null;
+    var id = row.customer_id != null ? row.customer_id
+      : (row.id != null ? row.id : (row.cust_id != null ? row.cust_id : row.data_id));
+    if (id == null || id === '') return null;
+    var name = row.name || row.customer_name || row.full_name || row.client_name || '';
+    if (!name) {
+      name = [row.first_name, row.last_name].filter(Boolean).join(' ');
+    }
+    if (!name) name = '#' + id;
+    return {
+      id: id,
+      customer_id: id,
+      name: name,
+      mobile: row.mobile || row.phone || row.phone_number || row.cellphone || '',
+      email: row.email || row.mail || '',
+      id_number: row.customer_id_number || row.CustomerIdNumber || row.id_number || row.tz || '',
+      raw: row
+    };
+  }
+
   /** List customers in a folder (≤25). */
   async function listCustomers(folderId, extra) {
     var client = getClient();
-    return client.customers.list(Object.assign({
-      folder_id: folderId || FOLDERS.CUSTOMERS,
+    var payload = Object.assign({
       length: 25,
       draw: 1,
       start: 0
-    }, extra || {}));
+    }, extra || {});
+    if (folderId != null && folderId !== '') {
+      payload.folder_id = folderId;
+    } else if (payload.folder_id == null || payload.folder_id === '') {
+      payload.folder_id = FOLDERS.CUSTOMERS;
+    }
+    return client.customers.list(payload);
   }
 
   async function countCustomers(folderId, extra) {
     var client = getClient();
-    return client.customers.count(Object.assign({
-      folder_id: folderId || FOLDERS.CUSTOMERS
-    }, extra || {}));
+    var payload = Object.assign({}, extra || {});
+    if (folderId != null && folderId !== '') {
+      payload.folder_id = folderId;
+    } else if (payload.folder_id == null || payload.folder_id === '') {
+      payload.folder_id = FOLDERS.CUSTOMERS;
+    }
+    return client.customers.count(payload);
+  }
+
+  function applyLeadSearchFilters(payload, search) {
+    var q = String(search == null ? '' : search).trim();
+    if (!q) return payload;
+    payload.search = q;
+    payload.filter_data = q;
+    payload['search[value]'] = q;
+    return payload;
+  }
+
+  /**
+   * Leads / customers for the logged-in user (Customer.List).
+   * API already scopes by account / team / folder permissions.
+   */
+  async function listLeads(extra) {
+    extra = extra || {};
+    var payload = Object.assign({
+      folder: String(FOLDERS.LEADS) + ',' + String(FOLDERS.CUSTOMERS),
+      folder_id: FOLDERS.LEADS,
+      length: 25,
+      draw: 1,
+      start: extra.start != null ? extra.start : 0
+    }, extra);
+    applyLeadSearchFilters(payload, extra.search);
+    var result;
+    try {
+      result = await listCustomers(FOLDERS.LEADS, payload);
+    } catch (err) {
+      var msg = String((err && err.message) || '');
+      if (err && (Number(err.status) === 403 || /folder_id|permission denied/i.test(msg))) {
+        delete payload.folder_id;
+        result = await listCustomers('', payload);
+      } else {
+        throw err;
+      }
+    }
+    var rows = (result.rows || []).map(normalizeCustomerRow).filter(Boolean);
+    if (!rows.length && Number(payload.start || 0) === 0) {
+      try {
+        var customerPayload = Object.assign({}, payload, { folder_id: FOLDERS.CUSTOMERS });
+        var more = await listCustomers(FOLDERS.CUSTOMERS, customerPayload);
+        var moreRows = (more.rows || []).map(normalizeCustomerRow).filter(Boolean);
+        if (moreRows.length) {
+          rows = moreRows;
+          result = more;
+        }
+      } catch (e2) { /* keep empty leads result */ }
+    }
+    var total = result.total != null ? Number(result.total) : rows.length;
+    if (!Number.isFinite(total) || total < rows.length) total = rows.length;
+    return { rows: rows, total: total, count: total, raw: result.raw };
+  }
+
+  async function countLeads(extra) {
+    extra = extra || {};
+    var payload = Object.assign({
+      folder: String(FOLDERS.LEADS) + ',' + String(FOLDERS.CUSTOMERS),
+      folder_id: FOLDERS.LEADS
+    }, extra);
+    applyLeadSearchFilters(payload, extra.search);
+    try {
+      var result = await countCustomers(FOLDERS.LEADS, payload);
+      return { count: Number(result.count) || 0, raw: result.raw };
+    } catch (err) {
+      var msg = String((err && err.message) || '');
+      if (err && (Number(err.status) === 403 || /folder_id|permission denied/i.test(msg))) {
+        delete payload.folder_id;
+        var fallback = await countCustomers(FOLDERS.CUSTOMERS, payload);
+        return { count: Number(fallback.count) || 0, raw: fallback.raw };
+      }
+      throw err;
+    }
   }
 
   function bucketTotal(bucket) {
@@ -1824,7 +1936,7 @@
   }
 
   function assertApiSuccess(raw, route, fallbackMessage) {
-    if (raw && (Number(raw.success) === 1 || raw.success === true || raw.data || raw.id != null || raw.payment_form_id != null)) {
+    if (raw && (Number(raw.success) === 1 || raw.success === true || raw.ok === true || raw.data || raw.id != null || raw.payment_form_id != null || raw.payment_forms_paid_id != null)) {
       return raw;
     }
     var err = new Error((raw && (raw.message || raw.error)) || fallbackMessage || (route + ' failed'));
@@ -2049,6 +2161,34 @@
     return { ok: true, payment_form_id: id, message: raw.message || '', raw: raw };
   }
 
+  function normalizeCustomerPaymentFormRow(row) {
+    if (!row || typeof row !== 'object') return null;
+    var id = row.payment_forms_paid_id != null ? row.payment_forms_paid_id
+      : (row.data_id != null ? row.data_id : row.id);
+    if (id == null || id === '') return null;
+    var statusRaw = row.status != null ? String(row.status) : '';
+    var paid = Number(row.paid) === 1 || /^paid$/i.test(statusRaw);
+    var link = row.payment_url || row.payment_link || row.public_link ||
+      row.template_payment_link || row.pay_url || row.link || '';
+    var templateId = row.payment_form_id != null ? row.payment_form_id
+      : (row.form_id != null ? row.form_id : (row.template_id != null ? row.template_id : ''));
+    return {
+      id: id,
+      payment_forms_paid_id: id,
+      payment_form_id: templateId,
+      name: row.form_name || row.name || '',
+      form_name: row.form_name || row.name || '',
+      item_name: row.item_name || row.iteam_name || '',
+      item_type: row.iteam_type || row.item_type || '',
+      iteam_type: row.iteam_type || row.item_type || '',
+      amount: row.amount != null ? row.amount : '',
+      status: statusRaw || (paid ? 'Paid' : 'Unpaid'),
+      paid: paid,
+      payment_url: String(link || '').trim(),
+      raw: row
+    };
+  }
+
   /** Customer.PaymentForms.List — forms assigned to one customer. */
   async function listCustomerPaymentForms(customerId, extra) {
     var id = requireId(customerId, 'customer_id');
@@ -2056,14 +2196,19 @@
     var payload = Object.assign({
       customer_id: id,
       cust_id: id,
-      limit: 25
+      limit: 25,
+      include_templates: 1
     }, p);
     var raw = await getClient().request('Customer.PaymentForms.List', payload);
+    var rows = extractListRows(raw).map(normalizeCustomerPaymentFormRow).filter(Boolean);
+    var templates = Array.isArray(raw && raw.templates)
+      ? raw.templates.map(normalizePaymentFormRow).filter(Boolean)
+      : [];
     return {
       customer_id: id,
-      rows: extractListRows(raw),
-      count: extractCount(raw) || extractListRows(raw).length,
-      templates: Array.isArray(raw && raw.templates) ? raw.templates : [],
+      rows: rows,
+      count: extractCount(raw) || rows.length,
+      templates: templates,
       raw: raw
     };
   }
@@ -2114,17 +2259,21 @@
   }
 
   async function deleteCustomerPaymentForm(customerId, paidRowId) {
-    var cid = requireId(customerId, 'customer_id');
-    var rowId = requireId(paidRowId, 'payment_forms_paid_id');
+    var cid = String(requireId(customerId, 'customer_id'));
+    var rowId = String(requireId(paidRowId, 'id'));
+    // Docs: POST /app/Customer.PaymentForms.Delete — only customer_id + id
+    // https://eli.bull36.com/app/help/Customer.PaymentForms.Delete
     var raw = await getClient().request('Customer.PaymentForms.Delete', {
       customer_id: cid,
-      cust_id: cid,
-      id: rowId,
-      payment_forms_paid_id: rowId,
-      data_id: rowId
+      id: rowId
     });
-    assertApiSuccess(raw, 'Customer.PaymentForms.Delete', 'Customer payment form delete failed');
-    return { ok: true, payment_forms_paid_id: rowId, message: raw.message || '', raw: raw };
+    if (raw && (raw.success === 0 || raw.success === '0' || raw.ok === false)) {
+      var fail = new Error((raw && (raw.message || raw.error)) || 'Customer payment form delete failed');
+      fail.route = 'Customer.PaymentForms.Delete';
+      fail.raw = raw;
+      throw fail;
+    }
+    return { ok: true, payment_forms_paid_id: rowId, message: (raw && raw.message) || '', raw: raw };
   }
 
   /** InvoiceSettings.List — companies for invoice_setting_id. */
@@ -3432,6 +3581,7 @@
     getEmail: getEmail,
     getUserBasic: getUserBasic,
     getUser: getUser,
+    getLoggedInUserId: getLoggedInUserId,
     getFolders: getFolders,
     getTeamMembers: getTeamMembers,
     homeForRole: homeForRole,
@@ -3440,6 +3590,9 @@
     requireAuthOrRedirect: requireAuth,
     listCustomers: listCustomers,
     countCustomers: countCustomers,
+    listLeads: listLeads,
+    countLeads: countLeads,
+    normalizeCustomerRow: normalizeCustomerRow,
     listMissions: listMissions,
     getMission: getMission,
     updateMission: updateMission,

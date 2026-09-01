@@ -36,9 +36,13 @@ var translations = {
     dark_mode: 'מצב לילה',
     language: 'שפה',
     hello: 'שלום',
+    profile: 'פרופיל',
+    profile_username: 'שם משתמש',
+    profile_email: 'אימייל',
     logout: 'התנתק',
     confirm_logout: 'האם אתה בטוח שברצונך להתנתק?',
     home_title: 'טפסי תשלום',
+    nav_leads: 'לידים',
     home_subtitle: 'גבייה ותשלומים',
     page_title_home: 'טפסי תשלום',
     empty_forms: 'אין טפסי תשלום להצגה',
@@ -56,9 +60,28 @@ var translations = {
     err_product_required: 'יש לבחור מוצר / פריט',
     err_copy_missing: 'חסרים שדות לשכפול — מלאו את הטופס ושמרו',
     search_placeholder: 'חיפוש...',
+    search_leads_placeholder: 'חיפוש לידים...',
+    loading_leads: 'טוען לידים…',
+    empty_leads: 'אין לידים להצגה',
+    err_load_leads: 'טעינת הלידים נכשלה',
+    col_phone: 'טלפון',
+    col_email: 'אימייל',
+    col_item_name: 'שם פריט',
+    col_status: 'סטטוס',
+    status_paid: 'שולם',
+    status_unpaid: 'לא שולם',
+    back_to_leads: 'חזרה ללידים',
+    lead_forms_sub: 'טפסי תשלום',
+    select_payment_form: 'בחר טופס תשלום',
+    assign_form: 'שייך טופס',
+    form_assigned: 'הטופס שויך לליד',
+    err_select_form: 'יש לבחור טופס תשלום',
+    confirm_delete_assigned: 'למחוק את טופס התשלום מהליד?',
+    action_open: 'פתח',
     common_settings: 'הגדרות כלליות',
     common_settings_soon: 'הגדרות כלליות — בקרוב',
     add_form: 'הוסף טופס',
+    header_add_form: 'טופס תשלום',
     col_id: 'מזהה',
     col_name: 'שם',
     col_item_type: 'סוג פריט',
@@ -158,9 +181,13 @@ var translations = {
     dark_mode: 'Dark Mode',
     language: 'Language',
     hello: 'Hello',
+    profile: 'Profile',
+    profile_username: 'Username',
+    profile_email: 'Email',
     logout: 'Log out',
     confirm_logout: 'Are you sure you want to log out?',
     home_title: 'Payment forms',
+    nav_leads: 'Leads',
     home_subtitle: 'Collections & Payments',
     page_title_home: 'Payment forms',
     empty_forms: 'No payment forms to show',
@@ -178,9 +205,28 @@ var translations = {
     err_product_required: 'Please select a product / item',
     err_copy_missing: 'Missing fields to duplicate — fill the form and save',
     search_placeholder: 'Search...',
+    search_leads_placeholder: 'Search leads...',
+    loading_leads: 'Loading leads…',
+    empty_leads: 'No leads to show',
+    err_load_leads: 'Could not load leads',
+    col_phone: 'Phone',
+    col_email: 'Email',
+    col_item_name: 'Item name',
+    col_status: 'Status',
+    status_paid: 'Paid',
+    status_unpaid: 'Unpaid',
+    back_to_leads: 'Back to leads',
+    lead_forms_sub: 'Payment forms',
+    select_payment_form: 'Select payment form',
+    assign_form: 'Assign form',
+    form_assigned: 'Payment form assigned',
+    err_select_form: 'Please select a payment form',
+    confirm_delete_assigned: 'Remove this payment form from the lead?',
+    action_open: 'Open',
     common_settings: 'Common settings',
     common_settings_soon: 'Common settings — coming soon',
     add_form: 'Add form',
+    header_add_form: 'Payment form',
     col_id: 'Id',
     col_name: 'Name',
     col_item_type: 'Item type',
@@ -271,9 +317,12 @@ function setLanguage(lang) {
   lang = normalizeLanguage(lang) || 'he';
   localStorage.setItem('lang', lang);
   document.cookie = 'lang=' + lang + '; max-age=' + (86400 * 30) + '; path=/';
-  var url = new URL(window.location.href);
-  url.searchParams.set('lang', lang);
-  window.location.href = url.toString();
+  try {
+    var url = new URL(window.location.href);
+    url.searchParams.set('lang', lang);
+    history.replaceState({}, '', url.toString());
+  } catch (e) { /* ignore */ }
+  initLanguage();
 }
 
 function getBrandName(lang) {
@@ -298,7 +347,6 @@ function initLanguage() {
   t.page_title = brand + (currentLang === 'he' ? ' — התחברות' : ' — Login');
   t.page_title_home = brand;
   t.crm_system = brand + (currentLang === 'he' ? ' · גבייה ותשלומים' : ' · Collections & Payments');
-  t.login_hint = (window.__paymentTenantHint || 'bull36.com') + ' · Biz1 SDK';
 
   document.documentElement.lang = currentLang;
   document.documentElement.dir = currentLang === 'he' ? 'rtl' : 'ltr';
@@ -312,6 +360,9 @@ function initLanguage() {
       } else {
         el.textContent = t[key];
       }
+    } else if (el.tagName === 'OPTION') {
+      el.textContent = t[key];
+      el.label = t[key];
     } else {
       el.textContent = t[key];
     }

@@ -21,6 +21,15 @@
   var itemOptionsByType = {};
   var itemSelectLoading = false;
   var guestMode = false;
+  var currentView = 'leads';
+  var selectedLead = null;
+  var leads = [];
+  var leadsTotal = 0;
+  var leadsPage = 1;
+  var leadsLoading = false;
+  var leadsSearchTimer = null;
+  var assignTemplates = [];
+  var lookupsReady = false;
 
   var formsBody = document.getElementById('formsBody');
   var emptyState = document.getElementById('emptyState');
@@ -35,6 +44,45 @@
   var modal = document.getElementById('formModal');
   var editor = document.getElementById('paymentFormEditor');
   var submitBtn = editor ? editor.querySelector('[type="submit"]') : null;
+  var leadsView = document.getElementById('leadsView');
+  var formsView = document.getElementById('formsView');
+  var leadsBody = document.getElementById('leadsBody');
+  var leadsEmptyState = document.getElementById('leadsEmptyState');
+  var leadsLoadingState = document.getElementById('leadsLoadingState');
+  var leadsErrorState = document.getElementById('leadsErrorState');
+  var leadsErrorText = document.getElementById('leadsErrorText');
+  var leadsSearchInput = document.getElementById('leadsSearchInput');
+  var leadsPager = document.getElementById('leadsPager');
+  var leadsPageInfo = document.getElementById('leadsPageInfo');
+  var btnLeadsPrev = document.getElementById('btnLeadsPrev');
+  var btnLeadsNext = document.getElementById('btnLeadsNext');
+  var btnBackLeads = document.getElementById('btnBackLeads');
+  var selectedLeadNameEl = document.getElementById('selectedLeadName');
+  var selectedLeadBlock = document.getElementById('selectedLeadBlock');
+  var selectedLeadAvatar = document.getElementById('selectedLeadAvatar');
+  var assignFormWrap = document.getElementById('assignFormWrap');
+  var assignFormSelect = document.getElementById('assignFormSelect');
+  var btnAssignForm = document.getElementById('btnAssignForm');
+  var formsHeadRow = document.getElementById('formsHeadRow');
+  var formsSearchWrap = document.getElementById('formsSearchWrap');
+  var formsTableWrap = document.getElementById('formsTableWrap');
+  var formsTable = document.getElementById('formsTable');
+  var btnNavLeads = document.getElementById('btnNavLeads');
+  var btnHeaderAdd = document.getElementById('btnHeaderAdd');
+  var profileWrap = document.getElementById('profileWrap');
+  var btnProfile = document.getElementById('btnProfile');
+  var profileMenu = document.getElementById('profileMenu');
+  var profileAvatar = document.getElementById('profileAvatar');
+  var profileUsernameEl = document.getElementById('profileUsername');
+  var profileEmailEl = document.getElementById('profileEmail');
+
+  function isTemplatesView() {
+    return guestMode || currentView === 'templates';
+  }
+
+  function isCustomerFormsView() {
+    return !guestMode && currentView === 'forms' && !!selectedLead;
+  }
 
   function t(key) {
     return (window.t && window.t(key)) || key;
@@ -104,14 +152,450 @@
       else banner.classList.add('hidden');
     }
     var shareBtn = document.getElementById('btnShareLink');
-    if (shareBtn) {
-      if (guestMode) shareBtn.classList.add('hidden');
-      else shareBtn.classList.remove('hidden');
-    }
+    if (shareBtn) shareBtn.classList.add('hidden');
     var logoutBtn = document.getElementById('btnLogout');
     if (logoutBtn && guestMode) {
       logoutBtn.setAttribute('data-i18n-title', 'guest_exit');
       logoutBtn.setAttribute('title', t('guest_exit'));
+    }
+    applyViewUi();
+    fillProfile();
+  }
+
+  function getProfileDetails() {
+    var user = (App.getUser && App.getUser()) || {};
+    var loginId = String((App.getEmail && App.getEmail()) || '').trim();
+    var email = String(user.email || user.mail || '').trim();
+    var username = String(
+      user.username || user.user_name || user.login || user.user || ''
+    ).trim();
+    var display = String(
+      user.full_name || user.display_name || [user.first_name, user.last_name].filter(Boolean).join(' ') || user.name || ''
+    ).trim();
+    if (!email && loginId.indexOf('@') !== -1) email = loginId;
+    if (!username) {
+      if (loginId && loginId.indexOf('@') === -1) username = loginId;
+      else if (display) username = display;
+      else if (email) username = email.split('@')[0];
+    }
+    if (!email) email = '';
+    return {
+      username: username || '—',
+      email: email || '—',
+      initials: leadInitials(display || username || email || loginId)
+    };
+  }
+
+  function fillProfile() {
+    if (!profileWrap) return;
+    if (guestMode) {
+      profileWrap.classList.add('hidden');
+      closeProfileMenu();
+      return;
+    }
+    profileWrap.classList.remove('hidden');
+    var info = getProfileDetails();
+    if (profileUsernameEl) profileUsernameEl.textContent = info.username;
+    if (profileEmailEl) profileEmailEl.textContent = info.email;
+    if (profileAvatar && info.initials) {
+      profileAvatar.textContent = info.initials;
+      profileAvatar.classList.add('has-initials');
+    }
+  }
+
+  function closeProfileMenu() {
+    if (profileMenu) profileMenu.classList.add('hidden');
+    if (btnProfile) {
+      btnProfile.classList.remove('is-open');
+      btnProfile.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function toggleProfileMenu() {
+    if (!profileMenu || guestMode) return;
+    var open = profileMenu.classList.contains('hidden');
+    if (open) {
+      fillProfile();
+      profileMenu.classList.remove('hidden');
+      if (btnProfile) {
+        btnProfile.classList.add('is-open');
+        btnProfile.setAttribute('aria-expanded', 'true');
+      }
+    } else {
+      closeProfileMenu();
+    }
+  }
+
+  var paintedViewKey = '';
+
+  function playViewEnter(el) {
+    if (!el) return;
+    el.classList.remove('view-enter');
+    void el.offsetWidth;
+    el.classList.add('view-enter');
+  }
+
+  function leadFromHash() {
+    var m = String(location.hash || '').match(/(?:^|#|&)lead=([^&]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function setLeadHash(lead, replace) {
+    var path = location.pathname + location.search;
+    var url = lead ? path + '#lead=' + encodeURIComponent(lead.id) : path;
+    var state = { view: lead ? 'forms' : 'leads', leadId: lead ? String(lead.id) : '' };
+    try {
+      if (replace) history.replaceState(state, '', url);
+      else if (location.hash !== (lead ? '#lead=' + encodeURIComponent(lead.id) : '')) {
+        history.pushState(state, '', url);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function applyViewUi() {
+    var showLeads = !guestMode && currentView === 'leads';
+    var showForms = isTemplatesView() || isCustomerFormsView();
+    if (leadsView) {
+      if (showLeads) leadsView.classList.remove('hidden');
+      else leadsView.classList.add('hidden');
+    }
+    if (formsView) {
+      if (showForms) formsView.classList.remove('hidden');
+      else formsView.classList.add('hidden');
+      formsView.classList.toggle('forms-view--lead', isCustomerFormsView());
+    }
+
+    var shareBtn = document.getElementById('btnShareLink');
+    var addBtn = document.getElementById('btnAddForm');
+    if (shareBtn) shareBtn.classList.add('hidden');
+    if (btnNavLeads) {
+      if (guestMode) btnNavLeads.classList.add('hidden');
+      else btnNavLeads.classList.remove('hidden');
+      btnNavLeads.classList.toggle('is-active', !guestMode && (currentView === 'leads' || currentView === 'forms'));
+    }
+    if (btnHeaderAdd) {
+      if (guestMode || currentView === 'leads' || currentView === 'forms' || currentView === 'templates') {
+        btnHeaderAdd.classList.remove('hidden');
+      }
+    }
+
+    if (guestMode || currentView === 'templates') {
+      if (btnBackLeads) btnBackLeads.classList.add('hidden');
+      fillSelectedLeadChip(null);
+      if (assignFormWrap) assignFormWrap.classList.remove('hidden');
+      if (btnAssignForm) btnAssignForm.classList.add('hidden');
+      if (addBtn) addBtn.classList.add('hidden');
+      if (formsSearchWrap) formsSearchWrap.classList.add('hidden');
+      if (formsTable) formsTable.classList.add('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
+      if (pager) pager.classList.add('hidden');
+    } else {
+      if (addBtn) addBtn.classList.add('hidden');
+      if (formsSearchWrap) formsSearchWrap.classList.add('hidden');
+      if (formsTable) formsTable.classList.remove('hidden');
+      if (btnAssignForm) btnAssignForm.classList.remove('hidden');
+      if (btnBackLeads) {
+        if (currentView === 'forms') btnBackLeads.classList.remove('hidden');
+        else btnBackLeads.classList.add('hidden');
+      }
+      if (selectedLeadBlock || selectedLeadNameEl) {
+        if (currentView === 'forms' && selectedLead) fillSelectedLeadChip(selectedLead);
+        else fillSelectedLeadChip(null);
+      }
+      if (assignFormWrap) {
+        if (currentView === 'forms' && selectedLead) assignFormWrap.classList.remove('hidden');
+        else assignFormWrap.classList.add('hidden');
+      }
+    }
+    syncTemplatesTableWrap();
+    renderFormsHeader();
+    var key = (guestMode ? 'g-' : '') + currentView;
+    if (key !== paintedViewKey) {
+      paintedViewKey = key;
+      if (showLeads) playViewEnter(leadsView);
+      else if (showForms) playViewEnter(formsView);
+    }
+  }
+
+  function syncTemplatesTableWrap() {
+    if (!formsTableWrap) return;
+    if (!isTemplatesView()) {
+      formsTableWrap.classList.remove('hidden');
+      return;
+    }
+    var hasError = errorState && !errorState.classList.contains('hidden');
+    if (loading || hasError) formsTableWrap.classList.remove('hidden');
+    else formsTableWrap.classList.add('hidden');
+  }
+
+  function renderFormsHeader() {
+    if (!formsHeadRow) return;
+    if (isTemplatesView()) {
+      formsHeadRow.innerHTML =
+        '<th class="col-id">' + escapeHtml(t('col_id')) + '</th>' +
+        '<th>' + escapeHtml(t('col_name')) + '</th>' +
+        '<th>' + escapeHtml(t('col_item_type')) + '</th>' +
+        '<th class="col-amount">' + escapeHtml(t('col_amount')) + '</th>' +
+        '<th class="col-action">' + escapeHtml(t('col_action')) + '</th>';
+      return;
+    }
+    formsHeadRow.innerHTML =
+      '<th class="col-id">' + escapeHtml(t('col_id')) + '</th>' +
+      '<th>' + escapeHtml(t('col_name')) + '</th>' +
+      '<th>' + escapeHtml(t('col_item_name')) + '</th>' +
+      '<th class="col-amount">' + escapeHtml(t('col_amount')) + '</th>' +
+      '<th class="col-status">' + escapeHtml(t('col_status')) + '</th>' +
+      '<th class="col-action">' + escapeHtml(t('col_action')) + '</th>';
+  }
+
+  function statusBadgeHtml(row) {
+    var paid = !!(row && (row.paid || /^paid$/i.test(String(row.status || ''))));
+    var label = paid ? t('status_paid') : t('status_unpaid');
+    var cls = paid ? 'status-badge status-badge--paid' : 'status-badge status-badge--unpaid';
+    return '<span class="' + cls + '">' + escapeHtml(label) + '</span>';
+  }
+
+  function fillAssignSelect(rows) {
+    if (!assignFormSelect) return;
+    var current = assignFormSelect.value;
+    var html = '<option value="" data-i18n="select_payment_form">' + escapeHtml(t('select_payment_form')) + '</option>';
+    (rows || []).forEach(function (row) {
+      var id = row && (row.id != null ? row.id : row.payment_form_id);
+      if (id == null || id === '') return;
+      var label = row.name || row.form_name || ('#' + id);
+      html += '<option value="' + escapeHtml(id) + '">' + escapeHtml(label) + '</option>';
+    });
+    assignFormSelect.innerHTML = html;
+    if (current) assignFormSelect.value = current;
+  }
+
+  function showLeadsView(opts) {
+    opts = opts || {};
+    selectedLead = null;
+    currentView = 'leads';
+    currentPage = 1;
+    forms = [];
+    totalCount = 0;
+    applyViewUi();
+    if (opts.keepList && leads.length) renderLeadsTable();
+    else loadLeads();
+    if (!opts.fromHistory) setLeadHash(null, true);
+  }
+
+  function showFormsForLead(lead, opts) {
+    opts = opts || {};
+    selectedLead = lead;
+    currentView = 'forms';
+    currentPage = 1;
+    forms = [];
+    totalCount = 0;
+    applyViewUi();
+    loadForms();
+    if (!opts.fromHistory) setLeadHash(lead, false);
+  }
+
+  async function openAddFormPopup() {
+    if (!lookupsReady) {
+      try { await loadLookups(); } catch (e) { /* still open form */ }
+    }
+    openModal(null);
+  }
+
+  async function showTemplatesView() {
+    selectedLead = null;
+    currentView = 'templates';
+    currentPage = 1;
+    forms = [];
+    totalCount = 0;
+    applyViewUi();
+    if (!lookupsReady) {
+      try { await loadLookups(); } catch (e) { /* still try list */ }
+    }
+    await loadForms();
+  }
+
+  function setLeadsBusy(isBusy) {
+    leadsLoading = !!isBusy;
+    if (leadsLoadingState) {
+      if (leadsLoading) leadsLoadingState.classList.remove('hidden');
+      else leadsLoadingState.classList.add('hidden');
+    }
+    if (leadsSearchInput) leadsSearchInput.disabled = leadsLoading;
+    if (btnLeadsPrev) btnLeadsPrev.disabled = leadsLoading || leadsPage <= 1;
+    if (btnLeadsNext) btnLeadsNext.disabled = leadsLoading;
+  }
+
+  function showLeadsError(msg) {
+    if (!leadsErrorState) return;
+    if (leadsErrorText) leadsErrorText.textContent = msg || t('err_load_leads');
+    leadsErrorState.classList.remove('hidden');
+  }
+
+  function clearLeadsError() {
+    if (leadsErrorState) leadsErrorState.classList.add('hidden');
+  }
+
+  function leadsTotalPages() {
+    return Math.max(1, Math.ceil((leadsTotal || 0) / PAGE_SIZE));
+  }
+
+  function renderLeadsPager() {
+    var pages = leadsTotalPages();
+    if (!leadsPager) return;
+    if (leadsTotal <= PAGE_SIZE) {
+      leadsPager.classList.add('hidden');
+      return;
+    }
+    leadsPager.classList.remove('hidden');
+    if (leadsPageInfo) {
+      leadsPageInfo.textContent = t('page_of')
+        .replace('{page}', String(leadsPage))
+        .replace('{pages}', String(pages));
+    }
+    if (btnLeadsPrev) btnLeadsPrev.disabled = leadsLoading || leadsPage <= 1;
+    if (btnLeadsNext) btnLeadsNext.disabled = leadsLoading || leadsPage >= pages;
+  }
+
+  function findLeadById(id) {
+    id = String(id);
+    for (var i = 0; i < leads.length; i++) {
+      if (String(leads[i].id) === id) return leads[i];
+    }
+    return null;
+  }
+
+  function leadInitials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    var a = parts[0].charAt(0);
+    var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (a + b).toUpperCase();
+  }
+
+  function uiIcon(kind) {
+    var inner = {
+      open: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+      copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+      trash: '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+      edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'
+    };
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (inner[kind] || '') + '</svg>';
+  }
+
+  function fillSelectedLeadChip(lead) {
+    if (!selectedLeadBlock) return;
+    if (!lead) {
+      selectedLeadBlock.classList.add('hidden');
+      return;
+    }
+    var name = lead.name || ('#' + lead.id);
+    if (selectedLeadNameEl) selectedLeadNameEl.textContent = name;
+    if (selectedLeadAvatar) {
+      selectedLeadAvatar.textContent = leadInitials(name);
+      selectedLeadAvatar.className = 'lead-avatar tone-' + leadAvatarTone(lead.id);
+    }
+    selectedLeadBlock.classList.remove('hidden');
+  }
+
+  function leadAvatarTone(id) {
+    var n = 0;
+    String(id || '').split('').forEach(function (ch) { n += ch.charCodeAt(0); });
+    return String((n % 6) + 1);
+  }
+
+  function renderLeadsTable() {
+    if (!leadsBody) return;
+    var leadsTable = document.getElementById('leadsTable');
+    if (leadsLoading && !leads.length) {
+      leadsBody.innerHTML = '';
+      if (leadsEmptyState) leadsEmptyState.classList.add('hidden');
+      if (leadsPager) leadsPager.classList.add('hidden');
+      if (leadsTable) leadsTable.classList.add('hidden');
+      return;
+    }
+    if (!leads.length) {
+      leadsBody.innerHTML = '';
+      if (leadsEmptyState) leadsEmptyState.classList.remove('hidden');
+      if (leadsPager) leadsPager.classList.add('hidden');
+      if (leadsTable) leadsTable.classList.add('hidden');
+      return;
+    }
+    if (leadsEmptyState) leadsEmptyState.classList.add('hidden');
+    if (leadsTable) leadsTable.classList.remove('hidden');
+    leadsBody.innerHTML = leads.map(function (row) {
+      var name = row.name || ('#' + row.id);
+      var phone = row.mobile || '';
+      var email = row.email || '';
+      var meta = [phone, email].filter(Boolean).join(' · ');
+      return (
+        '<tr class="lead-row" data-id="' + escapeHtml(row.id) + '" tabindex="0">' +
+          '<td colspan="3">' +
+            '<div class="lead-card">' +
+              '<span class="lead-avatar tone-' + leadAvatarTone(row.id) + '">' + escapeHtml(leadInitials(name)) + '</span>' +
+              '<span class="lead-copy">' +
+                '<span class="lead-name">' + escapeHtml(name) + '</span>' +
+                '<span class="lead-meta">' + escapeHtml(meta || '—') + '</span>' +
+              '</span>' +
+              '<span class="lead-go" aria-hidden="true">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
+              '</span>' +
+            '</div>' +
+          '</td>' +
+        '</tr>'
+      );
+    }).join('');
+    renderLeadsPager();
+  }
+
+  async function loadLeads(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    if (!App.listLeads) {
+      showLeadsError(t('err_load_leads'));
+      return;
+    }
+    if (!silent) {
+      setLeadsBusy(true);
+      clearLeadsError();
+    }
+    try {
+      var q = String((leadsSearchInput && leadsSearchInput.value) || '').trim();
+      var start = (leadsPage - 1) * PAGE_SIZE;
+      var filters = {
+        limit: PAGE_SIZE,
+        length: PAGE_SIZE,
+        start: start
+      };
+      if (q) filters.search = q;
+
+      var listRes = await App.listLeads(filters);
+      leads = listRes.rows || [];
+
+      var countRes = await App.countLeads(q ? { search: q } : {}).catch(function () {
+        return { count: listRes.count || leads.length };
+      });
+      leadsTotal = Number(countRes.count);
+      if (!Number.isFinite(leadsTotal) || leadsTotal < leads.length) {
+        leadsTotal = listRes.count != null ? Number(listRes.count) : leads.length;
+      }
+      if (leads.length < PAGE_SIZE && leadsPage === 1) {
+        leadsTotal = leads.length;
+      }
+      var pages = leadsTotalPages();
+      if (leadsPage > pages) leadsPage = pages;
+      if (leadsPage < 1) leadsPage = 1;
+      renderLeadsTable();
+    } catch (err) {
+      console.error('[PaymentForms] leads load failed', err);
+      if (!silent) {
+        leads = [];
+        leadsTotal = 0;
+        renderLeadsTable();
+        showLeadsError(apiErrorMessage(err) || t('err_load_leads'));
+      }
+    } finally {
+      if (!silent) setLeadsBusy(false);
+      renderLeadsPager();
     }
   }
 
@@ -124,16 +608,19 @@
     if (searchInput) searchInput.disabled = loading;
     if (btnPrevPage) btnPrevPage.disabled = loading || currentPage <= 1;
     if (btnNextPage) btnNextPage.disabled = loading;
+    syncTemplatesTableWrap();
   }
 
   function showError(msg) {
     if (!errorState) return;
     if (errorText) errorText.textContent = msg || t('err_load_forms');
     errorState.classList.remove('hidden');
+    syncTemplatesTableWrap();
   }
 
   function clearError() {
     if (errorState) errorState.classList.add('hidden');
+    syncTemplatesTableWrap();
   }
 
   function totalPages() {
@@ -147,12 +634,12 @@
   }
 
   function renderPager() {
-    var pages = totalPages();
     if (!pager) return;
-    if (totalCount <= PAGE_SIZE) {
+    if (isTemplatesView() || totalCount <= PAGE_SIZE) {
       pager.classList.add('hidden');
       return;
     }
+    var pages = totalPages();
     pager.classList.remove('hidden');
     pageInfo.textContent = t('page_of')
       .replace('{page}', String(currentPage))
@@ -162,7 +649,19 @@
   }
 
   function renderTable() {
+    if (isTemplatesView()) {
+      fillAssignSelect(forms);
+      if (formsBody) formsBody.innerHTML = '';
+      if (emptyState) emptyState.classList.add('hidden');
+      if (pager) pager.classList.add('hidden');
+      if (formsTable) formsTable.classList.add('hidden');
+      syncTemplatesTableWrap();
+      return;
+    }
+
     if (!formsBody) return;
+
+    if (formsTable) formsTable.classList.remove('hidden');
 
     if (loading && !forms.length) {
       formsBody.innerHTML = '';
@@ -179,19 +678,47 @@
     }
 
     emptyState.classList.add('hidden');
+    renderFormsHeader();
+    var leadId = selectedLead
+      ? (selectedLead.customer_id != null ? selectedLead.customer_id : selectedLead.id)
+      : '';
     formsBody.innerHTML = forms.map(function (row) {
+      if (isCustomerFormsView()) {
+        var paidId = row.payment_forms_paid_id != null ? row.payment_forms_paid_id : row.id;
+        var itemName = String(row.item_name || '').trim();
+        var actionsHtml =
+          '<button type="button" class="action-btn" data-action="open" title="' + escapeHtml(t('action_open')) + '">' +
+            uiIcon('open') +
+          '</button>' +
+          '<button type="button" class="action-btn" data-action="copy-link" title="' + escapeHtml(t('action_copy_link')) + '">' +
+            uiIcon('copy') +
+          '</button>' +
+          '<button type="button" class="action-btn action-btn--danger js-delete-assigned" data-action="delete-assigned" data-paid-id="' + escapeHtml(paidId) + '" data-customer-id="' + escapeHtml(leadId) + '" title="' + escapeHtml(t('action_delete')) + '">' +
+            uiIcon('trash') +
+          '</button>';
+        return (
+          '<tr data-id="' + escapeHtml(paidId) + '">' +
+            '<td class="col-id">' + escapeHtml(row.id) + '</td>' +
+            '<td>' + escapeHtml(row.name || row.form_name) + '</td>' +
+            '<td class="' + (itemName ? '' : 'col-muted') + '">' + escapeHtml(itemName || '—') + '</td>' +
+            '<td class="col-amount">' + escapeHtml(formatAmount(row.amount)) + '</td>' +
+            '<td class="col-status">' + statusBadgeHtml(row) + '</td>' +
+            '<td class="col-action"><div class="actions">' + actionsHtml + '</div></td>' +
+          '</tr>'
+        );
+      }
+
       var actionsHtml =
         '<button type="button" class="action-btn" data-action="copy" title="' + escapeHtml(t('action_copy')) + '">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+          uiIcon('copy') +
         '</button>';
-      // Share-link guests: view/copy only — no edit / delete
       if (!guestMode) {
         actionsHtml +=
           '<button type="button" class="action-btn" data-action="edit" title="' + escapeHtml(t('action_edit')) + '">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+            uiIcon('edit') +
           '</button>' +
           '<button type="button" class="action-btn action-btn--danger" data-action="delete" title="' + escapeHtml(t('action_delete')) + '">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>' +
+            uiIcon('trash') +
           '</button>';
       }
       return (
@@ -200,12 +727,14 @@
           '<td>' + escapeHtml(row.name || row.form_name) + '</td>' +
           '<td class="col-type">' + escapeHtml(row.item_type || row.iteam_type) + '</td>' +
           '<td class="col-amount">' + escapeHtml(formatAmount(row.amount)) + '</td>' +
-          '<td><div class="actions">' + actionsHtml + '</div></td>' +
+          '<td class="col-action"><div class="actions">' + actionsHtml + '</div></td>' +
         '</tr>'
       );
     }).join('');
 
+    bindAssignedDeleteButtons();
     renderPager();
+    if (isCustomerFormsView()) fillAssignSelect(assignTemplates);
   }
 
   function fillSelect(el, rows, opts) {
@@ -282,6 +811,7 @@
     });
     fillGatewaySelect();
     fillItemSelectForType(document.getElementById('pfProductType').value || 'product');
+    lookupsReady = true;
     console.log('[PaymentForms] companies loaded', invoiceSettings.length);
     console.log('[PaymentForms] gateways loaded', paymentGateways.length, paymentGateways);
   }
@@ -307,6 +837,40 @@
       clearError();
     }
     try {
+      if (isCustomerFormsView()) {
+        var start = (currentPage - 1) * PAGE_SIZE;
+        var listRes = await App.listCustomerPaymentForms(selectedLead.id, {
+          limit: PAGE_SIZE,
+          length: PAGE_SIZE,
+          start: start,
+          include_templates: 1
+        });
+        forms = listRes.rows || [];
+        assignTemplates = listRes.templates || [];
+        if (!assignTemplates.length && App.listPaymentForms) {
+          var tplRes = await App.listPaymentForms({ limit: 25, length: 25, start: 0 }).catch(function () {
+            return { rows: [] };
+          });
+          assignTemplates = tplRes.rows || [];
+        }
+        fillAssignSelect(assignTemplates);
+
+        var countRes = await App.countCustomerPaymentForms(selectedLead.id).catch(function () {
+          return { count: listRes.count || forms.length };
+        });
+        totalCount = Number(countRes.count);
+        if (!Number.isFinite(totalCount) || totalCount < forms.length) {
+          totalCount = listRes.count != null ? Number(listRes.count) : forms.length;
+        }
+        if (forms.length < PAGE_SIZE && currentPage === 1) {
+          totalCount = forms.length;
+        }
+        clampPage();
+        renderTable();
+        if (silent) clearError();
+        return;
+      }
+
       var q = String(searchInput.value || '').trim();
       var start = (currentPage - 1) * PAGE_SIZE;
       var filters = {
@@ -359,6 +923,7 @@
 
   var formsReloadTimer = null;
   function scheduleFormsReload(reason) {
+    if (!isTemplatesView() && !isCustomerFormsView()) return;
     if (formsReloadTimer) clearTimeout(formsReloadTimer);
     formsReloadTimer = setTimeout(function () {
       formsReloadTimer = null;
@@ -386,6 +951,11 @@
   function startRealtimeUpdates() {
     if (!App.connectRealtime) return;
 
+    window.addEventListener('mineralbar:leads', function () {
+      if (!guestMode && currentView === 'leads') {
+        loadLeads({ silent: true });
+      }
+    });
     window.addEventListener('mineralbar:payment-forms', function () {
       scheduleFormsReload('payment-forms');
     });
@@ -835,14 +1405,88 @@
       submitBtn.disabled = false;
       submitBtn.textContent = t('submit');
     }
+    if (isTemplatesView() && assignFormSelect) assignFormSelect.value = '';
+  }
+
+  function bindAssignedDeleteButtons() {
+    if (!formsBody) return;
+    var list = formsBody.querySelectorAll('[data-action="delete-assigned"]');
+    for (var i = 0; i < list.length; i++) {
+      list[i].onclick = function (ev) {
+        if (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }
+        runDeleteAssigned(this);
+      };
+    }
+  }
+
+  var deleteAssignedBusy = {};
+
+  async function runDeleteAssigned(btn) {
+    if (!btn) return;
+    var paidId = btn.getAttribute('data-paid-id');
+    var customerId = btn.getAttribute('data-customer-id');
+    if (!paidId && btn.closest) {
+      var tr = btn.closest('tr[data-id]');
+      if (tr) paidId = tr.getAttribute('data-id');
+    }
+    if (!customerId && selectedLead) {
+      customerId = selectedLead.customer_id != null ? selectedLead.customer_id : selectedLead.id;
+    }
+    if (!customerId || !paidId) {
+      showError(t('err_load_forms'));
+      return;
+    }
+    var busyKey = String(customerId) + ':' + String(paidId);
+    if (deleteAssignedBusy[busyKey]) return;
+    deleteAssignedBusy[busyKey] = true;
+    btn.disabled = true;
+    try {
+      await App.deleteCustomerPaymentForm(customerId, paidId);
+      forms = forms.filter(function (r) {
+        return String(r.id) !== String(paidId) && String(r.payment_forms_paid_id) !== String(paidId);
+      });
+      renderTable();
+      await loadForms();
+      notifyFormsChanged();
+    } catch (err) {
+      showError(apiErrorMessage(err) || t('err_load_forms'));
+      try { await loadForms(); } catch (e2) { /* keep banner error */ }
+    } finally {
+      deleteAssignedBusy[busyKey] = false;
+      if (btn && btn.disabled) btn.disabled = false;
+    }
   }
 
   function findById(id) {
     id = String(id);
     for (var i = 0; i < forms.length; i++) {
-      if (String(forms[i].id) === id) return forms[i];
+      var row = forms[i];
+      if (String(row.id) === id) return row;
+      if (row.payment_forms_paid_id != null && String(row.payment_forms_paid_id) === id) return row;
     }
     return null;
+  }
+
+  function assignedFormLink(row) {
+    if (!row) return '';
+    var raw = row.raw || {};
+    var keys = ['payment_url', 'payment_link', 'public_link', 'template_payment_link', 'pay_url', 'link'];
+    var i;
+    for (i = 0; i < keys.length; i++) {
+      var v = String(row[keys[i]] || raw[keys[i]] || '').trim();
+      if (v && v.indexOf('[object') !== 0) return v;
+    }
+    return '';
+  }
+
+  function assignedTemplateId(row) {
+    if (!row) return '';
+    var raw = row.raw || {};
+    var id = row.payment_form_id || raw.payment_form_id || raw.form_id || raw.template_id || raw.paymentforms_id;
+    return id == null || id === '' ? '' : String(id);
   }
 
   function buildPayloadFromForm() {
@@ -895,14 +1539,98 @@
     return payload;
   }
 
-  formsBody.addEventListener('click', async function (e) {
-    var btn = e.target.closest('[data-action]');
-    if (!btn || loading) return;
-    var tr = btn.closest('tr[data-id]');
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.nodeType === 3 ? e.target.parentNode : e.target;
+    var btn = null;
+    while (el && el !== document) {
+      if (el.getAttribute && el.getAttribute('data-action') === 'delete-assigned') {
+        btn = el;
+        break;
+      }
+      el = el.parentElement || el.parentNode;
+    }
+    if (!btn) return;
+    e.preventDefault();
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    e.stopPropagation();
+    runDeleteAssigned(btn);
+  }, true);
+
+  var formsClickRoot = formsTableWrap || formsTable || formsBody;
+  if (formsClickRoot) formsClickRoot.addEventListener('click', async function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!btn) {
+      var el = e.target && e.target.nodeType === 3 ? e.target.parentElement : e.target;
+      while (el && el !== formsClickRoot) {
+        if (el.getAttribute && el.getAttribute('data-action')) {
+          btn = el;
+          break;
+        }
+        el = el.parentElement || el.parentNode;
+      }
+    }
+    if (!btn || btn.disabled) return;
+    var tr = btn.closest ? btn.closest('tr[data-id]') : null;
+    if (!tr) {
+      var node = btn.parentElement;
+      while (node && node !== formsClickRoot) {
+        if (node.tagName === 'TR' && node.getAttribute('data-id')) {
+          tr = node;
+          break;
+        }
+        node = node.parentElement;
+      }
+    }
     if (!tr) return;
     var row = findById(tr.getAttribute('data-id'));
-    if (!row) return;
     var action = btn.getAttribute('data-action');
+    if (!row && action !== 'delete-assigned') {
+      console.warn('[PaymentForms] row not found', tr.getAttribute('data-id'), forms);
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (action === 'open') {
+      var url = assignedFormLink(row);
+      if (!url) {
+        alert(t('err_no_link'));
+        return;
+      }
+      window.open(url, '_blank', 'noopener');
+      return;
+    }
+
+    if (action === 'copy-link') {
+      btn.disabled = true;
+      try {
+        var link = assignedFormLink(row);
+        if (link) {
+          await copyTextToClipboard(link);
+          alert(t('link_copied'));
+          return;
+        }
+        var templateId = assignedTemplateId(row);
+        if (selectedLead && templateId && App.addCustomerPaymentForm) {
+          await App.addCustomerPaymentForm(selectedLead.id, templateId);
+          currentPage = 1;
+          await loadForms();
+          notifyFormsChanged();
+          return;
+        }
+        alert(t('err_no_link'));
+      } catch (err) {
+        alert(apiErrorMessage(err) || t('err_copy_failed'));
+      } finally {
+        btn.disabled = false;
+      }
+      return;
+    }
+
+    if (action === 'delete-assigned') {
+      runDeleteAssigned(btn);
+      return;
+    }
 
     if (action === 'edit') {
       if (guestMode) return;
@@ -976,6 +1704,111 @@
   document.getElementById('btnAddForm').addEventListener('click', function () {
     openModal(null);
   });
+
+  if (assignFormSelect) {
+    assignFormSelect.addEventListener('change', function () {
+      if (!isTemplatesView() || guestMode || loading) return;
+      var id = assignFormSelect.value;
+      if (!id) return;
+      var row = findById(id);
+      if (row) openModal(row);
+    });
+  }
+
+  if (btnAssignForm) {
+    btnAssignForm.addEventListener('click', async function () {
+      if (guestMode || !selectedLead || loading) return;
+      var formId = assignFormSelect ? assignFormSelect.value : '';
+      if (!formId) {
+        alert(t('err_select_form'));
+        if (assignFormSelect) assignFormSelect.focus();
+        return;
+      }
+      btnAssignForm.disabled = true;
+      try {
+        await App.addCustomerPaymentForm(selectedLead.id, formId);
+        currentPage = 1;
+        await loadForms();
+        notifyFormsChanged();
+      } catch (err) {
+        alert(apiErrorMessage(err));
+      } finally {
+        btnAssignForm.disabled = false;
+      }
+    });
+  }
+
+  if (btnNavLeads) {
+    btnNavLeads.addEventListener('click', function () {
+      if (guestMode || currentView === 'leads') return;
+      showLeadsView({ keepList: true });
+    });
+  }
+
+  if (btnHeaderAdd) {
+    btnHeaderAdd.addEventListener('click', function () {
+      openAddFormPopup();
+    });
+  }
+
+  if (btnBackLeads) {
+    btnBackLeads.addEventListener('click', function () {
+      if (/#lead=/.test(String(location.hash || ''))) {
+        history.back();
+        return;
+      }
+      showLeadsView({ keepList: true });
+    });
+  }
+
+  if (leadsBody) {
+    leadsBody.addEventListener('click', function (e) {
+      var tr = e.target.closest('tr[data-id]');
+      if (!tr || leadsLoading) return;
+      var lead = findLeadById(tr.getAttribute('data-id'));
+      if (lead) showFormsForLead(lead);
+    });
+    leadsBody.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var tr = e.target.closest('tr[data-id]');
+      if (!tr || leadsLoading) return;
+      e.preventDefault();
+      var lead = findLeadById(tr.getAttribute('data-id'));
+      if (lead) showFormsForLead(lead);
+    });
+  }
+
+  if (leadsErrorState) {
+    leadsErrorState.addEventListener('click', function (e) {
+      if (e.target && e.target.id === 'btnRetryLeads') loadLeads();
+    });
+  }
+
+  if (leadsSearchInput) {
+    leadsSearchInput.addEventListener('input', function () {
+      leadsPage = 1;
+      clearTimeout(leadsSearchTimer);
+      leadsSearchTimer = setTimeout(function () {
+        loadLeads();
+      }, 350);
+    });
+  }
+
+  if (btnLeadsPrev) {
+    btnLeadsPrev.addEventListener('click', function () {
+      if (leadsPage <= 1 || leadsLoading) return;
+      leadsPage -= 1;
+      loadLeads();
+    });
+  }
+
+  if (btnLeadsNext) {
+    btnLeadsNext.addEventListener('click', function () {
+      if (leadsLoading || leadsPage >= leadsTotalPages()) return;
+      leadsPage += 1;
+      loadLeads();
+    });
+  }
 
   var btnShareLink = document.getElementById('btnShareLink');
   if (btnShareLink) {
@@ -1130,26 +1963,63 @@
     btn.addEventListener('click', function () {
       var next = btn.getAttribute('data-lang');
       if (window.setLanguage) window.setLanguage(next);
-      else {
+      else if (window.initLanguage) {
         localStorage.setItem('lang', next);
-        location.search = '?lang=' + next;
+        window.initLanguage();
       }
     });
   });
 
-  document.getElementById('btnLogout').addEventListener('click', function () {
-    var msg = guestMode ? t('confirm_guest_exit') : t('confirm_logout');
-    if (!confirm(msg)) return;
-    try {
-      if (App.clearGuestMode) App.clearGuestMode();
-      App.clearSession({});
-    } catch (e) { /* ignore */ }
-    location.replace('login.html');
+  if (btnProfile) {
+    btnProfile.addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleProfileMenu();
+    });
+  }
+  if (profileMenu) {
+    profileMenu.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+  }
+  document.addEventListener('click', function () {
+    closeProfileMenu();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeProfileMenu();
   });
 
+  function doLogout() {
+    try {
+      if (App.clearGuestMode) App.clearGuestMode();
+    } catch (e0) { /* ignore */ }
+    try {
+      if (App.clearSession) App.clearSession({});
+    } catch (e1) { /* ignore */ }
+    try { localStorage.removeItem('biz1_sdk_bearer_token'); } catch (e2) { /* ignore */ }
+    try { localStorage.removeItem('biz1demo_role'); } catch (e3) { /* ignore */ }
+    location.replace('login.html');
+  }
+
+  function bindLogoutButton(el) {
+    if (!el) return;
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      doLogout();
+    });
+  }
+
+  bindLogoutButton(document.getElementById('btnLogout'));
+  bindLogoutButton(document.getElementById('btnProfileLogout'));
+
   window.addEventListener('mineralbar:lang', function () {
+    applyViewUi();
+    renderLeadsTable();
     renderTable();
     applyGuestUi();
+    if (isCustomerFormsView()) fillAssignSelect(assignTemplates);
+    else fillAssignSelect(forms);
+    if (!lookupsReady) return;
     fillSelect(document.getElementById('pfCompany'), invoiceSettings, {
       placeholder: t('field_company'),
       labelKey: 'name'
@@ -1275,9 +2145,33 @@
     var shell = document.getElementById('appShell');
     if (shell) shell.classList.remove('hidden');
     startRealtimeUpdates();
-    await loadLookups();
-    await loadForms();
+    if (guestMode) {
+      currentView = 'templates';
+      applyViewUi();
+      await loadLookups();
+      await loadForms();
+    } else {
+      currentView = 'leads';
+      applyViewUi();
+      await loadLeads();
+      var hashLeadId = leadFromHash();
+      if (hashLeadId) {
+        var hashed = findLeadById(hashLeadId) || { id: hashLeadId, name: '#' + hashLeadId };
+        showFormsForLead(hashed, { fromHistory: true });
+      }
+    }
   }
+
+  window.addEventListener('popstate', function () {
+    if (guestMode) return;
+    var id = leadFromHash();
+    if (id) {
+      var lead = findLeadById(id) || { id: id, name: '#' + id };
+      showFormsForLead(lead, { fromHistory: true });
+    } else {
+      showLeadsView({ fromHistory: true, keepList: true });
+    }
+  });
 
   boot();
 })();

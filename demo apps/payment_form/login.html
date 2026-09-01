@@ -35,7 +35,7 @@
   document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
 })();
 </script>
-<script src="assets/js/lang.js?v=pay-38"></script>
+<script src="assets/js/lang.js?v=pay-51"></script>
 <script src="assets/js/biz1-app.js?v=pay-38"></script>
 <link rel="stylesheet" href="assets/css/login.css?v=pay-38">
 </head>
@@ -70,7 +70,6 @@
       <div class="dc-scroll login-scroll">
         <form id="loginForm" class="login-card">
           <div class="login-title" data-i18n="form_title">כניסה לחשבון</div>
-          <div class="login-hint" id="loginHint" data-i18n="login_hint">bull36.com · Biz1 SDK</div>
 
           <div id="errorBox" class="error-box hidden">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
@@ -127,10 +126,7 @@
 
 <script>
 (function () {
-  var App = window.Biz1App || window.MineralBarApp;
   var cfg = window.Biz1Config || {};
-  var tenant = (App && App.getTenantUser) ? App.getTenantUser() : (cfg.user || '');
-  if (tenant) window.__paymentTenantHint = tenant + '.bull36.com';
 
   function applyBrandAndHint() {
     var lang = (typeof getLanguage === 'function' ? getLanguage() : 'he');
@@ -139,8 +135,6 @@
       (lang === 'en' ? 'Payment Form' : 'טופס תשלום');
     var brandEl = document.getElementById('brandTitle');
     if (brandEl) brandEl.textContent = brand;
-    var hint = document.getElementById('loginHint');
-    if (hint) hint.textContent = (window.__paymentTenantHint || 'bull36.com') + ' · Biz1 SDK';
     document.querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.getAttribute('data-lang') === lang);
     });
@@ -153,9 +147,9 @@
     btn.addEventListener('click', function () {
       var next = btn.getAttribute('data-lang');
       if (window.setLanguage) window.setLanguage(next);
-      else {
+      else if (window.initLanguage) {
         localStorage.setItem('lang', next);
-        location.search = '?lang=' + next;
+        window.initLanguage();
       }
     });
   });
