@@ -99,6 +99,83 @@
     return { from: from, to: to };
   }
 
+  var SALES_TARGET_ENTRY_ID = 764;
+
+  function currentMonthLabel() {
+    var d = new Date();
+    return pad(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+
+  function normalizeMonthKey(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    var m = s.match(/^(\d{1,2})[./-](\d{4})$/);
+    if (!m) return '';
+    return pad(+m[1]) + '/' + m[2];
+  }
+
+  function monthLabelsMatch(left, right) {
+    var a = normalizeMonthKey(left);
+    var b = normalizeMonthKey(right);
+    return !!(a && b && a === b);
+  }
+
+  function extractEntryRows(res) {
+    if (!res) return [];
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.output)) return res.output;
+    if (Array.isArray(res.list)) return res.list;
+    if (Array.isArray(res.entries)) return res.entries;
+    if (res.data && Array.isArray(res.data.rows)) return res.data.rows;
+    return [];
+  }
+
+  function parseTargetAmount(raw) {
+    if (raw == null || raw === '') return 0;
+    var s = String(raw).replace(/[^\d.]/g, '');
+    if (!s) return 0;
+    var n = Number(s);
+    return Number.isNaN(n) ? 0 : n;
+  }
+
+  function fmtMoney(v) {
+    var n = parseTargetAmount(v);
+    if (!n) return '';
+    try {
+      return '₪' + n.toLocaleString('he-IL');
+    } catch (e0) {
+      return '₪' + n;
+    }
+  }
+
+  async function fetchMonthlySalesTarget() {
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return 0;
+    var client = MineralBarApp.getClient();
+    if (!client || !client.request) return 0;
+    try {
+      var res = await client.request('Entries.List', {
+        entry_id: SALES_TARGET_ENTRY_ID,
+        limit: 25,
+        length: 25,
+        start: 0,
+        order: 'id_desc'
+      });
+      if (res && String(res.success) === '0') return 0;
+      var rows = extractEntryRows(res);
+      var month = currentMonthLabel();
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        if (!monthLabelsMatch(row.data1, month)) continue;
+        var amount = parseTargetAmount(row.data2);
+        return amount > 0 ? amount : 0;
+      }
+      return 0;
+    } catch (e) {
+      console.warn('[HomeLive] monthly sales target fetch failed', e);
+      return 0;
+    }
+  }
+
   function rowDayKey(raw) {
     var s = String(raw == null ? '' : raw).trim();
     var m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
@@ -205,6 +282,14 @@
   }
 
   var _lastPaint = {};
+
+  function setVisible(id, show, text) {
+    var nodes = liveNodes(id);
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].style.display = show ? '' : 'none';
+      if (show && text != null) nodes[i].textContent = String(text);
+    }
+  }
 
   function setText(id, text) {
     text = String(text);
@@ -506,6 +591,7 @@
       setText('mb-stat-followups', '…');
       setText('mb-pipe-leads', '…');
       setText('mb-pipe-followup', '…');
+      setVisible('mb-stat-sales-target', false);
 
       var loadingEl = missionsMount();
       if (loadingEl) {
@@ -533,7 +619,8 @@
           draw: 1
         }).catch(function () { return { rows: [] }; }),
         listHomeMissions().catch(function () { return { rows: [], total: 0 }; }),
-        countClosedLeadsThisMonth(monthRange).catch(function () { return 0; })
+        countClosedLeadsThisMonth(monthRange).catch(function () { return 0; }),
+        fetchMonthlySalesTarget().catch(function () { return 0; })
       ]);
 
       // Re-query after await — DC/React can replace nodes while requests are in flight
@@ -545,6 +632,7 @@
       var leadRows = results[2].rows || results[2].data || [];
       var followupCount = leadRows.filter(isFollowupLead).length;
       var closedCount = Number(results[4]) || 0;
+      var salesTarget = Number(results[5]) || 0;
 
       var rows = flattenMissionRows(results[3]);
       try { sessionStorage.removeItem('mb_missions_dirty'); } catch (e2) {}
@@ -577,6 +665,11 @@
       setText('mb-stat-leads-label', t('Closed leads', 'לידים שנסגרו'));
       setText('mb-stat-leads', String(closedCount));
       setText('mb-stat-leads-sub', t('This month', 'החודש'));
+      if (salesTarget > 0) {
+        setVisible('mb-stat-sales-target', true, t('Target', 'יעד') + ': ' + fmtMoney(salesTarget));
+      } else {
+        setVisible('mb-stat-sales-target', true, t('No target this month', 'אין יעד החודש'));
+      }
       setText('mb-stat-followup', String(overdueCount || 0));
       setText('mb-stat-followup-sub', t('Overdue', 'באיחור'));
       setText('mb-stat-followup-label', t('Open tasks', 'משימות פתוחות'));
