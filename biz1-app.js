@@ -568,6 +568,43 @@
     return null;
   }
 
+  /** Per-customer product selection keys (avoids one quote's products leaking to every customer). */
+  function selectedProductIdsKey(customerId) {
+    var cid = String(customerId == null ? '' : customerId).trim();
+    if (!cid || cid === '0' || cid === 'null' || cid === 'undefined') return 'mb_selected_product_ids';
+    return 'mb_selected_product_ids:' + cid;
+  }
+
+  function getSelectedProductIds(customerId) {
+    var key = selectedProductIdsKey(customerId);
+    try {
+      var scoped = sessionStorage.getItem(key) || localStorage.getItem(key);
+      if (scoped != null && scoped !== '') return String(scoped);
+      // Empty string stored for this customer means "no products" — don't use legacy global
+      if (scoped === '' && key !== 'mb_selected_product_ids') return '';
+      if (key === 'mb_selected_product_ids') {
+        return sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+      }
+      return '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function setSelectedProductIds(customerId, ids) {
+    var key = selectedProductIdsKey(customerId);
+    var val = Array.isArray(ids) ? ids.filter(Boolean).join(',') : String(ids == null ? '' : ids);
+    try {
+      sessionStorage.setItem(key, val);
+      localStorage.setItem(key, val);
+      // Keep legacy key only when there is no customer scope; otherwise clear it so
+      // other customers don't inherit the last quote's products.
+      if (key === 'mb_selected_product_ids') return;
+      sessionStorage.removeItem('mb_selected_product_ids');
+      localStorage.removeItem('mb_selected_product_ids');
+    } catch (e) { /* ignore */ }
+  }
+
   /** List customers via Customer.List API. */
   async function listCustomers(extra) {
     var client = getClient();
@@ -3378,6 +3415,8 @@
     requireAuth: requireAuth,
     requireAuthOrRedirect: requireAuth,
     listCustomers: listCustomers,
+    getSelectedProductIds: getSelectedProductIds,
+    setSelectedProductIds: setSelectedProductIds,
     createCustomer: createCustomer,
     assignCustomerTeamMember: assignCustomerTeamMember,
     countCustomers: countCustomers,

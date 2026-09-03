@@ -2089,6 +2089,45 @@ class Component extends DCLogic {
     };
   }
 
+  /** Prefill "Service fee collected?" from ticket take-cash / query when opening close form. */
+  resolveFormCashPrefill(ticket, expectedCash, silent) {
+    if (silent && (this.state.cash === 'yes' || this.state.cash === 'no')) {
+      return {
+        cash: this.state.cash,
+        amount: this.state.cash === 'yes'
+          ? String(this._cashAmountValue != null ? this._cashAmountValue : (this.state.cashAmount || expectedCash || ''))
+          : ''
+      };
+    }
+
+    var q = this.getQuery();
+    var qTake = String(q.get('take_cash') || q.get('cash') || q.get('service_fee') || '').trim().toLowerCase();
+    var qAmt = String(q.get('cash_amount') || q.get('amount') || '').replace(/[^0-9.]/g, '');
+    var parsed = this.parseCashFromTicket(ticket);
+    var takeYes = false;
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.isTicketCashYes === 'function') {
+        takeYes = !!MineralBarApp.isTicketCashYes(ticket);
+      }
+    } catch (e0) { /* ignore */ }
+    if (!takeYes && /^(yes|1|true|כן|y)$/i.test(qTake)) takeYes = true;
+    if (/^(no|0|false|לא|n)$/i.test(qTake)) takeYes = false;
+
+    if (parsed.cash === 'yes' || takeYes) {
+      return {
+        cash: 'yes',
+        amount: String(parsed.amount || expectedCash || qAmt || '').replace(/[^0-9.]/g, '')
+      };
+    }
+    if (parsed.cash === 'no') {
+      return { cash: 'no', amount: '' };
+    }
+    return {
+      cash: this.state.cash,
+      amount: String(this.state.cashAmount || '')
+    };
+  }
+
   unwrapTicket(raw) {
     if (!raw || typeof raw !== 'object') return null;
     if (raw.ticket && typeof raw.ticket === 'object') {
@@ -2275,6 +2314,12 @@ class Component extends DCLogic {
         } else {
           var linkedForm = await this.resolveLinkedProducts(ticket);
           var expectedCash = this.extractTicketCashAmount(ticket);
+          var cashPrefill = this.resolveFormCashPrefill(ticket, expectedCash, silent);
+          if (cashPrefill.cash === 'yes') {
+            this._cashAmountValue = cashPrefill.amount || '';
+          } else if (cashPrefill.cash === 'no') {
+            this._cashAmountValue = '';
+          }
           this.setState({
             loading: false,
             mode: 'form',
@@ -2288,6 +2333,8 @@ class Component extends DCLogic {
             ticketName: name || subject || ('#' + tid),
             linkedProducts: linkedForm,
             expectedCashAmount: expectedCash,
+            cash: cashPrefill.cash,
+            cashAmount: cashPrefill.amount || '',
             installerName: this.state.installerName || this.resolveInstallerName() || '',
             warrantyMonths: this.state.warrantyMonths != null && this.state.warrantyMonths !== '' ? this.state.warrantyMonths : '0'
           });

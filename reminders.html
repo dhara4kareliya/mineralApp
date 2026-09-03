@@ -107,6 +107,66 @@ mbCss('./common.css');
     color: #9aa3b0;
     margin-bottom: 2px;
   }
+  .rm-sched .rm-sched-value {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1f2a3a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #rm-sched-picker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 120;
+    display: none;
+    background: #fff;
+    border: 1px solid #e4e8ee;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 12px 30px rgba(15, 24, 40, 0.2);
+    box-sizing: border-box;
+  }
+  #rm-sched-picker.rm-open { display: block; }
+  .rm-picker-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1f2a3a;
+    margin-bottom: 14px;
+  }
+  .rm-picker-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .rm-picker-grid.rm-picker-time {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rm-picker-grid input {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 7px;
+    border: 1.5px solid #e4e8ee;
+    border-radius: 10px;
+    background: #fff;
+    color: #1f2a3a;
+    font: 700 14px Heebo, sans-serif;
+    text-align: center;
+  }
+  .rm-picker-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .rm-picker-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    font: 700 13px Heebo, sans-serif;
+    cursor: pointer;
+  }
   .rm-sheet {
     position: absolute;
     top: 48px;
@@ -211,20 +271,20 @@ mbCss('./common.css');
       <!-- schedule -->
       <div class="rm-sec-label">{{ labelSchedule }}</div>
       <div style="display:flex; gap:10px; margin-bottom:14px;">
-        <label class="rm-sched">
+        <button type="button" class="rm-sched" id="rm-time-box" onclick="{{ openTimePicker }}">
           <svg fill="none" height="18" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="18" style="flex:none;"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
           <div class="rm-sched-meta">
             <div class="rm-sched-label">{{ labelTime }}</div>
-            <input type="time" value="{{ timeValue }}" oninput="{{ onTime }}"/>
+            <div class="rm-sched-value">{{ timeDisplay }}</div>
           </div>
-        </label>
-        <label class="rm-sched">
+        </button>
+        <button type="button" class="rm-sched" id="rm-date-box" onclick="{{ openDatePicker }}">
           <svg fill="none" height="18" stroke="#9aa3b0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="18" style="flex:none;"><rect height="18" rx="2" width="18" x="3" y="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
           <div class="rm-sched-meta">
             <div class="rm-sched-label">{{ labelDate }}</div>
-            <input type="date" value="{{ dateValue }}" min="{{ dateMin }}" oninput="{{ onDate }}"/>
+            <div class="rm-sched-value">{{ dateDisplay }}</div>
           </div>
-        </label>
+        </button>
       </div>
 
       <sc-if hint-placeholder-val="{{ false }}" value="{{ hasError }}">
@@ -241,6 +301,24 @@ mbCss('./common.css');
         <svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
       </button>
     </div>
+  </div>
+</div>
+
+<!-- In-frame schedule picker (kept inside phone border) -->
+<div id="rm-sched-picker" role="dialog" aria-modal="true">
+  <div id="rm-picker-title" class="rm-picker-title">Date</div>
+  <div id="rm-picker-date-grid" class="rm-picker-grid">
+    <input id="rm-picker-day" type="number" min="1" max="31" aria-label="Day" placeholder="DD"/>
+    <input id="rm-picker-month" type="number" min="1" max="12" aria-label="Month" placeholder="MM"/>
+    <input id="rm-picker-year" type="number" min="2000" max="2100" aria-label="Year" placeholder="YYYY"/>
+  </div>
+  <div id="rm-picker-time-grid" class="rm-picker-grid rm-picker-time">
+    <input id="rm-picker-hour" type="number" min="0" max="23" aria-label="Hour" placeholder="HH"/>
+    <input id="rm-picker-minute" type="number" min="0" max="59" aria-label="Minute" placeholder="MM"/>
+  </div>
+  <div class="rm-picker-actions">
+    <button type="button" id="rm-picker-cancel" style="border:1.5px solid #e4e8ee; background:#fff; color:#5a6473;">Cancel</button>
+    <button type="button" id="rm-picker-apply" style="border:0; background:#6b4f3a; color:#fff;">Apply</button>
   </div>
 </div>
 
@@ -271,6 +349,20 @@ class Component extends DCLogic {
     var self = this;
     window.addEventListener('mineralbar:language-changed', function () {
       self.setState({ langTick: Date.now() });
+    });
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('#rm-picker-cancel')) {
+        self.closeSchedPicker();
+        return;
+      }
+      if (e.target.closest('#rm-picker-apply')) {
+        self.applySchedPicker();
+        return;
+      }
+      var picker = document.getElementById('rm-sched-picker');
+      if (!picker || !picker.classList.contains('rm-open')) return;
+      if (e.target.closest('#rm-sched-picker, #rm-date-box, #rm-time-box')) return;
+      self.closeSchedPicker();
     });
   }
 
@@ -309,6 +401,125 @@ class Component extends DCLogic {
     var mm = String(d.getMonth() + 1).padStart(2, '0');
     var dd = String(d.getDate()).padStart(2, '0');
     return yyyy + '-' + mm + '-' + dd;
+  }
+
+  formatDateDisplay(v) {
+    var p = String(v || '').split('-');
+    if (p.length !== 3) return v || '—';
+    return p[2] + ' / ' + p[1] + ' / ' + p[0];
+  }
+
+  formatTimeDisplay(v) {
+    var parts = String(v || '').split(':');
+    var h = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    if (!isFinite(h) || !isFinite(m)) return '—';
+    if (this.isEn()) {
+      var ampm = h >= 12 ? 'pm' : 'am';
+      var h12 = h % 12;
+      if (!h12) h12 = 12;
+      return String(h12).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+    }
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  }
+
+  pad2(n) {
+    return String(Math.max(0, Number(n) || 0)).padStart(2, '0');
+  }
+
+  closeSchedPicker() {
+    var picker = document.getElementById('rm-sched-picker');
+    if (picker) picker.classList.remove('rm-open');
+    this._pickerMode = '';
+  }
+
+  positionSchedPicker(anchorId) {
+    var picker = document.getElementById('rm-sched-picker');
+    var anchor = document.getElementById(anchorId);
+    var frame = document.querySelector('.screen-card');
+    if (!picker || !anchor || !frame) return;
+    var boxRect = anchor.getBoundingClientRect();
+    var frameRect = frame.getBoundingClientRect();
+    var width = Math.max(200, frameRect.width - 24);
+    var left = frameRect.left + 12;
+    picker.style.width = width + 'px';
+    picker.style.left = left + 'px';
+    // Measure after width is set
+    var pickerHeight = picker.offsetHeight || 220;
+    var top = boxRect.bottom + 8;
+    if (top + pickerHeight > frameRect.bottom - 12) {
+      top = boxRect.top - pickerHeight - 8;
+    }
+    top = Math.max(frameRect.top + 12, Math.min(top, frameRect.bottom - pickerHeight - 12));
+    picker.style.top = top + 'px';
+  }
+
+  openSchedPicker(mode) {
+    var picker = document.getElementById('rm-sched-picker');
+    if (!picker) return;
+    this._pickerMode = mode;
+    var title = document.getElementById('rm-picker-title');
+    var dateGrid = document.getElementById('rm-picker-date-grid');
+    var timeGrid = document.getElementById('rm-picker-time-grid');
+    var cancelBtn = document.getElementById('rm-picker-cancel');
+    var applyBtn = document.getElementById('rm-picker-apply');
+    if (title) title.textContent = mode === 'time' ? this.t('time', 'שעה') : this.t('date', 'תאריך');
+    if (cancelBtn) cancelBtn.textContent = this.t('Cancel', 'ביטול');
+    if (applyBtn) applyBtn.textContent = this.t('Apply', 'אישור');
+    if (dateGrid) dateGrid.style.display = mode === 'date' ? 'grid' : 'none';
+    if (timeGrid) timeGrid.style.display = mode === 'time' ? 'grid' : 'none';
+
+    var dateParts = String(this.state.dateValue || this.todayKey()).split('-');
+    var timeParts = String(this.state.timeValue || '14:00').split(':');
+    var day = document.getElementById('rm-picker-day');
+    var month = document.getElementById('rm-picker-month');
+    var year = document.getElementById('rm-picker-year');
+    var hour = document.getElementById('rm-picker-hour');
+    var minute = document.getElementById('rm-picker-minute');
+    if (day) day.value = String(parseInt(dateParts[2], 10) || 1);
+    if (month) month.value = String(parseInt(dateParts[1], 10) || 1);
+    if (year) year.value = String(parseInt(dateParts[0], 10) || new Date().getFullYear());
+    if (hour) hour.value = String(parseInt(timeParts[0], 10) || 0);
+    if (minute) minute.value = String(parseInt(timeParts[1], 10) || 0);
+
+    picker.classList.add('rm-open');
+    this.positionSchedPicker(mode === 'time' ? 'rm-time-box' : 'rm-date-box');
+  }
+
+  applySchedPicker() {
+    var mode = this._pickerMode || 'date';
+    if (mode === 'date') {
+      var day = parseInt((document.getElementById('rm-picker-day') || {}).value, 10);
+      var month = parseInt((document.getElementById('rm-picker-month') || {}).value, 10);
+      var year = parseInt((document.getElementById('rm-picker-year') || {}).value, 10);
+      if (!isFinite(day) || !isFinite(month) || !isFinite(year)) {
+        this.closeSchedPicker();
+        return;
+      }
+      day = Math.min(31, Math.max(1, day));
+      month = Math.min(12, Math.max(1, month));
+      year = Math.min(2100, Math.max(2000, year));
+      var next = year + '-' + this.pad2(month) + '-' + this.pad2(day);
+      var min = this.todayKey();
+      if (next < min) next = min;
+      this.closeSchedPicker();
+      this.setState({ dateValue: next, saveError: '', saveOk: false });
+      return;
+    }
+    var hour = parseInt((document.getElementById('rm-picker-hour') || {}).value, 10);
+    var minute = parseInt((document.getElementById('rm-picker-minute') || {}).value, 10);
+    if (!isFinite(hour) || !isFinite(minute)) {
+      this.closeSchedPicker();
+      return;
+    }
+    hour = Math.min(23, Math.max(0, hour));
+    minute = Math.min(59, Math.max(0, minute));
+    this.closeSchedPicker();
+    this.setState({
+      timeValue: this.pad2(hour) + ':' + this.pad2(minute),
+      saveError: '',
+      saveOk: false
+    });
   }
 
   initData() {
@@ -496,9 +707,10 @@ class Component extends DCLogic {
       previewBody: this.templateBody(s.template),
       timeValue: s.timeValue || '14:00',
       dateValue: s.dateValue || this.todayKey(),
-      dateMin: this.todayKey(),
-      onTime: function (e) { self.setState({ timeValue: e.target.value, saveError: '', saveOk: false }); },
-      onDate: function (e) { self.setState({ dateValue: e.target.value, saveError: '', saveOk: false }); },
+      timeDisplay: this.formatTimeDisplay(s.timeValue || '14:00'),
+      dateDisplay: this.formatDateDisplay(s.dateValue || this.todayKey()),
+      openTimePicker: function () { self.openSchedPicker('time'); },
+      openDatePicker: function () { self.openSchedPicker('date'); },
       hasError: !!s.saveError,
       saveError: s.saveError || '',
       saveOk: !!s.saveOk,

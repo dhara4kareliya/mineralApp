@@ -315,8 +315,13 @@ mbCss('./common.css');
       var tz = q.get('tz') || q.get('id') || '';
       var address = q.get('address') || '';
       var discount = Number(q.get('discount') || 0);
-      var productIdsStr = q.get('product_ids') || '';
-      if (!productIdsStr) {
+      // If product_ids is in the URL (even empty), respect it — don't fall back to stale storage
+      var productIdsStr = '';
+      if (q.has('product_ids')) {
+        productIdsStr = q.get('product_ids') || '';
+      } else if (window.MineralBarApp && typeof MineralBarApp.getSelectedProductIds === 'function') {
+        productIdsStr = MineralBarApp.getSelectedProductIds(customerId) || '';
+      } else {
         try {
           productIdsStr = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
         } catch (eIds) { productIdsStr = ''; }

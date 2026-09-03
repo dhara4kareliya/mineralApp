@@ -204,8 +204,6 @@
   var _chatBootAt = 0;
   var _socketThreadRefreshTimer = null;
 
-  var dragClickBlockUntil = {};
-
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
@@ -1680,11 +1678,6 @@
   document.addEventListener('click', function(e) {
     var filterBtn = e.target.closest('.chat-tab-btn');
     if (filterBtn) {
-      if ((dragClickBlockUntil['mb-chat-filter-tabs'] || 0) > Date.now()) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
       var filter = filterBtn.getAttribute('data-filter') || 'all';
       if (typeof window.filterChatType === 'function') window.filterChatType(filter);
       return;
@@ -1692,7 +1685,6 @@
     var channelBtn = e.target.closest('.chat-send-channel');
     if (channelBtn) {
       e.preventDefault();
-      if ((dragClickBlockUntil['mb-chat-send-channels'] || 0) > Date.now()) return;
       setSendChannel(
         channelBtn.getAttribute('data-channel') || 'notes',
         channelBtn.getAttribute('data-from') || 'send_notes'
@@ -1909,97 +1901,83 @@
     }
   });
 
+  // Same drag/scroll + tap-select pattern as sales-tasks.html filter chips
   function setupDragToScroll(elId) {
-    var slider = document.getElementById(elId);
-    if (!slider || slider.__mbDragScroll) return;
-    slider.__mbDragScroll = true;
-    dragClickBlockUntil[elId] = 0;
-    slider.classList.add('mb-h-drag');
+    var el = document.getElementById(elId);
+    if (!el || el.getAttribute('data-drag-bound') === '1') return;
+    el.setAttribute('data-drag-bound', '1');
+    el.classList.add('chat-filter-hbar');
 
-    var dragging = false;
+    var isDown = false;
+    var didDrag = false;
     var startX = 0;
     var scrollLeft = 0;
-    var moved = false;
 
-    function endDrag() {
-      if (!dragging) return;
-      dragging = false;
-      slider.classList.remove('is-dragging');
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      dragClickBlockUntil[elId] = Date.now() + (moved ? 180 : 0);
+    function getX(e) {
+      return e.touches && e.touches.length ? e.touches[0].pageX : e.pageX;
     }
 
-    function onMouseMove(e) {
-      if (!dragging) return;
-      var walk = e.pageX - startX;
-      if (Math.abs(walk) > 4) {
-        moved = true;
-        dragClickBlockUntil[elId] = Date.now() + 180;
-      }
-      slider.scrollLeft = scrollLeft - walk;
-      if (moved) e.preventDefault();
+    function onStart(e) {
+      isDown = true;
+      didDrag = false;
+      startX = getX(e);
+      scrollLeft = el.scrollLeft;
+      el.style.cursor = 'grabbing';
     }
 
-    function onMouseUp() {
-      endDrag();
+    function onMove(e) {
+      if (!isDown) return;
+      var x = getX(e);
+      var walk = (x - startX) * 1.6;
+      if (Math.abs(walk) > 4) didDrag = true;
+      el.scrollLeft = scrollLeft - walk;
+      if (didDrag && e.cancelable) e.preventDefault();
     }
 
-    slider.addEventListener('mousedown', function (e) {
-      if (e.button !== 0) return;
-      dragging = true;
-      moved = false;
-      dragClickBlockUntil[elId] = 0;
-      startX = e.pageX;
-      scrollLeft = slider.scrollLeft;
-      slider.classList.add('is-dragging');
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-    });
+    function onEnd() {
+      isDown = false;
+      el.style.cursor = 'grab';
+    }
 
-    // Touch: native horizontal pan works once overflow-x is allowed;
-    // still track movement so click-select is blocked after a swipe.
-    var touchStartX = 0;
-    var touchScrollLeft = 0;
-    slider.addEventListener('touchstart', function (e) {
-      if (!e.touches || !e.touches[0]) return;
-      moved = false;
-      dragClickBlockUntil[elId] = 0;
-      touchStartX = e.touches[0].pageX;
-      touchScrollLeft = slider.scrollLeft;
-    }, { passive: true });
-
-    slider.addEventListener('touchmove', function (e) {
-      if (!e.touches || !e.touches[0]) return;
-      var walk = e.touches[0].pageX - touchStartX;
-      if (Math.abs(walk) > 6) {
-        moved = true;
-        dragClickBlockUntil[elId] = Date.now() + 180;
-      }
-      // Keep scroll in sync even if browser doesn't pan perfectly
-      slider.scrollLeft = touchScrollLeft - walk;
-    }, { passive: true });
-
-    slider.addEventListener('touchend', function () {
-      dragClickBlockUntil[elId] = Date.now() + (moved ? 180 : 0);
-    });
-
-    slider.addEventListener('touchcancel', function () {
-      dragClickBlockUntil[elId] = 0;
-    });
-
-    // Wheel → horizontal scroll (trackpads / shift+wheel)
-    slider.addEventListener('wheel', function (e) {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && slider.scrollWidth > slider.clientWidth) {
-        slider.scrollLeft += e.deltaY;
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseup', onEnd);
+    el.addEventListener('mouseleave', onEnd);
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    el.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        el.scrollLeft += e.deltaY;
         e.preventDefault();
       }
     }, { passive: false });
+
+    // After a swipe, block the synthetic click so selection doesn't change
+    el.addEventListener('click', function (e) {
+      if (didDrag) {
+        e.preventDefault();
+        e.stopPropagation();
+        didDrag = false;
+      }
+    }, true);
+
+    el.style.cursor = 'grab';
+    el.style.minWidth = '0';
+    el.style.maxWidth = '100%';
+    el.style.overflowX = 'auto';
   }
 
   function initHorizontalDrags() {
     setupDragToScroll('mb-chat-filter-tabs');
     setupDragToScroll('mb-chat-send-channels');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHorizontalDrags);
+  } else {
+    initHorizontalDrags();
   }
 
   async function start() {

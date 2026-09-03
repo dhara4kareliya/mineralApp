@@ -344,10 +344,15 @@ class Component extends DCLogic {
     if (idList.length) backParams.set('product_ids', idList.join(','));
     else backParams.delete('product_ids');
 
-    try {
-      sessionStorage.setItem('mb_selected_product_ids', idList.join(','));
-      localStorage.setItem('mb_selected_product_ids', idList.join(','));
-    } catch (e) { /* ignore */ }
+    var customerId = backParams.get('customer_id') || backParams.get('cust_id') || '';
+    if (window.MineralBarApp && typeof MineralBarApp.setSelectedProductIds === 'function') {
+      MineralBarApp.setSelectedProductIds(customerId, idList);
+    } else {
+      try {
+        sessionStorage.setItem('mb_selected_product_ids', idList.join(','));
+        localStorage.setItem('mb_selected_product_ids', idList.join(','));
+      } catch (e) { /* ignore */ }
+    }
 
     return backPage + '?' + backParams.toString();
   }

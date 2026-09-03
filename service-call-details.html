@@ -1506,6 +1506,10 @@
           if (customerId) q.set('customer_id', String(customerId));
           if (name) q.set('name', name);
           if (t.subject) q.set('subject', String(t.subject));
+          if (takeCashYes) {
+            q.set('take_cash', 'yes');
+            if (cashAmountNum > 0) q.set('cash_amount', String(cashAmountNum));
+          }
           q.set('back', backToTicket);
           return 'tech-call-close.html?' + q.toString();
         })(),

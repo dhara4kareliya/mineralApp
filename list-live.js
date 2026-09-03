@@ -1065,6 +1065,91 @@
   }
 
   var _warrantyEndedCache = [];
+  var LIST_PAGE_SIZE = 10;
+  var _listPage = 1;
+
+  function resetListPage() {
+    _listPage = 1;
+  }
+
+  function scrollListToTop() {
+    var list = document.getElementById('mb-live-list');
+    var scroller = document.querySelector('.mb-cust-list-scroll');
+    if (!scroller && list && list.parentElement) scroller = list.parentElement;
+    if (scroller && typeof scroller.scrollTop === 'number') scroller.scrollTop = 0;
+  }
+
+  function ensureListPager() {
+    var list = document.getElementById('mb-live-list');
+    if (!list || !list.parentNode) return null;
+    var pager = document.getElementById('mb-list-pager');
+    if (pager) return pager;
+
+    pager = document.createElement('div');
+    pager.id = 'mb-list-pager';
+    pager.className = 'mb-list-pager';
+    pager.innerHTML =
+      '<button type="button" class="mb-list-pager-btn" id="mb-list-pager-prev" aria-label="Previous">‹</button>' +
+      '<div class="mb-list-pager-label" id="mb-list-pager-label"></div>' +
+      '<button type="button" class="mb-list-pager-btn" id="mb-list-pager-next" aria-label="Next">›</button>';
+
+    var ended = document.getElementById('mb-ended-warranty');
+    if (ended && ended.parentNode === list.parentNode) {
+      list.parentNode.insertBefore(pager, ended);
+    } else if (list.nextSibling) {
+      list.parentNode.insertBefore(pager, list.nextSibling);
+    } else {
+      list.parentNode.appendChild(pager);
+    }
+
+    var prev = document.getElementById('mb-list-pager-prev');
+    var next = document.getElementById('mb-list-pager-next');
+    if (prev) {
+      prev.addEventListener('click', function () {
+        if (_listPage <= 1) return;
+        _listPage -= 1;
+        applyClientFilters(document.getElementById('mb-live-list'));
+        scrollListToTop();
+      });
+    }
+    if (next) {
+      next.addEventListener('click', function () {
+        var label = document.getElementById('mb-list-pager-label');
+        var maxHint = label && label.getAttribute('data-pages');
+        var maxPages = Number(maxHint) || 1;
+        if (_listPage >= maxPages) return;
+        _listPage += 1;
+        applyClientFilters(document.getElementById('mb-live-list'));
+        scrollListToTop();
+      });
+    }
+    return pager;
+  }
+
+  function updateListPager(matchCount) {
+    var pager = ensureListPager();
+    if (!pager) return;
+    matchCount = Number(matchCount) || 0;
+    var totalPages = Math.max(1, Math.ceil(matchCount / LIST_PAGE_SIZE) || 1);
+    if (_listPage > totalPages) _listPage = totalPages;
+    if (_listPage < 1) _listPage = 1;
+
+    var start = matchCount ? ((_listPage - 1) * LIST_PAGE_SIZE) + 1 : 0;
+    var end = Math.min(_listPage * LIST_PAGE_SIZE, matchCount);
+    var label = document.getElementById('mb-list-pager-label');
+    var prev = document.getElementById('mb-list-pager-prev');
+    var next = document.getElementById('mb-list-pager-next');
+
+    if (label) {
+      label.setAttribute('data-pages', String(totalPages));
+      label.textContent = matchCount
+        ? (t('Showing ', 'מציג ') + start + '–' + end + t(' of ', ' מתוך ') + matchCount)
+        : t('No results', 'אין תוצאות');
+    }
+    if (prev) prev.disabled = _listPage <= 1 || matchCount === 0;
+    if (next) next.disabled = _listPage >= totalPages || matchCount === 0;
+    pager.style.display = matchCount > 0 ? 'flex' : 'none';
+  }
 
   function endedWarrantyMount() {
     return document.getElementById('mb-ended-warranty');
@@ -1305,7 +1390,9 @@
         _rowsCache = [];
         _rowsCacheKind = kind;
         _rowsCacheTotal = total;
+        resetListPage();
         el.innerHTML = emptyHtml(kind);
+        updateListPager(0);
         if (kind === 'leads') loadEndedWarrantyCustomers();
         return;
       }
@@ -1313,6 +1400,7 @@
       _rowsCache = rows.slice();
       _rowsCacheKind = kind;
       _rowsCacheTotal = total;
+      resetListPage();
       // Re-query mount — DC may have replaced #mb-live-list while Statuses/List were in flight
       el = document.getElementById('mb-live-list') || el;
       el.setAttribute('data-initial-loaded', '1');
@@ -1471,7 +1559,7 @@
     var filter = getActiveCustFilter();
 
     var items = listEl.querySelectorAll('div[data-customer-id], a[data-customer-id]');
-    var visibleCount = 0;
+    var matching = [];
     for (var i = 0; i < items.length; i++) {
       var item = items[i];
       if (!item.dataset.originalDisplay) {
@@ -1491,18 +1579,47 @@
         matchesFilter = leadMatchesAdvancedFilters(item, getLeadFilters());
       }
 
-      var isVisible = matchesQuery && matchesFilter;
-      item.style.display = isVisible ? item.dataset.originalDisplay : 'none';
-      if (isVisible) visibleCount++;
+      if (matchesQuery && matchesFilter) matching.push(item);
+      else item.style.display = 'none';
+    }
+
+    var totalPages = Math.max(1, Math.ceil(matching.length / LIST_PAGE_SIZE) || 1);
+    if (_listPage > totalPages) _listPage = totalPages;
+    if (_listPage < 1) _listPage = 1;
+    var pageStart = (_listPage - 1) * LIST_PAGE_SIZE;
+    var pageEnd = pageStart + LIST_PAGE_SIZE;
+
+    for (var j = 0; j < matching.length; j++) {
+      matching[j].style.display = (j >= pageStart && j < pageEnd)
+        ? matching[j].dataset.originalDisplay
+        : 'none';
     }
 
     var totalEl = document.getElementById('mb-total-label');
     if (totalEl) {
-      totalEl.textContent = formatTotalLabel(visibleCount, kindVis);
+      totalEl.textContent = formatTotalLabel(matching.length, kindVis);
     }
+
+    updateListPager(matching.length);
 
     if (kindVis === 'leads') {
       sortLeadItems(listEl, getLeadFilters());
+      // Re-apply page visibility after sort (sort moves DOM nodes)
+      var rematched = [];
+      var allItems = listEl.querySelectorAll('div[data-customer-id], a[data-customer-id]');
+      for (var k = 0; k < allItems.length; k++) {
+        var node = allItems[k];
+        var tText = node.textContent.toLowerCase();
+        var qOk = query === '' || tText.indexOf(query) > -1;
+        var fOk = leadMatchesAdvancedFilters(node, getLeadFilters());
+        if (qOk && fOk) rematched.push(node);
+        else node.style.display = 'none';
+      }
+      for (var m = 0; m < rematched.length; m++) {
+        rematched[m].style.display = (m >= pageStart && m < pageEnd)
+          ? (rematched[m].dataset.originalDisplay || 'flex')
+          : 'none';
+      }
       applyEndedWarrantySearch();
     }
   }
@@ -1534,6 +1651,7 @@
       btn.addEventListener('click', function () {
         setActiveLeadFilter(btn.getAttribute('data-chip-id') || 'all');
         renderLeadFilterChips(container);
+        resetListPage();
         applyClientFilters(document.getElementById('mb-live-list'));
       });
     });
@@ -1568,6 +1686,7 @@
       btn.addEventListener('click', function () {
         setActiveCustFilter(btn.getAttribute('data-chip-id') || 'all');
         renderCustFilterChips(container);
+        resetListPage();
         applyClientFilters(document.getElementById('mb-live-list'));
       });
     });
@@ -1669,6 +1788,7 @@
     if (searchInput && !searchInput.dataset.wired) {
       searchInput.dataset.wired = '1';
       searchInput.addEventListener('input', function() {
+        resetListPage();
         applyClientFilters(listEl);
       });
     }
@@ -1678,6 +1798,7 @@
       clearBtn.addEventListener('click', function() {
         if (searchInput) {
           searchInput.value = '';
+          resetListPage();
           applyClientFilters(listEl);
           searchInput.focus();
         }
@@ -1962,6 +2083,7 @@
     setLeadFilters(patch || {});
     var chipContainer = document.getElementById('mb-customer-filter-chips');
     if (chipContainer && pageKind() === 'leads') renderLeadFilterChips(chipContainer);
+    resetListPage();
     applyClientFilters(document.getElementById('mb-live-list'));
   };
   window.ListLive.setLeadFilter = setActiveLeadFilter;
@@ -1969,9 +2091,13 @@
   window.ListLive.getVisibleLeadCount = function () {
     var listEl = document.getElementById('mb-live-list');
     if (!listEl) return 0;
+    var input = document.querySelector('.ds-input') || document.getElementById('mb-customer-search');
+    var query = input ? String(input.value || '').toLowerCase().trim() : '';
     var n = 0;
     listEl.querySelectorAll('[data-customer-id]').forEach(function (item) {
-      if (item.style.display !== 'none') n++;
+      var text = item.textContent.toLowerCase();
+      var qOk = !query || text.indexOf(query) > -1;
+      if (qOk && leadMatchesAdvancedFilters(item, getLeadFilters())) n++;
     });
     return n;
   };

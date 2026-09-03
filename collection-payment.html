@@ -966,7 +966,13 @@ class Component extends DCLogic {
       if (paymentSnap.advance > 0) nextQs.set('advance', String(paymentSnap.advance));
     }
     try {
-      var productIds = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+      var cid = nextQs.get('customer_id') || nextQs.get('cust_id') || '';
+      var productIds = '';
+      if (window.MineralBarApp && typeof MineralBarApp.getSelectedProductIds === 'function') {
+        productIds = MineralBarApp.getSelectedProductIds(cid) || '';
+      } else {
+        productIds = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+      }
       if (productIds && !nextQs.get('product_ids')) nextQs.set('product_ids', productIds);
       var quoteDoc = sessionStorage.getItem('mb_quote_document_id') || '';
       if (quoteDoc && !nextQs.get('document_id')) nextQs.set('document_id', quoteDoc);

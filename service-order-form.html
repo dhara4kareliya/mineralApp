@@ -223,9 +223,13 @@ class Component extends DCLogic {
       var address = q.get('address') || '';
       var productIdsStr = q.get('product_ids') || '';
       if (!productIdsStr) {
-        try {
-          productIdsStr = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
-        } catch (e) { productIdsStr = ''; }
+        if (window.MineralBarApp && typeof MineralBarApp.getSelectedProductIds === 'function') {
+          productIdsStr = MineralBarApp.getSelectedProductIds(customerId) || '';
+        } else {
+          try {
+            productIdsStr = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+          } catch (e) { productIdsStr = ''; }
+        }
       }
 
       var stateUpdate = { customer_id: customerId || '' };

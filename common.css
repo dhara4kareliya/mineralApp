@@ -89,6 +89,8 @@ button, input, select, textarea, a {
   touch-action: pan-x;
   user-select: none;
   -webkit-user-select: none;
+  min-width: 0;
+  max-width: 100%;
 }
 .dc-scroll.mb-h-drag.is-dragging,
 #mb-sales-pipeline-scroll.is-dragging,
@@ -102,6 +104,49 @@ button, input, select, textarea, a {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+}
+
+/* List pagination (leads + customers) */
+.mb-list-pager {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e4e8ee;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+.mb-list-pager-label {
+  flex: 1;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #5a6473;
+  min-width: 0;
+}
+.mb-list-pager-btn {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 10px;
+  border: 1.5px solid #dde2ea;
+  background: #f7f9fc;
+  color: #1f2a3a;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.mb-list-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .hidden {

@@ -321,7 +321,10 @@ class Component extends DCLogic {
           var phone = String(c.mobile || c.phone || c.cellular || '').trim();
           // Never fall back to address — that put "Rothschild Blvd 45" into City/Area
           var city = String(c.city || c.city_name || '').trim();
-          var name = String(c.company || c.name || '').trim();
+          // Prefer personal/client name (matches Biz1 CRM "Client Name"), then company
+          var name = String(
+            c.name || c.customer_name || c.full_name || c.username || c.company || c.company_name || ''
+          ).trim();
           return {
             id: String(c.customer_id || c.id || ''),
             name: name || '--',
