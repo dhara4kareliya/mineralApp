@@ -925,6 +925,8 @@
       remember_me: 'Remember me',
       login_btn: 'Sign in',
       login_btn_otp: 'Verify & Sign in',
+      demo_credentials: 'Demo Credentials',
+      login_as_demo_user: 'Login As Domo User',
       logging_in: 'Signing in…',
       verifying: 'Verifying…',
       toggle_password: 'Show or hide password',
@@ -1072,6 +1074,8 @@
       remember_me: 'זכור אותי',
       login_btn: 'התחבר',
       login_btn_otp: 'אמת והתחבר',
+      demo_credentials: 'פרטי הדגמה',
+      login_as_demo_user: 'התחבר כמשתמש הדגמה',
       logging_in: 'מתחבר…',
       verifying: 'מאמת…',
       toggle_password: 'הצג או הסתר סיסמה',
@@ -1254,6 +1258,8 @@
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+    var demoBox = document.getElementById('demo-users');
+    if (demoBox) demoBox.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
   }
   function setLang(lang) {
     if (lang !== 'he' && lang !== 'en') lang = DEFAULT_LANG;
@@ -2763,20 +2769,40 @@
     });
 
     try {
-      var email = MineralBarApp.getEmail() || '';
-      if (email) usernameEl.value = email;
       var rememberOn = localStorage.getItem('biz1fs_remember') === '1';
-      if (rememberOn) {
-        rememberEl.checked = true;
-        var saved = null;
-        try { saved = JSON.parse(decodeURIComponent(escape(atob(localStorage.getItem('biz1fs_cred') || '')))); } catch (e) { saved = null; }
-        if (saved && saved.password) passwordEl.value = saved.password;
-        if (saved && saved.username && !usernameEl.value) usernameEl.value = saved.username;
-      }
+      if (rememberOn && rememberEl) rememberEl.checked = true;
     } catch (e) { /* ignore */ }
+
+    var allowAutofillClear = true;
+    function clearLoginFields() {
+      if (!allowAutofillClear) return;
+      if (usernameEl) usernameEl.value = '';
+      if (passwordEl) passwordEl.value = '';
+    }
+    clearLoginFields();
+    global.addEventListener('pageshow', function () {
+      allowAutofillClear = true;
+      clearLoginFields();
+      global.setTimeout(clearLoginFields, 80);
+    });
+    global.setTimeout(clearLoginFields, 80);
+    global.setTimeout(clearLoginFields, 400);
 
     document.getElementById('togglePassword').addEventListener('click', function () {
       passwordEl.type = passwordEl.type === 'password' ? 'text' : 'password';
+    });
+
+    document.querySelectorAll('.demo-user-btn[data-user][data-pass]').forEach(function (btn) {
+      if (btn.__bound) return;
+      btn.__bound = true;
+      btn.addEventListener('click', function (event) {
+        event.preventDefault();
+        allowAutofillClear = false;
+        if (usernameEl) usernameEl.value = btn.getAttribute('data-user') || '';
+        if (passwordEl) passwordEl.value = btn.getAttribute('data-pass') || '';
+        if (passwordEl) passwordEl.focus();
+        clearError();
+      });
     });
 
     if (resendBtn && !resendBtn.__bound) {

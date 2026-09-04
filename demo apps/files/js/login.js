@@ -10,8 +10,35 @@
   const otpField = document.getElementById('otpField');
   const loginBtn = document.getElementById('loginBtn');
   const togglePassword = document.getElementById('togglePassword');
+  const usernameInput = document.getElementById('username');
   const passwordInput = document.getElementById('password');
+  const otpInput = document.getElementById('otp');
   let passwordVisible = false;
+  let demoFilled = false;
+
+  function clearLoginFields() {
+    if (demoFilled) return;
+    if (usernameInput) usernameInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (otpInput) otpInput.value = '';
+  }
+
+  clearLoginFields();
+  window.addEventListener('pageshow', () => {
+    demoFilled = false;
+    clearLoginFields();
+  });
+  setTimeout(clearLoginFields, 50);
+  setTimeout(clearLoginFields, 250);
+
+  document.querySelectorAll('.demo-user-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      demoFilled = true;
+      if (usernameInput) usernameInput.value = btn.getAttribute('data-user') || '';
+      if (passwordInput) passwordInput.value = btn.getAttribute('data-pass') || '';
+      passwordInput?.focus();
+    });
+  });
 
   document.body.classList.add('auth-checking');
   try {

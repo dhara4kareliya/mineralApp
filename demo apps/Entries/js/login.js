@@ -49,6 +49,7 @@
   var resendSeconds = 0;
   var resendTimer = null;
   var loading = false;
+  var demoFilled = false;
 
   function tr(key) {
     return EntriesUI.t(key);
@@ -56,10 +57,32 @@
 
   var remembered = EntriesAPI.loadCredentials();
   if (remembered) {
-    usernameEl.value = remembered.username || '';
-    passwordEl.value = remembered.password || '';
     rememberEl.checked = !!remembered.remember;
   }
+
+  function clearLoginFields() {
+    if (demoFilled) return;
+    if (usernameEl) usernameEl.value = '';
+    if (passwordEl) passwordEl.value = '';
+    if (otpEl) otpEl.value = '';
+  }
+
+  clearLoginFields();
+  window.addEventListener('pageshow', function () {
+    demoFilled = false;
+    clearLoginFields();
+  });
+  setTimeout(clearLoginFields, 50);
+  setTimeout(clearLoginFields, 250);
+
+  document.querySelectorAll('.demo-user-btn[data-user][data-pass]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      demoFilled = true;
+      if (usernameEl) usernameEl.value = btn.getAttribute('data-user') || '';
+      if (passwordEl) passwordEl.value = btn.getAttribute('data-pass') || '';
+      if (passwordEl && passwordEl.focus) passwordEl.focus();
+    });
+  });
 
   function showError(msg) {
     if (!msg) {

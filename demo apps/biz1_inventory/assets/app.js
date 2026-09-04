@@ -26,6 +26,7 @@
       loginTitle: 'כניסה לחשבון',
       socketLive: 'שידור חי',
       socketOffline: 'אופליין',
+      socketNoProducts: 'מחובר · בלי אירועי מלאי',
       emailLabel: 'אימייל / שם משתמש / טלפון / מזהה',
       emailPlaceholder: 'email / username / phone / id',
       passwordLabel: 'סיסמה',
@@ -39,11 +40,9 @@
       loginVerifying: 'מאמת…',
       loginVerifyBtn: 'אמת והתחבר',
       loginRefreshing: 'מחדש התחברות…',
-      teamUsers: 'משתמשי צוות',
-      roleSales: 'מכירות',
-      roleService: 'שירות',
-      roleTech: 'טכנאי',
-      footerNote: 'תצוגת Biz1 · מלאי ומחסן',
+      demoCredentials: 'פרטי הדגמה',
+      loginAsDemoUser: 'התחבר כמשתמש הדגמה',
+      footerNote: 'Biz1 Showcase · מלאי',
       inventoryTitle: 'מלאי',
       logout: 'התנתק',
       search: 'חיפוש',
@@ -149,6 +148,7 @@
       loginTitle: 'Sign in',
       socketLive: 'Live Socket',
       socketOffline: 'Offline',
+      socketNoProducts: 'Live · no product events',
       emailLabel: 'Email / Username / Phone / ID',
       emailPlaceholder: 'email / username / phone / id',
       passwordLabel: 'Password',
@@ -162,11 +162,9 @@
       loginVerifying: 'Verifying…',
       loginVerifyBtn: 'Verify & Sign in',
       loginRefreshing: 'Refreshing session…',
-      teamUsers: 'Team users',
-      roleSales: 'Sales',
-      roleService: 'Service',
-      roleTech: 'Technician',
-      footerNote: 'Biz1 Showcase · Inventory & warehouse',
+      demoCredentials: 'Demo Credentials',
+      loginAsDemoUser: 'Login As Domo User',
+      footerNote: 'Biz1 Showcase · Inventory',
       inventoryTitle: 'Inventory',
       logout: 'Log out',
       search: 'Search',
@@ -482,8 +480,8 @@
     I18N.en.brandName = brandName();
     I18N.he.pageTitle = brandName() + ' — מלאי';
     I18N.en.pageTitle = brandName() + ' — Inventory';
-    I18N.he.footerNote = brandName() + ' · מלאי ומחסן';
-    I18N.en.footerNote = brandName() + ' · Inventory & warehouse';
+    I18N.he.footerNote = 'Biz1 Showcase · מלאי';
+    I18N.en.footerNote = 'Biz1 Showcase · Inventory';
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       el.textContent = t(el.getAttribute('data-i18n'));
     });
@@ -516,6 +514,8 @@
     document.body.setAttribute('dir', dir);
     applyStaticI18n();
     syncLangButtons();
+    var demoBox = document.getElementById('demo-users');
+    if (demoBox) demoBox.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
     renderLoginControls();
     paintSocketStatus();
     if (!els.inventory.classList.contains('hidden') && state.products.length) renderInventory();
@@ -751,6 +751,7 @@
     stopScanner();
     hideAllScreens();
     els.login.classList.remove('hidden');
+    clearLoginFields();
   }
 
   function syncDesktopSearch() {
@@ -1129,17 +1130,27 @@
 
   function paintSocketStatus() {
     if (!els.socketStatusChip || !els.socketStatusText) return;
-    var state = {
+    var rt = {
       connected: false,
-      status: 'offline'
+      status: 'offline',
+      registered: []
     };
     try {
-      state = App.getRealtimeState() || state;
+      rt = App.getRealtimeState() || rt;
     } catch (e) { /* socket status is optional while booting */ }
-    var on = !!(state.connected && state.status === 'ready');
+    var registered = rt.registered || [];
+    var hasProducts = registered.some(function (key) {
+      return /product|stock|inventory|warehouse/i.test(String(key));
+    });
+    var on = !!(rt.connected && rt.status === 'ready');
     els.socketStatusChip.classList.toggle('live-on', on);
     els.socketStatusChip.classList.toggle('live-off', !on);
-    els.socketStatusText.textContent = t(on ? 'socketLive' : 'socketOffline');
+    els.socketStatusText.textContent = on
+      ? (hasProducts ? t('socketLive') : t('socketNoProducts'))
+      : t('socketOffline');
+    els.socketStatusChip.title = on
+      ? (registered.length ? registered.join(', ') : 'connected, no subscribed events')
+      : '';
   }
 
   function ensureInventoryRealtime() {
@@ -1148,6 +1159,9 @@
       window.addEventListener('biz1demo:products', onProductRealtime);
       window.addEventListener('biz1demo:socket', onSocketStatus);
       window.addEventListener('biz1demo:socket-status', onSocketStatus);
+      window.addEventListener('biz1demo:realtime', function (ev) {
+        console.info('[Inventory] realtime event', ev.detail && ev.detail.key, ev.detail);
+      });
     }
     paintSocketStatus();
     startSocketStatusPolling();
@@ -1166,6 +1180,14 @@
     paintSocketStatus();
     var detail = (e && e.detail) || {};
     if (detail.type === 'ready') {
+      var registered = detail.registered || [];
+      var productEvents = detail.products || registered.filter(function (key) {
+        return /product|stock|inventory|warehouse/i.test(String(key));
+      });
+      console.info('[Inventory] subscribed events', registered);
+      if (!productEvents.length) {
+        console.warn('[Inventory] socket is live but no product/stock events are subscribed — using 6s poll fallback');
+      }
       var shouldRefresh = state.realtimeReadySeen && state.products.length && !state.inventoryLoading;
       state.realtimeReadySeen = true;
       // Refresh only on later ready/reconnect events, never during first load.
@@ -1226,15 +1248,26 @@
     }
   }
 
+  function normalizeProductEventKey(key) {
+    var k = String(key || '').toLowerCase();
+    if (/delet/.test(k) && /product/.test(k)) return 'products.deleted';
+    if (/creat/.test(k) && /product/.test(k)) return 'products.created';
+    if (/updat/.test(k) && /product/.test(k)) return 'products.updated';
+    if (/stock|inventory|warehouse/.test(k)) return 'products.updated';
+    return k;
+  }
+
   function onProductRealtime(e) {
     if (els.inventory.classList.contains('hidden')) return;
     var detail = (e && e.detail) || {};
-    var key = String(detail.key || (detail.event && detail.event.key) || '');
+    var rawKey = String(detail.key || (detail.event && detail.event.key) || '');
+    var key = normalizeProductEventKey(rawKey);
     var payload = (detail.event && detail.event.payload) || {};
     var id = payload.id;
     if (id == null && payload.data && payload.data.id != null) id = payload.data.id;
+    if (id == null && payload.product_id != null) id = payload.product_id;
 
-    console.info('[Inventory] realtime product event', key, id, payload);
+    console.info('[Inventory] realtime product event', rawKey, key, id, payload);
 
     if (key === 'products.deleted') {
       pulseStats();
@@ -1247,14 +1280,13 @@
       }
       return;
     }
-    // created/updated: always refresh full list so new site products appear reliably
-    if (key === 'products.created' || key === 'products.updated') {
-      pulseStats();
-      showToast(key === 'products.created' ? t('realtimeCreated') : t('realtimeUpdated'));
-      if (id != null) markPulseIds([id]);
-      queueFullInventoryRefresh(true);
-      if (id != null) queueProductSync(id);
-    }
+
+    pulseStats();
+    if (key === 'products.created') showToast(t('realtimeCreated'));
+    else showToast(t('realtimeUpdated'));
+    if (id != null) markPulseIds([id]);
+    queueFullInventoryRefresh(true);
+    if (id != null && key !== 'products.deleted') queueProductSync(id);
   }
 
   function queueProductSync(id) {
@@ -1511,7 +1543,7 @@
     els.stockModalError.classList.add('hidden');
 
     try {
-      var synced = await App.updateProductStock(state.stockProduct.id, newQty);
+      var synced = await App.updateProductStock(state.stockProduct.id, newQty, state.stockProduct.raw);
       var finalQty = synced && synced.qty != null ? num(synced.qty, newQty) : newQty;
 
       var id = String(state.stockProduct.id);
@@ -1762,19 +1794,30 @@
     window.open('https://wa.me/' + phone + '?text=' + text, '_blank');
   }
 
+  var allowAutofillClear = true;
+
+  function clearLoginFields() {
+    if (!allowAutofillClear) return;
+    if (els.username) els.username.value = '';
+    if (els.password) els.password.value = '';
+    if (els.otp) els.otp.value = '';
+    if (els.remember) els.remember.checked = false;
+  }
+
+  function fillDemoCredentials(btn) {
+    allowAutofillClear = false;
+    var email = (btn && btn.getAttribute('data-user')) || '';
+    var pass = (btn && btn.getAttribute('data-pass')) || '';
+    if (els.username) {
+      els.username.removeAttribute('readonly');
+      els.username.value = email;
+    }
+    if (els.password) els.password.value = pass;
+    if (typeof clearError === 'function') clearError();
+  }
+
   function prefillRemembered() {
-    try {
-      var email = App.getEmail() || '';
-      if (email) els.username.value = email;
-      if (localStorage.getItem('biz1demo_remember') === '1') {
-        els.remember.checked = true;
-        var saved = null;
-        try {
-          saved = JSON.parse(decodeURIComponent(escape(atob(localStorage.getItem('biz1demo_cred') || ''))));
-        } catch (e) { saved = null; }
-        if (saved && saved.password) els.password.value = saved.password;
-      }
-    } catch (e) { /* ignore */ }
+    clearLoginFields();
   }
 
   async function tryAutoEnter() {
@@ -1825,11 +1868,9 @@
     els.password.type = els.password.type === 'password' ? 'text' : 'password';
   });
 
-  document.querySelectorAll('.fillUser').forEach(function (btn) {
+  document.querySelectorAll('.demo-user-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      els.username.value = btn.getAttribute('data-user');
-      els.password.focus();
-      clearError();
+      fillDemoCredentials(btn);
     });
   });
 
@@ -2043,5 +2084,18 @@
   setInterval(tickClock, 30000);
   window.addEventListener('resize', syncDesktopSearch);
   prefillRemembered();
+  window.addEventListener('pageshow', function () {
+    if (!els.login.classList.contains('hidden')) clearLoginFields();
+  });
+  [0, 50, 250].forEach(function (ms) {
+    setTimeout(function () {
+      if (!els.login.classList.contains('hidden')) clearLoginFields();
+    }, ms);
+  });
+  if (els.username) {
+    els.username.addEventListener('focus', function () {
+      els.username.removeAttribute('readonly');
+    });
+  }
   tryAutoEnter();
 })();

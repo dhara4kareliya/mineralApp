@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Biz1 Showcase — Login</title>
-  <script src="./assets/config.js?v=financial-multi-login-20260811"></script>
+  <script src="./assets/config.js?v=financial-demo-cred-20260904b"></script>
   <script>
     (function () {
       var user = (window.Biz1Config && window.Biz1Config.user) || "";
@@ -14,8 +14,8 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="./assets/css/app.css?v=financial-multi-login-20260811">
-  <script defer src="./assets/js/app.js?v=financial-multi-login-20260811"></script>
+  <link rel="stylesheet" href="./assets/css/app.css?v=financial-demo-cred-20260904b">
+  <script defer src="./assets/js/app.js?v=financial-demo-cred-20260904b"></script>
 </head>
 <body>
   <div class="page-wrap">
@@ -36,16 +36,16 @@
             <div id="brandSub" class="brand-sub">Sign in to the management system</div>
           </div>
           <div class="auth-shell">
-            <form id="loginForm" class="card login-card">
+            <form id="loginForm" class="card login-card" autocomplete="off">
               <div id="loginTitle" class="login-title">Account login</div>
               <div id="usernameWrap">
                 <label id="usernameLabel" for="username">Email / Username / Phone / ID</label>
-                <input id="username" type="text" autocomplete="username" required>
+                <input id="username" type="text" name="username" autocomplete="off" required>
               </div>
               <div id="passwordWrap">
                 <label id="passwordLabel" for="password">Password</label>
                 <div class="password-wrap">
-                  <input id="password" type="password" autocomplete="current-password" required>
+                  <input id="password" type="password" name="password" autocomplete="new-password" required>
                   <button id="togglePasswordBtn" type="button" class="password-toggle" aria-label="Show password">👁</button>
                 </div>
               </div>
@@ -61,7 +61,22 @@
               <button id="loginBtn" type="submit">Sign in</button>
               <p id="loginError" class="error hidden"></p>
             </form>
-            <p id="loginFooter" class="login-footer">Biz1 Showcase</p>
+            <aside class="demo-users" id="demoUsers" aria-label="Demo Credentials">
+              <div id="demoCredentialsTitle" class="demo-users-title">Demo Credentials</div>
+              <div class="demo-users-list">
+                <div class="demo-user-row">
+                  <span class="demo-user-creds">dhara@yopmail.com / pass0364</span>
+                  <button
+                    type="button"
+                    class="demo-user-btn"
+                    id="demoLoginDharaBtn"
+                    data-user="dhara@yopmail.com"
+                    data-pass="pass0364"
+                  >Login As Domo User</button>
+                </div>
+              </div>
+            </aside>
+            <p id="loginFooter" class="login-footer">Biz1 Showcase · Executive Analytics</p>
           </div>
         </section>
 

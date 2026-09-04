@@ -1,4 +1,10 @@
 * { box-sizing: border-box; }
+:root {
+  --primary: #1d60a2;
+  --primary-hover: #16487c;
+  --primary-soft: rgba(29, 96, 162, 0.1);
+  --border: #e4e8ee;
+}
 body {
   margin: 0;
   font-family: "Heebo", "Segoe UI", Arial, sans-serif;
@@ -8,6 +14,10 @@ body {
 body[data-theme="dark"] {
   background: #0f1726;
   color: #dde7ff;
+  --primary: #5b9fd4;
+  --primary-hover: #7ab3e0;
+  --primary-soft: rgba(91, 159, 212, 0.16);
+  --border: #2a3d5e;
 }
 .page-wrap {
   min-height: 100vh;
@@ -140,6 +150,66 @@ body[data-theme="dark"] .password-toggle { color: #b8c8e5; }
   color: #1d60a2;
 }
 .resend-otp:disabled, button:disabled { opacity: .6; cursor: not-allowed; }
+.demo-users {
+  margin-top: 14px;
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+}
+.demo-users-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 12px;
+  text-align: start;
+}
+.demo-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.demo-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+.demo-user-btn {
+  width: auto;
+  flex: none;
+  margin: 0;
+  margin-inline-start: auto;
+  text-align: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 120ms ease;
+}
+.demo-user-btn:hover {
+  background: var(--primary-hover);
+}
+.demo-user-creds {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .login-footer {
   margin: 14px 0 0;
   text-align: center;
@@ -147,6 +217,7 @@ body[data-theme="dark"] .password-toggle { color: #b8c8e5; }
   font-size: 12px;
   font-weight: 600;
 }
+body[data-theme="dark"] .login-footer { color: #9db0ce; }
 button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
 button#loginBtn, .primary { margin-top: 14px; width: 100%; background: linear-gradient(135deg, #1d60a2, #16487c); color: #fff; font-weight: 800; }
 .ghost { background: #fff; border: 1.5px solid #dde2ea; color: #1f355a; }

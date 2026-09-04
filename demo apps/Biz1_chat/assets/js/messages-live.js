@@ -116,7 +116,7 @@
   function channelMeta(channel) {
     var ch = String(channel || '').toLowerCase();
     var tt = window.t || function (k) { return k; };
-    if (ch === 'notes' || ch === 'note') {
+    if (ch === 'notes' || ch === 'note' || ch === 'send_notes' || ch === 'internal') {
       return { key: 'notes', label: tt('channel_notes_short'), color: '#2F80ED' };
     }
     if (ch === 'email') {
@@ -613,14 +613,37 @@
   window.addEventListener('mineralbar:list-channel', function (ev) {
     syncRowFromThread((ev && ev.detail) || {});
   });
+  var inboxReloadTimer = 0;
+  function scheduleInboxReload(el) {
+    if (!el) return;
+    clearTimeout(inboxReloadTimer);
+    inboxReloadTimer = setTimeout(function () {
+      loadMessages(el, { silent: true });
+    }, 400);
+  }
+
   window.addEventListener('mineralbar:messages', function (ev) {
     var el = document.getElementById('mb-live-messages');
     if (!el || !window.MineralBarApp || !MineralBarApp.isAuthenticated()) return;
     var detail = (ev && ev.detail) || {};
-    if (isInboxRefreshEvent(detail)) return;
-    var ch = detail.channel ? channelMeta(detail.channel).label : 'Inbox';
-    showToast((window.t ? window.t('toast_new_message') : 'New message') + ' · ' + ch);
-    syncRowFromSocket(detail);
+    if (isInboxRefreshEvent(detail)) {
+      scheduleInboxReload(el);
+      return;
+    }
+    var App = window.Biz1App || window.MineralBarApp;
+    var parsed = (App && typeof App.realtimeMessageFromEvent === 'function')
+      ? App.realtimeMessageFromEvent(detail)
+      : {};
+    var outgoing = detail.direction === 'out' || detail.direction === 'outgoing' ||
+      parsed.direction === 'out' || parsed.direction === 1 || parsed.direction === '1';
+    var chKey = detail.channel || parsed.channel || '';
+    if (!outgoing) {
+      var ch = chKey ? channelMeta(chKey).label : 'Inbox';
+      showToast((window.t ? window.t('toast_new_message') : 'New message') + ' · ' + ch);
+    }
+    if (!syncRowFromSocket(detail)) {
+      scheduleInboxReload(el);
+    }
   });
 
   if (document.readyState === 'loading') {

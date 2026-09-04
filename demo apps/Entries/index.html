@@ -66,6 +66,7 @@
     <button type="button" class="lang-fab" data-lang-toggle aria-label="Switch language">EN</button>
     <button type="button" class="theme-fab" data-theme-toggle aria-label="Toggle theme">☾</button>
 
+    <div class="auth-stack">
     <div class="auth-card card">
       <div class="auth-brand">
         <div class="auth-mark" aria-hidden="true">
@@ -77,18 +78,18 @@
         <p data-i18n="loginSubtitle">Sign in with your Biz1 account to manage dynamic entry tabs.</p>
       </div>
 
-      <form id="loginForm" class="auth-form" novalidate>
+      <form id="loginForm" class="auth-form" autocomplete="off" novalidate>
         <div id="errorBox" class="alert alert--error hidden" role="alert"></div>
 
         <label class="field">
           <span data-i18n="loginUsernameLabel">Email / Username / Phone / ID</span>
-          <input id="username" autocomplete="username" data-i18n-placeholder="loginUsernamePlaceholder" placeholder="you@company.com" required />
+          <input id="username" name="entries-user" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="loginUsernamePlaceholder" placeholder="you@company.com" required value="" />
         </label>
 
         <label class="field">
           <span data-i18n="loginPasswordLabel">Password</span>
           <div class="input-with-action">
-            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            <input id="password" name="entries-pass" type="password" autocomplete="new-password" placeholder="••••••••" required value="" />
             <button type="button" class="ghost-btn" id="togglePassword" aria-label="Show or hide password" data-i18n="loginShowPassword">Show</button>
           </div>
         </label>
@@ -110,6 +111,24 @@
           <span id="loginBtnText" data-i18n="loginSignIn">Sign in</span>
         </button>
       </form>
+    </div>
+
+    <div class="demo-users" id="demo-users" dir="ltr" data-i18n-aria="demoCredentials" aria-label="Demo Credentials">
+      <div class="demo-users-title" data-i18n="demoCredentials">Demo Credentials</div>
+      <div class="demo-users-list">
+        <div class="demo-user-row">
+          <span class="demo-user-creds" dir="ltr">szp123</span>
+          <button
+            type="button"
+            class="demo-user-btn"
+            data-user="szp123"
+            data-pass=""
+            data-i18n="loginAsDemoUser"
+          >Login As Domo User</button>
+        </div>
+      </div>
+    </div>
+    <p class="login-footer">Biz1 Showcase · Entries</p>
     </div>
   </div>
 

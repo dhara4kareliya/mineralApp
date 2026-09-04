@@ -39,6 +39,8 @@
       showPassword: "Show password",
       hidePassword: "Hide password",
       loginPageSuffix: "Login",
+      demoCredentials: "Demo Credentials",
+      loginAsDhara: "Login As Domo User",
       requiredFields: "Please enter your email, username, phone or ID, and password.",
       requiredOtp: "Please enter the OTP.",
       invalidCredentials: "Invalid login details or password.",
@@ -116,6 +118,8 @@
       showPassword: "הצג סיסמה",
       hidePassword: "הסתר סיסמה",
       loginPageSuffix: "התחברות",
+      demoCredentials: "פרטי הדגמה",
+      loginAsDhara: "התחבר כמשתמש הדגמה",
       requiredFields: "יש להזין אימייל, שם משתמש, טלפון או מזהה, וסיסמה.",
       requiredOtp: "יש להזין קוד אימות.",
       invalidCredentials: "פרטי ההתחברות או הסיסמה שגויים.",
@@ -227,7 +231,14 @@
     setText("passwordLabel", t("password"));
     setText("otpLabel", t("otp"));
     setText("rememberLabel", t("rememberMe"));
-    setText("loginFooter", brand);
+    setText("demoCredentialsTitle", t("demoCredentials"));
+    setText("demoLoginDharaBtn", t("loginAsDhara"));
+    var demoBox = qs("demoUsers");
+    if (demoBox) {
+      demoBox.setAttribute("aria-label", t("demoCredentials"));
+      demoBox.setAttribute("dir", state.lang === "he" ? "rtl" : "ltr");
+    }
+    setText("loginFooter", "Biz1 Showcase · " + t("dashboardTitle"));
     setInputPlaceholder("otp", t("otpPlaceholder"));
     document.title = brand + " — " + t("loginPageSuffix");
     setText("dashboardTitle", t("dashboardTitle"));
@@ -1381,10 +1392,40 @@
   function prefillRememberedCredentials() {
     var cached = readCachedCredentials();
     if (!cached) return null;
-    qs("username").value = cached.username;
-    qs("password").value = cached.password;
     qs("rememberMe").checked = localStorage.getItem(rememberKey) === "1";
     return cached;
+  }
+
+  var allowAutofillClear = true;
+
+  function clearLoginFields() {
+    if (!allowAutofillClear) return;
+    var userEl = qs("username");
+    var passEl = qs("password");
+    if (userEl) userEl.value = "";
+    if (passEl) passEl.value = "";
+  }
+
+  function wireDemoCredentials() {
+    clearLoginFields();
+    window.addEventListener("pageshow", function () {
+      allowAutofillClear = true;
+      clearLoginFields();
+      window.setTimeout(clearLoginFields, 80);
+    });
+    window.setTimeout(clearLoginFields, 80);
+    window.setTimeout(clearLoginFields, 400);
+
+    document.querySelectorAll(".demo-user-btn[data-user][data-pass]").forEach(function (btn) {
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        allowAutofillClear = false;
+        var userEl = qs("username");
+        var passEl = qs("password");
+        if (userEl) userEl.value = btn.getAttribute("data-user") || "";
+        if (passEl) passEl.value = btn.getAttribute("data-pass") || "";
+      });
+    });
   }
 
   async function trySilentLogin(cached) {
@@ -1424,6 +1465,7 @@
 
   async function bootstrap() {
     bindEvents();
+    wireDemoCredentials();
     applyTheme();
     applyLanguage();
     setLiveChip(false, t("liveOff"));

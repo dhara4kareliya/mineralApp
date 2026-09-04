@@ -80,7 +80,7 @@
   function normalizeType(t) {
     var s = String(t || '').toLowerCase();
     if (s === 'mision' || s === 'mission') return 'biz1';
-    if (s === 'note' || s === 'send_notes' || s === 'internal') return 'notes';
+    if (/^notes?$|^send_notes$|^internal$|^import_note$/.test(s)) return 'notes';
     if (s === 'mail' || s === 'quick_email' || s === 'quick-email') return 'email';
     if (s === 'web' || s === 'live') return 'biz1';
     return s || 'whatsapp';
@@ -850,22 +850,80 @@
     } catch (e) { /* ignore */ }
   }
 
+  function belongsToOpenThread(p, cid, meta) {
+    var currentCid = String((p && (p.customer_id || p.cust_id)) || '');
+    var currentMeta = String((p && p.messenger_meta_id) || '');
+    if (meta && currentMeta && String(meta) === currentMeta) return true;
+    if (cid && currentCid && String(cid) === currentCid) return true;
+    return false;
+  }
+
+  var threadReloadTimer = 0;
+  function scheduleThreadReload(p) {
+    if (!p) return;
+    var el = document.getElementById('mb-live-chat');
+    if (!el) return;
+    clearTimeout(threadReloadTimer);
+    threadReloadTimer = setTimeout(function () {
+      var beforeCount = cachedRows.length;
+      var beforeLast = beforeCount ? String(cachedRows[beforeCount - 1].id || cachedRows[beforeCount - 1].message || '') : '';
+      var run = loadThread(el, p, { silent: true });
+      if (run && typeof run.then === 'function') {
+        run.then(function () {
+          var afterCount = cachedRows.length;
+          var afterLast = afterCount ? String(cachedRows[afterCount - 1].id || cachedRows[afterCount - 1].message || '') : '';
+          if (afterCount === beforeCount && afterLast === beforeLast) {
+            clearTimeout(threadReloadTimer);
+            threadReloadTimer = setTimeout(function () {
+              loadThread(el, p, { silent: true });
+            }, 900);
+          }
+        }).catch(function () { /* ignore */ });
+      }
+    }, 400);
+  }
+
   function syncThreadFromSocket(detail) {
     var p = currentParams;
     var App = window.Biz1App || window.MineralBarApp;
     if (!p || !App || typeof App.realtimeMessageFromEvent !== 'function') return false;
+    if (detail && /inbox\.refresh|rooms:refresh|rooms\.refresh/i.test(String(detail.key || ''))) {
+      return false;
+    }
 
     var message = App.realtimeMessageFromEvent(detail);
     var cid = String(message.customer_id || '');
     var meta = String(message.messenger_meta_id || '');
     var text = String(message.message || '').trim();
-    if (!text) return false;
-
     var currentCid = String(p.customer_id || p.cust_id || '');
     var currentMeta = String(p.messenger_meta_id || '');
-    if (meta && currentMeta && meta !== currentMeta) return false;
+
+    if (meta && currentMeta && meta !== currentMeta && !(cid && currentCid && cid === currentCid)) {
+      return false;
+    }
     if (cid && currentCid && cid !== currentCid && !meta) return false;
     if (!meta && !cid) return false;
+    if (!belongsToOpenThread(p, cid, meta)) return false;
+
+    // Notes socket payload is { customer_id, from, channel } with no text —
+    // pull the stored row from Chat.SingleConversations instead of dropping it.
+    if (!text) {
+      var incomingType = normalizeType(message.channel || (detail && detail.channel) || '');
+      if (incomingType && typeFilter !== 'all' && incomingType !== typeFilter) {
+        typeFilter = 'all';
+        if (currentParams) currentParams.type = 'all';
+        syncTypeTabs();
+      }
+      scheduleThreadReload(p);
+      return true;
+    }
+
+    var incomingCh = normalizeType(message.channel || 'whatsapp');
+    if (typeFilter !== 'all' && incomingCh && incomingCh !== typeFilter) {
+      typeFilter = 'all';
+      if (currentParams) currentParams.type = 'all';
+      syncTypeTabs();
+    }
 
     var rowId = String(message.id || '');
     var duplicate = cachedRows.some(function (row) {
@@ -881,8 +939,8 @@
         email: message.email || '',
         time: message.when || new Date().toISOString(),
         direction: message.direction,
-        type: message.channel || 'whatsapp',
-        channel: message.channel || 'whatsapp',
+        type: incomingCh,
+        channel: incomingCh,
         user_id: message.user_id,
         messenger_meta_id: meta || currentMeta,
         raw: detail && detail.event ? detail.event : detail
@@ -923,7 +981,19 @@
       }
 
       var res = await App.listSingleConversations(meta, extra);
+      var localPending = cachedRows.filter(function (r) {
+        return String(r.id || '').indexOf('local-') === 0;
+      });
       cachedRows = sortRowsByTime(res.rows || []);
+      localPending.forEach(function (local) {
+        var text = String(local.message || '').trim();
+        if (!text) return;
+        var exists = cachedRows.some(function (row) {
+          return String(row.message || '').trim() === text;
+        });
+        if (!exists) cachedRows.push(local);
+      });
+      cachedRows = sortRowsByTime(cachedRows);
       if (res.customer_id && (!p.customer_id || p.customer_id === '0')) {
         p.customer_id = String(res.customer_id);
         p.cust_id = p.customer_id;

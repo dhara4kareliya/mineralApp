@@ -15,49 +15,68 @@
       <button type="button" class="lang-fab" id="langToggle" aria-label="Switch language">EN</button>
       <button type="button" class="theme-fab" id="themeToggle" aria-label="Toggle theme">☾</button>
 
-      <div class="auth-card card">
-        <div class="auth-brand">
-          <div class="auth-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M4 7h16M4 12h10M4 17h14" stroke-linecap="round" />
-            </svg>
+      <div class="auth-stack">
+        <div class="auth-card card">
+          <div class="auth-brand">
+            <div class="auth-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 7h16M4 12h10M4 17h14" stroke-linecap="round" />
+              </svg>
+            </div>
+            <h1 data-i18n="loginTitle">Order & Invoice</h1>
+            <p data-i18n="loginSubtitle">Sign in with your Biz1 account to manage customers, invoices, and orders.</p>
           </div>
-          <h1 data-i18n="loginTitle">Order & Invoice</h1>
-          <p data-i18n="loginSubtitle">Sign in with your Biz1 account to manage customers, invoices, and orders.</p>
+
+          <form id="loginForm" class="auth-form" novalidate autocomplete="off">
+            <div id="loginNote" class="alert alert--error hidden" role="alert"></div>
+
+            <label class="field">
+              <span data-i18n="loginUsernameLabel">Email / Username / Phone / ID</span>
+              <input name="username" id="username" autocomplete="off" data-i18n-placeholder="loginUsernamePlaceholder" placeholder="you@company.com" required />
+            </label>
+
+            <label class="field">
+              <span data-i18n="loginPasswordLabel">Password</span>
+              <div class="input-with-action">
+                <input name="password" id="password" type="password" autocomplete="new-password" placeholder="••••••••" required />
+                <button type="button" class="ghost-btn" id="togglePassword" data-i18n="loginShowPassword">Show</button>
+              </div>
+            </label>
+
+            <div id="otpField" class="hidden">
+              <label class="field">
+                <span data-i18n="loginOtpLabel">Verification code (OTP)</span>
+                <input name="otp" id="otp" class="otp-input" autocomplete="one-time-code" inputmode="numeric" data-i18n-placeholder="loginOtpPlaceholder" placeholder="6-digit code" />
+              </label>
+            </div>
+
+            <label class="check-row">
+              <input id="remember" type="checkbox" checked />
+              <span data-i18n="loginRemember">Remember me</span>
+            </label>
+
+            <button type="submit" class="btn btn--primary btn--block" id="loginBtn">
+              <span data-i18n="loginSignIn">Sign in</span>
+            </button>
+          </form>
         </div>
 
-        <form id="loginForm" class="auth-form" novalidate>
-          <div id="loginNote" class="alert alert--error hidden" role="alert"></div>
-
-          <label class="field">
-            <span data-i18n="loginUsernameLabel">Email / Username / Phone / ID</span>
-            <input name="username" id="username" autocomplete="username" data-i18n-placeholder="loginUsernamePlaceholder" placeholder="you@company.com" required />
-          </label>
-
-          <label class="field">
-            <span data-i18n="loginPasswordLabel">Password</span>
-            <div class="input-with-action">
-              <input name="password" id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
-              <button type="button" class="ghost-btn" id="togglePassword" data-i18n="loginShowPassword">Show</button>
+        <aside class="demo-cred-box" data-i18n-aria="demoCredentials" aria-label="Demo Credentials">
+          <h2 class="demo-cred-box__title" data-i18n="demoCredentials">Demo Credentials</h2>
+          <div class="demo-cred-box__list">
+            <div class="demo-cred-box__row">
+              <span class="demo-cred-box__creds" dir="ltr">dhara / pass0364</span>
+              <button
+                type="button"
+                class="demo-cred-box__btn"
+                data-user="dhara"
+                data-pass="pass0364"
+                data-i18n="demoLoginAsDemoUser"
+              >Login As Domo User</button>
             </div>
-          </label>
-
-          <div id="otpField" class="hidden">
-            <label class="field">
-              <span data-i18n="loginOtpLabel">Verification code (OTP)</span>
-              <input name="otp" id="otp" class="otp-input" autocomplete="one-time-code" inputmode="numeric" data-i18n-placeholder="loginOtpPlaceholder" placeholder="6-digit code" />
-            </label>
           </div>
-
-          <label class="check-row">
-            <input id="remember" type="checkbox" checked />
-            <span data-i18n="loginRemember">Remember me</span>
-          </label>
-
-          <button type="submit" class="btn btn--primary btn--block" id="loginBtn">
-            <span data-i18n="loginSignIn">Sign in</span>
-          </button>
-        </form>
+          <p class="demo-cred-box__foot">Biz1 Showcase · <span data-i18n="appTitle">Order & Invoice</span></p>
+        </aside>
       </div>
     </div>
   </body>

@@ -31,9 +31,9 @@
   document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
 })();
 </script>
-<script src="assets/js/lang.js?v=chat-37"></script>
-<script src="assets/js/biz1-app.js?v=chat-37"></script>
-<link rel="stylesheet" href="assets/css/login.css?v=chat-23">
+<script src="assets/js/lang.js?v=chat-40"></script>
+<script src="assets/js/biz1-app.js?v=chat-38"></script>
+<link rel="stylesheet" href="assets/css/login.css?v=chat-41">
 </head>
 <body>
 <div class="app-shell" id="appShell">
@@ -64,7 +64,7 @@
       </div>
 
       <div class="dc-scroll login-scroll">
-        <form id="loginForm" class="login-card">
+        <form id="loginForm" class="login-card" autocomplete="off">
           <div class="login-title" data-i18n="form_title">כניסה לחשבון</div>
           <div class="login-hint" id="loginHint">bull36.com · Biz1 SDK</div>
 
@@ -78,7 +78,7 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa3b0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/></svg>
               <span data-i18n="email">אימייל</span> <span class="req">*</span>
             </label>
-            <input id="username" class="ds-input input input--ltr" type="text" autocomplete="username" data-i18n-placeholder="placeholder_email" placeholder="email / username / phone / id" required>
+            <input id="username" class="ds-input input input--ltr" type="text" name="biz1chat-user" autocomplete="off" autocapitalize="off" spellcheck="false" value="" data-i18n-placeholder="placeholder_email" placeholder="email / username / phone / id" required>
           </div>
 
           <div id="passwordWrap" class="field field--tight">
@@ -87,7 +87,7 @@
               <span data-i18n="password">סיסמה</span> <span class="req">*</span>
             </label>
             <div class="pass-wrap">
-              <input id="password" class="ds-input input input--pass" type="password" autocomplete="current-password" data-i18n-placeholder="placeholder_password" placeholder="הזן סיסמה" required>
+              <input id="password" class="ds-input input input--pass" type="password" name="biz1chat-pass" autocomplete="new-password" value="" data-i18n-placeholder="placeholder_password" placeholder="הזן סיסמה" required>
               <button type="button" id="togglePassword" class="pass-toggle" aria-label="Toggle password">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
@@ -116,7 +116,22 @@
           </button>
         </form>
 
-        <div class="footer-note" data-i18n="crm_system">תצוגת Biz1 · צ׳אט והודעות</div>
+        <div class="demo-users" id="demo-users" aria-label="Demo Credentials">
+          <div class="demo-users-title" data-i18n="demo_credentials">Demo Credentials</div>
+          <div class="demo-users-list">
+            <div class="demo-user-row">
+              <span class="demo-user-creds">dhara@yopmail.com / pass0364</span>
+              <button
+                type="button"
+                class="demo-user-btn"
+                data-user="dhara@yopmail.com"
+                data-pass="pass0364"
+                data-i18n="login_as_demo_user"
+              >Login As Demo User</button>
+            </div>
+          </div>
+        </div>
+        <p class="login-footer">Biz1 Showcase · <span data-i18n="appName">Biz1 Showcase</span></p>
       </div>
     </div>
   </div>
@@ -139,7 +154,12 @@
     hint.textContent = String(template).replace('{tenant}', tenant);
   }
   updateLoginHint();
-  window.addEventListener('mineralbar:lang', updateLoginHint);
+  var demoBox = document.getElementById('demo-users');
+  if (demoBox && window.t) demoBox.setAttribute('aria-label', window.t('demo_credentials'));
+  window.addEventListener('mineralbar:lang', function () {
+    updateLoginHint();
+    if (demoBox && window.t) demoBox.setAttribute('aria-label', window.t('demo_credentials'));
+  });
 
   function tickClock() {
     var el = document.getElementById('clockLogin');
@@ -299,18 +319,25 @@
       || /(invalid|wrong|incorrect|expired|mismatch|failed|שגוי|פג).*(otp|code|אימות|קוד)/i.test(message);
   }
 
-  function prefillRemembered() {
+  var demoFillApplied = false;
+
+  function clearLoginFields() {
+    if (demoFillApplied) return;
+    if (usernameEl) usernameEl.value = '';
+    if (passwordEl) passwordEl.value = '';
+  }
+
+  function fillDemoUser(btn) {
+    demoFillApplied = true;
+    if (usernameEl) usernameEl.value = btn.getAttribute('data-user') || '';
+    if (passwordEl) passwordEl.value = btn.getAttribute('data-pass') || '';
+    if (passwordEl) passwordEl.focus();
+  }
+
+  function restoreRememberCheckbox() {
     try {
-      var email = App.getEmail() || '';
-      if (email) usernameEl.value = email;
       if (localStorage.getItem('biz1demo_remember') === '1' || localStorage.getItem('mineralbar_remember') === '1') {
         rememberEl.checked = true;
-        var saved = null;
-        try {
-          var raw = localStorage.getItem('biz1demo_cred') || localStorage.getItem('mineralbar_cred') || '';
-          saved = JSON.parse(decodeURIComponent(escape(atob(raw))));
-        } catch (e) { saved = null; }
-        if (saved && saved.password) passwordEl.value = saved.password;
       }
     } catch (e) { /* ignore */ }
   }
@@ -345,8 +372,18 @@
     return false;
   }
 
-  prefillRemembered();
+  restoreRememberCheckbox();
+  clearLoginFields();
+  window.addEventListener('pageshow', clearLoginFields);
+  setTimeout(clearLoginFields, 50);
+  setTimeout(clearLoginFields, 250);
   tryAutoEnter();
+
+  document.querySelectorAll('.demo-user-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      fillDemoUser(btn);
+    });
+  });
 
   document.getElementById('togglePassword').addEventListener('click', function () {
     passwordEl.type = passwordEl.type === 'password' ? 'text' : 'password';

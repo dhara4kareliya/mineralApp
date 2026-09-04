@@ -71,11 +71,11 @@
     'Realtime socket': {
       routes: ['client.realtime.connect', 'biz1:ready', 'biz1:event'],
       status: 'live',
-      events: ['chat.message.received', 'whatsapp.message.received', 'whatsapp.inbox.refresh', 'mission.reminder', 'teamops.task.updated']
+      events: ['chat.message.received', 'whatsapp.message.received', 'whatsapp.inbox.refresh', 'mission.reminder', 'teamops.task.updated', 'products.created', 'products.updated', 'products.deleted']
     },
     'הודעות / צ׳אט Inbox': { routes: ['Chat.Inbox', 'Chat.Conversations', 'Chat.CustomerMessages'], status: 'live' },
     'שעון נוכחות': { routes: ['WorkingTime.List', 'WorkingTime.StartStop', 'WorkingTime.Save'], status: 'partial' },
-    'מלאי': { routes: ['Products.List', 'Products.Count'], status: 'live' },
+    'מלאי': { routes: ['Products.List', 'Products.Count', 'Products.Get', 'Products.Update'], status: 'live' },
     'מסמכים / הצעות / הזמנות': { routes: ['Documents.List', 'Documents.Count', 'Forms.*', 'PaymentForms.*'], status: 'partial' },
     'גבייה': { routes: ['PaymentForms.*', 'Settings.SaveCard'], status: 'unknown' }
   };
@@ -593,24 +593,68 @@
     return { count: listed.total, raw: listed.countRaw };
   }
 
+  function unwrapProductRow(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var queue = [raw];
+    var hops = 0;
+    while (queue.length && hops < 8) {
+      var cur = queue.shift();
+      hops++;
+      if (!cur || typeof cur !== 'object') continue;
+      if (Array.isArray(cur)) {
+        if (cur[0]) queue.push(cur[0]);
+        continue;
+      }
+      if (
+        cur.storage_detail != null ||
+        cur.storage_id != null ||
+        cur.left_stock != null ||
+        cur.product_name != null ||
+        cur.product_sku != null ||
+        (cur.id != null && (cur.stock != null || cur.sku != null || cur.barcode != null))
+      ) {
+        return cur;
+      }
+      ['data', 'row', 'product', 'item', 'result'].forEach(function (key) {
+        if (cur[key] && typeof cur[key] === 'object') queue.push(cur[key]);
+      });
+    }
+    if (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) return raw.data;
+    return raw;
+  }
+
   async function getProduct(id, extra) {
     var client = getClient();
     var raw = await client.products.get(id, extra || {});
-    var row = (raw && raw.data) || raw || null;
-    return { row: row, raw: raw };
+    return { row: unwrapProductRow(raw), raw: raw };
+  }
+
+  function readProductQty(row) {
+    if (!row || typeof row !== 'object') return NaN;
+    var keys = ['stock', 'left_stock', 'qty', 'quantity', 'in_stock', 'product_qty', 'units', 'qnt'];
+    var i;
+    for (i = 0; i < keys.length; i++) {
+      if (row[keys[i]] == null || row[keys[i]] === '') continue;
+      var n = Number(row[keys[i]]);
+      if (!Number.isNaN(n)) return n;
+    }
+    return NaN;
   }
 
   /**
-   * Products.Update — only fields allowed by API whitelist.
-   * Stock is readable on List/Get but NOT writable via Products.Update.
+   * Products.Update — product edit route used for name/price/sku and stock qty.
    */
   async function updateProduct(id, data) {
     var client = getClient();
     var src = data || {};
-    var allowed = ['product_name', 'product_price', 'price', 'description', 'sku', 'status', 'endless'];
+    var allowed = [
+      'product_name', 'product_price', 'price', 'description', 'sku', 'status', 'endless',
+      'stock', 'left_stock', 'qty', 'quantity', 'product_qty', 'in_stock'
+    ];
     var payload = {};
     allowed.forEach(function (key) {
       if (src[key] != null && src[key] !== '') payload[key] = src[key];
+      else if (src[key] === 0 || src[key] === '0') payload[key] = src[key];
     });
     if (!Object.keys(payload).length && src.product_name) {
       payload.product_name = src.product_name;
@@ -627,7 +671,23 @@
       err.route = 'Products.Update';
       throw err;
     }
-    return { raw: raw, id: (raw && raw.id) || id };
+    return { raw: raw, id: (raw && raw.id) || id, payload: payload };
+  }
+
+  async function verifyProductQty(productId, target, tries) {
+    var attempt;
+    var live = NaN;
+    for (attempt = 0; attempt < (tries || 5); attempt++) {
+      try {
+        var check = await getProduct(productId);
+        live = readProductQty(check && check.row);
+        if (!Number.isNaN(live) && live === target) {
+          return { ok: true, qty: live, row: check.row };
+        }
+      } catch (e) { /* retry */ }
+      await sleep(700);
+    }
+    return { ok: false, qty: live };
   }
 
   var STOCK_BRIDGE_ID = 'biz1StockBridge';
@@ -712,22 +772,73 @@
     return new Promise(function (resolve) { global.setTimeout(resolve, ms); });
   }
 
-  function parseStorageIds(row) {
-    if (!row) return [];
-    var detail = row.storage_detail;
-    if (detail == null || detail === '') return [];
-    try {
-      var parsed = typeof detail === 'string' ? JSON.parse(detail) : detail;
-      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
-    } catch (e) { /* ignore */ }
-    return [];
+  function collectStorageIds(value, out) {
+    if (value == null || value === '' || value === false) return;
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      out.push(String(Math.round(value)));
+      return;
+    }
+    if (typeof value === 'string') {
+      var text = value.trim();
+      if (!text) return;
+      if (/^\d+$/.test(text)) {
+        out.push(text);
+        return;
+      }
+      if (text.charAt(0) === '[' || text.charAt(0) === '{') {
+        try {
+          collectStorageIds(JSON.parse(text), out);
+          return;
+        } catch (e) { /* fall through to split */ }
+      }
+      text.split(/[,|;]/).forEach(function (part) {
+        part = String(part || '').trim();
+        if (/^\d+$/.test(part)) out.push(part);
+      });
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(function (item) { collectStorageIds(item, out); });
+      return;
+    }
+    if (typeof value === 'object') {
+      ['id', 'storage_id', 'storageId', 'warehouse_id', 'warehouseId', 'storage_inner_id'].forEach(function (key) {
+        if (value[key] != null && value[key] !== '') collectStorageIds(value[key], out);
+      });
+      Object.keys(value).forEach(function (key) {
+        if (/^\d+$/.test(key)) out.push(key);
+      });
+    }
   }
 
-  /**
-   * Write product stock from pure HTML (no Node server).
-   * Uses a hidden iframe session on the Biz1 dashboard, then verifies via Products.Get.
-   */
-  async function updateProductStock(productId, qty) {
+  function parseStorageIds(row) {
+    if (!row) return [];
+    var out = [];
+    [
+      row.storage_detail,
+      row.storage_ids,
+      row.storage_id,
+      row.storageId,
+      row.warehouse_id,
+      row.warehouseId,
+      row.storage_inner_id,
+      row.storage,
+      row.warehouse,
+      row.storages,
+      row.warehouses,
+      row.storage_inner
+    ].forEach(function (field) {
+      collectStorageIds(field, out);
+    });
+    var seen = {};
+    return out.filter(function (id) {
+      if (!id || id === '0' || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
+
+  async function updateProductStockViaBridge(productId, target, storageId) {
     var cred = getSavedCredentials();
     if (!cred || !cred.username || !cred.password) {
       var credErr = new Error('Missing saved password for stock sync. Please log in again.');
@@ -735,22 +846,8 @@
       throw credErr;
     }
 
-    var target = Math.max(0, Math.round(Number(qty)));
-    if (Number.isNaN(target)) {
-      throw new Error('Invalid qty');
-    }
-
-    ensureStockBridgeFrame();
-
-    var got = await getProduct(productId);
-    var row = got && got.row;
-    var storageIds = parseStorageIds(row);
-    if (!storageIds.length) {
-      throw new Error('No warehouse/storage linked to this product in Biz1');
-    }
-    var storageId = storageIds[0];
     var dashOrigin = dashboardOriginFromUserBasic();
-
+    ensureStockBridgeFrame();
     loadBridgeUrl(dashOrigin + '/dashboard/login');
     await sleep(1200);
 
@@ -769,38 +866,99 @@
     });
     await sleep(2000);
 
-    var verifiedQty = target;
-    var synced = false;
-    var attempt;
-    for (attempt = 0; attempt < 5; attempt++) {
-      try {
-        var check = await getProduct(productId);
-        var live = check && check.row
-          ? Number(check.row.stock != null && check.row.stock !== '' ? check.row.stock : check.row.left_stock)
-          : NaN;
-        if (!Number.isNaN(live) && live === target) {
-          verifiedQty = live;
-          synced = true;
-          break;
-        }
-        if (!Number.isNaN(live)) verifiedQty = live;
-      } catch (e) { /* retry */ }
-      await sleep(700);
-    }
-
-    if (!synced) {
+    var verified = await verifyProductQty(productId, target, 5);
+    if (!verified.ok) {
       var syncErr = new Error('Biz1 stock did not update. Please try again.');
       syncErr.route = 'stock.bridge';
-      syncErr.qty = verifiedQty;
+      syncErr.qty = verified.qty;
       throw syncErr;
     }
-
     return {
-      qty: verifiedQty,
+      qty: verified.qty,
       storageId: storageId,
       dashboard: dashOrigin,
-      raw: { ok: true, qty: verifiedQty, storageId: storageId }
+      via: 'storage.bridge',
+      raw: { ok: true, qty: verified.qty, storageId: storageId }
     };
+  }
+
+  /**
+   * Write product stock through Products.Update (product edit API).
+   * Warehouse iframe is only a fallback when a storage record actually exists.
+   */
+  async function updateProductStock(productId, qty, cachedRow) {
+    var target = Math.max(0, Math.round(Number(qty)));
+    if (Number.isNaN(target)) {
+      throw new Error('Invalid qty');
+    }
+
+    var got = null;
+    try {
+      got = await getProduct(productId);
+    } catch (e) {
+      console.warn('[Biz1Demo] Products.Get before stock update failed', e);
+    }
+    var row = (got && got.row) || cachedRow || null;
+
+    var payload = {
+      stock: target,
+      left_stock: target,
+      qty: target,
+      quantity: target,
+      product_qty: target
+    };
+    if (row) {
+      if (row.product_name) payload.product_name = row.product_name;
+      else if (row.name) payload.product_name = row.name;
+      if (row.sku) payload.sku = row.sku;
+      else if (row.product_sku) payload.sku = row.product_sku;
+    }
+
+    var updated = null;
+    var updateErr = null;
+    try {
+      updated = await updateProduct(productId, payload);
+      console.info('[Biz1Demo] Products.Update stock', productId, payload, updated && updated.raw);
+    } catch (err) {
+      updateErr = err;
+      console.warn('[Biz1Demo] Products.Update stock failed, retrying minimal payload', err);
+      try {
+        updated = await updateProduct(productId, {
+          stock: target,
+          left_stock: target,
+          product_name: payload.product_name
+        });
+        updateErr = null;
+      } catch (err2) {
+        updateErr = err2;
+        console.warn('[Biz1Demo] Products.Update stock retry failed', err2);
+      }
+    }
+
+    var verified = await verifyProductQty(productId, target, updated ? 5 : 1);
+    if (verified.ok) {
+      return {
+        qty: verified.qty,
+        via: 'Products.Update',
+        raw: (updated && updated.raw) || verified.row
+      };
+    }
+
+    var storageIds = parseStorageIds(row);
+    if (!storageIds.length && cachedRow) storageIds = parseStorageIds(cachedRow);
+    if (storageIds.length) {
+      console.warn('[Biz1Demo] Products.Update did not persist stock — trying warehouse bridge', storageIds[0]);
+      return updateProductStockViaBridge(productId, target, storageIds[0]);
+    }
+
+    var msg = (updateErr && updateErr.message)
+      ? updateErr.message
+      : 'Biz1 stock did not update. Please try again.';
+    var syncErr = new Error(msg);
+    syncErr.route = 'Products.Update';
+    syncErr.qty = verified.qty;
+    syncErr.raw = updateErr && updateErr.raw;
+    throw syncErr;
   }
 
   function bucketTotal(bucket) {
@@ -1408,7 +1566,7 @@
     var key = String((event && event.key) || '');
     if (MESSAGE_EVENT_KEYS[key] || /chat|whatsapp|message|inbox/i.test(key)) return 'messages';
     if (MISSION_EVENT_KEYS[key] || /mission|task/i.test(key)) return 'missions';
-    if (PRODUCT_EVENT_KEYS[key] || /product/i.test(key)) return 'products';
+    if (PRODUCT_EVENT_KEYS[key] || /product|stock|inventory|warehouse/i.test(key)) return 'products';
     if (/lead|crm/i.test(key)) return 'leads';
     return 'other';
   }
@@ -1455,15 +1613,35 @@
     return global.io;
   }
 
+  function patchRealtimeDedup(client) {
+    if (!client || !client.realtime || client.realtime.__biz1DemoDedupPatched) return;
+    var orig = client.realtime.setLastEventId.bind(client.realtime);
+    client.realtime.setLastEventId = function (eventId) {
+      if (eventId == null || eventId === '' || eventId === 0) return true;
+      if (Number.isNaN(Number(eventId))) return true;
+      return orig(eventId);
+    };
+    client.realtime.__biz1DemoDedupPatched = true;
+  }
+
   function wireRealtimeHandlers(client) {
     if (realtimeHandlersWired) return;
     realtimeHandlersWired = true;
+    patchRealtimeDedup(client);
 
     client.realtime.on('biz1:ready', function (payload) {
       realtimeState.ready = payload || null;
       realtimeState.registered = (payload && Array.isArray(payload.events)) ? payload.events.slice() : [];
       realtimeState.error = null;
       setRealtimeStatus('ready');
+      var productKeys = realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'products'; });
+      console.info('[Biz1Demo] realtime ready', {
+        registered: realtimeState.registered.slice(),
+        products: productKeys
+      });
+      if (!productKeys.length) {
+        console.warn('[Biz1Demo] socket is live but Biz1 did not subscribe any product/stock events');
+      }
       // Registration is automatic via bearer auth — ready.events is the subscribed catalog.
       dispatchAppEvent('biz1demo:socket', {
         type: 'ready',
@@ -1471,7 +1649,7 @@
         registered: realtimeState.registered,
         messages: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'messages'; }),
         missions: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'missions'; }),
-        products: realtimeState.registered.filter(function (k) { return classifyRealtimeEvent({ key: k }) === 'products'; })
+        products: productKeys
       });
     });
 

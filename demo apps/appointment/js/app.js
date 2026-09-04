@@ -24,6 +24,7 @@ const App = {
   doctorChart: null,
   typeChart: null,
   refreshTimer: null,
+  pollTimer: null,
 
   customerColumns: [
     { key: "name", labelKey: "name", default: true },
@@ -68,12 +69,37 @@ const App = {
   readyLogin() {
     document.body.classList.remove("booting");
     document.getElementById("login-screen")?.classList.remove("hidden");
+    this.clearLoginFields();
+    window.addEventListener("pageshow", () => this.clearLoginFields());
+    setTimeout(() => this.clearLoginFields(), 50);
+    setTimeout(() => this.clearLoginFields(), 250);
+  },
+
+  clearLoginFields() {
+    const userEl = document.getElementById("login-username");
+    const passEl = document.getElementById("login-password");
+    const otpEl = document.getElementById("login-otp");
+    if (userEl) userEl.value = "";
+    if (passEl) passEl.value = "";
+    if (otpEl) otpEl.value = "";
+  },
+
+  fillDemoUser(btn) {
+    const username = btn.getAttribute("data-user") || "";
+    const password = btn.getAttribute("data-pass") || "";
+    this.resetLoginForm();
+    const userEl = document.getElementById("login-username");
+    const passEl = document.getElementById("login-password");
+    if (userEl) userEl.value = username;
+    if (passEl) passEl.value = password;
+    passEl?.focus();
   },
 
   goToPage(file) {
-    const target = String(file || "coupons.html");
+    let target = String(file || "coupons.html").replace(/^\.\//, "");
+    if (target.charAt(0) !== "/") target = "/" + target;
     if (!/index\.html$/.test(target)) {
-      localStorage.setItem("clinicpulse_page", target);
+      localStorage.setItem("clinicpulse_page", target.replace(/^\//, ""));
     }
     location.href = target;
   },
@@ -93,6 +119,9 @@ const App = {
     // Login
     document.getElementById("login-form")?.addEventListener("submit", (e) => this.handleLogin(e));
     document.getElementById("login-back-btn")?.addEventListener("click", () => this.resetLoginForm());
+    document.querySelectorAll(".demo-user-btn").forEach((btn) => {
+      btn.addEventListener("click", () => this.fillDemoUser(btn));
+    });
     document.getElementById("logout-btn")?.addEventListener("click", () => this.logout());
 
     // Nav links remember last page (actual navigation via href)
@@ -319,10 +348,10 @@ const App = {
     }
   },
 
-  loadCurrentPageData() {
-    if (this.view === "coupons") this.loadCoupons();
-    else if (this.view === "doctors") this.loadDoctors();
-    else if (this.view === "customers") this.loadCustomers();
+  loadCurrentPageData(opts = {}) {
+    if (this.view === "coupons") this.loadCoupons(opts);
+    else if (this.view === "doctors") this.loadDoctors(opts);
+    else if (this.view === "customers") this.loadCustomers(opts);
   },
 
   populateUser(basic) {
@@ -401,6 +430,7 @@ const App = {
   },
 
   logout() {
+    this.stopLivePoll();
     Api.clearSession();
     this.destroyCharts();
     localStorage.removeItem("clinicpulse_page");
@@ -411,16 +441,34 @@ const App = {
   setupRealtime() {
     Api.on("ready", () => this.updateSocketStatus(true));
     Api.on("offline", () => this.updateSocketStatus(false));
-    Api.on("refresh", () => {
-      this.toast(I18n.t("realtime_update"), "info");
+    Api.on("refresh", (event) => {
+      if (!event || event._silent !== true) this.toast(I18n.t("realtime_update"), "info");
       clearTimeout(this.refreshTimer);
-      this.refreshTimer = setTimeout(() => this.refreshCurrentView(), 800);
+      this.refreshTimer = setTimeout(() => this.refreshCurrentView(true), 400);
     });
     Api.connectRealtime().then(() => {
       setTimeout(() => {
         if (!Api.socketReady) this.updateSocketStatus(false);
       }, 3000);
     }).catch(() => this.updateSocketStatus(false));
+    this.startLivePoll();
+  },
+
+  startLivePoll() {
+    this.stopLivePoll();
+    // Coupon Add/Edit/Delete do not emit socket events on Biz1.
+    // Quiet re-fetch keeps the open list in sync with the live dashboard.
+    this.pollTimer = setInterval(() => {
+      if (document.hidden) return;
+      this.loadCurrentPageData({ silent: true });
+    }, 8000);
+  },
+
+  stopLivePoll() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
   },
 
   updateSocketStatus(online) {
@@ -431,8 +479,8 @@ const App = {
     if (span) span.textContent = I18n.t(online ? "realtime_online" : "realtime_offline");
   },
 
-  refreshCurrentView() {
-    this.loadCurrentPageData();
+  refreshCurrentView(silent = false) {
+    this.loadCurrentPageData({ silent });
   },
 
   // ——— Navigation ———
@@ -538,16 +586,29 @@ const App = {
     this.loadCoupons();
   },
 
-  async loadCoupons() {
+  async loadCoupons(opts = {}) {
     const tbody = document.getElementById("coupon-tbody");
     if (!tbody) return;
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">${I18n.t("loading")}</td></tr>`;
+    const silent = !!opts.silent;
+    if (!silent) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="8">${I18n.t("loading")}</td></tr>`;
+    }
     try {
       const data = await Api.listCoupons(this.couponFilters());
-      this.couponRows = data.data || data.rows || [];
-      this.couponTotal = Number(data.recordsTotal ?? data.count ?? this.couponRows.length) || 0;
+      const rows = data.data || data.rows || [];
+      const total = Number(data.recordsTotal ?? data.count ?? rows.length) || 0;
+      if (
+        silent &&
+        total === this.couponTotal &&
+        JSON.stringify(rows) === JSON.stringify(this.couponRows)
+      ) {
+        return;
+      }
+      this.couponRows = rows;
+      this.couponTotal = total;
       this.renderCoupons();
     } catch (err) {
+      if (silent) return;
       this.handleApiError(err);
       tbody.innerHTML = `<tr class="empty-row"><td colspan="8">${err.message || I18n.t("error_generic")}</td></tr>`;
     }
@@ -893,13 +954,16 @@ const App = {
     return params;
   },
 
-  async loadDoctors() {
+  async loadDoctors(opts = {}) {
     const body = document.getElementById("doctor-matrix-body");
     const summaryBody = document.getElementById("doctor-summary-body");
     if (!body) return;
-    body.innerHTML = `<tr class="empty-row"><td>${I18n.t("loading")}</td></tr>`;
-    if (summaryBody) {
-      summaryBody.innerHTML = `<tr class="empty-row"><td colspan="3">${I18n.t("loading")}</td></tr>`;
+    const silent = !!opts.silent;
+    if (!silent) {
+      body.innerHTML = `<tr class="empty-row"><td>${I18n.t("loading")}</td></tr>`;
+      if (summaryBody) {
+        summaryBody.innerHTML = `<tr class="empty-row"><td colspan="3">${I18n.t("loading")}</td></tr>`;
+      }
     }
     try {
       await this.loadBranches();
@@ -909,6 +973,7 @@ const App = {
       this.renderDoctorReport(data);
       this.updateDoctorFilterLabel(data);
     } catch (err) {
+      if (opts && opts.silent) return;
       this.handleApiError(err);
       body.innerHTML = `<tr class="empty-row"><td>${err.message || I18n.t("error_generic")}</td></tr>`;
       if (summaryBody) {
@@ -1166,16 +1231,29 @@ const App = {
     this.loadCustomers();
   },
 
-  async loadCustomers() {
+  async loadCustomers(opts = {}) {
     const tbody = document.getElementById("customer-tbody");
     const cols = this.visibleColumns.length || 1;
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="${cols}">${I18n.t("loading")}</td></tr>`;
+    const silent = !!opts.silent;
+    if (!silent) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="${cols}">${I18n.t("loading")}</td></tr>`;
+    }
     try {
       const data = await Api.listCustomers(this.custFilters());
-      this.custRows = data.data || data.rows || [];
-      this.custTotal = Number(data.recordsTotal ?? data.count ?? this.custRows.length) || 0;
+      const rows = data.data || data.rows || [];
+      const total = Number(data.recordsTotal ?? data.count ?? rows.length) || 0;
+      if (
+        silent &&
+        total === this.custTotal &&
+        JSON.stringify(rows) === JSON.stringify(this.custRows)
+      ) {
+        return;
+      }
+      this.custRows = rows;
+      this.custTotal = total;
       this.renderCustomers();
     } catch (err) {
+      if (silent) return;
       this.handleApiError(err);
       tbody.innerHTML = `<tr class="empty-row"><td colspan="${cols}">${err.message || I18n.t("error_generic")}</td></tr>`;
     }

@@ -2196,6 +2196,8 @@
       role_tech: 'Technician',
       role_service: 'Service',
       role_sales: 'Sales',
+      demo_credentials: 'Demo Credentials',
+      login_as_demo_user: 'Login As Domo User',
       footer_crm: 'Biz1 Showcase · Field Service',
       toggle_password: 'Show or hide password',
       err_generic: 'Sign-in error',
@@ -2330,6 +2332,8 @@
       role_tech: 'טכנאי',
       role_service: 'שירות',
       role_sales: 'מכירות',
+      demo_credentials: 'פרטי הדגמה',
+      login_as_demo_user: 'התחבר כמשתמש הדגמה',
       footer_crm: 'תצוגת Biz1 · שירות שטח',
       toggle_password: 'הצג או הסתר סיסמה',
       err_generic: 'שגיאה בהתחברות',
@@ -2531,6 +2535,9 @@
       var email = btn.getAttribute('data-user') || '';
       if (role) btn.textContent = email + ' · ' + t(role, lang);
     });
+
+    var demoBox = document.getElementById('demo-users');
+    if (demoBox) demoBox.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
 
     document.querySelectorAll('[data-set-lang]').forEach(function (btn) {
       var active = btn.getAttribute('data-set-lang') === lang;
@@ -4776,33 +4783,31 @@
       }
     });
 
-    function prefillRemembered() {
-      try {
-        var email = MineralBarApp.getEmail() || '';
-        if (email) usernameEl.value = email;
-        var rememberOn = localStorage.getItem('biz1fs_remember') === '1' ||
-          localStorage.getItem('mineralbar_remember') === '1';
-        if (rememberOn) {
-          rememberEl.checked = true;
-          var saved = null;
-          var raw = localStorage.getItem('biz1fs_cred') || localStorage.getItem('mineralbar_cred') || '';
-          try {
-            saved = JSON.parse(decodeURIComponent(escape(atob(raw))));
-          } catch (e) { saved = null; }
-          if (saved && saved.password) passwordEl.value = saved.password;
-          if (saved && saved.username && !usernameEl.value) usernameEl.value = saved.username;
-        }
-      } catch (e) { /* ignore */ }
+    var allowAutofillClear = true;
+    function clearLoginFields() {
+      if (!allowAutofillClear) return;
+      if (usernameEl) usernameEl.value = '';
+      if (passwordEl) passwordEl.value = '';
     }
 
-    prefillRemembered();
+    clearLoginFields();
+    global.addEventListener('pageshow', function () {
+      allowAutofillClear = true;
+      clearLoginFields();
+      global.setTimeout(clearLoginFields, 80);
+    });
+    global.setTimeout(clearLoginFields, 80);
+    global.setTimeout(clearLoginFields, 400);
 
     global.document.getElementById('togglePassword').addEventListener('click', function () {
       passwordEl.type = passwordEl.type === 'password' ? 'text' : 'password';
     });
-    global.document.querySelectorAll('.fillUser').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        usernameEl.value = btn.getAttribute('data-user');
+    global.document.querySelectorAll('.demo-user-btn[data-user][data-pass], .fillUser').forEach(function (btn) {
+      btn.addEventListener('click', function (event) {
+        event.preventDefault();
+        allowAutofillClear = false;
+        usernameEl.value = btn.getAttribute('data-user') || '';
+        passwordEl.value = btn.getAttribute('data-pass') || '';
         passwordEl.focus();
         clearError();
       });

@@ -261,10 +261,77 @@ body.auth-checking .app-shell { visibility: hidden; }
   place-items: center;
   padding: 1.5rem;
 }
-.auth-card {
+.auth-stack {
   width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.auth-card {
+  width: 100%;
   padding: 2rem 1.75rem;
   animation: riseIn 0.45s ease both;
+}
+.demo-users {
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+  animation: riseIn 0.45s ease 0.08s both;
+}
+.demo-users-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 12px;
+  text-align: start;
+}
+.demo-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.demo-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+.demo-user-btn {
+  width: auto;
+  flex: none;
+  text-align: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background var(--transition), transform 120ms ease;
+}
+.demo-user-btn:hover {
+  background: var(--primary-hover);
+}
+.demo-user-creds {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+.login-footer {
+  text-align: center;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 .auth-brand { text-align: center; margin-bottom: 1.5rem; }
 .auth-brand h1 {

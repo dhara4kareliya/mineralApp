@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title data-i18n="login.title">Sign in — Customer Portal</title>
-  <link rel="stylesheet" href="../css/styles.css?v=202608271000" />
+  <link rel="stylesheet" href="../css/styles.css?v=202609041655" />
   <script>
     (function () {
       var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
@@ -33,21 +33,22 @@
       <button type="button" class="btn btn-ghost lang-toggle auth-lang-toggle" data-lang-toggle>עברית</button>
       <button type="button" class="btn btn-ghost btn-icon auth-theme-toggle" data-theme-toggle data-i18n-title="theme">🌙</button>
 
+      <div class="auth-stack">
       <div class="auth-card">
         <!-- Step 1: credentials -->
         <div class="auth-step active" id="step-credentials">
           <h1 data-i18n="login.welcome">Welcome back</h1>
           <p class="lead" data-i18n="login.lead">Enter your customer ID or email and password to continue.</p>
           <div id="cred-alert" hidden></div>
-          <form id="form-credentials" autocomplete="on">
+          <form id="form-credentials" autocomplete="off">
             <div class="form-group">
               <label class="form-label" for="client_id" data-i18n="login.clientId">Customer ID or email</label>
-              <input class="form-control" id="client_id" name="client_id" required data-i18n-placeholder="login.clientPlaceholder" placeholder="e.g. 12614595 or you@email.com" autocomplete="username" />
+              <input class="form-control" id="client_id" name="cp-client" required data-i18n-placeholder="login.clientPlaceholder" placeholder="e.g. 12614595 or you@email.com" autocomplete="off" autocapitalize="off" spellcheck="false" value="" />
             </div>
             <div class="form-group">
               <label class="form-label" for="password" data-i18n="login.password">Password</label>
               <div class="password-field">
-                <input class="form-control" id="password" name="password" type="password" required placeholder="••••••••" autocomplete="current-password" />
+                <input class="form-control" id="password" name="cp-pass" type="password" required placeholder="••••••••" autocomplete="new-password" value="" />
                 <button type="button" class="password-toggle" id="toggle-password" data-i18n-aria="login.showPassword" data-i18n-title="login.showPassword" aria-label="Show password" title="Show password">
                   <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -90,15 +91,33 @@
           </form>
         </div>
       </div>
+
+      <aside class="demo-users" id="demo-users" dir="ltr" data-i18n-aria="login.demoCredentials" aria-label="Demo Credentials">
+        <div class="demo-users-title" data-i18n="login.demoCredentials">Demo Credentials</div>
+        <div class="demo-users-list">
+          <div class="demo-user-row">
+            <span class="demo-user-creds" dir="ltr">democust@yopmail.com / pass0364</span>
+            <button
+              type="button"
+              class="demo-user-btn"
+              data-user="democust@yopmail.com"
+              data-pass="pass0364"
+              data-i18n="login.loginAsDemoUser"
+            >Login As Domo User</button>
+          </div>
+        </div>
+      </aside>
+      <p class="login-footer">Biz1 Showcase · <span data-i18n="appName">Customer Portal</span></p>
+      </div>
     </section>
   </div>
 
-  <script src="../js/config.js?v=202608271000"></script>
-  <script src="../js/theme.js?v=202608271000"></script>
-  <script src="../js/i18n.js?v=202608271000"></script>
-  <script src="../js/toast.js?v=202608271000"></script>
-  <script src="../js/auth.js?v=202608271000"></script>
-  <script src="../js/api.js?v=202608271000"></script>
+  <script src="../js/config.js?v=202609041655"></script>
+  <script src="../js/theme.js?v=202609041655"></script>
+  <script src="../js/i18n.js?v=202609041655"></script>
+  <script src="../js/toast.js?v=202609041655"></script>
+  <script src="../js/auth.js?v=202609041655"></script>
+  <script src="../js/api.js?v=202609041655"></script>
   <script>
     Theme.init();
     I18n.init();
@@ -109,12 +128,39 @@
     const credAlert = document.getElementById('cred-alert');
     const otpAlert = document.getElementById('otp-alert');
     const otpInputs = [...document.querySelectorAll('#otp-inputs input')];
+    const clientIdInput = document.getElementById('client_id');
+    const passwordInput = document.getElementById('password');
+    let demoFilled = false;
+
+    function clearLoginFields() {
+      if (demoFilled) return;
+      if (clientIdInput) clientIdInput.value = '';
+      if (passwordInput) passwordInput.value = '';
+    }
+
+    clearLoginFields();
+    window.addEventListener('pageshow', () => {
+      demoFilled = false;
+      clearLoginFields();
+    });
+    setTimeout(clearLoginFields, 50);
+    setTimeout(clearLoginFields, 250);
+
+    document.querySelectorAll('.demo-user-btn[data-user][data-pass]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        demoFilled = true;
+        showStep('cred');
+        hideAlert(credAlert);
+        if (clientIdInput) clientIdInput.value = btn.getAttribute('data-user') || '';
+        if (passwordInput) passwordInput.value = btn.getAttribute('data-pass') || '';
+        passwordInput?.focus();
+      });
+    });
 
     otpInputs.forEach((input, i) => {
       input.setAttribute('aria-label', I18n.t('login.digit', { n: i + 1 }));
     });
 
-    const passwordInput = document.getElementById('password');
     const togglePassword = document.getElementById('toggle-password');
     togglePassword.addEventListener('click', () => {
       const show = passwordInput.type === 'password';

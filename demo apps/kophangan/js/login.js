@@ -17,15 +17,36 @@
   var waitingOtp = false;
   var resendSeconds = 0;
   var resendTimer = null;
+  var demoFilled = false;
 
   var remembered = ExpenseApp.loadRemember();
   if (remembered) {
-    usernameEl.value = remembered.username || '';
-    passwordEl.value = remembered.password || '';
     rememberEl.checked = true;
-  } else if (ExpenseApp.getStoredEmail()) {
-    usernameEl.value = ExpenseApp.getStoredEmail();
   }
+
+  function clearLoginFields() {
+    if (demoFilled) return;
+    if (usernameEl) usernameEl.value = '';
+    if (passwordEl) passwordEl.value = '';
+    if (otpEl) otpEl.value = '';
+  }
+
+  clearLoginFields();
+  window.addEventListener('pageshow', function () {
+    demoFilled = false;
+    clearLoginFields();
+  });
+  setTimeout(clearLoginFields, 50);
+  setTimeout(clearLoginFields, 250);
+
+  document.querySelectorAll('.demo-user-btn[data-user][data-pass]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      demoFilled = true;
+      if (usernameEl) usernameEl.value = btn.getAttribute('data-user') || '';
+      if (passwordEl) passwordEl.value = btn.getAttribute('data-pass') || '';
+      if (passwordEl && passwordEl.focus) passwordEl.focus();
+    });
+  });
 
   function showError(msg) {
     errorBox.textContent = msg;

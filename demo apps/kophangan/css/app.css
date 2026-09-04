@@ -7,6 +7,7 @@
   --shadow-strong: 0 16px 40px rgba(15, 23, 42, 0.14);
   --primary: #0f766e;
   --primary-strong: #0d9488;
+  --primary-hover: #0d9488;
   --primary-soft: rgba(15, 118, 110, 0.12);
   --danger: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.1);
@@ -28,6 +29,7 @@
 [data-theme='dark'] {
   --primary: #2dd4bf;
   --primary-strong: #5eead4;
+  --primary-hover: #5eead4;
   --primary-soft: rgba(45, 212, 191, 0.16);
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.14);
@@ -327,6 +329,80 @@ a {
   padding: 22px 18px 18px;
   position: relative;
   z-index: 2;
+}
+
+.demo-users {
+  margin: 14px 14px 0;
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+}
+
+.demo-users-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 12px;
+  text-align: start;
+}
+
+.demo-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.demo-user-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.demo-user-creds {
+  min-width: 0;
+  flex: 0 1 auto;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.demo-user-btn {
+  width: auto;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 120ms ease;
+}
+
+.demo-user-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.login-footer {
+  text-align: center;
+  margin: 12px 14px calc(18px + var(--safe-bottom));
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .password-wrap {

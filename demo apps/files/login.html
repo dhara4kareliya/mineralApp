@@ -28,45 +28,64 @@
       </button>
     </div>
 
-    <div class="auth-card card">
-      <div class="auth-brand">
-        <div class="auth-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
-          </svg>
+    <div class="auth-stack">
+      <div class="auth-card card">
+        <div class="auth-brand">
+          <div class="auth-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+            </svg>
+          </div>
+          <h1 data-i18n="brandTitle">Files Data</h1>
+          <p data-i18n="signInDesc">Sign in to browse, upload, and manage your document repository.</p>
         </div>
-        <h1 data-i18n="brandTitle">Files Data</h1>
-        <p data-i18n="signInDesc">Sign in to browse, upload, and manage your document repository.</p>
+
+        <form id="loginForm" class="auth-form" autocomplete="off" novalidate>
+          <div id="loginNote" class="alert alert--error hidden" role="alert"></div>
+
+          <label class="field">
+            <span data-i18n="emailLabel">Email / Username / Phone / ID</span>
+            <input name="username" id="username" autocomplete="off" autocapitalize="off" spellcheck="false" value="" data-i18n-placeholder="emailPlaceholder" placeholder="you@company.com" required />
+          </label>
+
+          <label class="field">
+            <span data-i18n="password">Password</span>
+            <div class="input-with-action">
+              <input name="password" id="password" type="password" autocomplete="new-password" value="" placeholder="••••••••" required />
+              <button type="button" class="ghost-btn" id="togglePassword" data-i18n="show">Show</button>
+            </div>
+          </label>
+
+          <div id="otpField" class="hidden">
+            <label class="field">
+              <span data-i18n="otpLabel">Verification code (OTP)</span>
+              <input name="otp" id="otp" class="otp-input" autocomplete="one-time-code" inputmode="numeric" data-i18n-placeholder="otpPlaceholder" placeholder="6-digit code" />
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block" id="loginBtn">
+            <span class="btn-label" data-i18n="signIn">Sign in</span>
+            <span class="spinner spinner--btn" aria-hidden="true"></span>
+          </button>
+        </form>
       </div>
 
-      <form id="loginForm" class="auth-form" novalidate>
-        <div id="loginNote" class="alert alert--error hidden" role="alert"></div>
-
-        <label class="field">
-          <span data-i18n="emailLabel">Email / Username / Phone / ID</span>
-          <input name="username" id="username" autocomplete="username" data-i18n-placeholder="emailPlaceholder" placeholder="you@company.com" required />
-        </label>
-
-        <label class="field">
-          <span data-i18n="password">Password</span>
-          <div class="input-with-action">
-            <input name="password" id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
-            <button type="button" class="ghost-btn" id="togglePassword" data-i18n="show">Show</button>
+      <div class="demo-users" id="demo-users">
+        <div class="demo-users-title" data-i18n="demoCredentials">Demo Credentials</div>
+        <div class="demo-users-list">
+          <div class="demo-user-row">
+            <span class="demo-user-creds" dir="ltr">dhara / pass0364</span>
+            <button
+              type="button"
+              class="demo-user-btn"
+              data-user="dhara"
+              data-pass="pass0364"
+              data-i18n="loginAsDemoUser"
+            >Login As Domo User</button>
           </div>
-        </label>
-
-        <div id="otpField" class="hidden">
-          <label class="field">
-            <span data-i18n="otpLabel">Verification code (OTP)</span>
-            <input name="otp" id="otp" class="otp-input" autocomplete="one-time-code" inputmode="numeric" data-i18n-placeholder="otpPlaceholder" placeholder="6-digit code" />
-          </label>
         </div>
-
-        <button type="submit" class="btn btn--primary btn--block" id="loginBtn">
-          <span class="btn-label" data-i18n="signIn">Sign in</span>
-          <span class="spinner spinner--btn" aria-hidden="true"></span>
-        </button>
-      </form>
+      </div>
+      <p class="login-footer">Biz1 Showcase · Files Data</p>
     </div>
   </div>
 

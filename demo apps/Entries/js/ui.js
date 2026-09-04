@@ -119,6 +119,8 @@
       loginCodeResent: 'Code resent',
       loginNewCodeSent: 'A new verification code was sent.',
       loginResendFailed: 'Could not resend code',
+      demoCredentials: 'Demo Credentials',
+      loginAsDemoUser: 'Login As Domo User',
       live: 'Live',
       offline: 'Offline',
       sync: 'Sync',
@@ -305,6 +307,8 @@
       loginCodeResent: 'הקוד נשלח שוב',
       loginNewCodeSent: 'קוד אימות חדש נשלח.',
       loginResendFailed: 'לא ניתן לשלוח שוב את הקוד',
+      demoCredentials: 'פרטי הדגמה',
+      loginAsDemoUser: 'התחבר כמשתמש הדגמה',
       live: 'חי',
       offline: 'לא מחובר',
       sync: 'סנכרון',
@@ -477,6 +481,9 @@
     document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
       el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
     });
+    document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+      el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
+    });
   }
 
   function applyLang(lang) {
@@ -490,6 +497,9 @@
       buttons[i].setAttribute('aria-label', lang === 'he' ? 'Switch to English' : 'Switch to Hebrew');
     }
     applyStaticI18n();
+    document.querySelectorAll('.demo-users').forEach(function (el) {
+      el.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+    });
   }
 
   function initLang() {

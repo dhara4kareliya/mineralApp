@@ -12,6 +12,7 @@
   --border: #e2e8f0;
   --primary: #0f766e;
   --primary-strong: #0b5f59;
+  --primary-hover: #0b5f59;
   --primary-soft: rgba(15, 118, 110, 0.12);
   --danger: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.1);
@@ -38,6 +39,7 @@
   --border: #243044;
   --primary: #2dd4bf;
   --primary-strong: #14b8a6;
+  --primary-hover: #14b8a6;
   --primary-soft: rgba(45, 212, 191, 0.14);
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.14);
@@ -280,10 +282,81 @@ a { color: var(--primary); }
   z-index: 5;
   font-weight: 700;
 }
-.auth-card {
+.auth-stack {
   width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.auth-card {
+  width: 100%;
   padding: 1.6rem 1.35rem 1.25rem;
   box-shadow: var(--shadow);
+}
+.demo-users {
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+}
+.demo-users-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 12px;
+  text-align: start;
+}
+.demo-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.demo-user-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.demo-user-creds {
+  min-width: 0;
+  flex: 0 1 auto;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+  white-space: nowrap;
+}
+.demo-user-btn {
+  width: auto;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  font-family: inherit;
+  transition: background .15s ease, transform 120ms ease;
+}
+.demo-user-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+.login-footer {
+  text-align: center;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
 }
 .auth-brand { text-align: center; margin-bottom: 1.35rem; }
 .auth-mark {

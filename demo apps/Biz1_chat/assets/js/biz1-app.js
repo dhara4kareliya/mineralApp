@@ -2278,9 +2278,15 @@
   function channelFromRealtimeEvent(event) {
     var key = String((event && event.key) || '').toLowerCase();
     var payload = (event && event.payload) || {};
-    if (/whatsapp/.test(key) || payload.channel === 'whatsapp') return 'whatsapp';
-    if (/email/.test(key) || payload.channel === 'email') return 'email';
-    if (/rooms\.chat|live.?chat|web.?chat|cust_chat/.test(key) || payload.channel === 'web') return 'web';
+    var hinted = String(
+      payload.channel || payload.type || payload.last_message_type || ''
+    ).toLowerCase();
+    var fromHint = String(payload.from || '').toLowerCase();
+    if (/whatsapp/.test(key) || hinted === 'whatsapp' || hinted === 'wa') return 'whatsapp';
+    if (/email/.test(key) || hinted === 'email' || hinted === 'mail') return 'email';
+    if (/note|send_notes|internal/.test(key) || /note|send_notes|internal/.test(hinted) ||
+        /note|send_notes|internal/.test(fromHint)) return 'notes';
+    if (/rooms\.chat|live.?chat|web.?chat|cust_chat/.test(key) || hinted === 'web' || hinted === 'biz1') return 'web';
     return '';
   }
 
@@ -2335,8 +2341,15 @@
     }
 
     var channel = pickText(['channel', 'type', 'msg_type', 'message_type', 'last_message_type']);
+    if (!channel) {
+      var fromVal = pickText(['from']);
+      if (/^notes?$|send_notes|internal|import_note|^email$|^mail$|^whatsapp$|^wa$|^biz1$|^web$/i.test(fromVal)) {
+        channel = fromVal;
+      }
+    }
     if (!channel && detail && detail.channel) channel = String(detail.channel);
     if (/^mision$|^mission$/i.test(channel)) channel = 'biz1';
+    if (/^notes?$|send_notes|internal|import_note/i.test(channel)) channel = 'notes';
 
     var when = pick(['time', 'created_at', 'created', 'create_date', 'inserted_date', 'last_updated', 'updated_at', 'date']);
     if (when && typeof when === 'object' && when.$date) {
@@ -2344,11 +2357,18 @@
       if (!Number.isNaN(dateMs)) when = new Date(dateMs < 1e12 ? dateMs * 1000 : dateMs).toISOString();
     }
 
+    var messageId = pickText(['message_id']);
+    if (!messageId) {
+      var rawId = pickText(['id', '_id']);
+      // biz1:event envelope uses a numeric event id — not a chat message id
+      if (rawId && !/^\d{12,}$/.test(rawId)) messageId = rawId;
+    }
+
     return {
-      id: pickText(['message_id', 'id', '_id']),
+      id: messageId,
       customer_id: pickText(['customer_id', 'cust_id', 'contactus_id', 'client_id', 'customerId']),
       messenger_meta_id: pickText(['messenger_meta_id', 'messanger_meta_id', 'meta_id', 'chat_id', 'conversation_id', 'room_id', 'messengerMetaId']),
-      message: pickText(['message', 'msg', 'text', 'body', 'content', 'last_message', 'whatsapp_message', 'note', 'caption']),
+      message: pickText(['message', 'msg', 'text', 'body', 'content', 'last_message', 'whatsapp_message', 'note', 'import_note', 'caption']),
       name: pickText(['name', 'cust_name', 'customer_name', 'user_name', 'sender_name', 'from_name']),
       email: pickText(['email', 'cust_email']),
       phone: pickText(['phone', 'cust_phone', 'mobile']),

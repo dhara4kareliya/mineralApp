@@ -36,11 +36,11 @@
   if (page === "login" && token) {
     var last = localStorage.getItem(PAGE_KEY) || "coupons.html";
     if (!/\.html$/.test(last)) last = pages[last] || "coupons.html";
-    location.replace(last);
+    location.replace("/" + last.replace(/^\//, ""));
     return;
   }
 
   if (page !== "login" && !token) {
-    location.replace("index.html");
+    location.replace("/index.html");
   }
 })();

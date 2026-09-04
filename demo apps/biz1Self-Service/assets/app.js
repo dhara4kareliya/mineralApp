@@ -36,6 +36,8 @@
       liveSocketOff: 'אופליין',
       trustLine: 'הצפנה · Biz1 · ללא שמירת כרטיס במכשיר',
       footerNote: 'Biz1 Showcase · פורטל לקוחות',
+      demoCredentials: 'פרטי הדגמה',
+      loginAsDemoUser: 'התחבר כמשתמש הדגמה',
       hello: 'שלום',
       logout: 'התנתק',
       refresh: 'רענון',
@@ -137,6 +139,8 @@
       liveSocketOff: 'Offline',
       trustLine: 'Encrypted · Biz1 · Card not stored on device',
       footerNote: 'Biz1 Showcase · Customer portal',
+      demoCredentials: 'Demo Credentials',
+      loginAsDemoUser: 'Login As Domo User',
       hello: 'Hello',
       logout: 'Log out',
       refresh: 'Refresh',
@@ -284,6 +288,12 @@
     document.querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.getAttribute('data-lang') === state.lang);
     });
+    document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-aria');
+      if (key) el.setAttribute('aria-label', t(key));
+    });
+    var demoBox = document.getElementById('demo-users');
+    if (demoBox) demoBox.setAttribute('dir', state.lang === 'he' ? 'rtl' : 'ltr');
     paintLiveSocketChip();
   }
 
@@ -1310,6 +1320,29 @@
     }
   }
 
+  var allowAutofillClear = true;
+
+  function clearLoginFields() {
+    if (!allowAutofillClear) return;
+    if (els.username) els.username.value = '';
+    if (els.password) els.password.value = '';
+    if (els.phone) els.phone.value = '';
+    if (els.otp) els.otp.value = '';
+  }
+
+  function fillDemoCredentials(btn) {
+    allowAutofillClear = false;
+    var email = (btn && btn.getAttribute('data-user')) || '';
+    var pass = (btn && btn.getAttribute('data-pass')) || '';
+    var phone = (btn && btn.getAttribute('data-phone')) || '';
+    if (els.username) els.username.value = email;
+    if (els.password) els.password.value = pass;
+    if (els.phone && phone) els.phone.value = phone;
+    var details = document.querySelector('.auth-details');
+    if (details) details.open = true;
+    hideLoginError();
+  }
+
   function logout() {
     var MB = app();
     stopPortalRealtime();
@@ -1331,21 +1364,12 @@
     els.stepOtp.classList.add('hidden');
     els.otp.value = '';
     hideLoginError();
-    try {
-      var saved = MB.getSavedCredentials();
-      if (saved && saved.username && els.username) els.username.value = saved.username;
-      else if (MB.getEmail && els.username) els.username.value = MB.getEmail() || els.username.value;
-      // password stays in remember store; input left blank on purpose
-      if (els.password) els.password.value = '';
-      var phoneSaved = '';
-      try { phoneSaved = sessionStorage.getItem('biz1ss_last_phone') || ''; } catch (e2) { /* ignore */ }
-      if (!phoneSaved) {
-        try { phoneSaved = localStorage.getItem('biz1ss_last_phone') || ''; } catch (e3) { /* ignore */ }
-      }
-      if (phoneSaved && els.phone) els.phone.value = phoneSaved;
-      var details = document.querySelector('.auth-details');
-      if (details) details.open = true;
-    } catch (e4) { /* ignore */ }
+    allowAutofillClear = true;
+    if (els.username) els.username.value = '';
+    if (els.password) els.password.value = '';
+    if (els.phone) els.phone.value = '';
+    var details = document.querySelector('.auth-details');
+    if (details) details.open = true;
     showScreen('screenLogin');
   }
 
@@ -1416,21 +1440,17 @@
     setInterval(tickClocks, 30000);
     setupSignaturePad();
 
-    var saved = app().getSavedCredentials();
-    if (saved && saved.username) els.username.value = saved.username;
-    else {
-      try {
-        var emailOnly = app().getEmail();
-        if (emailOnly) els.username.value = emailOnly;
-      } catch (eMail) { /* ignore */ }
-    }
-    var phone = app().getPortalPhone();
-    if (!phone) {
-      try { phone = localStorage.getItem('biz1ss_last_phone') || ''; } catch (ePh) { phone = ''; }
-    }
-    if (phone) els.phone.value = phone;
     var detailsEl = document.querySelector('.auth-details');
     if (detailsEl) detailsEl.open = true;
+    allowAutofillClear = true;
+    clearLoginFields();
+    window.addEventListener('pageshow', function () { clearLoginFields(); });
+    setTimeout(clearLoginFields, 50);
+    setTimeout(clearLoginFields, 250);
+
+    document.querySelectorAll('.demo-user-btn[data-user][data-pass]').forEach(function (btn) {
+      btn.addEventListener('click', function () { fillDemoCredentials(btn); });
+    });
 
     document.querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.addEventListener('click', function () { setLang(btn.getAttribute('data-lang')); });

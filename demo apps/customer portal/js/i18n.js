@@ -91,6 +91,8 @@ const I18n = (() => {
       'login.otpSent': 'OTP sent to your email',
       'login.failed': 'Login failed',
       'login.unexpected': 'Unexpected response. Please try again.',
+      'login.demoCredentials': 'Demo Credentials',
+      'login.loginAsDemoUser': 'Login As Domo User',
 
       'tickets.all': 'All',
       'tickets.open': 'Open',
@@ -393,6 +395,8 @@ const I18n = (() => {
       'login.otpSent': 'קוד נשלח לאימייל',
       'login.failed': 'ההתחברות נכשלה',
       'login.unexpected': 'תגובה לא צפויה. נסו שוב.',
+      'login.demoCredentials': 'פרטי הדגמה',
+      'login.loginAsDemoUser': 'התחבר כמשתמש הדגמה',
 
       'tickets.all': 'הכל',
       'tickets.open': 'פתוח',
@@ -660,6 +664,9 @@ const I18n = (() => {
       el.textContent = get() === 'he' ? t('switchToEnglish') : t('switchToHebrew');
       el.setAttribute('title', t('language'));
       el.setAttribute('aria-label', t('language'));
+    });
+    root.querySelectorAll('.demo-users').forEach((el) => {
+      el.setAttribute('dir', get() === 'he' ? 'rtl' : 'ltr');
     });
     const pageTitle = document.querySelector('title[data-i18n]');
     if (pageTitle) document.title = t(pageTitle.getAttribute('data-i18n'));

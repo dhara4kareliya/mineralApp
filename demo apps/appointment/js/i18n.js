@@ -8,6 +8,8 @@ const I18N = {
     username: "Username / Email",
     password: "Password",
     sign_in: "Sign In",
+    demo_credentials: "Demo Credentials",
+    login_as_demo_user: "Login As Demo User",
     back: "Back",
     otp_hint: "Enter the OTP sent to your email.",
     otp_code: "OTP Code",
@@ -115,6 +117,8 @@ const I18N = {
     username: "שם משתמש / אימייל",
     password: "סיסמה",
     sign_in: "התחברות",
+    demo_credentials: "פרטי הדגמה",
+    login_as_demo_user: "התחבר כמשתמש הדגמה",
     back: "חזרה",
     otp_hint: "הזינו את קוד ה-OTP שנשלח לאימייל.",
     otp_code: "קוד OTP",
@@ -261,6 +265,9 @@ const I18n = {
     document.querySelectorAll(".lang-btn").forEach((btn) => {
       btn.textContent = this.lang === "en" ? "HE" : "EN";
     });
+
+    const demo = document.getElementById("demo-users");
+    if (demo) demo.setAttribute("dir", this.lang === "he" ? "rtl" : "ltr");
   },
 };
 

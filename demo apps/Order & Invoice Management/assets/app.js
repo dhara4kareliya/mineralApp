@@ -57,6 +57,12 @@
     document.querySelectorAll("#langToggle").forEach((btn) => {
       btn.textContent = lang.toUpperCase();
     });
+    document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+      el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria")));
+    });
+    document.querySelectorAll(".demo-cred-box").forEach((el) => {
+      el.setAttribute("dir", lang === "he" ? "rtl" : "ltr");
+    });
   }
 
   function applyTheme() {
@@ -1113,6 +1119,38 @@
     if (loginForm) loginForm.addEventListener("submit", loginHandler);
   }
 
+  function wireLoginDemoCredentials() {
+    const user = document.getElementById("username");
+    const pass = document.getElementById("password");
+    if (!user || !pass) return;
+
+    let allowAutofillClear = true;
+
+    function clearLoginFields() {
+      if (!allowAutofillClear) return;
+      user.value = "";
+      pass.value = "";
+    }
+
+    clearLoginFields();
+    window.addEventListener("pageshow", () => {
+      allowAutofillClear = true;
+      clearLoginFields();
+      window.setTimeout(clearLoginFields, 80);
+    });
+    window.setTimeout(clearLoginFields, 80);
+    window.setTimeout(clearLoginFields, 400);
+
+    document.querySelectorAll(".demo-cred-box__btn[data-user][data-pass]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        allowAutofillClear = false;
+        user.value = btn.getAttribute("data-user") || "";
+        pass.value = btn.getAttribute("data-pass") || "";
+      });
+    });
+  }
+
   window.addEventListener("DOMContentLoaded", async function () {
     applyTheme();
     applyLanguage();
@@ -1124,6 +1162,7 @@
         window.location.replace("index.html");
         return;
       }
+      wireLoginDemoCredentials();
       return;
     }
 

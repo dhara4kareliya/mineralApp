@@ -844,6 +844,10 @@
       resend_in: 'Resend in {seconds}s',
       remember_me: 'Remember me',
       login_btn: 'Sign in',
+      demo_credentials: 'Demo Credentials',
+      login_as_dhara: 'Login as Dhara',
+      login_as_domo_user: 'Login As Domo User',
+      app_name: 'Biz1 Bookings',
       verify_btn: 'Verify & Sign in',
       loading: 'Loading…',
       verifying: 'Verifying…',
@@ -875,6 +879,10 @@
       resend_in: 'שליחה חוזרת בעוד {seconds} שנ׳',
       remember_me: 'זכור אותי',
       login_btn: 'התחברות',
+      demo_credentials: 'פרטי הדגמה',
+      login_as_dhara: 'התחבר כמשתמש הדגמה',
+      login_as_domo_user: 'התחבר כמשתמש הדגמה',
+      app_name: 'Biz1 הזמנות',
       verify_btn: 'אימות והתחברות',
       loading: 'טוען…',
       verifying: 'מאמת…',
@@ -939,6 +947,8 @@
       document.body.classList.toggle('lang-he', next === 'he');
       document.body.classList.toggle('lang-en', next !== 'he');
     }
+    var demoUsers = document.getElementById('demo-users');
+    if (demoUsers) demoUsers.setAttribute('dir', next === 'he' ? 'rtl' : 'ltr');
     try { global.localStorage.setItem(LANG_KEY, next); } catch (e) { /* ignore */ }
 
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
@@ -1033,23 +1043,44 @@
     var resendCooldownUntil = 0;
     var rateLimitTimer = null;
     var rateLimitUntil = 0;
+    var demoFilled = false;
 
     try {
       var saved = MineralBarApp.getSavedCredentials
         ? MineralBarApp.getSavedCredentials()
         : null;
-      var savedEmail =
-        (saved && saved.username) ||
-        (MineralBarApp.getEmail && MineralBarApp.getEmail()) ||
-        '';
-      if (savedEmail && usernameEl && !usernameEl.value) {
-        usernameEl.value = savedEmail;
-      }
-      if (saved && saved.source === 'remember' && saved.password && passwordEl && !passwordEl.value) {
-        passwordEl.value = saved.password;
-        if (rememberEl) rememberEl.checked = true;
+      if (saved && saved.source === 'remember' && rememberEl) {
+        rememberEl.checked = true;
       }
     } catch (e) { /* ignore */ }
+
+    function clearLoginFields() {
+      if (demoFilled) return;
+      if (usernameEl) usernameEl.value = '';
+      if (passwordEl) passwordEl.value = '';
+    }
+
+    function fillDemoUser(btn) {
+      demoFilled = true;
+      if (waitingOtp) resetOtpStep();
+      if (usernameEl) usernameEl.value = btn.getAttribute('data-user') || '';
+      if (passwordEl) passwordEl.value = btn.getAttribute('data-pass') || '';
+      if (passwordEl) passwordEl.focus();
+    }
+
+    clearLoginFields();
+    global.addEventListener('pageshow', function () {
+      demoFilled = false;
+      clearLoginFields();
+    });
+    setTimeout(clearLoginFields, 50);
+    setTimeout(clearLoginFields, 250);
+
+    global.document.querySelectorAll('.demo-user-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        fillDemoUser(btn);
+      });
+    });
 
     function t(key, values) {
       return global.Biz1LoginI18n ? global.Biz1LoginI18n.t(key, values) : key;

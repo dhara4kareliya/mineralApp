@@ -240,25 +240,42 @@ const Api = {
       else if (client.token !== undefined) client.token = this.token;
 
       this._biz1Client = client;
+      try {
+        localStorage.removeItem("biz1_realtime_last_event_id");
+      } catch (_) { /* ignore */ }
+
       this.socket = client.realtime.connect({
         path: "/realtime/socket.io",
         platform: "web",
       });
 
+      const refreshKeys = [
+        "appointment.created", "appointment.updated", "appointment.deleted",
+        "meeting.created", "meeting.updated", "meeting.deleted",
+        "customer.updated", "crm.lead.created",
+        "coupon.created", "coupon.updated", "coupon.deleted",
+        "coupons.created", "coupons.updated", "coupons.deleted",
+        "appointmentcoupon.created", "appointmentcoupon.updated", "appointmentcoupon.deleted",
+      ];
+
+      const isCouponKey = (key) => /coupon/i.test(String(key || ""));
+
       client.realtime.on("biz1:ready", (payload) => {
         this.socketReady = true;
         this._emit("ready", payload);
+        (payload && payload.events ? payload.events : []).forEach((key) => {
+          if (!isCouponKey(key) || refreshKeys.includes(key)) return;
+          client.realtime.on(key, (event) => this._emit("refresh", event));
+        });
       });
 
       client.realtime.on("*", (event) => {
         this._emit("event", event);
         if (event && event.key) this._emit(event.key, event);
+        if (event && isCouponKey(event.key)) this._emit("refresh", event);
       });
 
-      // Appointment-related refresh triggers
-      ["appointment.created", "appointment.updated", "appointment.deleted",
-        "meeting.created", "meeting.updated", "meeting.deleted",
-        "customer.updated", "crm.lead.created"].forEach((key) => {
+      refreshKeys.forEach((key) => {
         client.realtime.on(key, (event) => this._emit("refresh", event));
       });
     } catch (err) {

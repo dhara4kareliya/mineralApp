@@ -15,6 +15,10 @@ var translations = {
     password: 'סיסמה',
     remember_me: 'זכור אותי',
     login_btn: 'התחבר',
+    demo_credentials: 'פרטי הדגמה',
+    login_as_demo_user: 'התחבר כמשתמש הדגמה',
+    login_as_dhara: 'התחבר כמשתמש הדגמה',
+    appName: 'תצוגת Biz1',
     crm_system: 'תצוגת Biz1 · צ׳אט והודעות',
     placeholder_email: 'אימייל / שם משתמש / טלפון / מזהה',
     placeholder_password: 'הזן סיסמה',
@@ -167,6 +171,10 @@ var translations = {
     password: 'Password',
     remember_me: 'Remember Me',
     login_btn: 'Log in',
+    demo_credentials: 'Demo Credentials',
+    login_as_demo_user: 'Login As Demo User',
+    login_as_dhara: 'Login As Demo User',
+    appName: 'Biz1 Showcase',
     crm_system: 'Biz1 Showcase · Chat & Messages',
     placeholder_email: 'email / username / phone / id',
     placeholder_password: 'Enter password',
@@ -346,6 +354,7 @@ function initLanguage() {
   // Keep brand keys in sync with config
   t.brandName = brand;
   t.mineral_bar = brand;
+  t.appName = brand;
   t.page_title = brand + (currentLang === 'he' ? ' — התחברות' : ' — Login');
   t.page_title_messages = brand + (currentLang === 'he' ? ' — הודעות' : ' — Messages');
   t.page_title_chat = brand + (currentLang === 'he' ? ' — צ׳אט' : ' — Chat');

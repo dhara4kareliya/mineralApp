@@ -68,6 +68,8 @@ const I18n = (function () {
       otpLabel: 'Verification code (OTP)',
       otpPlaceholder: '6-digit code',
       signIn: 'Sign in',
+      demoCredentials: 'Demo Credentials',
+      loginAsDemoUser: 'Login As Domo User',
       fileCount: '{n} files',
       fileCountOne: '1 file',
       fileCountOf: '{current} of {total}',
@@ -157,6 +159,8 @@ const I18n = (function () {
       otpLabel: 'קוד אימות (OTP)',
       otpPlaceholder: 'קוד בן 6 ספרות',
       signIn: 'התחברות',
+      demoCredentials: 'פרטי הדגמה',
+      loginAsDemoUser: 'התחבר כמשתמש הדגמה',
       fileCount: '{n} קבצים',
       fileCountOne: 'קובץ אחד',
       fileCountOf: '{current} מתוך {total}',
@@ -294,6 +298,10 @@ const I18n = (function () {
 
     document.querySelectorAll('[data-lang-select]').forEach((select) => {
       select.value = lang;
+    });
+
+    document.querySelectorAll('.demo-users').forEach((el) => {
+      el.dir = isRtl() ? 'rtl' : 'ltr';
     });
 
     if (typeof Theme !== 'undefined' && Theme.refreshLabels) {

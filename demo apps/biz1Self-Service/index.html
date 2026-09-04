@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/style.css?v=20260831a">
+<link rel="stylesheet" href="./assets/style.css?v=20260904-demo-cred-2">
 <script src="./assets/config.js?v=20260831a"></script>
 <script>
 (function () {
@@ -75,7 +75,7 @@
       </div>
 
       <div class="dc-scroll login-scroll">
-        <form id="loginForm" class="login-card" autocomplete="on">
+        <form id="loginForm" class="login-card" autocomplete="off">
           <div class="login-title" data-i18n="loginTitle">Passwordless sign-in</div>
           <div id="loginHint" class="login-hint" data-i18n="loginHint">One-time code via WhatsApp or SMS through Biz1</div>
 
@@ -90,7 +90,7 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="6" y="3" width="12" height="18" rx="2.5"/><path d="M10 18h4"/></svg>
                 <span data-i18n="phoneLabel">Mobile number</span> <span class="req">*</span>
               </label>
-              <input id="phone" class="ds-input input input--ltr" type="tel" inputmode="tel" autocomplete="tel" data-i18n-placeholder="phonePlaceholder" placeholder="050-1234567" required>
+              <input id="phone" class="ds-input input input--ltr" type="tel" name="biz1ss-phone" inputmode="tel" autocomplete="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="phonePlaceholder" placeholder="050-1234567" required value="">
             </div>
 
             <div class="field">
@@ -111,11 +111,11 @@
               <summary data-i18n="authDetails">Biz1 account verification (required for API)</summary>
               <div class="field field--tight">
                 <label for="username" class="field-label"><span data-i18n="emailLabel">Email, username, phone or ID</span></label>
-                <input id="username" class="ds-input input input--ltr" type="text" autocomplete="username" data-i18n-placeholder="loginIdPlaceholder" placeholder="email / username / phone / ID">
+                <input id="username" class="ds-input input input--ltr" type="text" name="biz1ss-user" autocomplete="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="loginIdPlaceholder" placeholder="email / username / phone / ID" value="">
               </div>
               <div class="field field--tight">
                 <label for="password" class="field-label"><span data-i18n="passwordLabel">Password</span></label>
-                <input id="password" class="ds-input input" type="password" autocomplete="current-password" data-i18n-placeholder="passwordPlaceholder" placeholder="Password">
+                <input id="password" class="ds-input input" type="password" name="biz1ss-pass" autocomplete="new-password" data-i18n-placeholder="passwordPlaceholder" placeholder="Password" value="">
               </div>
             </details>
 
@@ -139,6 +139,23 @@
             <button type="button" id="backPhoneBtn" class="btn btn-ghost" data-i18n="changePhone">Change number</button>
           </div>
         </form>
+
+        <aside class="demo-users" id="demo-users" dir="ltr" data-i18n-aria="demoCredentials" aria-label="Demo Credentials">
+          <div class="demo-users-title" data-i18n="demoCredentials">Demo Credentials</div>
+          <div class="demo-users-list">
+            <div class="demo-user-row">
+              <span class="demo-user-creds" dir="ltr">9978339999 · dhara@yopmail.com / pass0364</span>
+              <button
+                type="button"
+                class="demo-user-btn"
+                data-user="dhara@yopmail.com"
+                data-pass="pass0364"
+                data-phone="9978339999"
+                data-i18n="loginAsDemoUser"
+              >Login As Domo User</button>
+            </div>
+          </div>
+        </aside>
 
         <div class="trust-row">
           <span data-i18n="trustLine">Encrypted · Biz1 · Card not stored on device</span>
@@ -351,6 +368,6 @@
 
   </div>
 </div>
-<script src="./assets/app.js?v=20260831a"></script>
+<script src="./assets/app.js?v=20260904-demo-cred-2"></script>
 </body>
 </html>

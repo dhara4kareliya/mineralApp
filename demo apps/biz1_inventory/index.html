@@ -18,8 +18,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/style.css?v=20260831a">
-<script src="./assets/config.js?v=20260831a"></script>
+<link rel="stylesheet" href="./assets/style.css?v=20260904i">
+<script src="./assets/config.js?v=20260904f"></script>
 <script>
 (function () {
   var user = (window.Biz1Config && Biz1Config.user) || 'demo';
@@ -30,7 +30,7 @@
   document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
 })();
 </script>
-<script src="./assets/biz1-app.js?v=20260831a"></script>
+<script src="./assets/biz1-app.js?v=20260904c"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -70,7 +70,7 @@
       </div>
 
       <div class="dc-scroll login-scroll">
-        <form id="loginForm" class="login-card">
+        <form id="loginForm" class="login-card" autocomplete="off">
           <div class="login-title" data-i18n="loginTitle">כניסה לחשבון</div>
           <div id="errorBox" class="error-box hidden">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
@@ -82,7 +82,7 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa3b0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/></svg>
               <span data-i18n="emailLabel">אימייל / שם משתמש / טלפון / מזהה</span> <span class="req">*</span>
             </label>
-            <input id="username" class="ds-input input input--ltr" type="text" autocomplete="username" data-i18n-placeholder="emailPlaceholder" placeholder="email / username / phone / id" required>
+            <input id="username" class="ds-input input input--ltr" type="text" name="biz1_login_id" autocomplete="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="emailPlaceholder" placeholder="email / username / phone / id" required readonly>
           </div>
 
           <div id="passwordWrap" class="field field--tight">
@@ -91,7 +91,7 @@
               <span data-i18n="passwordLabel">סיסמה</span> <span class="req">*</span>
             </label>
             <div class="pass-wrap">
-              <input id="password" class="ds-input input input--pass" type="password" autocomplete="current-password" data-i18n-placeholder="passwordPlaceholder" placeholder="הזן סיסמה" required>
+              <input id="password" class="ds-input input input--pass" type="password" name="biz1_login_secret" autocomplete="new-password" data-i18n-placeholder="passwordPlaceholder" placeholder="הזן סיסמה" required>
               <button type="button" id="togglePassword" class="pass-toggle" data-i18n-aria="togglePassword" aria-label="הצג או הסתר סיסמה">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
@@ -118,7 +118,23 @@
           </button>
         </form>
 
-        <div class="footer-note" data-i18n="footerNote">תצוגת Biz1 · מלאי ומחסן</div>
+        <aside class="demo-users" id="demo-users" data-i18n-aria="demoCredentials" aria-label="Demo Credentials">
+          <div class="demo-users-title" data-i18n="demoCredentials">פרטי הדגמה</div>
+          <div class="demo-users-list">
+            <div class="demo-user-row">
+              <span class="demo-user-creds" dir="ltr">dhara@yopmail.com / pass0364</span>
+              <button
+                type="button"
+                class="demo-user-btn"
+                data-user="dhara@yopmail.com"
+                data-pass="pass0364"
+                data-i18n="loginAsDemoUser"
+              >Login As Domo User</button>
+            </div>
+          </div>
+        </aside>
+
+        <div class="footer-note" data-i18n="footerNote">Biz1 Showcase · מלאי</div>
       </div>
     </div>
 
@@ -316,6 +332,6 @@
   <span id="toastText"></span>
 </div>
 
-<script src="./assets/app.js?v=20260831a"></script>
+<script src="./assets/app.js?v=20260904j"></script>
 </body>
 </html>
