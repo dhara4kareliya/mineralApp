@@ -1464,6 +1464,7 @@
   }
 
   var _listInFlight = null;
+  var _listLoadGen = 0;
   var _listBooted = false;
   var _listBootAt = 0;
   var _rowsCache = null;
@@ -1664,14 +1665,16 @@
 
   async function loadList(mount, explicitFolderId, opts) {
     opts = opts || {};
-    // Coalesce duplicates — never queue a second Customer.List behind the first
-    if (_listInFlight) return _listInFlight;
+    // Coalesce duplicates — never queue a second Customer.List behind the first.
+    // force: filter apply / mode toggle must start a fresh fetch even if one is in flight.
+    if (_listInFlight && !opts.force) return _listInFlight;
 
+    var gen = ++_listLoadGen;
     _listInFlight = (async function () {
       try {
         await loadListBody(mount, explicitFolderId, opts);
       } finally {
-        _listInFlight = null;
+        if (_listLoadGen === gen) _listInFlight = null;
       }
     })();
     return _listInFlight;
@@ -1967,9 +1970,10 @@
     filters = filters || getCustFilters();
     var chip = String(filters.chip || 'all');
     var matchMode = String(filters.matchMode || 'and') === 'or' ? 'or' : 'and';
+    var isRenewals = filters.listMode === 'renewals';
 
     // Renewals mode: only rows with warranty/insurance end dates
-    if (filters.listMode === 'renewals' && item.getAttribute('data-has-expiry') !== '1') {
+    if (isRenewals && item.getAttribute('data-has-expiry') !== '1') {
       return false;
     }
 
@@ -1985,24 +1989,26 @@
       }
     }
 
+    // Owner is applied on Customer.List (team_member_id / get_shared_with_wise_client).
+    // Do not re-filter by data-owner-id — shared customers would disappear (API returns them,
+    // but card owner id is the manager, not the shared member).
     var ownerOk = true;
-    if (filters.owner && filters.owner !== 'all') {
-      ownerOk = String(item.getAttribute('data-owner-id') || '') === String(filters.owner);
-    }
 
+    // Expiry range is renewals-only (Leads mode must not hide rows for leftover dates)
     var expiryOk = true;
-    var expiry = String(item.getAttribute('data-expiry') || '').trim();
-    if (filters.expiryFrom) {
-      expiryOk = expiryOk && !!expiry && expiry >= String(filters.expiryFrom);
-    }
-    if (filters.expiryTo) {
-      expiryOk = expiryOk && !!expiry && expiry <= String(filters.expiryTo);
+    if (isRenewals && (filters.expiryFrom || filters.expiryTo)) {
+      var expiry = String(item.getAttribute('data-expiry') || '').trim();
+      if (filters.expiryFrom) {
+        expiryOk = expiryOk && !!expiry && expiry >= String(filters.expiryFrom);
+      }
+      if (filters.expiryTo) {
+        expiryOk = expiryOk && !!expiry && expiry <= String(filters.expiryTo);
+      }
     }
 
     var dims = [];
     if (chip && chip !== 'all') dims.push(chipOk);
-    if (filters.owner && filters.owner !== 'all') dims.push(ownerOk);
-    if (filters.expiryFrom || filters.expiryTo) dims.push(expiryOk);
+    if (isRenewals && (filters.expiryFrom || filters.expiryTo)) dims.push(expiryOk);
 
     if (!dims.length) return true;
     if (matchMode === 'or') {
@@ -2181,6 +2187,87 @@
     } catch (e) { /* ignore */ }
   }
 
+  function enableCustChipDragScroll(slider) {
+    if (!slider || slider.dataset.dragScrollWired === '1') return;
+    slider.dataset.dragScrollWired = '1';
+    slider.classList.add('mb-h-drag', 'mb-cust-filter-hbar');
+
+    // Drag-to-scroll only after real movement — taps must still select chips.
+    // Do NOT setPointerCapture on pointerdown (it steals click from buttons).
+    var tracking = false;
+    var dragging = false;
+    var startX = 0;
+    var startLeft = 0;
+    var pointerId = null;
+    var DRAG_THRESHOLD = 10;
+
+    function endDrag(e) {
+      if (!tracking) return;
+      if (e && pointerId != null && e.pointerId != null && e.pointerId !== pointerId) return;
+      var wasDrag = dragging;
+      tracking = false;
+      dragging = false;
+      slider.classList.remove('is-dragging');
+      if (wasDrag && pointerId != null && slider.releasePointerCapture) {
+        try { slider.releasePointerCapture(pointerId); } catch (err) { /* ignore */ }
+      }
+      pointerId = null;
+      if (wasDrag) {
+        var block = function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          slider.removeEventListener('click', block, true);
+        };
+        slider.addEventListener('click', block, true);
+        setTimeout(function () { slider.removeEventListener('click', block, true); }, 80);
+      }
+    }
+
+    if (window.PointerEvent) {
+      slider.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        tracking = true;
+        dragging = false;
+        startX = e.clientX;
+        startLeft = slider.scrollLeft;
+        pointerId = e.pointerId;
+      });
+      slider.addEventListener('pointermove', function (e) {
+        if (!tracking || e.pointerId !== pointerId) return;
+        var delta = e.clientX - startX;
+        if (!dragging && Math.abs(delta) > DRAG_THRESHOLD) {
+          dragging = true;
+          slider.classList.add('is-dragging');
+          try { slider.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        }
+        if (dragging) {
+          slider.scrollLeft = startLeft - delta;
+          if (e.cancelable) e.preventDefault();
+        }
+      });
+      slider.addEventListener('pointerup', endDrag);
+      slider.addEventListener('pointercancel', endDrag);
+    } else {
+      slider.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        tracking = true;
+        dragging = false;
+        startX = e.clientX;
+        startLeft = slider.scrollLeft;
+      });
+      window.addEventListener('mousemove', function (e) {
+        if (!tracking) return;
+        var delta = e.clientX - startX;
+        if (!dragging && Math.abs(delta) > DRAG_THRESHOLD) {
+          dragging = true;
+          slider.classList.add('is-dragging');
+        }
+        if (dragging) slider.scrollLeft = startLeft - delta;
+      });
+      window.addEventListener('mouseup', endDrag);
+    }
+  }
+
   function renderCustFilterChips(container) {
     if (!container) return;
     var active = getActiveCustFilter();
@@ -2193,17 +2280,28 @@
       { id: 'website', label: t('Website', 'אתר'), color: '#0f766e', bg: '#e6f7f4', border: '#8fd0c6' },
       { id: 'new-or-website', label: t('New / Website', 'חדש / אתר'), color: '#50439d', bg: '#f0eefb', border: '#a89fd4' }
     ];
+    container.classList.add('mb-h-drag', 'mb-cust-filter-hbar');
     container.style.display = 'flex';
+    container.style.flexWrap = 'nowrap';
+    container.style.overflowX = 'auto';
+    container.style.overflowY = 'hidden';
+    container.style.minWidth = '0';
+    container.style.maxWidth = '100%';
+    container.style.width = '100%';
+    container.style.webkitOverflowScrolling = 'touch';
+    container.style.touchAction = 'pan-x';
     container.innerHTML = chips.map(function (chip) {
       var on = active === chip.id;
       return (
-        '<button type="button" class="mb-cust-chip" data-chip-id="' + esc(chip.id) + '" data-active="' + (on ? '1' : '0') + '" style="flex:none;padding:7px 12px;border-radius:99px;border:1.5px solid ' +
+        '<button type="button" class="mb-cust-chip" data-chip-id="' + esc(chip.id) + '" data-active="' + (on ? '1' : '0') + '" style="flex:0 0 auto;padding:7px 12px;border-radius:99px;border:1.5px solid ' +
         (on ? chip.border : '#e2e8f0') + ';background:' + (on ? chip.bg : '#f8fafc') + ';color:' + (on ? chip.color : '#475569') +
-        ';font-size:12.5px;font-weight:' + (on ? '800' : '700') + ';cursor:pointer;white-space:nowrap;">' +
+        ';font-size:12.5px;font-weight:' + (on ? '800' : '700') + ';cursor:pointer;white-space:nowrap;pointer-events:auto;">' +
         esc(chip.label) +
         '</button>'
       );
     }).join('');
+
+    enableCustChipDragScroll(container);
 
     container.querySelectorAll('.mb-cust-chip').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -2319,7 +2417,8 @@
     if (leadsBtn && !leadsBtn.dataset.wired) {
       leadsBtn.dataset.wired = '1';
       leadsBtn.addEventListener('click', function () {
-        setCustFilters({ listMode: 'leads' });
+        // Drop renewals-only expiry constraints when switching to Leads
+        setCustFilters({ listMode: 'leads', expiryFrom: '', expiryTo: '' });
         syncCustModeToggle();
         reloadCustList();
       });
@@ -2474,7 +2573,13 @@
 
     body.querySelectorAll('.mb-cust-sheet-mode').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        setCustFilters({ listMode: btn.getAttribute('data-mode') || 'renewals' });
+        var mode = btn.getAttribute('data-mode') || 'renewals';
+        var patch = { listMode: mode };
+        if (mode === 'leads') {
+          patch.expiryFrom = '';
+          patch.expiryTo = '';
+        }
+        setCustFilters(patch);
         renderCustFilterSheetBody();
       });
     });
@@ -2558,9 +2663,11 @@
   function applyCustFilterSheet() {
     var fromEl = document.getElementById('mb-cust-expiry-from');
     var toEl = document.getElementById('mb-cust-expiry-to');
+    var cur = getCustFilters();
+    var isLeads = cur.listMode === 'leads';
     setCustFilters({
-      expiryFrom: fromEl ? (fromEl.value || '') : getCustFilters().expiryFrom,
-      expiryTo: toEl ? (toEl.value || '') : getCustFilters().expiryTo
+      expiryFrom: isLeads ? '' : (fromEl ? (fromEl.value || '') : cur.expiryFrom),
+      expiryTo: isLeads ? '' : (toEl ? (toEl.value || '') : cur.expiryTo)
     });
     closeCustFilters();
     syncCustModeToggle();
@@ -2572,12 +2679,17 @@
   function reloadCustList() {
     var mount = detectMount();
     if (!mount || !mount.el) return;
-    mount.el.removeAttribute('data-initial-loaded');
+    // Invalidate any in-flight paint, then force a new Customer.List with current filters.
+    // (Calling start() while _listInFlight was set previously aborted the reload and left 0 rows.)
     mount._activeLoadId = '';
-    _listBooted = false;
+    _listBooted = true;
+    _listBootAt = Date.now();
     _rowsCache = null;
     resetListPage();
-    start();
+    mount.el.setAttribute('data-initial-loaded', '1');
+    var folder = getActiveFolderId(mount);
+    setActiveFolderId(folder);
+    loadList(mount, folder, { force: true });
   }
 
   function renderFolderFilterBar(container, selectedFolderId) {

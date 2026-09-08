@@ -18,6 +18,34 @@ mbScripts([
 ]);
 mbCss('./common.css');
 </script>
+  <style>
+    #mb-customer-filter-chips.mb-cust-filter-hbar {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #mb-customer-filter-chips.mb-cust-filter-hbar::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    #mb-customer-filter-chips.mb-cust-filter-hbar > .mb-cust-chip {
+      flex: 0 0 auto !important;
+      white-space: nowrap !important;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body data-role="sales" data-active-tab="customers" data-header-title="Customers" data-header-subtitle-id="mb-total-label" data-header-action-html='<a href="sales-add-customer.html?back=customers.html" style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; background:var(--color-primary, #1d60a2); color:#fff; text-decoration:none; flex:none; box-shadow:0 5px 13px rgba(29,96,162,.26);"><svg fill="none" height="16" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16"><circle cx="9" cy="8" r="3.4"></circle><path d="M3 20c0-3.4 2.7-5.5 6-5.5 1 0 1.9.2 2.7.5"></path><path d="M17 8v6M14 11h6"></path></svg><span style="font-size:13.5px; font-weight:800; white-space:nowrap;">New customer</span></a>'>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
@@ -42,8 +70,8 @@ mbCss('./common.css');
       <button type="button" id="mb-cust-mode-renewals" data-active="1" style="flex:1; padding:9px 12px; border-radius:11px; border:1.5px solid #1d60a2; background:#1d60a2; color:#fff; font-size:13px; font-weight:800; cursor:pointer;">Renewals</button>
     </div>
 
-    <!-- Folder Filter Chips Bar (Image 1 Dynamic Design) -->
-    <div id="mb-customer-filter-chips" class="dc-scroll" data-active-folder="0" style="display:flex; gap:8px; overflow-x:auto; margin-top:11px; padding-bottom:4px; scrollbar-width:none; -webkit-overflow-scrolling:touch;"></div>
+    <!-- Folder Filter Chips Bar — horizontal scroll + click -->
+    <div id="mb-customer-filter-chips" class="dc-scroll mb-h-drag mb-cust-filter-hbar" data-active-folder="0" style="display:flex; flex-wrap:nowrap; gap:8px; overflow-x:auto; overflow-y:hidden; margin-top:11px; padding-bottom:6px; width:100%; max-width:100%; min-width:0; box-sizing:border-box; -webkit-overflow-scrolling:touch; touch-action:pan-x; cursor:grab; scrollbar-width:none;"></div>
   </div>
 
   <!-- Customer List Section -->

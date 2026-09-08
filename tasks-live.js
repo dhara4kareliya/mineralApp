@@ -61,10 +61,28 @@
     return when.split('-').reverse().join('/');
   }
 
+  /** Automatic chip: missions whose title contains one of these system phrases (HE + EN). */
+  var AUTO_MISSION_TITLE_NEEDLES = [
+    'חידוש ביטוח',
+    'Insurance renewal',
+    'חידוש אחריות',
+    'Warranty renewal',
+    'החלפת סנן',
+    'Filter replacement'
+  ];
+
   function isAutoCreatedMission(m) {
     if (!m) return false;
-    var by = m.create_by;
-    return by === 0 || by === '0';
+    var title = String(m.mission || m.title || m.name || m.mission_name || '').trim();
+    if (!title) return false;
+    var lower = title.toLowerCase();
+    for (var i = 0; i < AUTO_MISSION_TITLE_NEEDLES.length; i++) {
+      var needle = AUTO_MISSION_TITLE_NEEDLES[i];
+      if (title.indexOf(needle) !== -1) return true;
+      // English match is case-insensitive
+      if (/[a-z]/i.test(needle) && lower.indexOf(needle.toLowerCase()) !== -1) return true;
+    }
+    return false;
   }
 
   function matchesChipFilter(m, filterType, today) {
