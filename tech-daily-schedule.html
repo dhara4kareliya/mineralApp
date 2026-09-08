@@ -265,6 +265,13 @@ mbCss('./common.css');
 </sc-if>
 </div>
 </div>
+<!-- create order -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ cardCanOrder }}">
+<a href="{{ cardOrderUrl }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:14px; border:none; border-radius:14px; background:linear-gradient(135deg,#d4a04a,#bd8324); color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(189,131,36,.28); margin-bottom:14px;">
+<svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18"><rect x="4" y="4" width="16" height="17" rx="2"></rect><path d="M9 2v4M15 2v4M8 11l2 2 3.5-3.5M8 16h6"></path></svg>
+{{ cardOrderLabel }}
+</a>
+</sc-if>
 <!-- active plans -->
 <div style="font-size:13px; color:#7b8595; font-weight:700; margin:4px 2px 9px;">{{ cardPlansTitle }}</div>
 <div style="background:#fff; border-radius:16px; padding:6px 15px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
@@ -605,11 +612,11 @@ class Component extends DCLogic {
     var lat = t.lat || t.latitude || t.gps_lat || t.geo_lat;
     var lng = t.lng || t.longitude || t.lon || t.gps_lng || t.geo_lng;
     if (lat != null && lng != null && String(lat) !== '' && String(lng) !== '') {
-      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(String(lat) + ',' + String(lng));
+      return 'https://waze.com/ul?ll=' + encodeURIComponent(String(lat) + ',' + String(lng)) + '&navigate=yes';
     }
     var address = this.buildCustomerAddress(t);
     if (!address) return '';
-    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
+    return 'https://waze.com/ul?q=' + encodeURIComponent(address) + '&navigate=yes';
   }
 
   openMap(ticket, ev) {
@@ -620,7 +627,7 @@ class Component extends DCLogic {
     var href = this.buildMapHref(ticket);
     if (!href) {
       this.setState({
-        errorMsg: this.t('No address for map', 'אין כתובת למפה')
+        errorMsg: this.t('No address for Waze', 'אין כתובת ל-Waze')
       });
       return;
     }
@@ -1635,7 +1642,7 @@ class Component extends DCLogic {
       productName: productName,
       productItems: productItems,
       productLabel: this.t('Product', 'מוצר'),
-      productDescLabel: this.t('Description', 'תיאור'),
+      productDescLabel: this.t('Equipment', 'ציוד'),
       hasProduct: productItems.length > 0,
       parts: parts,
       hasParts: parts.length > 0,
@@ -1652,7 +1659,7 @@ class Component extends DCLogic {
       phoneHref: phone ? ('tel:' + phone) : '#',
       chatHref: chatHref,
       mapHref: this.buildMapHref(ticket) || '#',
-      mapTitle: this.t('Map', 'מפה'),
+      mapTitle: this.t('Waze', 'Waze'),
       cardLabel: this.t('Customer card', 'כרטיס לקוח'),
       closeLabel: this.t('close ticket', 'סגור טיקט'),
       viewLabel: this.t('View', 'צפייה'),
@@ -1752,6 +1759,22 @@ class Component extends DCLogic {
     var card = st.cardTicket || {};
     var cardName = card.customer_name || card.joined_customer_name || card.cust_name || card.name || card.subject || '';
     var cardPhone = this.pickPhone(card) || '';
+    var cardCustomerId = String(card.customer_id || card.cust_id || card.contactus_id || '').trim();
+    var cardAddress = this.buildCustomerAddress(card) || '';
+    var cardEmail = String(card.email || card.cust_email || card.customer_email || '').trim();
+    var cardOrderUrl = '';
+    if (cardCustomerId) {
+      var oq = new URLSearchParams();
+      oq.set('customer_id', cardCustomerId);
+      oq.set('cust_id', cardCustomerId);
+      if (cardName) oq.set('name', cardName);
+      if (cardPhone) oq.set('phone', cardPhone);
+      if (cardEmail) oq.set('email', cardEmail);
+      if (cardAddress) oq.set('address', cardAddress);
+      oq.set('from', 'schedule');
+      oq.set('back', 'tech-daily-schedule.html');
+      cardOrderUrl = 'service-order-form.html?' + oq.toString();
+    }
     var cardSince = card.customer_since || card.since_year || card.created_year || '2021';
     var cardMetaParts = [];
     if (cardSince) {
@@ -1805,6 +1828,9 @@ class Component extends DCLogic {
       cardName: cardName || this.t('Customer', 'לקוח'),
       cardInitials: this.initials(cardName || 'C'),
       cardMeta: cardMetaParts.length ? cardMetaParts.join(' · ') : (cardPhone || ''),
+      cardCanOrder: !!cardOrderUrl,
+      cardOrderUrl: cardOrderUrl || '#',
+      cardOrderLabel: this.t('Create order', 'צור הזמנה'),
       cardStatusLabel: st.cardStatusLabel || '',
       cardStatusColor: st.cardStatusColor || '#2e8a63',
       cardStatusBg: st.cardStatusBg || '#e6f4ec',

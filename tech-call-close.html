@@ -236,11 +236,13 @@ mbCss('./common.css');
 </sc-for>
 </select>
 <div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ reasonErrorDisplay }};">{{ reasonErrorText }}</div>
-<div style="display:{{ otherDisplay }};">
-<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin:9px 2px 6px;">{{ labelReasonOther }} <span style="color:#c0392b;">*</span></label>
-<input id="close-reason-other" class="ds-input" oninput="{{ onReasonOther }}" placeholder="{{ reasonOtherPh }}" autocomplete="off" style="width:100%; padding:11px 13px; border:1.5px solid {{ otherBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; background:#fff;"/>
-<div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ otherErrorDisplay }};">{{ otherErrorText }}</div>
 </div>
+
+<!-- closing_reason (a-1787204474) — only when status = notdone -->
+<div style="margin-bottom:20px; display:{{ closingReasonDisplay }};">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:7px;">{{ labelClosingReason }} <span style="color:#c0392b;">*</span></label>
+<textarea id="close-closing-reason" class="ds-input" oninput="{{ onClosingReason }}" placeholder="{{ closingReasonPh }}" style="width:100%; min-height:88px; padding:12px 13px; border:1.5px solid {{ closingReasonBorder }}; border-radius:11px; font-size:14.5px; color:#1f2a3a; resize:none; background:#fff;"></textarea>
+<div style="font-size:12px; color:#c0392b; font-weight:700; margin-top:6px; display:{{ closingReasonErrorDisplay }};">{{ closingReasonErrorText }}</div>
 </div>
 
 <!-- 2–3. description + photos (hidden for no-answer / not-performed) -->
@@ -497,7 +499,7 @@ mbCss('./common.css');
 </sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasViewReasonDetails }}">
 <div style="margin-bottom:14px;">
-<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelReasonOther }}</div>
+<div style="font-size:12px; color:#9aa3b0; font-weight:600; margin-bottom:5px;">{{ labelClosingReason }}</div>
 <div style="font-size:14.5px; font-weight:700; color:#1f2a3a; line-height:1.45; white-space:pre-wrap;">{{ viewReasonDetails }}</div>
 </div>
 </sc-if>
@@ -666,6 +668,7 @@ class Component extends DCLogic {
     closeStatusLabel: '',
     reason: '',
     reasonOther: '',
+    closingReason: '',
     viewReason: '',
     viewReasonDetails: '',
     products: [],
@@ -791,14 +794,14 @@ class Component extends DCLogic {
       { id: 'done', label: this.t('Successfully completed', 'הושלם בהצלחה'), icon: 'check', tone: 'green' },
       {
         id: 'followup',
-        label: this.t('Handle later', 'לטיפול בהמשך'),
+        label: this.t('Further treatment required', 'דרוש המשך טיפול'),
         hint: this.t('Saturday unit / wrong model / additional sale', 'יחידת שבת / דגם שגוי / מכירה נוספת'),
         icon: 'clock',
         tone: 'amber',
         reason: true
       },
       { id: 'noanswer', label: this.t('No answer', 'אין מענה'), icon: 'phone', tone: 'gray', skipWorkMedia: true, skipWorkDetails: true },
-      { id: 'notdone', label: this.t('Not performed', 'לא בוצע'), icon: 'x', tone: 'red', skipWorkMedia: true },
+      { id: 'notdone', label: this.t('Not performed', 'לא בוצע'), icon: 'x', tone: 'red', skipWorkMedia: true, closingReason: true },
       { id: 'lab', label: this.t('Sent to lab', 'נשלח למעבדה'), icon: 'lab', tone: 'purple' }
     ];
   }
@@ -806,7 +809,7 @@ class Component extends DCLogic {
   knownClosingLabel(id) {
     var map = {
       done: { en: 'Successfully completed', he: 'הושלם בהצלחה' },
-      followup: { en: 'Handle later', he: 'לטיפול בהמשך' },
+      followup: { en: 'Further treatment required', he: 'דרוש המשך טיפול' },
       noanswer: { en: 'No answer', he: 'אין מענה' },
       notdone: { en: 'Not performed', he: 'לא בוצע' },
       lab: { en: 'Sent to lab', he: 'נשלח למעבדה' }
@@ -820,8 +823,9 @@ class Component extends DCLogic {
     var labelHe = String((opt && (opt.labelHe || opt.label_he || opt.label)) || '');
     var known = this.knownClosingLabel(value);
     if (known) {
-      if (!labelEn || labelEn.toLowerCase() === value.toLowerCase()) labelEn = known.en;
-      if (!labelHe || labelHe.toLowerCase() === value.toLowerCase()) labelHe = known.he;
+      // Prefer app display labels (e.g. followup → דרוש המשך טיפול) over CRM option text.
+      labelEn = known.en;
+      labelHe = known.he;
     }
     var label = this.isEn() ? (labelEn || labelHe || value) : (labelHe || labelEn || value);
     var blob = [value, labelEn, labelHe, label].join(' ').toLowerCase();
@@ -849,6 +853,7 @@ class Component extends DCLogic {
       meta.icon = 'x';
       meta.tone = 'red';
       meta.skipWorkMedia = true;
+      meta.closingReason = true;
     } else if (/\blab\b|מעבד/.test(blob)) {
       meta.icon = 'lab';
       meta.tone = 'purple';
@@ -888,6 +893,17 @@ class Component extends DCLogic {
   needsReason() {
     var s = this.statusById(this.state.closeStatus);
     return !!(s && s.reason);
+  }
+
+  /** Free-text closing_reason (a-1787204474) — only when status is notdone. */
+  needsClosingReason() {
+    var s = this.statusById(this.state.closeStatus);
+    if (s && s.closingReason) return true;
+    return String(this.state.closeStatus || '') === 'notdone';
+  }
+
+  closingReasonValue() {
+    return String(this.state.closingReason || this._closingReasonValue || '').trim();
   }
 
   /** Work description + device photos are irrelevant for no-answer / not-performed. */
@@ -1028,6 +1044,13 @@ class Component extends DCLogic {
       var selfReason = this;
       other.addEventListener('input', function (e) { selfReason.onReasonOther(e); });
       other.addEventListener('keydown', function (e) { e.stopPropagation(); });
+    }
+    var closingReasonEl = document.getElementById('close-closing-reason');
+    if (closingReasonEl && closingReasonEl.getAttribute('data-bound') !== '1') {
+      closingReasonEl.setAttribute('data-bound', '1');
+      var selfClosing = this;
+      closingReasonEl.addEventListener('input', function (e) { selfClosing.onClosingReason(e); });
+      closingReasonEl.addEventListener('keydown', function (e) { e.stopPropagation(); });
     }
     this.ensureWorkProductOptions();
   }
@@ -1339,13 +1362,16 @@ class Component extends DCLogic {
   pickStatus(id) {
     var def = this.statusById(id);
     var keepReason = !!(def && def.reason);
+    var keepClosingReason = !!(def && def.closingReason) || id === 'notdone';
     this.setState({
       closeStatus: id,
       closeStatusLabel: (def && def.label) || this.closeStatusLabelOf(id) || id,
       reason: keepReason ? this.state.reason : '',
       reasonOther: keepReason ? this.state.reasonOther : '',
+      closingReason: keepClosingReason ? this.state.closingReason : '',
       formError: ''
     });
+    if (!keepClosingReason) this._closingReasonValue = '';
     var self = this;
     setTimeout(function () {
       self.bindDom();
@@ -1364,6 +1390,15 @@ class Component extends DCLogic {
       if (self._sigDataUrl) self.restoreSignature(document.getElementById('sig-canvas'));
       self.updateSubmitEnabled();
     }, 40);
+  }
+
+  onClosingReason(e) {
+    var el = (e && e.target) || document.getElementById('close-closing-reason');
+    var val = String((el && el.value) || '');
+    this._closingReasonValue = val;
+    this.state.closingReason = val;
+    // Do not setState here — it re-renders and resets the textarea while typing
+    this.updateSubmitEnabled();
   }
 
   onReasonOther(e) {
@@ -1406,8 +1441,8 @@ class Component extends DCLogic {
     var el = null;
     if (!st.closeStatus) el = document.getElementById('close-status-section');
     else if (this.needsReason() && !st.reason) el = document.getElementById('close-reason-select');
-    else if (this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) {
-      el = document.getElementById('close-reason-other');
+    else if (this.needsClosingReason() && this.closingReasonValue().length < 2) {
+      el = document.getElementById('close-closing-reason');
     } else if (this.needsWorkMedia() && summary.length < 2) el = summaryEl;
     else if (this.needsSignature() && st.cash === 'yes' && !(parseInt(String(st.cashAmount || this._cashAmountValue || ''), 10) > 0)) {
       el = document.getElementById('cash-amount-input');
@@ -1427,8 +1462,8 @@ class Component extends DCLogic {
     var m = [];
     if (!st.closeStatus) m.push(this.t('Closing status', 'סטטוס סיום'));
     if (this.needsReason() && !st.reason) m.push(this.t('Follow-up reason', 'סיבת המשך טיפול'));
-    if (this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) {
-      m.push(this.t('Reason details', 'פירוט הסיבה'));
+    if (this.needsClosingReason() && this.closingReasonValue().length < 2) {
+      m.push(this.t('Closing reason', 'סיבת סגירה'));
     }
     if (this.needsWorkMedia() && summary.length < 2) m.push(this.t('Work description', 'תיאור הביצוע'));
     if (this.needsSignature() && st.cash === 'yes' && !(parseInt(st.cashAmount, 10) > 0)) {
@@ -1920,7 +1955,8 @@ class Component extends DCLogic {
       if (mReason && mReason[1]) reason = String(mReason[1]).trim();
     }
     if (!details) {
-      var mDetails = text.match(/Follow-up details:\s*([^\n]+)/i);
+      var mDetails = text.match(/Closing reason:\s*([^\n]+)/i)
+        || text.match(/Follow-up details:\s*([^\n]+)/i);
       if (mDetails && mDetails[1]) details = String(mDetails[1]).trim();
     }
     if (!reason) {
@@ -1981,7 +2017,8 @@ class Component extends DCLogic {
         : (cf.close_reason != null ? cf.close_reason : ''));
     raw = String(raw != null ? raw : '').trim();
     if (!raw) {
-      var m = this.ticketNotesText(ticket).match(/Follow-up details:\s*([^\n]+)/i);
+      var m = this.ticketNotesText(ticket).match(/Closing reason:\s*([^\n]+)/i)
+        || this.ticketNotesText(ticket).match(/Follow-up details:\s*([^\n]+)/i);
       if (m && m[1]) raw = String(m[1]).trim();
     }
     return raw;
@@ -2227,6 +2264,7 @@ class Component extends DCLogic {
         closeStatusLabel: '',
         reason: '',
         reasonOther: '',
+        closingReason: '',
         viewReason: '',
         viewReasonDetails: '',
         extraPhotos: [],
@@ -3015,6 +3053,11 @@ class Component extends DCLogic {
       var ov = this._reasonOtherValue != null ? this._reasonOtherValue : (this.state.reasonOther || '');
       if (other.value !== String(ov)) other.value = String(ov);
     }
+    var closingReasonEl = document.getElementById('close-closing-reason');
+    if (closingReasonEl && document.activeElement !== closingReasonEl) {
+      var cr = this._closingReasonValue != null ? this._closingReasonValue : (this.state.closingReason || '');
+      if (closingReasonEl.value !== String(cr)) closingReasonEl.value = String(cr);
+    }
     var cashEl = document.getElementById('cash-amount-input');
     if (cashEl && document.activeElement !== cashEl) {
       var cv = this._cashAmountValue != null ? this._cashAmountValue : (this.state.cashAmount || '');
@@ -3380,6 +3423,11 @@ class Component extends DCLogic {
     var summary = String((summaryEl && summaryEl.value) || st.summary || '').trim();
     var reasonOtherEl = document.getElementById('close-reason-other');
     if (reasonOtherEl) this.state.reasonOther = String(reasonOtherEl.value || '');
+    var closingReasonEl = document.getElementById('close-closing-reason');
+    if (closingReasonEl) {
+      this.state.closingReason = String(closingReasonEl.value || '');
+      this._closingReasonValue = this.state.closingReason;
+    }
     var installerEl = document.getElementById('installer-name-input');
     if (installerEl) {
       this.state.installerName = String(installerEl.value || '').trim();
@@ -3466,7 +3514,9 @@ class Component extends DCLogic {
         var reasonRow = reasonOpts.find(function (r) { return r.id === st.reason; });
         reasonId = String(st.reason || '');
         reasonText = (reasonRow && reasonRow.label) || st.reason || '';
-        reasonDetails = String(st.reasonOther || this._reasonOtherValue || '').trim();
+      }
+      if (this.needsClosingReason()) {
+        reasonDetails = this.closingReasonValue();
       }
       var lines = ['Closing status: ' + statusLabel];
       if (st.customerId) lines.push('Customer ID: ' + st.customerId);
@@ -3482,7 +3532,7 @@ class Component extends DCLogic {
       if (st.sendCopy) lines.push('Send copy to customer: yes');
       else lines.push('Send copy to customer: no');
       if (reasonText) lines.push('Follow-up reason: ' + reasonText);
-      if (reasonDetails) lines.push('Follow-up details: ' + reasonDetails);
+      if (reasonDetails) lines.push('Closing reason: ' + reasonDetails);
       if (reasonText || reasonDetails) {
         lines.push('REASON_META:' + JSON.stringify({
           id: reasonId,
@@ -3524,7 +3574,7 @@ class Component extends DCLogic {
         installer_name: String(st.installerName || '').trim()
       };
       if (reasonId) closeFields.followup_reason = reasonId;
-      if (reasonDetails) closeFields.closing_reason = reasonDetails;
+      if (this.needsClosingReason() && reasonDetails) closeFields.closing_reason = reasonDetails;
       if (includeWorkDetails && st.cash) {
         closeFields.cash_collected = st.cash === 'yes' ? 'yes' : 'no';
         if (st.cash === 'yes') {
@@ -3692,7 +3742,8 @@ class Component extends DCLogic {
     var hasSig = !!(st.hasStroke || this._hasStroke || this._sigDataUrl);
     var summaryOk = this.skipWorkMedia() || String(st.summary || '').trim().length >= 2;
     var statusOk = !!st.closeStatus;
-    var reasonOk = !this.needsReason() || (!!st.reason && String(st.reasonOther || this._reasonOtherValue || '').trim().length >= 2);
+    var reasonOk = (!this.needsReason() || !!st.reason)
+      && (!this.needsClosingReason() || this.closingReasonValue().length >= 2);
     var p3Ok = !!st.terms && (this.skipWorkDetails() || hasSig);
     var canSubmit = this.canFormSubmit();
     var segOn = '#1d60a2';
@@ -3766,15 +3817,13 @@ class Component extends DCLogic {
       reasonBorder: (st.attempted && this.needsReason() && !st.reason) ? '#e8a9a4' : '#dde2ea',
       reasonErrorDisplay: (st.attempted && this.needsReason() && !st.reason) ? 'block' : 'none',
       reasonErrorText: this.t('Please select a follow-up reason', 'נא לבחור סיבת המשך טיפול'),
-      showOther: this.needsReason(),
-      otherDisplay: this.needsReason() ? 'block' : 'none',
-      labelReasonOther: this.t('Specify the reason', 'פרט את הסיבה'),
-      reasonOtherPh: this.t('Specify the reason', 'פרט את הסיבה'),
-      reasonOther: st.reasonOther || '',
-      onReasonOther: (e) => this.onReasonOther(e),
-      otherBorder: (st.attempted && this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) ? '#e8a9a4' : '#dde2ea',
-      otherErrorDisplay: (st.attempted && this.needsReason() && String(st.reasonOther || this._reasonOtherValue || '').trim().length < 2) ? 'block' : 'none',
-      otherErrorText: this.t('Please specify the reason', 'נא לפרט את הסיבה'),
+      closingReasonDisplay: this.needsClosingReason() ? 'block' : 'none',
+      labelClosingReason: this.t('Closing reason', 'סיבת סגירה'),
+      closingReasonPh: this.t('Explain why the call was not performed…', 'פרט מדוע הקריאה לא בוצעה…'),
+      onClosingReason: (e) => this.onClosingReason(e),
+      closingReasonBorder: (st.attempted && this.needsClosingReason() && this.closingReasonValue().length < 2) ? '#e8a9a4' : '#dde2ea',
+      closingReasonErrorDisplay: (st.attempted && this.needsClosingReason() && this.closingReasonValue().length < 2) ? 'block' : 'none',
+      closingReasonErrorText: this.t('Please enter a closing reason', 'נא למלא סיבת סגירה'),
 
       labelDigitalForm: this.t('Digital service form', 'טופס שירות דיגיטלי'),
       labelCustomer: this.t('Customer name', 'שם הלקוח'),

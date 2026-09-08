@@ -611,7 +611,6 @@
       var monthRange = currentMonthRange();
       var results = await Promise.all([
         MineralBarApp.countCustomers(MineralBarApp.FOLDERS.LEADS).catch(function () { return { count: 0 }; }),
-        MineralBarApp.countMissions({}).catch(function () { return { count: 0 }; }),
         MineralBarApp.listCustomers({
           folder_id: MineralBarApp.FOLDERS.LEADS,
           length: 100,
@@ -628,24 +627,22 @@
       setAvatar();
 
       var leadsCount = Number(results[0].count) || 0;
-      var missionTotal = Number(results[1].count) || Number(results[3].total) || 0;
-      var leadRows = results[2].rows || results[2].data || [];
+      var leadRows = results[1].rows || results[1].data || [];
       var followupCount = leadRows.filter(isFollowupLead).length;
-      var closedCount = Number(results[4]) || 0;
-      var salesTarget = Number(results[5]) || 0;
+      var closedCount = Number(results[3]) || 0;
+      var salesTarget = Number(results[4]) || 0;
 
-      var rows = flattenMissionRows(results[3]);
+      var rows = flattenMissionRows(results[2]);
       try { sessionStorage.removeItem('mb_missions_dirty'); } catch (e2) {}
 
       var openMissions = rows.filter(isOpen);
-      var doneCount = rows.filter(isDone).length;
       var overdueMissions = openMissions.filter(function (m) {
         return isOverdue(m, today);
       });
       var dueNowMissions = openMissions.filter(function (m) {
         return isToday(m, today) || isOverdue(m, today);
       });
-      var openEstimate = Number(results[3].total) || dueNowMissions.length;
+      var openEstimate = Number(results[2].total) || dueNowMissions.length;
       var overdueCount = overdueMissions.length;
 
       // Home widget: only 5 latest today / overdue tasks (not the full open list)
@@ -658,10 +655,9 @@
         return kb.localeCompare(ka); // latest first within group
       }).slice(0, 5);
 
-      setText('mb-stat-closed', String(missionTotal));
-      setText('mb-stat-closed-sub', doneCount
-        ? (doneCount + ' ' + t('done in sample', 'בוצעו בדגימה'))
-        : t('Total tasks', 'סה״כ משימות'));
+      setText('mb-stat-closed-label', t('Active leads', 'לידים פעילים'));
+      setText('mb-stat-closed', String(leadsCount));
+      setText('mb-stat-closed-sub', t('Active leads', 'לידים פעילים'));
       setText('mb-stat-leads-label', t('Closed leads', 'לידים שנסגרו'));
       setText('mb-stat-leads', String(closedCount));
       setText('mb-stat-leads-sub', t('This month', 'החודש'));

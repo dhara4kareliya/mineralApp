@@ -26,25 +26,85 @@
     return pageKind() === 'leads';
   }
 
+  function formatLeadCountOnly(count) {
+    var n = Number(count) || 0;
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    return isEn ? (n + ' leads') : (n + ' לידים');
+  }
+
+  function leadStatusFilterLabel(id) {
+    var key = String(id || 'all').toLowerCase();
+    if (key === 'offer') key = 'sent';
+    var map = {
+      all: t('everything', 'הכל'),
+      new: t('New lead', 'ליד חדש'),
+      followup: t('Follow up', 'פולואפ'),
+      sent: t('Offer sent', 'נשלחה הצעה'),
+      closed: t('Closed', 'נסגר'),
+      noanswer: t('No answer', 'אין מענה'),
+      irrelevant: t('Not relevant', 'לא רלוונטי'),
+      other: t('Other', 'אחר')
+    };
+    return map[key] || map.all;
+  }
+
   function formatTotalLabel(count, kind) {
     var n = Number(count) || 0;
     kind = kind || pageKind();
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
     if (kind === 'leads') {
-      return isEn ? (n + ' leads') : (n + ' לידים');
+      var folderId = lockedFolderIdForPage('leads');
+      return formatLeadCountOnly(n) + ' · ' + (isEn ? ('Folder ' + folderId) : ('תיקייה ' + folderId));
     }
     return isEn ? (n + ' customers') : (n + ' לקוחות');
   }
 
+  function updateLeadsTopSummary(count) {
+    if (!kindIsLeadsPage()) return;
+    var n = Number(count);
+    if (!isFinite(n)) n = 0;
+    var label = formatTotalLabel(n, 'leads');
+    var totalEl = document.getElementById('mb-total-label');
+    if (totalEl) totalEl.textContent = label;
+    var wrap = document.getElementById('mb-leads-list-summary');
+    var line = document.getElementById('mb-leads-summary-line');
+    if (wrap) wrap.style.display = 'block';
+    if (line) line.textContent = label;
+  }
+
   function setTotalLabel(count, kind) {
+    kind = kind || pageKind();
+    if (kind === 'leads') {
+      updateLeadsTopSummary(count);
+      return;
+    }
     var totalEl = document.getElementById('mb-total-label');
     if (!totalEl) return;
     totalEl.textContent = formatTotalLabel(count, kind);
   }
 
-  /** Resolve Biz1 folder id for this page (leads → New Leads, customers → Customers). */
+  /** Resolve Biz1 folder id for this page (leads → New Leads, customers → Customers / Leads mode). */
   function lockedFolderIdForPage(kind) {
     kind = kind || pageKind();
+    // Customers page can toggle Leads (folder 1) vs Renewals (folder 2)
+    if (kind === 'customers') {
+      var mode = (getCustFilters().listMode === 'leads') ? 'leads' : 'renewals';
+      if (mode === 'leads') {
+        try {
+          if (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.LEADS != null) {
+            return Number(MineralBarApp.FOLDERS.LEADS) || 1;
+          }
+        } catch (eL) { /* ignore */ }
+        return 1;
+      }
+      try {
+        if (window.MineralBarApp && MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.CUSTOMERS != null) {
+          return Number(MineralBarApp.FOLDERS.CUSTOMERS) || 2;
+        }
+      } catch (eC) { /* ignore */ }
+      return 2;
+    }
+
     var fallback = kind === 'leads' ? 1 : 2;
     try {
       if (window.MineralBarApp && MineralBarApp.FOLDERS) {
@@ -71,7 +131,7 @@
         if (String(f.id || f.folder_id) === '1') return 1;
         return 0;
       }
-      // customers
+      // customers (fallback path)
       if (/^customers?$|לקוחות|customer[_\s-]?folder/.test(blob) && !/lead|פניות|new/.test(blob)) return 3;
       if (/customer|לקוח/.test(blob) && !/lead|פניות|new/.test(blob)) return 2;
       if (String(f.id || f.folder_id) === '2') return 1;
@@ -349,6 +409,12 @@
   }
 
   var WARRANTY_END_FIELD = 'a-1786435543';
+  var INSURANCE_END_FIELD = 'a-1786435853';
+  var WEBSITE_SOURCE_FIELD = 'a-1785312269';
+  var NEW_LEAD_STATUS_ID = '10085';
+  var SALES_TEAM_ID = '26183';
+  var WARRANTY_ENTRIES_TAB = 755;
+  var INSURANCE_ENTRIES_TAB = 756;
 
   function padDay(n) {
     n = Number(n) || 0;
@@ -388,11 +454,59 @@
     return d.getFullYear() + '-' + padDay(d.getMonth() + 1) + '-' + padDay(d.getDate());
   }
 
+  function pickExpiryDayKey(row, ef) {
+    ef = ef || parseExtraFields(row);
+    var w = dayKeyFromRaw(extraFieldVal(ef, WARRANTY_END_FIELD));
+    var i = dayKeyFromRaw(extraFieldVal(ef, INSURANCE_END_FIELD));
+    if (w && i) return w <= i ? w : i;
+    return w || i || '';
+  }
+
+  function hasExpiryDates(row, ef) {
+    ef = ef || parseExtraFields(row);
+    return !!(
+      dayKeyFromRaw(extraFieldVal(ef, WARRANTY_END_FIELD)) ||
+      dayKeyFromRaw(extraFieldVal(ef, INSURANCE_END_FIELD))
+    );
+  }
+
+  function isWebsiteLead(row, ef) {
+    ef = ef || parseExtraFields(row);
+    var srcField = String(extraFieldVal(ef, WEBSITE_SOURCE_FIELD) || '').toLowerCase();
+    if (/אתר|site|web/.test(srcField)) return true;
+    var blob = String(
+      (row && (row.source || row.affiliate || row.lead_source || row.channel)) || ''
+    ).toLowerCase();
+    return /אתר|site|web/.test(blob);
+  }
+
+  function isNewLeadStatus(row) {
+    row = row || {};
+    var cand = [
+      row.internal_status_wise_client_new,
+      row.internal_status_id,
+      row.status_id,
+      row.sub_list_data,
+      row.c_status,
+      row.status
+    ];
+    for (var i = 0; i < cand.length; i++) {
+      if (String(cand[i] == null ? '' : cand[i]).trim() === NEW_LEAD_STATUS_ID) return true;
+    }
+    var label = String(
+      row.sub_list_data_name || row.status_name || row.internal_status_name || row.status || ''
+    ).toLowerCase();
+    return /ליד חדש|new\s*lead|^new$/.test(label);
+  }
+
   function isWarrantyEnded(row, ef) {
     ef = ef || parseExtraFields(row);
-    var endKey = dayKeyFromRaw(extraFieldVal(ef, WARRANTY_END_FIELD));
-    if (!endKey) return false;
-    return todayDayKey() >= endKey;
+    var today = todayDayKey();
+    var warKey = dayKeyFromRaw(extraFieldVal(ef, WARRANTY_END_FIELD));
+    if (warKey && today >= warKey) return true;
+    var insKey = dayKeyFromRaw(extraFieldVal(ef, INSURANCE_END_FIELD));
+    if (insKey && today >= insKey) return true;
+    return false;
   }
 
   function isWarrantyRunningOut(row, ef) {
@@ -425,6 +539,10 @@
     var isRenew = isRenewDue(row);
     var isWarranty = isWarrantyRunningOut(row, ef);
     var isWarrantyEndedFlag = isWarrantyEnded(row, ef);
+    var expiryKey = pickExpiryDayKey(row, ef);
+    var hasExpiry = hasExpiryDates(row, ef);
+    var websiteFlag = isWebsiteLead(row, ef);
+    var newLeadFlag = isNewLeadStatus(row);
     var out = {
       id: id,
       name: name,
@@ -440,6 +558,10 @@
       isRenew: isRenew,
       isWarranty: isWarranty,
       isWarrantyEnded: isWarrantyEndedFlag,
+      expiryKey: expiryKey,
+      hasExpiry: hasExpiry,
+      isWebsite: websiteFlag,
+      isNewLead: newLeadFlag,
       followup: row.followup || '',
       source: stripHtmlText(row.source || row.affiliate || row.lead_source || row.channel || ''),
       ownerId: pickLeadOwnerId(row),
@@ -503,6 +625,35 @@
       sortRenew: 'expiry',
       dir: { created: 'new', statusTime: 'long', expiry: 'urgent' }
     };
+  }
+
+  function defaultCustFilters() {
+    return {
+      chip: 'all',
+      owner: 'all',
+      listMode: 'renewals',
+      expiryFrom: '',
+      expiryTo: '',
+      sort: 'name',
+      sortDir: 'asc',
+      matchMode: 'and'
+    };
+  }
+
+  function getCustFilters() {
+    if (!window.__mbCustFilters) window.__mbCustFilters = defaultCustFilters();
+    return window.__mbCustFilters;
+  }
+
+  function setCustFilters(patch) {
+    var cur = getCustFilters();
+    window.__mbCustFilters = Object.assign({}, cur, patch || {});
+    if (patch && patch.chip != null) {
+      window.__mbCustListFilter = String(patch.chip || 'all');
+    }
+    try {
+      window.dispatchEvent(new CustomEvent('mineralbar:cust-filters', { detail: window.__mbCustFilters }));
+    } catch (e) { /* ignore */ }
   }
 
   function getLeadFilters() {
@@ -672,22 +823,40 @@
     var detail = customerHref('lead-card.html', c.id);
     var phone = String(c.phone || '').trim();
     var email = String(c.email || '').trim();
-    var address = String(c.address || c.city || '').trim();
-    var dateText = formatListDate(c.created);
+    var city = String(c.city || '').trim();
+    var address = String(c.address || '').trim();
+    var place = city || address;
+    var createdRaw = String((c.created || (c.raw && (c.raw.date_created || c.raw.created_at || c.raw.created))) || '').trim();
+    var statusText = String(c.status || '').trim();
+    if (!statusText && c.raw) {
+      statusText = String(
+        c.raw.sub_list_data_name || c.raw.status_name || c.raw.status ||
+        c.raw.status_id || c.raw.sub_list_data || ''
+      ).trim();
+    }
+    if (!statusText && c.statusKey && c.statusKey !== 'other') {
+      statusText = leadStatusFilterLabel(c.statusKey);
+    }
+    var statusColor = String(c.statusColor || '#1d60a2').trim() || '#1d60a2';
+    var statusBg = statusColor.charAt(0) === '#' ? (statusColor + '22') : '#eaf2fb';
+    var meta = [];
+    if (phone) meta.push(esc(phone));
+    if (place) meta.push(esc(place));
+    if (createdRaw) meta.push(esc(createdRaw));
     return (
       '<a href="' + detail + '" data-customer-id="' + esc(c.id) + '" data-status="' + esc(c.status) + '" data-status-key="' + esc(c.statusKey || leadStatusKey(c.status, c.raw)) + '" data-source-key="' + esc(leadSourceKey(c.source)) + '" data-owner-id="' + esc(c.ownerId || pickLeadOwnerId(c.raw)) + '" data-created="' + esc(c.created || '') + '" data-followup="' + esc(c.followup || '') + '" style="display:block;background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;text-decoration:none;">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
       '<div style="font-size:17px;font-weight:800;color:#16223a;display:inline-flex;align-items:center;gap:5px;min-width:0;">' +
       '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(c.name) + '</span>' +
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c9d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="m15 18-6-6 6-6"/></svg></div>' +
-      (c.status
-        ? '<span style="font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:7px;background:#eaf2fb;color:#1d60a2;flex:none;">' + esc(c.status) + '</span>'
+      (statusText
+        ? '<span style="font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:7px;background:' + esc(statusBg) + ';color:' + esc(statusColor) + ';flex:none;">' + esc(statusText) + '</span>'
         : '') +
       '</div>' +
-      leadMetaRow(t('Address', 'כתובת'), address, { first: true }) +
-      leadMetaRow(t('Phone', 'טלפון'), phone, { ltr: true }) +
-      leadMetaRow(t('Date', 'תאריך'), dateText, { ltr: true }) +
-      leadMetaRow(t('Email', 'אימייל'), email, { ltr: true }) +
+      (meta.length
+        ? '<div style="margin-top:9px;font-size:12.5px;font-weight:600;color:#5a6473;line-height:1.5;word-break:break-word;">' + meta.join(' · ') + '</div>'
+        : '') +
+      (email ? '<div style="margin-top:4px;font-size:12px;color:#9aa3b0;direction:ltr;text-align:start;">' + esc(email) + '</div>' : '') +
       '</a>'
     );
   }
@@ -748,7 +917,7 @@
       badges += '<span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#fbeeed;color:#a3302e;flex:none;">' + esc(t('Warranty', 'אחריות')) + '</span>';
     }
     return (
-      '<div class="mb-cust-card" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" data-vip="' + (isVip ? '1' : '0') + '" data-renew="' + (isRenew ? '1' : '0') + '" data-warranty="' + (isWarranty ? '1' : '0') + '" data-warranty-ended="' + (isWarrantyEnded ? '1' : '0') + '">' +
+      '<div class="mb-cust-card" data-customer-id="' + esc(c.id) + '" data-customer-name="' + esc(c.name) + '" data-phone="' + esc(phone) + '" data-status="' + esc(c.status || '') + '" data-vip="' + (isVip ? '1' : '0') + '" data-renew="' + (isRenew ? '1' : '0') + '" data-warranty="' + (isWarranty ? '1' : '0') + '" data-warranty-ended="' + (isWarrantyEnded ? '1' : '0') + '" data-owner-id="' + esc(c.ownerId || '') + '" data-created="' + esc(c.created || '') + '" data-expiry="' + esc(c.expiryKey || '') + '" data-has-expiry="' + (c.hasExpiry ? '1' : '0') + '" data-website="' + (c.isWebsite ? '1' : '0') + '" data-new-lead="' + (c.isNewLead ? '1' : '0') + '">' +
       '<a href="' + detail + '" class="mb-cust-avatar">' + esc(av) + '</a>' +
       '<a href="' + detail + '" class="mb-cust-main">' +
       '<div class="mb-cust-name-row">' +
@@ -1300,6 +1469,198 @@
   var _rowsCache = null;
   var _rowsCacheKind = '';
   var _rowsCacheTotal = 0;
+  var CUSTOMER_LIST_PAGE_SIZE = 25;
+  var CUSTOMER_LIST_MAX_PAGES = 40;
+
+  function extractCustomerListRows(listRes) {
+    var rows = (listRes && (listRes.rows || listRes.data || listRes.items || listRes.records)) || [];
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function extractCustomerListTotal(listRes, rows) {
+    if (!listRes) return (rows && rows.length) || 0;
+    var total = listRes.total != null ? listRes.total
+      : listRes.recordsFiltered != null ? listRes.recordsFiltered
+      : listRes.recordsTotal != null ? listRes.recordsTotal
+      : listRes.count != null ? listRes.count
+      : (rows && rows.length) || 0;
+    return Number(total) || (rows && rows.length) || 0;
+  }
+
+  function customerRowId(row, fallback) {
+    row = row || {};
+    var id = row.customer_id || row.contactus_id || row.id || row.ID || '';
+    return id ? String(id) : String(fallback || '');
+  }
+
+  /** Customer.List caps length at 25 — page until a short/empty page. */
+  async function listAllCustomerPages(baseParams) {
+    var all = [];
+    var seen = {};
+    var start = 0;
+    var reportedTotal = null;
+    var pageSize = CUSTOMER_LIST_PAGE_SIZE;
+
+    for (var page = 0; page < CUSTOMER_LIST_MAX_PAGES; page++) {
+      var params = Object.assign({}, baseParams || {}, {
+        length: pageSize,
+        limit: pageSize,
+        per_page: pageSize,
+        start: start,
+        draw: page + 1
+      });
+      var listRes = await MineralBarApp.listCustomers(params);
+      var rows = extractCustomerListRows(listRes);
+      var pageTotal = extractCustomerListTotal(listRes, rows);
+      if (reportedTotal == null || pageTotal > reportedTotal) reportedTotal = pageTotal;
+
+      var added = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        var id = customerRowId(row, start + '-' + i);
+        if (seen[id]) continue;
+        seen[id] = true;
+        all.push(row);
+        added++;
+      }
+
+      // Full page ⇒ more may exist (don't trust recordsTotal alone — it can match page size).
+      if (!rows.length || rows.length < pageSize || added === 0) break;
+      start += pageSize;
+    }
+
+    return {
+      rows: all,
+      total: Math.max(reportedTotal != null ? reportedTotal : 0, all.length)
+    };
+  }
+
+  async function listCustomersNewOrWebsite(folderVal, baseParams) {
+    var base = Object.assign({}, baseParams || {}, { folder_id: folderVal || 1 });
+    delete base.internal_status_wise_client_new;
+    delete base['extra_fields[' + WEBSITE_SOURCE_FIELD + ']'];
+
+    var newParams = Object.assign({}, base, {
+      internal_status_wise_client_new: NEW_LEAD_STATUS_ID
+    });
+    var siteParams = Object.assign({}, base);
+    siteParams['extra_fields[' + WEBSITE_SOURCE_FIELD + ']'] = 'אתר';
+
+    var results = await Promise.all([
+      listAllCustomerPages(newParams).catch(function () { return { rows: [], total: 0 }; }),
+      listAllCustomerPages(siteParams).catch(function () { return { rows: [], total: 0 }; })
+    ]);
+    var seen = {};
+    var merged = [];
+    function addRows(rows) {
+      (rows || []).forEach(function (row) {
+        var id = customerRowId(row);
+        if (!id || seen[id]) return;
+        seen[id] = true;
+        merged.push(row);
+      });
+    }
+    addRows(results[0] && results[0].rows);
+    addRows(results[1] && results[1].rows);
+
+    // If website API filter returned nothing, fall back to new-lead pages + client website flag
+    if (!(results[1] && results[1].rows && results[1].rows.length)) {
+      var fallback = await listAllCustomerPages(base).catch(function () { return { rows: [], total: 0 }; });
+      (fallback.rows || []).forEach(function (row) {
+        if (!isWebsiteLead(row) && !isNewLeadStatus(row)) return;
+        var id = customerRowId(row);
+        if (!id || seen[id]) return;
+        seen[id] = true;
+        merged.push(row);
+      });
+    }
+
+    return { rows: merged, total: merged.length };
+  }
+
+  function entryCell(row, key) {
+    if (!row) return '';
+    var v = row[key];
+    if (v && typeof v === 'object') {
+      v = v.value != null ? v.value : (v.val != null ? v.val : (v.date != null ? v.date : ''));
+    }
+    return String(v == null ? '' : v).trim();
+  }
+
+  function extractEntryRows(res) {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.data)) return res.data;
+    if (res.data && Array.isArray(res.data.rows)) return res.data.rows;
+    if (Array.isArray(res.output)) return res.output;
+    if (Array.isArray(res.list)) return res.list;
+    if (Array.isArray(res.entries)) return res.entries;
+    return [];
+  }
+
+  async function listEndedEntryCustomerIds(tabId, dateField) {
+    var ids = {};
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return ids;
+    var client = MineralBarApp.getClient();
+    if (!client || !client.request) return ids;
+    var pageSize = 50;
+    var maxPages = 20;
+    var today = todayDayKey();
+    for (var page = 0; page < maxPages; page++) {
+      var res;
+      try {
+        res = await client.request('Entries.List', {
+          tab_id: tabId,
+          entry_id: tabId,
+          length: pageSize,
+          limit: pageSize,
+          start: page * pageSize,
+          draw: page + 1
+        });
+      } catch (e) {
+        // Bulk list may require customer_id — skip enrichment quietly
+        console.warn('[ListLive] Entries.List tab ' + tabId + ' bulk skipped', e);
+        return ids;
+      }
+      if (res && String(res.success) === '0') return ids;
+      var rows = extractEntryRows(res);
+      if (!rows.length) break;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        var endKey = dayKeyFromRaw(entryCell(row, dateField));
+        if (!endKey || today < endKey) continue;
+        var cid = String(
+          row.customer_id || row.cust_id || row.contactus_id || row.customer || ''
+        ).trim();
+        if (cid) ids[cid] = true;
+      }
+      if (rows.length < pageSize) break;
+    }
+    return ids;
+  }
+
+  async function enrichWarrantyEndedFromEntries(listEl) {
+    listEl = document.getElementById('mb-live-list') || listEl;
+    if (!listEl || !kindIsCustomersPage()) return;
+    try {
+      var results = await Promise.all([
+        listEndedEntryCustomerIds(WARRANTY_ENTRIES_TAB, 'data8'),
+        listEndedEntryCustomerIds(INSURANCE_ENTRIES_TAB, 'data3')
+      ]);
+      var ended = Object.assign({}, results[0] || {}, results[1] || {});
+      var keys = Object.keys(ended);
+      if (!keys.length) return;
+      keys.forEach(function (cid) {
+        var card = listEl.querySelector('.mb-cust-card[data-customer-id="' + cssAttrEscape(cid) + '"]');
+        if (!card) return;
+        card.setAttribute('data-warranty-ended', '1');
+      });
+      applyClientFilters(listEl);
+    } catch (err) {
+      console.warn('[ListLive] warranty entries enrichment failed', err);
+    }
+  }
 
   async function loadList(mount, explicitFolderId, opts) {
     opts = opts || {};
@@ -1319,9 +1680,11 @@
   function paintCachedRows(el, kind) {
     if (!el || !_rowsCache || !_rowsCache.length) return false;
     kind = kind || _rowsCacheKind || 'leads';
+    var rows = kind === 'customers' ? sortRowsByCustomerName(_rowsCache) : _rowsCache;
+    if (kind === 'customers') _rowsCache = rows;
     var totalEl = document.getElementById('mb-total-label');
-    if (totalEl) totalEl.textContent = formatTotalLabel(_rowsCacheTotal || _rowsCache.length, kind);
-    el.innerHTML = _rowsCache.map(function (row) {
+    if (totalEl) setTotalLabel(_rowsCacheTotal || rows.length, kind);
+    el.innerHTML = rows.map(function (row) {
       var c = pick(row);
       return kind === 'leads' ? leadCard(c) : customerCard(c);
     }).join('');
@@ -1330,6 +1693,7 @@
     bindProductButtons(el);
     bindVipButtons(el);
     syncChipActiveStyles(getActiveFolderId());
+    syncCustModeToggle();
     el.setAttribute('data-initial-loaded', '1');
     if (kind === 'leads') {
       if (_warrantyEndedCache.length) renderEndedWarrantySection(_warrantyEndedCache);
@@ -1359,31 +1723,62 @@
 
     var totalEl = document.getElementById('mb-total-label');
 
-    var queryParams = { length: 100, start: 0, draw: 1 };
-    // Always lock to page folder: leads → New Leads, customers → Customers
+    var queryParams = { draw: 1 };
+    // Always lock to page folder: leads → New Leads, customers → Customers / Leads mode
     var folderVal = lockedFolderIdForPage(kind);
     queryParams.folder_id = folderVal;
+    var custFilters = kind === 'customers' ? getCustFilters() : null;
+    if (kind === 'customers' && custFilters) {
+      if (custFilters.sort === 'created') {
+        queryParams.order_by = 'date_created';
+        queryParams.order_dir = custFilters.sortDir === 'desc' ? 'desc' : 'asc';
+      } else {
+        queryParams.order_by = 'name';
+        queryParams.order_dir = 'asc';
+        queryParams.sort = 'name';
+      }
+      if (custFilters.owner && custFilters.owner !== 'all') {
+        queryParams.team_member_id = custFilters.owner;
+        queryParams.get_shared_with_wise_client = custFilters.owner;
+      }
+      if (custFilters.matchMode === 'and' && custFilters.chip === 'new-lead') {
+        queryParams.internal_status_wise_client_new = NEW_LEAD_STATUS_ID;
+      }
+      if (custFilters.matchMode === 'and' && custFilters.chip === 'website') {
+        queryParams['extra_fields[' + WEBSITE_SOURCE_FIELD + ']'] = 'אתר';
+      }
+    } else if (kind === 'customers') {
+      queryParams.order_by = 'name';
+      queryParams.order_dir = 'asc';
+      queryParams.sort = 'name';
+    }
     setActiveFolderId(folderVal);
 
     var lastErr = null;
     // SDK already retries transient failures — avoid stacking another 3× page loop.
     try {
       await ensureStatusMaps();
-      var listRes = await MineralBarApp.listCustomers(queryParams);
+      var listRes;
+      var useDualOr = kind === 'customers' && custFilters &&
+        custFilters.listMode === 'leads' &&
+        custFilters.matchMode === 'or' &&
+        (custFilters.chip === 'new-or-website' || custFilters.chip === 'new-lead' || custFilters.chip === 'website');
+
+      if (useDualOr && custFilters.chip === 'new-or-website') {
+        listRes = await listCustomersNewOrWebsite(folderVal, queryParams);
+      } else {
+        listRes = await listAllCustomerPages(queryParams);
+      }
       if (mount._activeLoadId !== loadId) return;
 
       el = document.getElementById('mb-live-list') || el;
       totalEl = document.getElementById('mb-total-label');
 
-      var rows = (listRes && (listRes.rows || listRes.data || listRes.items || listRes.records)) || [];
-      if (!Array.isArray(rows)) rows = [];
-      var total = (listRes && listRes.total != null) ? listRes.total
-        : (listRes && listRes.recordsFiltered != null) ? listRes.recordsFiltered
-        : (listRes && listRes.recordsTotal != null) ? listRes.recordsTotal
-        : rows.length;
+      var rows = listRes.rows || [];
+      var total = listRes.total != null ? listRes.total : rows.length;
 
       if (totalEl) {
-        totalEl.textContent = formatTotalLabel(total, kind);
+        setTotalLabel(total, kind);
       }
 
       if (!rows.length) {
@@ -1397,6 +1792,9 @@
         return;
       }
 
+      if (kind === 'customers' && (!custFilters || custFilters.sort === 'name')) {
+        rows = sortRowsByCustomerName(rows);
+      }
       _rowsCache = rows.slice();
       _rowsCacheKind = kind;
       _rowsCacheTotal = total;
@@ -1416,9 +1814,11 @@
       bindClientFilters(el);
       bindProductButtons(el);
       bindVipButtons(el);
+      syncCustModeToggle();
       // Address / status / phone from Customer.List only — no Customer.Get on load.
       syncChipActiveStyles(getActiveFolderId(mount));
       if (kind === 'leads') loadEndedWarrantyCustomers();
+      if (kind === 'customers') enrichWarrantyEndedFromEntries(el);
       return;
     } catch (err) {
       lastErr = err;
@@ -1446,11 +1846,14 @@
   }
 
   function getActiveCustFilter() {
-    return String(window.__mbCustListFilter || 'all');
+    var f = getCustFilters();
+    return String(f.chip || window.__mbCustListFilter || 'all');
   }
 
   function setActiveCustFilter(id) {
-    window.__mbCustListFilter = String(id || 'all');
+    var chip = String(id || 'all');
+    window.__mbCustListFilter = chip;
+    setCustFilters({ chip: chip });
   }
 
   function parseListDate(raw) {
@@ -1516,6 +1919,23 @@
     return true;
   }
 
+  function compareCustomerNames(a, b) {
+    var an = String(a == null ? '' : a).trim();
+    var bn = String(b == null ? '' : b).trim();
+    return an.localeCompare(bn, undefined, { sensitivity: 'base', numeric: true });
+  }
+
+  function sortRowsByCustomerName(rows) {
+    if (!Array.isArray(rows) || rows.length < 2) return rows || [];
+    return rows.slice().sort(function (ra, rb) {
+      var a = ra || {};
+      var b = rb || {};
+      var an = a.name || a.customer_name || a.full_name || a.cname || a.title || '';
+      var bn = b.name || b.customer_name || b.full_name || b.cname || b.title || '';
+      return compareCustomerNames(an, bn);
+    });
+  }
+
   function sortLeadItems(listEl, filters) {
     filters = filters || getLeadFilters();
     var items = Array.prototype.slice.call(listEl.querySelectorAll('[data-customer-id]'));
@@ -1543,6 +1963,94 @@
     items.forEach(function (node) { listEl.appendChild(node); });
   }
 
+  function customerMatchesAdvancedFilters(item, filters) {
+    filters = filters || getCustFilters();
+    var chip = String(filters.chip || 'all');
+    var matchMode = String(filters.matchMode || 'and') === 'or' ? 'or' : 'and';
+
+    // Renewals mode: only rows with warranty/insurance end dates
+    if (filters.listMode === 'renewals' && item.getAttribute('data-has-expiry') !== '1') {
+      return false;
+    }
+
+    var chipOk = true;
+    if (chip && chip !== 'all') {
+      if (chip === 'renew') chipOk = item.getAttribute('data-renew') === '1';
+      else if (chip === 'warranty' || chip === 'warranty-ended') chipOk = item.getAttribute('data-warranty-ended') === '1';
+      else if (chip === 'vip') chipOk = item.getAttribute('data-vip') === '1';
+      else if (chip === 'new-lead') chipOk = item.getAttribute('data-new-lead') === '1';
+      else if (chip === 'website') chipOk = item.getAttribute('data-website') === '1';
+      else if (chip === 'new-or-website') {
+        chipOk = item.getAttribute('data-new-lead') === '1' || item.getAttribute('data-website') === '1';
+      }
+    }
+
+    var ownerOk = true;
+    if (filters.owner && filters.owner !== 'all') {
+      ownerOk = String(item.getAttribute('data-owner-id') || '') === String(filters.owner);
+    }
+
+    var expiryOk = true;
+    var expiry = String(item.getAttribute('data-expiry') || '').trim();
+    if (filters.expiryFrom) {
+      expiryOk = expiryOk && !!expiry && expiry >= String(filters.expiryFrom);
+    }
+    if (filters.expiryTo) {
+      expiryOk = expiryOk && !!expiry && expiry <= String(filters.expiryTo);
+    }
+
+    var dims = [];
+    if (chip && chip !== 'all') dims.push(chipOk);
+    if (filters.owner && filters.owner !== 'all') dims.push(ownerOk);
+    if (filters.expiryFrom || filters.expiryTo) dims.push(expiryOk);
+
+    if (!dims.length) return true;
+    if (matchMode === 'or') {
+      for (var i = 0; i < dims.length; i++) if (dims[i]) return true;
+      return false;
+    }
+    for (var j = 0; j < dims.length; j++) if (!dims[j]) return false;
+    return true;
+  }
+
+  function sortCustomerItems(listEl, filters, matching) {
+    filters = filters || getCustFilters();
+    var sort = String(filters.sort || 'name');
+    var dir = String(filters.sortDir || 'asc') === 'desc' ? 'desc' : 'asc';
+    var items = matching || Array.prototype.slice.call(listEl.querySelectorAll('.mb-cust-card[data-customer-id]'));
+    if (items.length < 2) return items;
+
+    items.sort(function (a, b) {
+      var av;
+      var bv;
+      if (sort === 'created') {
+        av = parseListDate(a.getAttribute('data-created'));
+        bv = parseListDate(b.getAttribute('data-created'));
+        if (isNaN(av)) av = 0;
+        if (isNaN(bv)) bv = 0;
+        return dir === 'desc' ? (bv - av) : (av - bv);
+      }
+      if (sort === 'expiry') {
+        av = String(a.getAttribute('data-expiry') || '');
+        bv = String(b.getAttribute('data-expiry') || '');
+        // Empty last; nearest-first = ascending dates
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        if (av === bv) return 0;
+        var cmp = av < bv ? -1 : 1;
+        return dir === 'desc' ? -cmp : cmp;
+      }
+      return compareCustomerNames(
+        a.getAttribute('data-customer-name') || a.getAttribute('data-customer-id'),
+        b.getAttribute('data-customer-name') || b.getAttribute('data-customer-id')
+      ) * (dir === 'desc' ? -1 : 1);
+    });
+
+    items.forEach(function (node) { listEl.appendChild(node); });
+    return items;
+  }
+
   function applyClientFilters(listEl) {
     listEl = document.getElementById('mb-live-list') || listEl;
     if (!listEl) return;
@@ -1556,25 +2064,26 @@
 
     var kindEl = document.getElementById('mb-live-list');
     var kindVis = (kindEl && kindEl.getAttribute('data-kind')) || 'customers';
-    var filter = getActiveCustFilter();
+    var custFilters = kindVis === 'customers' ? getCustFilters() : null;
 
-    var items = listEl.querySelectorAll('div[data-customer-id], a[data-customer-id]');
+    // Only top-level list rows — nested product-line / action nodes also carry data-customer-id.
+    var items = kindVis === 'customers'
+      ? listEl.querySelectorAll('.mb-cust-card[data-customer-id]')
+      : listEl.querySelectorAll('a[data-customer-id]');
     var matching = [];
     for (var i = 0; i < items.length; i++) {
       var item = items[i];
-      if (!item.dataset.originalDisplay) {
-        item.dataset.originalDisplay = item.style.display || 'flex';
+      if (!item.getAttribute('data-mb-list-bound')) {
+        item.setAttribute('data-mb-list-bound', '1');
+        // Customers: leave blank so CSS (.mb-cust-card { display:flex }) applies when shown.
+        item.dataset.originalDisplay = item.style.display || (kindVis === 'leads' ? 'block' : '');
       }
 
       var text = item.textContent.toLowerCase();
       var matchesQuery = query === '' || text.indexOf(query) > -1;
       var matchesFilter = true;
-      if (kindVis === 'customers' && filter && filter !== 'all') {
-        if (filter === 'renew') matchesFilter = item.getAttribute('data-renew') === '1';
-        else if (filter === 'warranty' || filter === 'warranty-ended') {
-          matchesFilter = item.getAttribute('data-warranty-ended') === '1';
-        }
-        else if (filter === 'vip') matchesFilter = item.getAttribute('data-vip') === '1';
+      if (kindVis === 'customers') {
+        matchesFilter = customerMatchesAdvancedFilters(item, custFilters);
       } else if (kindVis === 'leads') {
         matchesFilter = leadMatchesAdvancedFilters(item, getLeadFilters());
       }
@@ -1589,24 +2098,36 @@
     var pageStart = (_listPage - 1) * LIST_PAGE_SIZE;
     var pageEnd = pageStart + LIST_PAGE_SIZE;
 
+    function showListRow(node, on) {
+      if (on) {
+        if (node.dataset.originalDisplay) node.style.display = node.dataset.originalDisplay;
+        else node.style.removeProperty('display');
+      } else {
+        node.style.display = 'none';
+      }
+    }
+
     for (var j = 0; j < matching.length; j++) {
-      matching[j].style.display = (j >= pageStart && j < pageEnd)
-        ? matching[j].dataset.originalDisplay
-        : 'none';
+      showListRow(matching[j], j >= pageStart && j < pageEnd);
     }
 
     var totalEl = document.getElementById('mb-total-label');
     if (totalEl) {
-      totalEl.textContent = formatTotalLabel(matching.length, kindVis);
+      setTotalLabel(matching.length, kindVis);
     }
 
     updateListPager(matching.length);
 
-    if (kindVis === 'leads') {
+    if (kindVis === 'customers') {
+      matching = sortCustomerItems(listEl, custFilters, matching);
+      for (var cj = 0; cj < matching.length; cj++) {
+        showListRow(matching[cj], cj >= pageStart && cj < pageEnd);
+      }
+    } else if (kindVis === 'leads') {
       sortLeadItems(listEl, getLeadFilters());
       // Re-apply page visibility after sort (sort moves DOM nodes)
       var rematched = [];
-      var allItems = listEl.querySelectorAll('div[data-customer-id], a[data-customer-id]');
+      var allItems = listEl.querySelectorAll('a[data-customer-id]');
       for (var k = 0; k < allItems.length; k++) {
         var node = allItems[k];
         var tText = node.textContent.toLowerCase();
@@ -1616,10 +2137,9 @@
         else node.style.display = 'none';
       }
       for (var m = 0; m < rematched.length; m++) {
-        rematched[m].style.display = (m >= pageStart && m < pageEnd)
-          ? (rematched[m].dataset.originalDisplay || 'flex')
-          : 'none';
+        showListRow(rematched[m], m >= pageStart && m < pageEnd);
       }
+      updateLeadsTopSummary(rematched.length);
       applyEndedWarrantySearch();
     }
   }
@@ -1628,7 +2148,7 @@
     if (!container) return;
     var active = getActiveLeadFilter();
     var chips = [
-      { id: 'all', label: t('All', 'הכל'), color: '#1d60a2', bg: '#eaf2fb', border: '#6ea6d8' },
+      { id: 'all', label: t('everything', 'הכל'), color: '#1d60a2', bg: '#eaf2fb', border: '#6ea6d8' },
       { id: 'new', label: t('New lead', 'ליד חדש'), color: '#1d60a2', bg: '#eaf2fb', border: '#aecbe9' },
       { id: 'followup', label: t('Follow up', 'פולואפ'), color: '#bd8324', bg: '#fdf1dd', border: '#ecd3a0' },
       { id: 'sent', label: t('Offer sent', 'נשלחה הצעה'), color: '#50439d', bg: '#eef0fb', border: '#c3bfe6' },
@@ -1668,7 +2188,10 @@
       { id: 'all', label: t('All', 'הכל'), color: '#1d60a2', bg: '#eaf2fb', border: '#6ea6d8' },
       { id: 'renew', label: t('To renew', 'לחידוש'), color: '#50439d', bg: '#f0eefb', border: '#a89fd4' },
       { id: 'warranty-ended', label: t('Warranty ended', 'אחריות שהסתיימה'), color: '#a3302e', bg: '#fbeeed', border: '#e8a9a4' },
-      { id: 'vip', label: t('VIP', 'VIP'), color: '#8a6540', bg: '#f6eee4', border: '#c9a882' }
+      { id: 'vip', label: t('VIP', 'VIP'), color: '#8a6540', bg: '#f6eee4', border: '#c9a882' },
+      { id: 'new-lead', label: t('New lead', 'ליד חדש'), color: '#1d60a2', bg: '#eaf2fb', border: '#aecbe9' },
+      { id: 'website', label: t('Website', 'אתר'), color: '#0f766e', bg: '#e6f7f4', border: '#8fd0c6' },
+      { id: 'new-or-website', label: t('New / Website', 'חדש / אתר'), color: '#50439d', bg: '#f0eefb', border: '#a89fd4' }
     ];
     container.style.display = 'flex';
     container.innerHTML = chips.map(function (chip) {
@@ -1684,12 +2207,377 @@
 
     container.querySelectorAll('.mb-cust-chip').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        setActiveCustFilter(btn.getAttribute('data-chip-id') || 'all');
+        var chipId = btn.getAttribute('data-chip-id') || 'all';
+        setActiveCustFilter(chipId);
+        var patch = { chip: chipId };
+        if (chipId === 'new-or-website') patch.matchMode = 'or';
+        setCustFilters(patch);
         renderCustFilterChips(container);
         resetListPage();
-        applyClientFilters(document.getElementById('mb-live-list'));
+        if (chipId === 'new-or-website' || chipId === 'new-lead' || chipId === 'website') {
+          reloadCustList();
+        } else {
+          applyClientFilters(document.getElementById('mb-live-list'));
+        }
       });
     });
+  }
+
+  function memberTeamBlob(m) {
+    m = m || {};
+    var teamObj = m.team && typeof m.team === 'object' ? m.team : null;
+    var parts = [
+      m.team_id, m.teamId, m.department_id, m.group_id,
+      m.team_name, m.teamName, m.department, m.role, m.group_name, m.group,
+      teamObj && (teamObj.id || teamObj.team_id),
+      teamObj && (teamObj.name || teamObj.title || teamObj.label)
+    ];
+    if (Array.isArray(m.teams)) {
+      m.teams.forEach(function (tm) {
+        if (!tm) return;
+        if (typeof tm === 'object') {
+          parts.push(tm.id, tm.team_id, tm.name, tm.title);
+        } else {
+          parts.push(tm);
+        }
+      });
+    }
+    return parts.map(function (x) { return String(x == null ? '' : x).toLowerCase(); }).join(' ');
+  }
+
+  function isSalesTeamMember(m) {
+    m = m || {};
+    var blob = memberTeamBlob(m);
+    var teamId = String(
+      m.team_id || m.teamId || (m.team && (m.team.id || m.team.team_id)) || ''
+    ).trim();
+    if (teamId === SALES_TEAM_ID || blob.indexOf(SALES_TEAM_ID) !== -1) return true;
+    if (/tech|service|collection|טכנ|שירות|גביה|גבייה/.test(blob) && !/sales|מכיר/.test(blob)) {
+      return false;
+    }
+    return /sales|מכיר/.test(blob);
+  }
+
+  function salesOwnerOptions() {
+    var team = [];
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getTeamMembers === 'function') {
+        team = MineralBarApp.getTeamMembers() || [];
+      }
+    } catch (e0) { team = []; }
+    if (!team.length) {
+      try {
+        var basic = window.MineralBarApp && MineralBarApp.getUserBasic && MineralBarApp.getUserBasic();
+        team = (basic && basic.data && basic.data.team_members) || [];
+      } catch (e1) { team = []; }
+    }
+    var sales = [];
+    var fallback = [];
+    var seen = {};
+    (team || []).forEach(function (m) {
+      if (!m) return;
+      var id = String(m.id || m.user_id || m.member_id || m.team_member_id || '').trim();
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      // Keep members even when username is empty
+      var label = String(m.name || m.full_name || m.user_name || m.username || m.email || ('#' + id)).trim();
+      var item = { id: id, label: label || ('#' + id) };
+      var blob = memberTeamBlob(m);
+      if (/tech|service|collection|טכנ|שירות|גביה|גבייה/.test(blob) && !/sales|מכיר/.test(blob)) {
+        return;
+      }
+      fallback.push(item);
+      if (isSalesTeamMember(m)) sales.push(item);
+    });
+    return sales.length ? sales : fallback;
+  }
+
+  function syncCustModeToggle() {
+    if (!kindIsCustomersPage()) return;
+    var mode = getCustFilters().listMode === 'leads' ? 'leads' : 'renewals';
+    var leadsBtn = document.getElementById('mb-cust-mode-leads');
+    var renewBtn = document.getElementById('mb-cust-mode-renewals');
+    function styleBtn(btn, on, label) {
+      if (!btn) return;
+      btn.setAttribute('data-active', on ? '1' : '0');
+      btn.style.background = on ? '#1d60a2' : '#f1f5f9';
+      btn.style.color = on ? '#fff' : '#475569';
+      btn.style.fontWeight = on ? '800' : '700';
+      btn.style.borderColor = on ? '#1d60a2' : '#e2e8f0';
+      if (label) btn.textContent = label;
+    }
+    styleBtn(leadsBtn, mode === 'leads', t('Leads', 'לידים'));
+    styleBtn(renewBtn, mode === 'renewals', t('Renewals', 'חידושים'));
+    var expiryBlock = document.getElementById('mb-cust-sheet-expiry');
+    if (expiryBlock) expiryBlock.style.display = mode === 'renewals' ? 'block' : 'none';
+  }
+
+  function bindCustModeToggle() {
+    if (!kindIsCustomersPage()) return;
+    var leadsBtn = document.getElementById('mb-cust-mode-leads');
+    var renewBtn = document.getElementById('mb-cust-mode-renewals');
+    if (leadsBtn && !leadsBtn.dataset.wired) {
+      leadsBtn.dataset.wired = '1';
+      leadsBtn.addEventListener('click', function () {
+        setCustFilters({ listMode: 'leads' });
+        syncCustModeToggle();
+        reloadCustList();
+      });
+    }
+    if (renewBtn && !renewBtn.dataset.wired) {
+      renewBtn.dataset.wired = '1';
+      renewBtn.addEventListener('click', function () {
+        setCustFilters({ listMode: 'renewals' });
+        syncCustModeToggle();
+        reloadCustList();
+      });
+    }
+    var filterBtn = document.getElementById('mb-cust-filter-btn');
+    if (filterBtn && !filterBtn.dataset.wired) {
+      filterBtn.dataset.wired = '1';
+      filterBtn.addEventListener('click', function () {
+        openCustFilters();
+      });
+    }
+    syncCustModeToggle();
+  }
+
+  function chipStyle(on) {
+    return on
+      ? 'background:#eaf2fb;color:#1d60a2;border:1.4px solid #6ea6d8;font-weight:800;'
+      : 'background:#f8fafc;color:#475569;border:1.4px solid #e2e8f0;font-weight:700;';
+  }
+
+  function phoneScreenEl() {
+    return document.getElementById('mb-phone-screen') ||
+      document.querySelector('[style*="height:812px"][style*="border-radius:26px"]') ||
+      document.querySelector('.screen-card') ||
+      null;
+  }
+
+  function ensureCustFilterSheet() {
+    var existing = document.getElementById('mb-cust-filter-sheet-root');
+    var host = phoneScreenEl() || document.body;
+    if (existing) {
+      // Keep sheet inside the phone frame (not document.body / full viewport).
+      if (existing.parentNode !== host) host.appendChild(existing);
+      return existing;
+    }
+    var root = document.createElement('div');
+    root.id = 'mb-cust-filter-sheet-root';
+    // absolute + host position:relative clips the sheet to the mobile border
+    root.style.cssText = 'display:none;position:absolute;inset:0;z-index:90;pointer-events:auto;';
+    root.innerHTML =
+      '<div id="mb-cust-filter-overlay" style="position:absolute;inset:0;background:#0f1828;opacity:0.45;"></div>' +
+      '<div id="mb-cust-filter-sheet" style="position:absolute;left:0;right:0;bottom:0;max-height:min(92%,calc(100% - 48px));background:#fff;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 28px rgba(15,24,40,.18);">' +
+      '<div style="flex:none;padding:14px 18px 0;">' +
+      '<div style="width:42px;height:5px;border-radius:99px;background:#d8dee8;margin:0 auto 12px;"></div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+      '<div style="font-size:19px;font-weight:800;color:#1f2a3a;">' + esc(t('Filters', 'סינון')) + '</div>' +
+      '<button type="button" id="mb-cust-filter-clear" style="border:none;background:none;color:#c0392b;font-size:13.5px;font-weight:700;cursor:pointer;">' +
+      esc(t('Clear all', 'נקה הכל')) + '</button></div></div>' +
+      '<div id="mb-cust-filter-sheet-body" class="dc-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px 12px;"></div>' +
+      '<div style="flex:none;padding:12px 18px 18px;border-top:1px solid #eef0f3;background:#fff;display:flex;gap:10px;">' +
+      '<button type="button" id="mb-cust-filter-close" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid #dde2ea;background:#fff;color:#46505f;font-weight:800;cursor:pointer;">' +
+      esc(t('Close', 'סגור')) + '</button>' +
+      '<button type="button" id="mb-cust-filter-apply" style="flex:1.4;padding:12px;border-radius:12px;border:none;background:#1d60a2;color:#fff;font-weight:800;cursor:pointer;">' +
+      esc(t('Apply', 'החל')) + '</button></div></div>';
+    host.appendChild(root);
+
+    root.querySelector('#mb-cust-filter-overlay').addEventListener('click', closeCustFilters);
+    root.querySelector('#mb-cust-filter-close').addEventListener('click', closeCustFilters);
+    root.querySelector('#mb-cust-filter-clear').addEventListener('click', function () {
+      setCustFilters(defaultCustFilters());
+      renderCustFilterSheetBody();
+      syncCustModeToggle();
+    });
+    root.querySelector('#mb-cust-filter-apply').addEventListener('click', function () {
+      applyCustFilterSheet();
+    });
+    return root;
+  }
+
+  function renderCustFilterSheetBody() {
+    var body = document.getElementById('mb-cust-filter-sheet-body');
+    if (!body) return;
+    var f = getCustFilters();
+    var owners = salesOwnerOptions();
+    var modeLeads = f.listMode === 'leads';
+    var matchOr = f.matchMode === 'or';
+
+    function ownerChip(id, label, on) {
+      return (
+        '<button type="button" class="mb-cust-sheet-owner" data-owner-id="' + esc(id) + '" style="display:inline-flex;align-items:center;padding:9px 14px;border-radius:99px;cursor:pointer;font-size:13px;' +
+        chipStyle(on) + '">' + esc(label) + '</button>'
+      );
+    }
+
+    body.innerHTML =
+      '<div style="margin-bottom:16px;">' +
+      '<div style="font-size:13.5px;color:#7b8595;font-weight:700;margin-bottom:10px;">' + esc(t('Mode', 'מצב')) + '</div>' +
+      '<div style="display:flex;gap:8px;">' +
+      '<button type="button" class="mb-cust-sheet-mode" data-mode="leads" style="flex:1;padding:10px;border-radius:12px;cursor:pointer;font-size:13.5px;' + chipStyle(modeLeads) + '">' + esc(t('Leads', 'לידים')) + '</button>' +
+      '<button type="button" class="mb-cust-sheet-mode" data-mode="renewals" style="flex:1;padding:10px;border-radius:12px;cursor:pointer;font-size:13.5px;' + chipStyle(!modeLeads) + '">' + esc(t('Renewals', 'חידושים')) + '</button>' +
+      '</div></div>' +
+      '<div style="height:1px;background:#f0f2f5;margin:0 0 16px;"></div>' +
+      '<div style="margin-bottom:16px;">' +
+      '<div style="font-size:13.5px;color:#7b8595;font-weight:700;margin-bottom:10px;">' + esc(t('Owner', 'בעלים')) + '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+      ownerChip('all', t('All', 'הכל'), f.owner === 'all') +
+      owners.map(function (o) { return ownerChip(o.id, o.label, String(f.owner) === String(o.id)); }).join('') +
+      '</div></div>' +
+      '<div id="mb-cust-sheet-expiry" style="display:' + (modeLeads ? 'none' : 'block') + ';">' +
+      '<div style="height:1px;background:#f0f2f5;margin:0 0 16px;"></div>' +
+      '<div style="margin-bottom:16px;">' +
+      '<div style="font-size:13.5px;color:#7b8595;font-weight:700;margin-bottom:10px;">' + esc(t('Expiry', 'תפוגה')) + '</div>' +
+      '<div style="display:flex;gap:10px;margin-bottom:10px;">' +
+      '<label style="flex:1;display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9aa3b0;font-weight:700;">' + esc(t('From', 'מ־')) +
+      '<input type="date" id="mb-cust-expiry-from" value="' + esc(f.expiryFrom || '') + '" style="padding:10px 12px;border:1.5px solid #dde2ea;border-radius:11px;font-size:13.5px;color:#1f2a3a;"/></label>' +
+      '<label style="flex:1;display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9aa3b0;font-weight:700;">' + esc(t('To', 'עד')) +
+      '<input type="date" id="mb-cust-expiry-to" value="' + esc(f.expiryTo || '') + '" style="padding:10px 12px;border:1.5px solid #dde2ea;border-radius:11px;font-size:13.5px;color:#1f2a3a;"/></label>' +
+      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+      '<button type="button" class="mb-cust-expiry-quick" data-quick="30" style="padding:8px 14px;border-radius:99px;cursor:pointer;font-size:12.5px;' + chipStyle(false) + '">' + esc(t('Next 30 days', '30 יום הקרובים')) + '</button>' +
+      '<button type="button" class="mb-cust-expiry-quick" data-quick="ended" style="padding:8px 14px;border-radius:99px;cursor:pointer;font-size:12.5px;' + chipStyle(false) + '">' + esc(t('Already ended', 'כבר הסתיימה')) + '</button>' +
+      '<button type="button" class="mb-cust-expiry-quick" data-quick="clear" style="padding:8px 14px;border-radius:99px;cursor:pointer;font-size:12.5px;' + chipStyle(false) + '">' + esc(t('Clear dates', 'נקה תאריכים')) + '</button>' +
+      '</div></div></div>' +
+      '<div style="height:1px;background:#f0f2f5;margin:0 0 16px;"></div>' +
+      '<div style="margin-bottom:16px;">' +
+      '<div style="font-size:13.5px;color:#7b8595;font-weight:700;margin-bottom:10px;">' + esc(t('Sort by', 'מיון לפי')) + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;">' +
+      ['name', 'created', 'expiry'].map(function (key) {
+        var labels = {
+          name: t('Name', 'שם'),
+          created: t('Creation date', 'תאריך יצירה'),
+          expiry: t('Expiry date', 'תאריך תפוגה')
+        };
+        var on = f.sort === key;
+        return (
+          '<button type="button" class="mb-cust-sheet-sort" data-sort="' + key + '" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:13px;cursor:pointer;' + chipStyle(on) + '">' +
+          '<span>' + esc(labels[key]) + '</span>' +
+          (on ? '<span style="font-size:12px;">' + esc(f.sortDir === 'desc' ? t('Desc', 'יורד') : t('Asc', 'עולה')) + '</span>' : '') +
+          '</button>'
+        );
+      }).join('') +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;">' +
+      '<button type="button" class="mb-cust-sheet-dir" data-dir="asc" style="flex:1;padding:9px;border-radius:11px;cursor:pointer;font-size:13px;' + chipStyle(f.sortDir !== 'desc') + '">' + esc(t('Ascending', 'עולה')) + '</button>' +
+      '<button type="button" class="mb-cust-sheet-dir" data-dir="desc" style="flex:1;padding:9px;border-radius:11px;cursor:pointer;font-size:13px;' + chipStyle(f.sortDir === 'desc') + '">' + esc(t('Descending', 'יורד')) + '</button>' +
+      '</div></div>' +
+      '<div style="height:1px;background:#f0f2f5;margin:0 0 16px;"></div>' +
+      '<div style="margin-bottom:8px;">' +
+      '<div style="font-size:13.5px;color:#7b8595;font-weight:700;margin-bottom:10px;">' + esc(t('Match mode', 'מצב התאמה')) + '</div>' +
+      '<div style="display:flex;gap:8px;">' +
+      '<button type="button" class="mb-cust-sheet-match" data-match="and" style="flex:1;padding:10px;border-radius:12px;cursor:pointer;font-size:13.5px;' + chipStyle(!matchOr) + '">AND</button>' +
+      '<button type="button" class="mb-cust-sheet-match" data-match="or" style="flex:1;padding:10px;border-radius:12px;cursor:pointer;font-size:13.5px;' + chipStyle(matchOr) + '">OR</button>' +
+      '</div></div>';
+
+    body.querySelectorAll('.mb-cust-sheet-mode').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setCustFilters({ listMode: btn.getAttribute('data-mode') || 'renewals' });
+        renderCustFilterSheetBody();
+      });
+    });
+    body.querySelectorAll('.mb-cust-sheet-owner').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setCustFilters({ owner: btn.getAttribute('data-owner-id') || 'all' });
+        renderCustFilterSheetBody();
+      });
+    });
+    body.querySelectorAll('.mb-cust-sheet-sort').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var key = btn.getAttribute('data-sort') || 'name';
+        var cur = getCustFilters();
+        if (cur.sort === key) {
+          setCustFilters({ sortDir: cur.sortDir === 'desc' ? 'asc' : 'desc' });
+        } else {
+          setCustFilters({ sort: key, sortDir: key === 'created' ? 'desc' : 'asc' });
+        }
+        renderCustFilterSheetBody();
+      });
+    });
+    body.querySelectorAll('.mb-cust-sheet-dir').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setCustFilters({ sortDir: btn.getAttribute('data-dir') || 'asc' });
+        renderCustFilterSheetBody();
+      });
+    });
+    body.querySelectorAll('.mb-cust-sheet-match').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setCustFilters({ matchMode: btn.getAttribute('data-match') || 'and' });
+        renderCustFilterSheetBody();
+      });
+    });
+    var fromEl = document.getElementById('mb-cust-expiry-from');
+    var toEl = document.getElementById('mb-cust-expiry-to');
+    if (fromEl) {
+      fromEl.addEventListener('change', function () {
+        setCustFilters({ expiryFrom: fromEl.value || '' });
+      });
+    }
+    if (toEl) {
+      toEl.addEventListener('change', function () {
+        setCustFilters({ expiryTo: toEl.value || '' });
+      });
+    }
+    body.querySelectorAll('.mb-cust-expiry-quick').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var q = btn.getAttribute('data-quick');
+        var today = todayDayKey();
+        if (q === 'clear') {
+          setCustFilters({ expiryFrom: '', expiryTo: '' });
+        } else if (q === 'ended') {
+          setCustFilters({ expiryFrom: '', expiryTo: today, chip: 'warranty-ended' });
+        } else if (q === '30') {
+          var d = new Date();
+          d.setDate(d.getDate() + 30);
+          var to = d.getFullYear() + '-' + padDay(d.getMonth() + 1) + '-' + padDay(d.getDate());
+          setCustFilters({ expiryFrom: today, expiryTo: to });
+        }
+        renderCustFilterSheetBody();
+      });
+    });
+  }
+
+  function openCustFilters() {
+    if (!kindIsCustomersPage()) return;
+    var root = ensureCustFilterSheet();
+    renderCustFilterSheetBody();
+    root.style.display = 'block';
+    var foot = document.getElementById('common-app-footer');
+    if (foot) foot.style.visibility = 'hidden';
+  }
+
+  function closeCustFilters() {
+    var root = document.getElementById('mb-cust-filter-sheet-root');
+    if (root) root.style.display = 'none';
+    var foot = document.getElementById('common-app-footer');
+    if (foot) foot.style.visibility = '';
+  }
+
+  function applyCustFilterSheet() {
+    var fromEl = document.getElementById('mb-cust-expiry-from');
+    var toEl = document.getElementById('mb-cust-expiry-to');
+    setCustFilters({
+      expiryFrom: fromEl ? (fromEl.value || '') : getCustFilters().expiryFrom,
+      expiryTo: toEl ? (toEl.value || '') : getCustFilters().expiryTo
+    });
+    closeCustFilters();
+    syncCustModeToggle();
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer) renderCustFilterChips(chipContainer);
+    reloadCustList();
+  }
+
+  function reloadCustList() {
+    var mount = detectMount();
+    if (!mount || !mount.el) return;
+    mount.el.removeAttribute('data-initial-loaded');
+    mount._activeLoadId = '';
+    _listBooted = false;
+    _rowsCache = null;
+    resetListPage();
+    start();
   }
 
   function renderFolderFilterBar(container, selectedFolderId) {
@@ -1812,6 +2700,7 @@
       setActiveFolderId(initialFolder);
       renderFolderFilterBar(chipContainer, initialFolder);
     }
+    bindCustModeToggle();
   }
 
   function start() {
@@ -1865,7 +2754,7 @@
     n = Math.max(0, n + delta);
     var kindEl = document.getElementById('mb-live-list');
     var kind = (kindEl && kindEl.getAttribute('data-kind')) || 'customers';
-    totalEl.textContent = formatTotalLabel(n, kind);
+    setTotalLabel(n, kind);
   }
 
   function extractCustomerFromEvent(detail) {
@@ -2088,6 +2977,25 @@
   };
   window.ListLive.setLeadFilter = setActiveLeadFilter;
   window.ListLive.getLeadFilters = getLeadFilters;
+  window.ListLive.setCustAdvancedFilters = function (patch) {
+    setCustFilters(patch || {});
+    var chipContainer = document.getElementById('mb-customer-filter-chips');
+    if (chipContainer && pageKind() === 'customers') renderCustFilterChips(chipContainer);
+    syncCustModeToggle();
+    resetListPage();
+    var needsReload = patch && (
+      patch.listMode != null ||
+      patch.owner != null ||
+      patch.sort === 'created' ||
+      (patch.chip && (patch.chip === 'new-or-website' || patch.chip === 'new-lead' || patch.chip === 'website')) ||
+      patch.matchMode != null
+    );
+    if (needsReload) reloadCustList();
+    else applyClientFilters(document.getElementById('mb-live-list'));
+  };
+  window.ListLive.getCustFilters = getCustFilters;
+  window.ListLive.openCustFilters = openCustFilters;
+  window.ListLive.reloadCustList = reloadCustList;
   window.ListLive.getVisibleLeadCount = function () {
     var listEl = document.getElementById('mb-live-list');
     if (!listEl) return 0;

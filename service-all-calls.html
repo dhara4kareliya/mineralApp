@@ -71,6 +71,78 @@
           font-weight: 600;
           line-height: 1.5;
         }
+        .svc-status-hbar {
+          display: flex;
+          gap: 8px;
+          padding: 0 16px 12px;
+          margin: 0;
+          flex: none;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          cursor: grab;
+          touch-action: pan-x;
+          user-select: none;
+          -webkit-user-select: none;
+          min-width: 0;
+          max-width: 100%;
+        }
+        .svc-status-hbar.is-dragging,
+        .svc-status-hbar.is-dragging * {
+          cursor: grabbing !important;
+          user-select: none !important;
+        }
+        .svc-status-hbar::-webkit-scrollbar { display: none !important; width: 0; height: 0; }
+        .svc-status-pill {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border-radius: 99px;
+          padding: 7px 12px;
+          cursor: pointer;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+        .svc-status-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 5px;
+          border-radius: 99px;
+          font-size: 11px;
+          font-weight: 800;
+          line-height: 1;
+        }
+        .svc-new-call-fab {
+          position: fixed;
+          bottom: 88px;
+          inset-inline-end: 22px;
+          z-index: 45;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 14px 18px;
+          border: none;
+          border-radius: 99px;
+          background: #1d60a2;
+          color: #fff;
+          font-size: 14px;
+          font-weight: 800;
+          font-family: inherit;
+          cursor: pointer;
+          box-shadow: 0 8px 22px rgba(29, 96, 162, 0.38);
+        }
+        /* Keep FAB pinned to the phone screen chrome (does not scroll with the list). */
+        .screen-card > .svc-new-call-fab {
+          position: absolute;
+          bottom: 78px;
+          inset-inline-end: 18px;
+        }
       </style>
     </helmet>
     <div
@@ -104,22 +176,20 @@
                     <path d="M3 5h18M6 12h12M10 19h4"></path>
                   </svg>
                   <sc-if hint-placeholder-val="{{ false }}" value="{{ hasActiveFilters }}">
-                    <span style="position:absolute; top:6px; inset-inline-end:6px; width:8px; height:8px; border-radius:50%; background:#c0392b; border:1.5px solid #fff;"></span>
+                    <span style="position:absolute; top:4px; inset-inline-end:4px; min-width:16px; height:16px; padding:0 4px; border-radius:99px; background:#c0392b; border:1.5px solid #fff; color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1;">{{ activeFilterCount }}</span>
                   </sc-if>
                 </button>
               </div>
             </sc-if>
           </div>
 
-          <div style="display:flex; gap:9px; padding:0 16px 12px; flex:none;">
-            <button onclick="{{ setFilterOpen }}" style="display:flex; align-items:center; gap:6px; background:{{ pillOpenBg }}; border:1.6px solid {{ pillOpenBorder }}; border-radius:99px; padding:6px 12px; cursor:pointer;">
-              <svg fill="none" height="14" stroke="{{ pillOpenIconColor }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <span style="font-size:12px; font-weight:700; color:{{ pillOpenColor }};">Open ticket</span>
-            </button>
-            <button onclick="{{ setFilterClosed }}" style="display:flex; align-items:center; gap:6px; background:{{ pillClosedBg }}; border:1.6px solid {{ pillClosedBorder }}; border-radius:99px; padding:6px 12px; cursor:pointer;">
-              <svg fill="none" height="14" stroke="{{ pillClosedIconColor }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><rect height="14" rx="2" ry="2" width="20" x="2" y="5"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>
-              <span style="font-size:12px; font-weight:700; color:{{ pillClosedColor }};">Close ticket</span>
-            </button>
+          <div id="svc-status-hbar" class="dc-scroll mb-h-drag svc-status-hbar">
+            <sc-for as="sf" hint-placeholder-count="5" list="{{ statusFilters }}">
+              <button type="button" onclick="{{ sf.pick }}" class="svc-status-pill" style="background:{{ sf.bg }}; border:1.6px solid {{ sf.border }}; color:{{ sf.color }};">
+                <span style="font-size:12px; font-weight:700;">{{ sf.label }}</span>
+                <span class="svc-status-count" style="background:{{ sf.countBg }}; color:{{ sf.countColor }};">{{ sf.count }}</span>
+              </button>
+            </sc-for>
           </div>
           <!-- wait-time legend -->
           <div style="display:flex; align-items:center; gap:13px; padding:0 18px 12px; flex:none;">
@@ -131,7 +201,7 @@
             <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#9aa3b0;"><span
                 style="width:7px; height:7px; border-radius:50%; background:#2e8a63;"></span>until today</span>
           </div>
-          <div class="dc-scroll svc-calls-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 16px;">
+          <div class="dc-scroll svc-calls-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 88px;">
             <sc-if hint-placeholder-val="{{ false }}" value="{{ loading }}">
               <div class="mb-inline-loader svc-calls-loader">
                 <div class="mb-page-loader__spin" aria-hidden="true"></div>
@@ -141,14 +211,6 @@
             <sc-if hint-placeholder-val="{{ true }}" value="{{ notLoading }}">
             <div style="display:flex; align-items:center; justify-content:space-between; margin:2px 2px 11px;">
               <div style="font-size:13px; color:#6a7382; font-weight:800;">{{ sectionLabel }}</div>
-              <button onclick="{{ goOpen }}"
-                style="display: flex; align-items: center; gap: 5px; padding: 7px 12px; border: none; border-radius: 99px; color: #fff; font-size: 12.5px; font-weight: 800; cursor: pointer; background-color: #1d60a2">
-                <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                  stroke-width="2.4" viewbox="0 0 24 24" width="15">
-                  <path d="M12 5v14M5 12h14"></path>
-                </svg>
-                new ticket
-              </button>
             </div>
             <sc-if hint-placeholder-val="{{ false }}" value="{{ showEmpty }}">
               <div class="svc-calls-empty" data-no-i18n="true">{{ emptyMsg }}</div>
@@ -307,18 +369,15 @@
                 </div>
               </div>
             </sc-for>
-            <sc-if hint-placeholder-val="{{ false }}" value="{{ showBigCta }}">
-            <button onclick="{{ goOpen }}"
-              style="width:100%; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.26); margin-top:12px;">
-              <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"
-                stroke-width="2.2" viewbox="0 0 24 24" width="17">
-                <path d="M5 12h14M12 5v14"></path>
-              </svg>
-              Open a new service call
-            </button>
-            </sc-if>
             </sc-if>
           </div>
+
+          <button type="button" onclick="{{ goOpen }}" class="svc-new-call-fab" aria-label="{{ newCallLabel }}">
+            <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="18">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            <span data-no-i18n="true">{{ newCallLabel }}</span>
+          </button>
 
           <!-- ============ FILTER SHEET ============ -->
           <sc-if hint-placeholder-val="{{ false }}" value="{{ filtersOpen }}">
@@ -349,22 +408,13 @@
 
                   <div style="height:1px; background:#f0f2f5; margin:0 0 18px;"></div>
 
-                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">Status</div>
+                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ statusSheetLabel }}</div>
                   <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
-                    <sc-for as="o" hint-placeholder-count="3" list="{{ statusOpts }}">
-                      <button onclick="{{ o.pick }}"
+                    <sc-for as="o" hint-placeholder-count="5" list="{{ statusSheetOpts }}">
+                      <button type="button" onclick="{{ o.pick }}"
                         style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
                         {{ o.label }}
-                      </button>
-                    </sc-for>
-                  </div>
-
-                  <div style="font-size:13.5px; color:#7b8595; font-weight:700; margin-bottom:10px;">{{ badgeFilterLabel }}</div>
-                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
-                    <sc-for as="o" hint-placeholder-count="2" list="{{ badgeOpts }}">
-                      <button onclick="{{ o.pick }}"
-                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:99px; cursor:pointer; font-size:13px; font-weight:{{ o.weight }}; background:{{ o.bg }}; color:{{ o.color }}; border:1.4px solid {{ o.border }};">
-                        {{ o.label }}
+                        <span style="display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:99px; font-size:11px; font-weight:800; background:{{ o.countBg }}; color:{{ o.countColor }};">{{ o.count }}</span>
                       </button>
                     </sc-for>
                   </div>
@@ -431,7 +481,8 @@ class Component extends DCLogic {
   state = {
     loading: true,
     tab: '',
-    ticketStatus: 'open',
+    ticketStatus: 'new',
+    statusCounts: {},
     search: '',
     searchOpen: false,
     filtersOpen: false,
@@ -445,11 +496,21 @@ class Component extends DCLogic {
     langTick: 0,
   };
 
+  COLLECTION_FIELD = 'a-1785646777';
+
+  STATUS_FILTERS = [
+    { id: 'new', labelEn: 'New', labelHe: 'חדש', status_filter_val: 1, accent: '#2e8a63', accentBg: '#e6f4ec' },
+    { id: 'tocoordinate', labelEn: 'To coordinate', labelHe: 'לתיאום', status_filter_val: 10075, accent: '#1d60a2', accentBg: '#eaf2fb' },
+    { id: 'scheduled', labelEn: 'Scheduled', labelHe: 'מתוזמן', status_filter_val: 10226, accent: '#50439d', accentBg: '#eef0fb' },
+    { id: 'completed', labelEn: 'Completed', labelHe: 'הושלם', status_filter_val: 10227, accent: '#2e8a63', accentBg: '#e6f4ec' },
+    { id: 'tocollect', labelEn: 'For collection', labelHe: 'לגבייה', status_filter_val: null, accent: '#bd8324', accentBg: '#fdf1dd' },
+  ];
+
   BADGE = {
-    toschedule: { label: 'To schedule', color: '#1d60a2', bg: '#eaf2fb' },
+    toschedule: { label: 'To coordinate', color: '#1d60a2', bg: '#eaf2fb' },
     scheduled: { label: 'Scheduled', color: '#50439d', bg: '#eef0fb' },
     new: { label: 'New', color: '#2e8a63', bg: '#e6f4ec' },
-    done: { label: 'Done', color: '#2e8a63', bg: '#e6f4ec' },
+    done: { label: 'Completed', color: '#2e8a63', bg: '#e6f4ec' },
     tocollect: { label: 'For collection', color: '#bd8324', bg: '#fdf1dd' },
   };
 
@@ -457,7 +518,7 @@ class Component extends DCLogic {
   CALLS = [];
 
   TABS = [
-    { id: 'toschedule', label: 'To schedule' },
+    { id: 'toschedule', label: 'To coordinate' },
     { id: 'tocollect', label: 'For collection' },
     { id: 'done', label: 'Completed' },
   ];
@@ -624,25 +685,15 @@ class Component extends DCLogic {
   }
 
   setTab(id) {
-    if (id === 'done') {
-      this.setState({ tab: id, ticketStatus: 'closed' });
-      try {
-        if (window.history && window.history.replaceState) {
-          window.history.replaceState(null, '', 'service-all-calls.html?status=closed');
-        }
-      } catch (e) { /* ignore */ }
-      return;
-    }
-    this.setState({ tab: id, ticketStatus: 'open' });
-    try {
-      if (window.history && window.history.replaceState) {
-        window.history.replaceState(null, '', 'service-all-calls.html?status=open');
-      }
-    } catch (e) { /* ignore */ }
+    var map = { toschedule: 'tocoordinate', tocollect: 'tocollect', done: 'completed' };
+    this.setStatusFilter(map[id] || 'new');
   }
 
   openFilters() { this.setState({ filtersOpen: true }); }
-  closeFilters() { this.setState({ filtersOpen: false }); }
+  closeFilters() {
+    this.setState({ filtersOpen: false });
+    this.loadTickets();
+  }
   clearFilters() {
     this.setState({
       filterPrio: '',
@@ -653,23 +704,22 @@ class Component extends DCLogic {
       filterBadge: '',
       sort: 'wait',
       tab: '',
-      ticketStatus: 'open',
+      ticketStatus: 'new',
     });
+    this.loadTickets();
+    this.loadStatusCounts();
   }
   setFilter(key, val) {
     this.setState(s => ({ [key]: s[key] === val ? '' : val }));
   }
   setFilterStatus(id) {
-    var next = this.state.filterStatus === id ? '' : id;
-    var patch = { filterStatus: next };
-    if (next === 'closed') {
-      patch.ticketStatus = 'closed';
-      patch.tab = 'done';
-    } else if (next === 'open' || next === 'assign') {
-      patch.ticketStatus = 'open';
-      patch.tab = '';
+    // Sheet status chips use the same STATUS_FILTERS ids
+    if (id && this.statusFilterMeta(id)) {
+      this.setState({ ticketStatus: id, filterStatus: '' });
+      return;
     }
-    this.setState(patch);
+    var next = this.state.filterStatus === id ? '' : id;
+    this.setState({ filterStatus: next });
   }
   setSort(id) {
     this.setState({ sort: id || 'wait' });
@@ -685,33 +735,186 @@ class Component extends DCLogic {
   toggleSearch() { this.setState(s => ({ searchOpen: !s.searchOpen, search: '' })); }
   onSearch(e) { this.setState({ search: e.target.value }); }
 
+  statusFilterMeta(id) {
+    var list = this.STATUS_FILTERS || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    return list[0] || null;
+  }
+
   applyServiceDefaultFilter() {
-    var status = 'open';
+    var status = 'new';
     try {
       var p = new URLSearchParams(window.location.search || '');
       var raw = String(p.get('status') || p.get('ticketStatus') || p.get('filter') || '').toLowerCase();
-      if (raw === 'closed' || raw === 'close' || raw === 'done') status = 'closed';
-      else status = 'open';
-    } catch (e) { status = 'open'; }
+      if (raw === 'closed' || raw === 'close' || raw === 'done' || raw === 'completed') status = 'completed';
+      else if (raw === 'scheduled' || raw === '10226') status = 'scheduled';
+      else if (raw === 'tocoordinate' || raw === 'coordinate' || raw === '10075' || raw === 'toschedule') status = 'tocoordinate';
+      else if (raw === 'tocollect' || raw === 'collect' || raw === 'collection') status = 'tocollect';
+      else if (raw === 'new' || raw === '1' || raw === 'open') status = 'new';
+    } catch (e) { status = 'new'; }
     if (this.state.ticketStatus !== status) {
-      this.setState({
-        ticketStatus: status,
-        tab: status === 'closed' ? 'done' : '',
-      });
+      this.setState({ ticketStatus: status, tab: '' });
     }
   }
 
-  setTicketStatusFilter(status) {
-    var next = status === 'closed' ? 'closed' : 'open';
-    this.setState({
-      ticketStatus: next,
-      tab: next === 'closed' ? 'done' : '',
-    });
+  setStatusFilter(status) {
+    var meta = this.statusFilterMeta(status);
+    var next = (meta && meta.id) || 'new';
+    this.setState({ ticketStatus: next, tab: '' });
     try {
       if (window.history && window.history.replaceState) {
-        window.history.replaceState(null, '', 'service-all-calls.html?status=' + next);
+        window.history.replaceState(null, '', 'service-all-calls.html?status=' + encodeURIComponent(next));
       }
     } catch (e) { /* ignore */ }
+    this.loadTickets();
+  }
+
+  setTicketStatusFilter(status) {
+    this.setStatusFilter(status);
+  }
+
+  extractApiCount(res) {
+    if (!res) return 0;
+    var candidates = [
+      res.count, res.total, res.total_record, res.recordsTotal, res.recordsFiltered,
+      res.data && res.data.count, res.data && res.data.total
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      if (candidates[i] == null || candidates[i] === '') continue;
+      var n = Number(candidates[i]);
+      if (isFinite(n) && n >= 0) return n;
+    }
+    return 0;
+  }
+
+  async loadStatusCounts() {
+    try {
+      if (!window.MineralBarApp || !window.MineralBarApp.getClient) return;
+      var client = window.MineralBarApp.getClient();
+      if (!client || !client.getToken()) return;
+      var self = this;
+      var filters = this.STATUS_FILTERS || [];
+      var results = await Promise.all(filters.map(function (sf) {
+        if (sf.id === 'tocollect') {
+          return client.request('Ticket.List', { start: 0, length: 25, draw: 1 }).then(function (res) {
+            var rows = (res && (res.data || res.rows || res.output)) || [];
+            if (!Array.isArray(rows)) rows = [];
+            return rows.filter(function (t) { return self.isForCollectionTicket(t); }).length;
+          }).catch(function () { return 0; });
+        }
+        return client.request('Ticket.Count', {
+          status_filter_val: sf.status_filter_val
+        }).then(function (res) {
+          return self.extractApiCount(res);
+        }).catch(function () { return 0; });
+      }));
+      var counts = {};
+      for (var i = 0; i < filters.length; i++) {
+        counts[filters[i].id] = Number(results[i]) || 0;
+      }
+      this.setState({ statusCounts: counts });
+    } catch (e) {
+      console.warn('[service-all-calls] status counts failed', e);
+    }
+  }
+
+  enableStatusDragScroll() {
+    var slider = document.getElementById('svc-status-hbar');
+    if (!slider) return;
+    if (slider.dataset.dragScrollWired === '1') return;
+    slider.dataset.dragScrollWired = '1';
+
+    var isDown = false;
+    var startX = 0;
+    var scrollLeft = 0;
+    var dragged = false;
+    var pointerId = null;
+    var DRAG_THRESHOLD = 8;
+
+    function onDown(clientX, e) {
+      isDown = true;
+      dragged = false;
+      startX = clientX;
+      scrollLeft = slider.scrollLeft;
+      // Do not capture yet — keep taps working on the pills.
+      pointerId = (e && e.pointerId != null) ? e.pointerId : null;
+    }
+
+    function onMove(clientX, e) {
+      if (!isDown) return;
+      var dx = clientX - startX;
+      if (!dragged && Math.abs(dx) < DRAG_THRESHOLD) return;
+      if (!dragged) {
+        dragged = true;
+        slider.classList.add('is-dragging');
+        if (pointerId != null && slider.setPointerCapture) {
+          try { slider.setPointerCapture(pointerId); } catch (err) { /* ignore */ }
+        }
+      }
+      slider.scrollLeft = scrollLeft - dx;
+      if (e && e.cancelable) e.preventDefault();
+    }
+
+    function onUp() {
+      if (!isDown) return;
+      isDown = false;
+      slider.classList.remove('is-dragging');
+      if (pointerId != null && slider.releasePointerCapture) {
+        try { slider.releasePointerCapture(pointerId); } catch (err) { /* ignore */ }
+      }
+      pointerId = null;
+      // Block only the click that follows a real drag.
+      if (dragged) {
+        slider.dataset.blockNextClick = '1';
+        setTimeout(function () {
+          delete slider.dataset.blockNextClick;
+          dragged = false;
+        }, 80);
+      } else {
+        dragged = false;
+      }
+    }
+
+    slider.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      onDown(e.clientX, e);
+    });
+    slider.addEventListener('pointermove', function (e) {
+      onMove(e.clientX, e);
+    });
+    slider.addEventListener('pointerup', onUp);
+    slider.addEventListener('pointercancel', onUp);
+    slider.addEventListener('lostpointercapture', onUp);
+
+    // Fallback for environments without PointerEvent
+    slider.addEventListener('touchstart', function (e) {
+      if (window.PointerEvent) return;
+      if (!e.touches || !e.touches.length) return;
+      onDown(e.touches[0].clientX, e);
+    }, { passive: true });
+    slider.addEventListener('touchmove', function (e) {
+      if (window.PointerEvent) return;
+      if (!e.touches || !e.touches.length) return;
+      onMove(e.touches[0].clientX, e);
+    }, { passive: false });
+    slider.addEventListener('touchend', function () {
+      if (window.PointerEvent) return;
+      onUp();
+    });
+
+    slider.addEventListener('click', function (e) {
+      if (slider.dataset.blockNextClick === '1') {
+        e.preventDefault();
+        e.stopPropagation();
+        delete slider.dataset.blockNextClick;
+      }
+    }, true);
+
+    slider.addEventListener('dragstart', function (e) {
+      e.preventDefault();
+    });
   }
 
   isTicketClosed(t) {
@@ -755,28 +958,17 @@ class Component extends DCLogic {
     const st = this.state;
     const q = String(st.search || '').trim().toLowerCase();
     const qDigits = this.phoneDigits(st.search);
-    const statusFilter = st.ticketStatus;
     const dateKey = String(st.filterDate || '').trim();
 
+    // Status filter is applied server-side (or client-side for collection) in loadTickets.
     let list = this.CALLS.filter(c => {
-      if (statusFilter === 'open') {
-        if (c.isDoneFlag) return false;
-        if (st.tab && st.tab !== 'done' && c.bucket !== st.tab) return false;
-      } else if (statusFilter === 'closed') {
-        if (!c.isDoneFlag) return false;
-      } else if (st.tab && c.bucket !== st.tab) {
-        return false;
-      }
-
       if (st.filterPrio && c.prio !== st.filterPrio) return false;
 
       if (st.filterStatus === 'open') {
-        // Open = open tickets that are NOT assigned yet
         if (c.isDoneFlag || c.isAssigned) return false;
       } else if (st.filterStatus === 'closed') {
         if (!c.isDoneFlag) return false;
       } else if (st.filterStatus === 'assign') {
-        // Assign = open tickets that already have a technician
         if (c.isDoneFlag || !c.isAssigned) return false;
       }
 
@@ -824,16 +1016,27 @@ class Component extends DCLogic {
 
     this.applyServiceDefaultFilter();
     this.loadTickets();
-    window.addEventListener('mineralbar:ready', () => this.loadTickets());
+    this.loadStatusCounts();
+    var self = this;
+    setTimeout(function () { self.enableStatusDragScroll(); }, 80);
+    setTimeout(function () { self.enableStatusDragScroll(); }, 400);
+    window.addEventListener('mineralbar:ready', () => {
+      this.loadTickets();
+      this.loadStatusCounts();
+      setTimeout(function () { self.enableStatusDragScroll(); }, 80);
+    });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.loadTickets(), { keys: /ticket|mission|task|call|service|socket\.nudge/i, delay: 350 });
+      MineralBarApp.bindLiveReload(() => {
+        this.loadTickets();
+        this.loadStatusCounts();
+      }, { keys: /ticket|mission|task|call|service|socket\.nudge/i, delay: 350 });
     }
     window.addEventListener('mineralbar:page-refresh', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:realtime', (ev) => this.onRealtimeRefresh(ev));
     window.addEventListener('mineralbar:missions', (ev) => this.onRealtimeRefresh(ev));
     // No pageshow re-fetch — returning from another app stays socket-only.
     window.addEventListener('service-nav:open-tickets', () => {
-      this.setState({ ticketStatus: 'open', tab: '' });
+      this.setStatusFilter('new');
     });
     var self = this;
     document.addEventListener('click', function (e) {
@@ -867,8 +1070,12 @@ class Component extends DCLogic {
     var delays = /ticket\.created|nudge/.test(key) ? [250, 900, 2200] : [350];
     this._rtTicketsTimer = setTimeout(function () {
       self.loadTickets();
+      self.loadStatusCounts();
       delays.slice(1).forEach(function (ms) {
-        setTimeout(function () { self.loadTickets(); }, ms);
+        setTimeout(function () {
+          self.loadTickets();
+          self.loadStatusCounts();
+        }, ms);
       });
     }, delays[0]);
   }
@@ -1199,6 +1406,31 @@ class Component extends DCLogic {
     });
   }
 
+  ticketCustomFields(ticket) {
+    var cf = ticket && (ticket.custom_fields != null ? ticket.custom_fields : ticket.customFields);
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e0) { cf = null; }
+    }
+    if (!cf || typeof cf !== 'object' || Array.isArray(cf)) cf = {};
+    return cf;
+  }
+
+  ticketCollectionValue(ticket) {
+    var cf = this.ticketCustomFields(ticket);
+    var raw = cf[this.COLLECTION_FIELD];
+    if (raw == null || raw === '') {
+      raw = ticket && ticket[this.COLLECTION_FIELD];
+    }
+    if (raw && typeof raw === 'object') {
+      raw = raw.value != null ? raw.value : (raw.val != null ? raw.val : '');
+    }
+    return String(raw == null ? '' : raw).trim();
+  }
+
+  isForCollectionTicket(ticket) {
+    return this.ticketCollectionValue(ticket) === '0';
+  }
+
   mapTicketRows(rows) {
     var self = this;
     return (Array.isArray(rows) ? rows : []).map(t => {
@@ -1207,15 +1439,28 @@ class Component extends DCLogic {
           let bucket = 'toschedule';
           const closed = this.isTicketClosed(t);
           const sid = Number(t.status_id != null ? t.status_id : t.status);
+          const forCollect = this.isForCollectionTicket(t);
 
-          if (closed) {
+          if (forCollect) {
+            badge = 'tocollect';
+            bucket = 'tocollect';
+          } else if (closed || sid === 10227) {
             badge = 'done';
             bucket = 'done';
+          } else if (sid === 10226) {
+            badge = 'scheduled';
+            bucket = 'toschedule';
+          } else if (sid === 10075) {
+            badge = 'toschedule';
+            bucket = 'toschedule';
           } else if (sid === 3) {
             badge = 'tocollect';
             bucket = 'tocollect';
           } else if (t.ticket_from_time || t.from_time || t.due_date) {
             badge = 'scheduled';
+            bucket = 'toschedule';
+          } else if (sid === 1) {
+            badge = 'new';
             bucket = 'toschedule';
           } else {
             badge = 'toschedule';
@@ -1308,7 +1553,7 @@ class Component extends DCLogic {
             productItems: productItems,
             hasProduct: productItems.length > 0,
             productLabel: self.t('Product', 'מוצר'),
-            productDescLabel: self.t('Description', 'תיאור')
+            productDescLabel: self.t('Equipment', 'ציוד')
           };
         });
   }
@@ -1323,17 +1568,41 @@ class Component extends DCLogic {
         return;
       }
       if (!this.CALLS || !this.CALLS.length) this.setState({ loading: true });
-      const res = await Promise.race([
-        client.request('Ticket.List', { start: 0, length: 100, draw: 1 }),
-        new Promise(function (_, reject) {
-          setTimeout(function () { reject(new Error('Ticket.List timeout')); }, 12000);
-        })
-      ]);
-      if (seq !== this._loadSeq) return;
-      var rows = (res && (res.data || res.rows || res.output)) || [];
-      if (!Array.isArray(rows)) rows = [];
+
+      var meta = this.statusFilterMeta(this.state.ticketStatus) || this.STATUS_FILTERS[0];
+      var payload = { start: 0, length: 25, draw: 1 };
+      var rows = [];
+
+      if (meta && meta.id === 'tocollect') {
+        // For collection: page Ticket.List (max 25), filter custom field client-side.
+        var resCollect = await Promise.race([
+          client.request('Ticket.List', payload),
+          new Promise(function (_, reject) {
+            setTimeout(function () { reject(new Error('Ticket.List timeout')); }, 12000);
+          })
+        ]);
+        if (seq !== this._loadSeq) return;
+        var allCollect = (resCollect && (resCollect.data || resCollect.rows || resCollect.output)) || [];
+        if (!Array.isArray(allCollect)) allCollect = [];
+        rows = allCollect.filter(function (t) { return this.isForCollectionTicket(t); }.bind(this));
+      } else {
+        if (meta && meta.status_filter_val != null) {
+          payload.status_filter_val = meta.status_filter_val;
+        }
+        const res = await Promise.race([
+          client.request('Ticket.List', payload),
+          new Promise(function (_, reject) {
+            setTimeout(function () { reject(new Error('Ticket.List timeout')); }, 12000);
+          })
+        ]);
+        if (seq !== this._loadSeq) return;
+        rows = (res && (res.data || res.rows || res.output)) || [];
+        if (!Array.isArray(rows)) rows = [];
+      }
+
       this.CALLS = this.mapTicketRows(rows);
       this.setState({ loading: false });
+      this.loadStatusCounts();
       var self = this;
       this.enrichTicketProductNames(client, rows).then(function (enriched) {
         if (seq !== self._loadSeq) return;
@@ -1439,7 +1708,7 @@ class Component extends DCLogic {
         cust_id: c.cust_id,
         hasProduct: !!c.hasProduct,
         productLabel: c.productLabel || this.t('Product', 'מוצר'),
-        productDescLabel: c.productDescLabel || this.t('Description', 'תיאור'),
+        productDescLabel: c.productDescLabel || this.t('Equipment', 'ציוד'),
         productItems: c.productItems || [],
         goCard: () => { window.location.href = 'service-call-details.html?ticket_id=' + c.id.replace('#SRV-', '') + '&back=' + encodeURIComponent('service-all-calls.html'); },
         goCustomer: () => { window.location.href = 'service-customer-card.html?customer_id=' + c.cust_id + '&back=' + encodeURIComponent('service-all-calls.html'); },
@@ -1447,17 +1716,46 @@ class Component extends DCLogic {
       };
     });
 
-    const sectionTitle = { toschedule: 'Waiting for scheduling', tocollect: 'Waiting for collection', done: 'Recently completed' };
-    let sectionLabel = 'Open tickets';
-    if (st.ticketStatus === 'closed') sectionLabel = 'Recently completed';
-    else if (st.tab && sectionTitle[st.tab]) sectionLabel = sectionTitle[st.tab];
+    const sectionTitle = {
+      new: this.t('New tickets', 'קריאות חדשות'),
+      tocoordinate: this.t('To coordinate', 'לתיאום'),
+      scheduled: this.t('Scheduled', 'מתוזמן'),
+      completed: this.t('Completed', 'הושלם'),
+      tocollect: this.t('For collection', 'לגבייה')
+    };
+    let sectionLabel = sectionTitle[st.ticketStatus] || this.t('Open tickets', 'טיקטים פתוחים');
 
-    const statusOpts = this.STATUS_LIST.map(s => {
-      const on = st.filterStatus === s.id;
+    const statusFilterActive = st.ticketStatus || 'new';
+    const self = this;
+    const countsMap = st.statusCounts || {};
+    const statusFilters = (this.STATUS_FILTERS || []).map(function (sf) {
+      var on = sf.id === statusFilterActive;
+      var count = Number(countsMap[sf.id]) || 0;
       return {
-        label: this.t(s.label, s.labelHe),
-        pick: () => this.setFilterStatus(s.id),
-        ...this.chip(on),
+        id: sf.id,
+        label: self.t(sf.labelEn, sf.labelHe),
+        count: String(count),
+        pick: function () { self.setStatusFilter(sf.id); },
+        bg: on ? sf.accentBg : '#fff',
+        border: on ? sf.accent : '#e4e8ee',
+        color: on ? sf.accent : '#5a6473',
+        countBg: on ? sf.accent : '#e9edf2',
+        countColor: on ? '#fff' : '#5a6473'
+      };
+    });
+
+    const statusSheetOpts = (this.STATUS_FILTERS || []).map(function (sf) {
+      var on = sf.id === statusFilterActive;
+      var count = Number(countsMap[sf.id]) || 0;
+      var chip = self.chip(on);
+      return {
+        id: sf.id,
+        label: self.t(sf.labelEn, sf.labelHe),
+        count: String(count),
+        pick: function () { self.setFilterStatus(sf.id); },
+        countBg: on ? '#fff' : '#e9edf2',
+        countColor: on ? (sf.accent || '#1d60a2') : '#5a6473',
+        ...chip
       };
     });
     const prioOpts = this.PRIO_LIST.map(id => {
@@ -1478,15 +1776,6 @@ class Component extends DCLogic {
         ...this.chip(on),
       };
     });
-    const badgeOpts = this.BADGE_LIST.map(s => {
-      const current = st.filterBadge || '';
-      const on = current === (s.id || '');
-      return {
-        label: this.t(s.labelEn, s.labelHe),
-        pick: () => this.setState({ filterBadge: s.id || '' }),
-        ...this.chip(on),
-      };
-    });
     const regionOpts = this.REGIONS.map(s => {
       const on = st.filterRegion === s.id;
       return {
@@ -1504,20 +1793,31 @@ class Component extends DCLogic {
       };
     });
 
-    const isFiltOpen = st.ticketStatus === 'open';
-    const isFiltClosed = st.ticketStatus === 'closed';
     const hasFilterDate = !!(st.filterDate && String(st.filterDate).trim());
     const defaultSort = !st.sort || st.sort === 'wait';
-    const hasActiveFilters = !!(st.filterPrio || st.filterStatus || hasFilterDate || st.filterRegion || st.filterType || st.filterBadge || !defaultSort);
+    var activeFilterCount = 0;
+    if (st.filterPrio) activeFilterCount += 1;
+    if (hasFilterDate) activeFilterCount += 1;
+    if (st.filterRegion) activeFilterCount += 1;
+    if (st.filterType) activeFilterCount += 1;
+    if (!defaultSort) activeFilterCount += 1;
+    const hasActiveFilters = activeFilterCount > 0;
+
+    const emptyByStatus = {
+      new: this.t('No new tickets', 'אין קריאות חדשות'),
+      tocoordinate: this.t('No tickets to coordinate', 'אין קריאות לתיאום'),
+      scheduled: this.t('No scheduled tickets', 'אין קריאות מתוזמנות'),
+      completed: this.t('No completed tickets', 'אין קריאות שהושלמו'),
+      tocollect: this.t('No tickets for collection', 'אין קריאות לגבייה')
+    };
+
+    setTimeout(function () { self.enableStatusDragScroll(); }, 0);
 
     return {
       loading,
       notLoading: !loading,
       showEmpty: !loading && calls.length === 0,
-      showBigCta: !loading && calls.length === 0,
-      emptyMsg: st.ticketStatus === 'closed'
-        ? this.t('No closed tickets', 'אין קריאות סגורות')
-        : this.t('No open tickets', 'אין קריאות פתוחות'),
+      emptyMsg: emptyByStatus[st.ticketStatus] || this.t('No tickets', 'אין קריאות'),
       searchOpen: st.searchOpen,
       notSearchOpen: !st.searchOpen,
       search: st.search,
@@ -1525,20 +1825,20 @@ class Component extends DCLogic {
       onSearch: e => this.onSearch(e),
       toggleSearch: () => this.toggleSearch(),
       stats,
+      statusFilters,
+      statusSheetOpts,
+      statusSheetLabel: this.t('Status', 'סטטוס'),
       sectionLabel: sectionLabel,
       calls,
       openFilters: () => this.openFilters(),
       closeFilters: () => this.closeFilters(),
       clearFilters: () => this.clearFilters(),
       filtersOpen: st.filtersOpen,
-      statusOpts,
       prioOpts,
       sortOpts,
-      badgeOpts,
       regionOpts,
       typeOpts,
       sortLabel: this.t('Sort by', 'מיון לפי'),
-      badgeFilterLabel: this.t('Call status', 'סטטוס קריאה'),
       regionFilterLabel: this.t('Area', 'אזור'),
       typeFilterLabel: this.t('Call type', 'סוג קריאה'),
       filterDate: st.filterDate || '',
@@ -1550,23 +1850,11 @@ class Component extends DCLogic {
       resultCount: list.length,
       showResultsLabel: this.t('Show ' + list.length + ' results', 'הצג ' + list.length + ' תוצאות'),
       hasActiveFilters,
+      activeFilterCount: String(activeFilterCount),
       filterBtnBg: hasActiveFilters ? '#eaf2fb' : '#fff',
       filterBtnIcon: hasActiveFilters ? '#1d60a2' : '#1f2a3a',
       scheduledDateHint: this.t('Date the technician visit is scheduled for', 'התאריך אליו תוזמן ביקור הטכנאי'),
-      setFilterOpen: () => this.setTicketStatusFilter('open'),
-      setFilterClosed: () => this.setTicketStatusFilter(isFiltClosed ? 'open' : 'closed'),
-      pillOpenBg: isFiltOpen ? '#fdf1dd' : '#fff',
-      pillOpenBorder: isFiltOpen ? '#bd8324' : '#e4e8ee',
-      pillOpenColor: isFiltOpen ? '#bd8324' : '#5a6473',
-      pillOpenIconColor: isFiltOpen ? '#bd8324' : '#aab2bf',
-      pillOpenBadgeBg: isFiltOpen ? '#bd8324' : '#e9edf2',
-      pillOpenBadgeColor: isFiltOpen ? '#fff' : '#5a6473',
-      pillClosedBg: isFiltClosed ? '#e6f4ec' : '#fff',
-      pillClosedBorder: isFiltClosed ? '#2e8a63' : '#e4e8ee',
-      pillClosedColor: isFiltClosed ? '#2e8a63' : '#5a6473',
-      pillClosedIconColor: isFiltClosed ? '#2e8a63' : '#aab2bf',
-      pillClosedBadgeBg: isFiltClosed ? '#2e8a63' : '#e9edf2',
-      pillClosedBadgeColor: isFiltClosed ? '#fff' : '#5a6473',
+      newCallLabel: this.t('New call', 'קריאה חדשה'),
       goCard: () => { window.location.href = 'service-call-details.html?back=' + encodeURIComponent('service-all-calls.html'); },
       goCustomer: () => { window.location.href = 'service-customer-card.html?back=' + encodeURIComponent('service-all-calls.html'); },
       goOpen: () => { window.location.href = 'service-select-customer.html?back=' + encodeURIComponent('service-all-calls.html'); },

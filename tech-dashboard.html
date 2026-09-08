@@ -79,7 +79,7 @@ mbCss('./common.css');
 <div style="width:1px; background:rgba(255,255,255,.2); flex:none;"></div>
 <div style="min-width:0; flex:1;">
 <div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ docCount }}</div>
-<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Documents</div>
+<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Sales</div>
 </div>
 </div>
 </div>
@@ -108,7 +108,7 @@ mbCss('./common.css');
 </div>
 </sc-if>
 </div>
-<!-- open tickets by installation (to do) -->
+<!-- installation types (closed tickets grouped) -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
 <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ openTicketsSectionLabel }}</span>
 <span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ openTicketsCountLabel }}</span>
@@ -124,40 +124,19 @@ mbCss('./common.css');
 <div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;" data-no-i18n="true">{{ openTicketsEmptyLabel }}</div>
 </sc-if>
 <sc-for as="ot" hint-placeholder-count="0" list="{{ openTickets }}">
-<div style="padding:12px 0; border-bottom:1px solid {{ ot.border }};">
-<div style="display:flex; align-items:flex-start; gap:11px;">
+<div style="padding:13px 0; border-bottom:1px solid {{ ot.border }}; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+<div style="display:flex; align-items:center; gap:11px; min-width:0; flex:1;">
 <div style="width:34px; height:34px; border-radius:9px; background:{{ ot.iconBg }}; color:{{ ot.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
 <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z"></path></svg>
 </div>
-<div style="flex:1; min-width:0;">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
 <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ot.name }}</span>
-<span style="display:inline-flex; align-items:center; gap:4px; background:{{ ot.badgeBg }}; color:{{ ot.badgeColor }}; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; white-space:nowrap; flex:none;">
-<span style="width:5px; height:5px; border-radius:50%; background:{{ ot.badgeColor }};"></span>{{ ot.badge }}
-</span>
 </div>
-<div style="font-size:12px; color:#5a6473; font-weight:600; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ot.customer }}</div>
-<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:5px;">
-<span style="font-size:11px; color:#9aa3b0; font-weight:600;">{{ ot.meta }}</span>
-<button type="button" onclick="{{ ot.open }}" style="border:none; background:none; color:#1d60a2; font-size:12px; font-weight:800; cursor:pointer; padding:0; font-family:inherit; flex:none;">{{ ot.actionLabel }}</button>
-</div>
-</div>
-</div>
+<span style="display:inline-flex; align-items:center; justify-content:center; min-width:34px; padding:5px 10px; border-radius:99px; background:{{ ot.badgeBg }}; color:{{ ot.badgeColor }}; font-size:13px; font-weight:800; flex:none;">{{ ot.count }}</span>
 </div>
 </sc-for>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ showOpenTicketsPager }}">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; padding:12px 4px 4px; border-top:1px solid #f0f2f5;">
-<button type="button" onclick="{{ prevOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openPrevBg }}; color:{{ openPrevColor }}; font-size:13px; font-weight:800; cursor:{{ openPrevCursor }}; opacity:{{ openPrevOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openPrevLabel }}</button>
-<div style="text-align:center; flex:1; min-width:0;">
-<div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ openTicketsRangeLabel }}</div>
-<div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ openTicketsPageLabel }}</div>
-</div>
-<button type="button" onclick="{{ nextOpenTickets }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ openNextBg }}; color:{{ openNextColor }}; font-size:13px; font-weight:800; cursor:{{ openNextCursor }}; opacity:{{ openNextOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openNextLabel }}</button>
-</div>
-</sc-if>
 </div>
 
-<!-- detailed field purchase orders -->
+<!-- field orders by product -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
 <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ ordersSectionLabel }}</span>
 <span style="font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ ordersCountLabel }}</span>
@@ -173,48 +152,19 @@ mbCss('./common.css');
 <div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;" data-no-i18n="true">{{ ordersEmptyLabel }}</div>
 </sc-if>
 <sc-for as="od" hint-placeholder-count="0" list="{{ fieldOrders }}">
-<div style="padding:12px 0; border-bottom:1px solid {{ od.border }};">
-<div style="display:flex; align-items:flex-start; gap:11px;">
+<div style="padding:13px 0; border-bottom:1px solid {{ od.border }}; display:flex; align-items:flex-start; gap:11px;">
 <div style="width:34px; height:34px; border-radius:9px; background:{{ od.iconBg }}; color:{{ od.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
 <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M7 3h8l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M15 3v5h5"></path></svg>
 </div>
 <div style="flex:1; min-width:0;">
 <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
 <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ od.name }}</span>
-<span style="display:inline-flex; align-items:center; gap:4px; background:{{ od.badgeBg }}; color:{{ od.badgeColor }}; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; white-space:nowrap; flex:none;">{{ od.amount }}</span>
+<span style="font-size:13px; font-weight:800; color:#2e8a63; flex:none;">{{ od.amount }}</span>
 </div>
-<div style="font-size:12px; color:#5a6473; font-weight:600; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ od.items }}</div>
-<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:5px;">
-<span style="font-size:11px; color:#9aa3b0; font-weight:600;">{{ od.meta }}</span>
-<button type="button" onclick="{{ od.open }}" style="border:none; background:none; color:#1d60a2; font-size:12px; font-weight:800; cursor:pointer; padding:0; font-family:inherit; flex:none;">{{ od.actionLabel }}</button>
-</div>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ od.expanded }}">
-<div style="margin-top:10px; padding:8px 10px; border-radius:12px; background:#f6f8fb;">
-<sc-for as="ln" hint-placeholder-count="0" list="{{ od.lines }}">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid {{ ln.border }};">
-<div style="min-width:0; flex:1;">
-<div style="font-size:12.5px; font-weight:700; color:#1f2a3a;">{{ ln.items }}</div>
-<div style="font-size:11px; color:#9aa3b0; font-weight:600; margin-top:2px;">{{ ln.meta }}</div>
-</div>
-<span style="font-size:12px; font-weight:800; color:#2e8a63; flex:none;">{{ ln.amount }}</span>
-</div>
-</sc-for>
-</div>
-</sc-if>
-</div>
+<div style="font-size:12px; color:#5a6473; font-weight:600; margin-top:4px;">{{ od.qtyLabel }}</div>
 </div>
 </div>
 </sc-for>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ showOrdersPager }}">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; padding:12px 4px 4px; border-top:1px solid #f0f2f5;">
-<button type="button" onclick="{{ prevOrders }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ ordersPrevBg }}; color:{{ ordersPrevColor }}; font-size:13px; font-weight:800; cursor:{{ ordersPrevCursor }}; opacity:{{ ordersPrevOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openPrevLabel }}</button>
-<div style="text-align:center; flex:1; min-width:0;">
-<div style="font-size:12.5px; font-weight:800; color:#1f2a3a;">{{ ordersRangeLabel }}</div>
-<div style="font-size:11.5px; font-weight:700; color:#8a93a3; margin-top:2px;">{{ ordersPageLabel }}</div>
-</div>
-<button type="button" onclick="{{ nextOrders }}" style="padding:9px 14px; border:none; border-radius:10px; background:{{ ordersNextBg }}; color:{{ ordersNextColor }}; font-size:13px; font-weight:800; cursor:{{ ordersNextCursor }}; opacity:{{ ordersNextOpacity }}; font-family:inherit;" data-no-i18n="true">{{ openNextLabel }}</button>
-</div>
-</sc-if>
 </div>
 
 <div style="text-align:center; padding:4px 0; color:#b6bdc8; font-size:12px; font-weight:600;">{{ updatedLabel }}</div>
@@ -240,13 +190,10 @@ class Component extends DCLogic {
     selectedYear: new Date().getFullYear(),
     selectedMonth: new Date().getMonth(),
     monthPickerOpen: false,
-    openTicketsPage: 1,
-    openTicketsPageSize: 5,
-    fieldOrdersPage: 1,
-    fieldOrdersPageSize: 5,
-    expandedOrderKey: '',
     langTick: 0
   };
+
+  INSTALL_TYPE_FIELD = 'a-1787022411';
 
   COLORS = ['#1d60a2', '#2e8a63', '#50439d', '#bd8324', '#c0392b'];
   TONE = {
@@ -387,7 +334,9 @@ class Component extends DCLogic {
     if (!client) return;
     await Promise.all([
       this.loadDocuments(client, year, month),
-      this.loadWeekTickets(client, year, month)
+      this.loadWeekTickets(client, year, month),
+      this.loadInstallTypes(client, year, month),
+      this.loadFieldOrders(client, year, month)
     ]);
     this.ensureChrome();
   }
@@ -473,8 +422,8 @@ class Component extends DCLogic {
         await Promise.all([
           self.loadDocuments(client, null, null, silent),
           self.loadWeekTickets(client, null, null, silent),
-          self.loadOpenTickets(client, silent),
-          self.loadFieldOrders(client, silent)
+          self.loadInstallTypes(client, null, null, silent),
+          self.loadFieldOrders(client, null, null, silent)
         ]);
         self._booted = true;
         self._bootAt = Date.now();
@@ -488,9 +437,23 @@ class Component extends DCLogic {
 
   extractTicketCount(res) {
     if (!res) return 0;
-    if (res.count != null) return Number(res.count) || 0;
-    if (res.recordsTotal != null) return Number(res.recordsTotal) || 0;
-    if (res.recordsFiltered != null) return Number(res.recordsFiltered) || 0;
+    var candidates = [
+      res.count,
+      res.total,
+      res.total_record,
+      res.recordsTotal,
+      res.recordsFiltered,
+      res.data && res.data.count,
+      res.data && res.data.total,
+      res.data && res.data.recordsTotal,
+      res.data && res.data.recordsFiltered,
+      res.output && res.output.count
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      if (candidates[i] == null || candidates[i] === '') continue;
+      var n = Number(candidates[i]);
+      if (isFinite(n) && n >= 0) return n;
+    }
     return 0;
   }
 
@@ -519,52 +482,37 @@ class Component extends DCLogic {
   async loadDocuments(client, year, month, silent) {
     if (!silent) this.setState({ loadingDocs: true });
     var range = this.monthRange(year, month);
-    var dateRange = {
+    var userId = this.resolveUserId();
+    var docFilters = {
       from_date: range.from,
       to_date: range.to,
-      customer_id: 0
+      customer_id: 0,
+      type: 'invoice',
+      team_member_id: userId || undefined,
+      filter_tm: userId || undefined
     };
     try {
-      // Income from Documents.Sum; count from Documents.Count;
-      // closed tickets ≈ status 2/4/5 for this month.
       var results = await Promise.all([
-        client.request('Documents.Sum', Object.assign({}, dateRange)).catch(function () { return null; }),
-        client.request('Documents.Sum', Object.assign({}, dateRange, { type: 'receipt' })).catch(function () { return null; }),
-        client.request('Documents.Count', Object.assign({}, dateRange, {
-          default_value_folder: 'all'
-        })).catch(function () { return null; }),
+        client.request('Documents.Count', Object.assign({}, docFilters)).catch(function () { return null; }),
         client.request('Ticket.Count', {
           from_date: range.from,
           to_date: range.to,
-          status: 2
+          type: 'my_tickets',
+          status_filter_val: 2
         }).catch(function () { return null; }),
-        client.request('Ticket.Count', {
-          from_date: range.from,
-          to_date: range.to,
-          status: 4
-        }).catch(function () { return null; }),
-        client.request('Ticket.Count', {
-          from_date: range.from,
-          to_date: range.to,
-          status: 5
-        }).catch(function () { return null; })
+        this.fetchDocumentsList(client, docFilters)
       ]);
 
-      var net = results[0];
-      var receiptOnly = results[1];
-      var invoices = this.extractTypeSum(net, 'invoice');
-      var receipts = this.extractTypeSum(net, 'receipt_tax_invoice') + this.extractTypeSum(receiptOnly, 'receipt');
-      var credits = this.extractTypeSum(net, 'credit_invoice') + this.extractTypeSum(net, 'credit');
-      var salesTotal = invoices + receipts - credits;
-      if ((!salesTotal || !isFinite(salesTotal)) && net && net.sum_final_amount != null) {
-        salesTotal = Number(net.sum_final_amount) || 0;
+      // Sales count: Documents.Count only — do not derive from list length.
+      var docCount = this.extractTicketCount(results[0]);
+      var closedTickets = this.extractTicketCount(results[1]);
+      var docs = Array.isArray(results[2]) ? results[2] : [];
+
+      var salesTotal = 0;
+      for (var i = 0; i < docs.length; i++) {
+        salesTotal += this.docFinalAmount(docs[i]);
       }
-      var docCount = this.extractTicketCount(results[2]);
-      var closedTickets =
-        this.extractTicketCount(results[3]) +
-        this.extractTicketCount(results[4]) +
-        this.extractTicketCount(results[5]);
-      var salesAvg = docCount > 0 ? (salesTotal / docCount) : 0;
+      var salesAvg = docs.length > 0 ? (salesTotal / docs.length) : 0;
 
       this.setState({
         loadingDocs: false,
@@ -575,14 +523,64 @@ class Component extends DCLogic {
       });
     } catch (e) {
       console.error('[TechDashboard] Documents/sales load failed', e);
+      // Keep existing totals/avg/closed — only clear the loading flag + count on hard failure.
       this.setState({
         loadingDocs: false,
-        salesTotal: 0,
-        salesAvg: 0,
-        closedTickets: 0,
         docCount: 0
       });
     }
+  }
+
+  docFinalAmount(doc) {
+    if (!doc) return 0;
+    var bag = null;
+    try { bag = this.collectDocFields ? this.collectDocFields(doc) : null; } catch (e0) { bag = null; }
+    var raw = doc.final_amount;
+    if (raw == null || raw === '') raw = doc.final_amount_main;
+    if (raw == null || raw === '') raw = doc.final_amount_ils;
+    if (raw == null || raw === '') raw = doc.amount_final;
+    if (raw == null || raw === '') raw = doc.total_amount;
+    if (raw == null || raw === '') raw = doc.amount;
+    if (raw == null || raw === '') raw = doc.total;
+    if (raw == null || raw === '') raw = doc.price;
+    if (raw == null || raw === '') raw = doc.sum;
+    if ((raw == null || raw === '') && bag) {
+      raw = bag.final_amount != null ? bag.final_amount
+        : (bag.final_amount_main != null ? bag.final_amount_main
+          : (bag.amount != null ? bag.amount : bag.total));
+    }
+    if (raw && typeof raw === 'object') {
+      raw = raw.value != null ? raw.value : (raw.amount != null ? raw.amount : (raw.val != null ? raw.val : ''));
+    }
+    var n = Number(String(raw == null ? '' : raw).replace(/[^\d.-]/g, ''));
+    return isFinite(n) ? n : 0;
+  }
+
+  async fetchDocumentsList(client, filters) {
+    var pageSize = 25;
+    var all = [];
+    var seen = {};
+    for (var page = 0; page < 40; page++) {
+      var payload = Object.assign({
+        customer_id: 0,
+        length: pageSize,
+        limit: pageSize,
+        start: page * pageSize,
+        draw: page + 1
+      }, filters || {});
+      var res = await client.request('Documents.List', payload).catch(function () { return null; });
+      var rows = this.extractRows(res);
+      if (!rows.length) break;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        var id = String(row.id || row.document_id || row.doc_id || ('d' + page + '-' + i));
+        if (seen[id]) continue;
+        seen[id] = true;
+        all.push(row);
+      }
+      if (rows.length < pageSize) break;
+    }
+    return all;
   }
 
   isTicketClosed(item) {
@@ -592,13 +590,104 @@ class Component extends DCLogic {
     if (st === '2' || st === 'closed' || st === 'done' || st === 'completed' || st === 'סגור' || st === 'נסגר' || st === 'הושלם' || st === 'בוצע') return true;
     var sid = Number(item.status_id != null ? item.status_id : item.status);
     if (sid === 2 || sid === 4 || sid === 5) return true;
-    var msgs = item.messages || item.message || '';
-    if (Array.isArray(msgs)) {
-      msgs = msgs.map(function (m) { return (m && (m.message || m.msg || m.text)) || ''; }).join('\n');
-    }
-    var msg = String(msgs || '');
-    if (/BIZ1_MEDIA\s*:/i.test(msg) || /Client signature saved/i.test(msg)) return true;
     return false;
+  }
+
+  parseTicketCustomFields(ticket) {
+    var cf = ticket && (ticket.custom_fields != null ? ticket.custom_fields : ticket.customFields);
+    if (typeof cf === 'string') {
+      try { cf = JSON.parse(cf); } catch (e0) { cf = null; }
+    }
+    if (!cf || typeof cf !== 'object' || Array.isArray(cf)) cf = {};
+    return cf;
+  }
+
+  ticketInstallTypeRaw(ticket) {
+    var cf = this.parseTicketCustomFields(ticket);
+    var raw = cf[this.INSTALL_TYPE_FIELD];
+    if (raw == null || raw === '') {
+      raw = ticket && (ticket[this.INSTALL_TYPE_FIELD] || ticket.install_type || ticket.installation_type);
+    }
+    if (Array.isArray(raw)) raw = raw.length ? raw[0] : '';
+    if (raw && typeof raw === 'object') {
+      raw = raw.value != null ? raw.value : (raw.label || raw.name || raw.title || '');
+    }
+    return String(raw == null ? '' : raw).trim();
+  }
+
+  installTypeLabel(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return this.t('Other', 'אחר');
+    var key = s.toLowerCase().replace(/[\s_-]+/g, '');
+    var map = {
+      waterbar: this.t('Water bar', 'בר מים'),
+      water: this.t('Water bar', 'בר מים'),
+      mainbar: this.t('Main bar', 'בר ראשי'),
+      main: this.t('Main bar', 'בר ראשי'),
+      filter: this.t('Filter', 'מסנן'),
+      undersink: this.t('Under-sink system', 'מערכת תת-כיורית'),
+      'תתכיורית': this.t('Under-sink system', 'מערכת תת-כיורית'),
+      'ברמים': this.t('Water bar', 'בר מים')
+    };
+    if (map[key]) return map[key];
+    return s;
+  }
+
+  async fetchTicketList(client, filters) {
+    var pageSize = 25;
+    var all = [];
+    var seen = {};
+    for (var page = 0; page < 40; page++) {
+      var payload = Object.assign({
+        limit: pageSize,
+        length: pageSize,
+        start: page * pageSize,
+        draw: page + 1
+      }, filters || {});
+      var res = await client.request('Ticket.List', payload).catch(function () { return null; });
+      var rows = this.extractRows(res);
+      if (!rows.length) break;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i] || {};
+        var id = String(row.id || row.ticket_id || ('t' + page + '-' + i));
+        if (seen[id]) continue;
+        seen[id] = true;
+        all.push(row);
+      }
+      if (rows.length < pageSize) break;
+    }
+    return all;
+  }
+
+  async loadInstallTypes(client, year, month, silent) {
+    if (!silent) this.setState({ loadingOpenTickets: true });
+    try {
+      var range = this.monthRange(year, month);
+      var rows = await this.fetchTicketList(client, {
+        type: 'my_tickets',
+        status_filter_val: 2,
+        from_date: range.from,
+        to_date: range.to
+      });
+      var counts = {};
+      var order = [];
+      for (var i = 0; i < rows.length; i++) {
+        var raw = this.ticketInstallTypeRaw(rows[i]);
+        var label = this.installTypeLabel(raw);
+        var key = label.toLowerCase();
+        if (!counts[key]) {
+          counts[key] = { name: label, count: 0 };
+          order.push(key);
+        }
+        counts[key].count += 1;
+      }
+      order.sort(function (a, b) { return counts[b].count - counts[a].count; });
+      var types = order.map(function (k) { return counts[k]; });
+      this.setState({ loadingOpenTickets: false, openTickets: types });
+    } catch (e) {
+      console.error('[TechDashboard] Ticket.List install types failed', e);
+      this.setState({ loadingOpenTickets: false, openTickets: [] });
+    }
   }
 
   formatTicketWhen(item) {
@@ -618,65 +707,6 @@ class Component extends DCLogic {
       return [day, time].filter(Boolean).join(' · ');
     }
     return String(dateStr).slice(0, 16);
-  }
-
-  async loadOpenTickets(client, silent) {
-    if (!silent) this.setState({ loadingOpenTickets: true });
-    try {
-      var res = await client.request('Ticket.List', { limit: 25 });
-      var rows = this.extractRows(res);
-      var open = [];
-      for (var i = 0; i < rows.length; i++) {
-        var item = rows[i];
-        if (this.isTicketClosed(item)) continue;
-        var st = String(item.status_name || item.status_label || item.status || '').toLowerCase();
-        var overdue = /overdue|delayed|late|באיחור|מאחר/.test(st);
-        var address = item.address;
-        if (!address || address === 'null') {
-          address = (item.city_id && item.city_id !== 'undefined') ? String(item.city_id) : '';
-        }
-        open.push({
-          id: String(item.id || item.ticket_id || ''),
-          name: item.subject || item.name || ('#' + (item.id || '')),
-          customer: item.customer_name || item.joined_customer_name || '',
-          type: item.type || '',
-          address: address || '',
-          when: this.formatTicketWhen(item),
-          overdue: overdue
-        });
-      }
-      this.setState({ loadingOpenTickets: false, openTickets: open, openTicketsPage: 1 });
-    } catch (e) {
-      console.error('[TechDashboard] Ticket.List open failed', e);
-      this.setState({ loadingOpenTickets: false, openTickets: [], openTicketsPage: 1 });
-    }
-  }
-
-  openTicketDetails(id) {
-    var q = new URLSearchParams();
-    if (id) q.set('ticket_id', String(id));
-    var ticket = (this.state.openTickets || []).find(function (t) { return String(t.id) === String(id); });
-    if (ticket && ticket.name) {
-      q.set('name', ticket.name);
-      q.set('subject', ticket.name);
-    }
-    if (ticket && ticket.customer) q.set('customer', ticket.customer);
-    q.set('back', 'tech-dashboard.html');
-    window.location.href = 'service-call-details.html?' + q.toString();
-  }
-
-  prevOpenTickets() {
-    if ((Number(this.state.openTicketsPage) || 1) <= 1) return;
-    this.setState({ openTicketsPage: Math.max(1, (Number(this.state.openTicketsPage) || 1) - 1) });
-  }
-
-  nextOpenTickets() {
-    var pageSize = Math.max(1, Number(this.state.openTicketsPageSize) || 5);
-    var total = (this.state.openTickets || []).length;
-    var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
-    var cur = Number(this.state.openTicketsPage) || 1;
-    if (cur >= totalPages) return;
-    this.setState({ openTicketsPage: Math.min(totalPages, cur + 1) });
   }
 
   resolveUserId() {
@@ -881,100 +911,114 @@ class Component extends DCLogic {
     return all;
   }
 
-  mapFieldOrder(row) {
-    var cid = String(row.cust_id || row.customer_id || row.contactus_id || '');
-    var name = String(row.customer_name || row.company_name || '').trim();
-    var sku = String(row.data1 || '').trim();
-    if (sku.indexOf('{') !== -1) sku = '';
-    var items = sku || this.formatOrderItems(row);
-    var amt = this.formatOrderAmount(row);
-    return {
-      id: String(row.id || row._id || row.row_id || ''),
-      name: name || sku || ('#' + (row.id || '')),
-      items: items || this.t('Purchase order', 'הזמנת רכש'),
-      amount: amt.text,
-      amountNum: amt.num,
-      when: this.formatOrderWhen(row),
-      fieldOrder: this.isYesValue(row.data11),
-      pdfUrl: this.cleanPdfUrl(row.pdf_url || row.file_url || ''),
-      customerId: cid
-    };
+  docBelongsToUser(doc, userId) {
+    if (!userId) return true;
+    var uid = String(userId);
+    var ids = [
+      doc.team_member_id, doc.user_id, doc.member_id, doc.assigned_to,
+      doc.created_by, doc.owner_id, doc.technician_id
+    ];
+    for (var i = 0; i < ids.length; i++) {
+      if (ids[i] != null && String(ids[i]) === uid) return true;
+      if (this.idsMatch && this.idsMatch(ids[i], userId)) return true;
+    }
+    return false;
   }
 
-  groupOrdersByCustomer(orders) {
-    var groups = [];
+  extractDocItems(doc) {
+    var items = doc && (doc.items || doc.products || doc.lines || doc.document_items);
+    if (typeof items === 'string') {
+      try { items = JSON.parse(items); } catch (e0) { items = null; }
+    }
+    return Array.isArray(items) ? items : [];
+  }
+
+  itemName(it) {
+    if (!it) return '';
+    return String(it.item_name || it.name || it.product_name || it.title || it.sku || '').trim();
+  }
+
+  itemQty(it) {
+    if (!it) return 0;
+    var raw = it.item_qty != null ? it.item_qty
+      : (it.qty != null ? it.qty
+        : (it.quantity != null ? it.quantity
+          : (it.amount_qty != null ? it.amount_qty : it.count)));
+    var n = Number(String(raw == null ? '' : raw).replace(/[^\d.-]/g, ''));
+    return isFinite(n) ? n : 0;
+  }
+
+  itemTotal(it) {
+    if (!it) return 0;
+    var raw = it.item_total != null ? it.item_total
+      : (it.total != null ? it.total
+        : (it.final_amount != null ? it.final_amount
+          : (it.price_total != null ? it.price_total
+            : (it.amount != null ? it.amount : it.sum))));
+    if ((raw == null || raw === '') && it.item_price != null && this.itemQty(it)) {
+      raw = Number(it.item_price) * this.itemQty(it);
+    }
+    var n = Number(String(raw == null ? '' : raw).replace(/[^\d.-]/g, ''));
+    return isFinite(n) ? n : 0;
+  }
+
+  groupItemsByProduct(docs) {
     var map = {};
-    for (var i = 0; i < (orders || []).length; i++) {
-      var o = orders[i];
-      var key = String(o.customerId || o.name || o.id || i);
-      if (!map[key]) {
-        map[key] = {
-          key: key,
-          customerId: o.customerId,
-          name: o.name,
-          lines: [],
-          amountNum: 0,
-          when: o.when,
-          fieldOrder: false,
-          pdfUrl: o.pdfUrl || ''
-        };
-        groups.push(map[key]);
+    var order = [];
+    for (var d = 0; d < (docs || []).length; d++) {
+      var items = this.extractDocItems(docs[d]);
+      for (var i = 0; i < items.length; i++) {
+        var name = this.itemName(items[i]);
+        if (!name) continue;
+        var key = name.toLowerCase();
+        if (!map[key]) {
+          map[key] = { name: name, qty: 0, total: 0 };
+          order.push(key);
+        }
+        map[key].qty += this.itemQty(items[i]);
+        map[key].total += this.itemTotal(items[i]);
       }
-      var g = map[key];
-      g.lines.push(o);
-      g.amountNum += Number(o.amountNum) || 0;
-      if (o.fieldOrder) g.fieldOrder = true;
-      if (!g.pdfUrl && o.pdfUrl) g.pdfUrl = o.pdfUrl;
     }
-    for (var g2 = 0; g2 < groups.length; g2++) {
-      var grp = groups[g2];
-      var n = grp.lines.length;
-      grp.amount = Math.round(grp.amountNum).toLocaleString('en-US') + '₪';
-      grp.items = n + ' ' + this.t(n === 1 ? 'order' : 'orders', n === 1 ? 'הזמנה' : 'הזמנות');
-    }
-    return groups;
+    order.sort(function (a, b) { return map[b].total - map[a].total; });
+    return order.map(function (k) { return map[k]; });
   }
 
-  async loadFieldOrders(client, silent) {
+  async loadFieldOrders(client, year, month, silent) {
     if (!silent) this.setState({ loadingOrders: true });
     try {
+      var range = this.monthRange(year, month);
       var userId = this.resolveUserId();
-      var rows = await this.fetchEntryRows(client, {});
-      var orders = [];
-      for (var i = 0; i < rows.length; i++) {
-        if (!this.isFieldPurchaseEntry(rows[i], userId)) continue;
-        orders.push(this.mapFieldOrder(rows[i]));
+      var base = {
+        from_date: range.from,
+        to_date: range.to,
+        customer_id: 0,
+        team_member_id: userId || undefined
+      };
+      var results = await Promise.all([
+        this.fetchDocumentsList(client, Object.assign({}, base, { type: 'invoice' })),
+        this.fetchDocumentsList(client, Object.assign({}, base, { type: 'purchase_orders' }))
+      ]);
+      var seen = {};
+      var docs = [];
+      var packs = [results[0] || [], results[1] || []];
+      for (var p = 0; p < packs.length; p++) {
+        for (var i = 0; i < packs[p].length; i++) {
+          var row = packs[p][i] || {};
+          if (userId && !this.docBelongsToUser(row, userId) && row.team_member_id != null) continue;
+          var id = String(row.id || row.document_id || ('x' + p + '-' + i));
+          if (seen[id]) continue;
+          seen[id] = true;
+          docs.push(row);
+        }
       }
       this.setState({
         loadingOrders: false,
-        fieldOrders: this.groupOrdersByCustomer(orders),
-        fieldOrdersPage: 1,
-        expandedOrderKey: ''
+        fieldOrders: this.groupItemsByProduct(docs)
       });
     } catch (e) {
-      console.error('[TechDashboard] Entries.List field orders failed', e);
-      this.setState({ loadingOrders: false, fieldOrders: [], fieldOrdersPage: 1 });
+      console.error('[TechDashboard] Documents.List field orders failed', e);
+      this.setState({ loadingOrders: false, fieldOrders: [] });
     }
-  }
-
-  openFieldOrder(order) {
-    if (!order) return;
-    var key = String(order.key || order.customerId || order.name || '');
-    this.setState({ expandedOrderKey: this.state.expandedOrderKey === key ? '' : key });
-  }
-
-  prevOrders() {
-    if ((Number(this.state.fieldOrdersPage) || 1) <= 1) return;
-    this.setState({ fieldOrdersPage: Math.max(1, (Number(this.state.fieldOrdersPage) || 1) - 1) });
-  }
-
-  nextOrders() {
-    var pageSize = Math.max(1, Number(this.state.fieldOrdersPageSize) || 5);
-    var total = (this.state.fieldOrders || []).length;
-    var totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
-    var cur = Number(this.state.fieldOrdersPage) || 1;
-    if (cur >= totalPages) return;
-    this.setState({ fieldOrdersPage: Math.min(totalPages, cur + 1) });
   }
 
   renderVals() {
@@ -1019,16 +1063,10 @@ class Component extends DCLogic {
         : ('סה״כ ' + totalTickets + ' קריאות'));
 
     var allOpen = st.openTickets || [];
-    var pageSize = Math.max(1, Number(st.openTicketsPageSize) || 5);
     var totalOpen = allOpen.length;
-    var totalPages = Math.max(1, Math.ceil(totalOpen / pageSize) || 1);
-    var page = Math.min(Math.max(1, Number(st.openTicketsPage) || 1), totalPages);
-    var startIdx = (page - 1) * pageSize;
-    var pageOpen = allOpen.slice(startIdx, startIdx + pageSize);
-    var from = totalOpen ? (startIdx + 1) : 0;
-    var to = Math.min(startIdx + pageOpen.length, totalOpen);
-    var canPrev = page > 1;
-    var canNext = page < totalPages;
+    var totalInstallCount = allOpen.reduce(function (sum, row) {
+      return sum + (Number(row && row.count) || 0);
+    }, 0);
 
     var monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     var monthsHe = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -1057,63 +1095,31 @@ class Component extends DCLogic {
       })(y, m, selected);
     }
 
-    var openTickets = pageOpen.map(function (t, i) {
-      var overdue = !!t.overdue;
-      var metaParts = [t.when, t.type, t.address].filter(Boolean);
+    var openTickets = allOpen.map(function (t, i) {
+      var color = this.COLORS[i % this.COLORS.length];
+      var tone = this.TONE[color] || { bg: '#eaf2fb' };
       return {
         name: t.name,
-        customer: t.customer || this.t('No customer', 'ללא לקוח'),
-        meta: metaParts.join(' · ') || this.t('Not scheduled', 'ללא תזמון'),
-        badge: overdue ? this.t('Overdue', 'באיחור') : this.t('Open', 'פתוח'),
-        badgeBg: overdue ? '#fbeeed' : '#eaf2fb',
-        badgeColor: overdue ? '#c0392b' : '#1d60a2',
-        iconBg: overdue ? '#fbeeed' : '#eaf2fb',
-        iconColor: overdue ? '#c0392b' : '#1d60a2',
-        border: i === pageOpen.length - 1 ? 'transparent' : '#f0f2f5',
-        actionLabel: this.t('Open', 'פתח'),
-        open: (function (id) {
-          return function () { self.openTicketDetails(id); };
-        })(t.id)
+        count: String(t.count || 0),
+        badgeBg: tone.bg,
+        badgeColor: color,
+        iconBg: tone.bg,
+        iconColor: color,
+        border: i === allOpen.length - 1 ? 'transparent' : '#f0f2f5'
       };
     }.bind(this));
 
     var allOrders = st.fieldOrders || [];
-    var orderPageSize = Math.max(1, Number(st.fieldOrdersPageSize) || 5);
     var totalOrders = allOrders.length;
-    var orderPages = Math.max(1, Math.ceil(totalOrders / orderPageSize) || 1);
-    var orderPage = Math.min(Math.max(1, Number(st.fieldOrdersPage) || 1), orderPages);
-    var orderStart = (orderPage - 1) * orderPageSize;
-    var pageOrders = allOrders.slice(orderStart, orderStart + orderPageSize);
-    var orderFrom = totalOrders ? (orderStart + 1) : 0;
-    var orderTo = Math.min(orderStart + pageOrders.length, totalOrders);
-    var canPrevOrders = orderPage > 1;
-    var canNextOrders = orderPage < orderPages;
-    var fieldOrders = pageOrders.map(function (o, i) {
-      var expanded = String(st.expandedOrderKey || '') === String(o.key || o.customerId || o.name || '');
-      var lines = (o.lines || []).map(function (ln, li) {
-        return {
-          items: ln.items || this.t('Purchase order', 'הזמנת רכש'),
-          amount: ln.amount || '',
-          meta: [ln.when, ln.fieldOrder ? this.t('Field order', 'הזמנת שטח') : this.t('Purchase order', 'הזמנת רכש')].filter(Boolean).join(' · '),
-          border: li === o.lines.length - 1 ? 'transparent' : '#e8edf3'
-        };
-      }.bind(this));
+    var fieldOrders = allOrders.map(function (o, i) {
+      var qty = Number(o.qty) || 0;
       return {
         name: o.name,
-        items: o.items || '',
-        amount: o.amount || '',
-        meta: o.when || '',
-        expanded: expanded,
-        lines: lines,
-        badgeBg: '#e9f5ee',
-        badgeColor: '#2e8a63',
+        amount: this.fmt(o.total || 0),
+        qtyLabel: qty + ' ' + this.t(qty === 1 ? 'unit' : 'units', qty === 1 ? 'יחידה' : 'יחידות'),
         iconBg: '#eaf2fb',
         iconColor: '#1d60a2',
-        border: i === pageOrders.length - 1 ? 'transparent' : '#f0f2f5',
-        actionLabel: expanded ? this.t('Hide', 'הסתר') : this.t('View', 'צפייה'),
-        open: (function (ord) {
-          return function () { self.openFieldOrder(ord); };
-        })(o)
+        border: i === allOrders.length - 1 ? 'transparent' : '#f0f2f5'
       };
     }.bind(this));
 
@@ -1132,50 +1138,18 @@ class Component extends DCLogic {
       openTicketsEmpty: !st.loadingOpenTickets && totalOpen === 0,
       openTicketsCountLabel: st.loadingOpenTickets
         ? ''
-        : (totalOpen + ' ' + this.t('open tickets', 'קריאות פתוחות')),
+        : (totalInstallCount + ' ' + this.t('closed tickets', 'קריאות שנסגרו')),
       openTicketsSectionLabel: this.t('Detail by type of installation', 'פירוט לפי סוג התקנה'),
-      openTicketsEmptyLabel: this.t('No open tickets', 'אין קריאות פתוחות'),
+      openTicketsEmptyLabel: this.t('No closed tickets', 'אין קריאות שנסגרו'),
       loadingLabel: this.t('Loading…', 'טוען…'),
-      showOpenTicketsPager: !st.loadingOpenTickets && totalOpen > 0,
-      openTicketsRangeLabel: totalOpen
-        ? (from + '–' + to + ' ' + this.t('of', 'מתוך') + ' ' + totalOpen)
-        : '',
-      openTicketsPageLabel: this.t('Page ', 'עמוד ') + page + ' / ' + totalPages,
-      prevOpenTickets: function () { self.prevOpenTickets(); },
-      nextOpenTickets: function () { self.nextOpenTickets(); },
-      openPrevLabel: this.t('‹ Prev', '‹ הקודם'),
-      openNextLabel: this.t('Next ›', 'הבא ›'),
-      openPrevBg: canPrev ? '#1d60a2' : '#e9ecf0',
-      openNextBg: canNext ? '#1d60a2' : '#e9ecf0',
-      openPrevColor: canPrev ? '#fff' : '#9aa3b0',
-      openNextColor: canNext ? '#fff' : '#9aa3b0',
-      openPrevCursor: canPrev ? 'pointer' : 'not-allowed',
-      openNextCursor: canNext ? 'pointer' : 'not-allowed',
-      openPrevOpacity: canPrev ? '1' : '0.7',
-      openNextOpacity: canNext ? '1' : '0.7',
       fieldOrders: fieldOrders,
       ordersLoading: !!st.loadingOrders,
       ordersEmpty: !st.loadingOrders && totalOrders === 0,
       ordersSectionLabel: this.t('Field orders', 'הזמנות שטח'),
       ordersCountLabel: st.loadingOrders
         ? ''
-        : (totalOrders + ' ' + this.t('customers', 'לקוחות')),
-      ordersEmptyLabel: this.t('No field purchase orders', 'אין הזמנות שנרכשו בשטח'),
-      showOrdersPager: !st.loadingOrders && totalOrders > 0,
-      ordersRangeLabel: totalOrders
-        ? (orderFrom + '–' + orderTo + ' ' + this.t('of', 'מתוך') + ' ' + totalOrders)
-        : '',
-      ordersPageLabel: this.t('Page ', 'עמוד ') + orderPage + ' / ' + orderPages,
-      prevOrders: function () { self.prevOrders(); },
-      nextOrders: function () { self.nextOrders(); },
-      ordersPrevBg: canPrevOrders ? '#1d60a2' : '#e9ecf0',
-      ordersNextBg: canNextOrders ? '#1d60a2' : '#e9ecf0',
-      ordersPrevColor: canPrevOrders ? '#fff' : '#9aa3b0',
-      ordersNextColor: canNextOrders ? '#fff' : '#9aa3b0',
-      ordersPrevCursor: canPrevOrders ? 'pointer' : 'not-allowed',
-      ordersNextCursor: canNextOrders ? 'pointer' : 'not-allowed',
-      ordersPrevOpacity: canPrevOrders ? '1' : '0.7',
-      ordersNextOpacity: canNextOrders ? '1' : '0.7',
+        : (totalOrders + ' ' + this.t('products', 'מוצרים')),
+      ordersEmptyLabel: this.t('No products', 'אין מוצרים'),
       salesTotal: st.loadingDocs ? '…' : this.fmt(st.salesTotal),
       salesAvg: st.loadingDocs ? '…' : this.fmt(st.salesAvg),
       closedTickets: st.loadingDocs ? '…' : String(st.closedTickets || 0),

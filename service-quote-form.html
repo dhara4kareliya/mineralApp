@@ -98,12 +98,39 @@ mbCss('./common.css');
 <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="M12 5v14M5 12h14"></path></svg>
           Add another product
         </a>
-<!-- install address -->
+<!-- install address (detailed) -->
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
 <svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
           Installation address
         </label>
-<input class="gv-in" style="margin-bottom:13px;" type="text" value="{{ address }}"/>
+<div style="margin-bottom:6px;">
+<label style="display:block;font-size:11.5px;font-weight:600;color:#9aa3b0;margin:0 2px 5px;">City</label>
+<input class="gv-in" oninput="{{ onCityInput }}" placeholder="City" style="margin-bottom:8px;" type="text" value="{{ city }}"/>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px;">
+<div style="flex:1.4;min-width:0;">
+<label style="display:block;font-size:11.5px;font-weight:600;color:#9aa3b0;margin:0 2px 5px;">Street</label>
+<input class="gv-in" oninput="{{ onStreetInput }}" placeholder="Street" type="text" value="{{ street }}"/>
+</div>
+<div style="flex:1;min-width:0;">
+<label style="display:block;font-size:11.5px;font-weight:600;color:#9aa3b0;margin:0 2px 5px;">Building</label>
+<input class="gv-in" oninput="{{ onBuildingInput }}" placeholder="No." type="text" value="{{ building }}"/>
+</div>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:13px;">
+<div style="flex:1;min-width:0;">
+<label style="display:block;font-size:11.5px;font-weight:600;color:#9aa3b0;margin:0 2px 5px;">Floor</label>
+<input class="gv-in" oninput="{{ onFloorInput }}" placeholder="Floor" type="text" value="{{ floor }}"/>
+</div>
+<div style="flex:1;min-width:0;">
+<label style="display:block;font-size:11.5px;font-weight:600;color:#9aa3b0;margin:0 2px 5px;">Apartment</label>
+<input class="gv-in" oninput="{{ onApartmentInput }}" placeholder="Apt" type="text" value="{{ apartment }}"/>
+</div>
+<div style="flex:1;min-width:0;">
+<label style="display:block;font-size:11.5px;font-weight:600;color:#9aa3b0;margin:0 2px 5px;">Entrance</label>
+<input class="gv-in" oninput="{{ onEntranceInput }}" placeholder="Entrance" type="text" value="{{ entrance }}"/>
+</div>
+</div>
 <!-- ID -->
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#7b8595; margin:0 2px 7px;">
 <svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
@@ -137,7 +164,7 @@ mbCss('./common.css');
 </div>
 </div>
 <!-- whatsapp CTA -->
-<a href="{{ sendUrl }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:15px; border-radius:14px; background:linear-gradient(135deg,#2bb05c,#1f9a4e); color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(37,179,94,.28);">
+<a href="{{ sendUrl }}" onclick="{{ onSendQuote }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:15px; border-radius:14px; background:linear-gradient(135deg,#2bb05c,#1f9a4e); color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(37,179,94,.28);">
 <svg fill="#fff" height="20" viewbox="0 0 24 24" width="20"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg>
           Send for a digital signature on WhatsApp
         </a>
@@ -152,14 +179,27 @@ mbCss('./common.css');
     name: '',
     phone: '',
     city: '',
+    street: '',
+    building: '',
+    floor: '',
+    apartment: '',
+    entrance: '',
     address: '',
     userName: '',
     backUrl: 'service-customer-card.html',
     products: [],
     discount: 0,
     discountAmt: 0,
-    totalAmt: 0
+    totalAmt: 0,
+    sending: false
   };
+
+  // Customer.Get / Customer.Update address extras
+  ADDR_STREET = 'a-1786932384';      // CustStreet
+  ADDR_BUILDING = 'a-1786932385';    // CustBuildingNo
+  ADDR_FLOOR = 'a-1786932709';
+  ADDR_APARTMENT = 'a-1786932606';
+  ADDR_ENTRANCE = 'a-1786932387';
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
@@ -194,14 +234,203 @@ mbCss('./common.css');
     return String(id || '').trim();
   }
 
+  customerExtraFields(c) {
+    c = c || {};
+    var ef = c.extra_fields_json != null ? c.extra_fields_json : c.extra_fields;
+    if (typeof ef === 'string') {
+      try { ef = JSON.parse(ef); } catch (e) { ef = {}; }
+    }
+    return (ef && typeof ef === 'object' && !Array.isArray(ef)) ? ef : {};
+  }
+
+  extraFieldVal(ef, key) {
+    if (!ef || !key) return '';
+    var v = ef[key];
+    if (v == null || v === '') {
+      if (ef.extra_fields && typeof ef.extra_fields === 'object') v = ef.extra_fields[key];
+    }
+    if (v && typeof v === 'object') {
+      v = v.value != null ? v.value : (v.name != null ? v.name : (v.label != null ? v.label : ''));
+    }
+    return String(v == null ? '' : v).trim();
+  }
+
+  joinInstallAddress(parts) {
+    parts = parts || this.state;
+    var out = [];
+    var streetLine = [parts.street, parts.building].filter(Boolean).join(' ').trim();
+    if (streetLine) out.push(streetLine);
+    if (parts.entrance) out.push('Entrance ' + parts.entrance);
+    if (parts.floor) out.push('Floor ' + parts.floor);
+    if (parts.apartment) out.push('Apt ' + parts.apartment);
+    if (parts.city) out.push(parts.city);
+    var joined = out.join(', ');
+    if (joined) return joined;
+    return String(parts.address || '').trim();
+  }
+
+  /** Split joined customer.address (from Add Customer) into street/building/floor/apt/entrance. */
+  parseInstallAddress(raw, cityHint) {
+    var empty = { street: '', building: '', floor: '', apartment: '', entrance: '', city: String(cityHint || '').trim() };
+    raw = String(raw || '').trim();
+    if (!raw) return empty;
+    var city = empty.city;
+    var segments = raw.split(/\s*,\s*/).map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+    var floor = '';
+    var apartment = '';
+    var entrance = '';
+    var leftover = [];
+    var areaRe = /^(north|south|center|jerusalem|צפון|דרום|מרכז|ירושלים)$/i;
+    for (var i = 0; i < segments.length; i++) {
+      var seg = segments[i];
+      var m;
+      if ((m = seg.match(/^(?:Entrance|כניסה)\s*[—:\-]?\s*(.+)$/i))) {
+        entrance = String(m[1] || '').trim();
+        continue;
+      }
+      if ((m = seg.match(/^(?:Floor|קומה)\s*[—:\-]?\s*(.+)$/i))) {
+        floor = String(m[1] || '').trim();
+        continue;
+      }
+      if ((m = seg.match(/^(?:Apt\.?|Apartment|דירה)\s*[—:\-]?\s*(.+)$/i))) {
+        apartment = String(m[1] || '').trim();
+        continue;
+      }
+      if (areaRe.test(seg)) continue;
+      if (city && seg.toLowerCase() === city.toLowerCase()) continue;
+      leftover.push(seg);
+    }
+    var streetLine = leftover.join(', ').trim();
+    var street = '';
+    var building = '';
+    if (streetLine) {
+      var tokens = streetLine.split(/\s+/).filter(Boolean);
+      if (tokens.length >= 2) {
+        var last = tokens[tokens.length - 1];
+        // Building no. is usually short (12, 12א, B) — not a street-type word
+        if (
+          /^[\dA-Za-zא-ת\-./]{1,8}$/.test(last) &&
+          !/^(st|street|rd|ave|avenue|blvd|road|lane|dr|drive|רחוב|שדרות)$/i.test(last)
+        ) {
+          building = last;
+          street = tokens.slice(0, -1).join(' ');
+        } else {
+          street = streetLine;
+        }
+      } else {
+        street = streetLine;
+      }
+    }
+    return {
+      street: street,
+      building: building,
+      floor: floor,
+      apartment: apartment,
+      entrance: entrance,
+      city: city
+    };
+  }
+
+  inputVal(e) {
+    return e && e.target ? String(e.target.value || '') : String(e == null ? '' : e);
+  }
+
+  onCityInput(e) { this.setState({ city: this.inputVal(e) }); }
+  onStreetInput(e) { this.setState({ street: this.inputVal(e) }); }
+  onBuildingInput(e) { this.setState({ building: this.inputVal(e) }); }
+  onFloorInput(e) { this.setState({ floor: this.inputVal(e) }); }
+  onApartmentInput(e) { this.setState({ apartment: this.inputVal(e) }); }
+  onEntranceInput(e) { this.setState({ entrance: this.inputVal(e) }); }
+
+  async persistCustomerAddress(parts) {
+    parts = parts || this.state;
+    var cid = String(parts.customer_id || this.getCustomerId() || '').trim();
+    if (!cid || !window.MineralBarApp || !MineralBarApp.getClient) return;
+    var client = MineralBarApp.getClient();
+    if (!client || !client.request) return;
+    var body = {
+      customer_id: cid,
+      cust_id: cid,
+      id: cid,
+      city: String(parts.city || '').trim(),
+      address: this.joinInstallAddress(parts)
+    };
+    body['extra_fields[' + this.ADDR_STREET + ']'] = String(parts.street || '').trim();
+    body['extra_fields[' + this.ADDR_BUILDING + ']'] = String(parts.building || '').trim();
+    body['extra_fields[' + this.ADDR_FLOOR + ']'] = String(parts.floor || '').trim();
+    body['extra_fields[' + this.ADDR_APARTMENT + ']'] = String(parts.apartment || '').trim();
+    body['extra_fields[' + this.ADDR_ENTRANCE + ']'] = String(parts.entrance || '').trim();
+    try {
+      await client.request('Customer.Update', body);
+    } catch (err) {
+      try {
+        await client.request('Customer.Edit', body);
+      } catch (err2) {
+        console.warn('[QuoteForm] customer address write-back failed', err2 || err);
+      }
+    }
+  }
+
+  buildSendUrl(override) {
+    var s = Object.assign({}, this.state, override || {});
+    var address = this.joinInstallAddress(s);
+    var q = new URLSearchParams();
+    if (s.customer_id) {
+      q.set('customer_id', s.customer_id);
+      q.set('cust_id', s.customer_id);
+    }
+    if (s.name) q.set('name', s.name);
+    if (s.phone) q.set('phone', s.phone);
+    if (s.city) q.set('city', s.city);
+    if (s.street) q.set('street', s.street);
+    if (s.building) q.set('building', s.building);
+    if (s.floor) q.set('floor', s.floor);
+    if (s.apartment) q.set('apartment', s.apartment);
+    if (s.entrance) q.set('entrance', s.entrance);
+    if (address) q.set('address', address);
+    q.set('discount', String(s.discountAmt || 0));
+    if (s.userName) q.set('userName', s.userName);
+    var productIds = (s.products || []).map(function (p) { return p.id; }).join(',');
+    q.set('product_ids', productIds);
+    try {
+      sessionStorage.setItem('mb_quote_address_parts', JSON.stringify({
+        city: s.city || '',
+        street: s.street || '',
+        building: s.building || '',
+        floor: s.floor || '',
+        apartment: s.apartment || '',
+        entrance: s.entrance || '',
+        address: address
+      }));
+    } catch (eStore) { /* ignore */ }
+    return 'final-quote.html?' + q.toString();
+  }
+
+  async onSendQuote(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (this.state.sending) return false;
+    this.setState({ sending: true });
+    try {
+      var address = this.joinInstallAddress(this.state);
+      this.setState({ address: address });
+      await this.persistCustomerAddress(Object.assign({}, this.state, { address: address }));
+      location.href = this.buildSendUrl({ address: address });
+    } catch (err) {
+      console.warn('[QuoteForm] send failed', err);
+      location.href = this.buildSendUrl();
+    } finally {
+      this.setState({ sending: false });
+    }
+    return false;
+  }
+
   async initData() {
     try {
       var q = new URLSearchParams(window.location.search);
       var customerId = this.getCustomerId();
       var name = q.get('name') || '';
       var phone = q.get('phone') || '';
-      var email = q.get('email') || '';
-      
+
       var backUrl = 'service-customer-card.html';
       var qBack = q.get('back') || q.get('from') || q.get('return') || '';
       if (qBack) {
@@ -212,7 +441,7 @@ mbCss('./common.css');
         backUrl = 'service-customer-card.html?customer_id=' + encodeURIComponent(customerId) +
           '&cust_id=' + encodeURIComponent(customerId);
       }
-      
+
       var stateUpdate = {
         discount: 0,
         customer_id: customerId || '',
@@ -220,6 +449,13 @@ mbCss('./common.css');
       };
       if (name) stateUpdate.name = name;
       if (phone) stateUpdate.phone = phone;
+      if (q.get('city')) stateUpdate.city = q.get('city');
+      if (q.get('street')) stateUpdate.street = q.get('street');
+      if (q.get('building')) stateUpdate.building = q.get('building');
+      if (q.get('floor')) stateUpdate.floor = q.get('floor');
+      if (q.get('apartment')) stateUpdate.apartment = q.get('apartment');
+      if (q.get('entrance')) stateUpdate.entrance = q.get('entrance');
+      if (q.get('address')) stateUpdate.address = q.get('address');
 
       if (window.MineralBarApp && typeof MineralBarApp.getUser === 'function') {
         var user = MineralBarApp.getUser();
@@ -231,7 +467,6 @@ mbCss('./common.css');
 
       this.setState(stateUpdate);
 
-      // Load products
       var productsList = [];
       if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
         try {
@@ -240,7 +475,7 @@ mbCss('./common.css');
           var data = res && (res.data || res.output || res);
           if (Array.isArray(data) && data.length > 0) {
             productsList = data.map(function(item) {
-              var name = item.product_name || item.name || 'מוצר';
+              var pname = item.product_name || item.name || 'מוצר';
               var rawPrice = item.product_price != null ? item.product_price
                 : (item.main_price != null ? item.main_price
                   : (item.sale_price != null ? item.sale_price
@@ -250,7 +485,6 @@ mbCss('./common.css');
               var priceVal = Math.round(Number(rawPrice));
               if (!isFinite(priceVal) || priceVal < 0) priceVal = 0;
               var desc = item.description || item.discription || item.desc || '';
-              
               var discountVal = Number(item.discount_price || item.discount || 0);
               var isPercent = Number(item.is_price_percent || 0) === 1;
               var discountAmt = isPercent ? Math.round(priceVal * (discountVal / 100)) : Math.round(discountVal);
@@ -260,7 +494,7 @@ mbCss('./common.css');
               }
               return {
                 id: String(item.id || Math.random()),
-                name: name,
+                name: pname,
                 sub: desc,
                 price: priceVal + ' NIS',
                 priceNum: priceVal,
@@ -275,7 +509,7 @@ mbCss('./common.css');
           console.warn('[MineralBar] failed to fetch products list', err);
         }
       }
-      
+
       var productIdsStr = '';
       if (q.has('product_ids')) {
         productIdsStr = q.get('product_ids') || '';
@@ -291,44 +525,69 @@ mbCss('./common.css');
         var ids = productIdsStr.split(',').map(function (x) { return String(x || '').trim(); }).filter(Boolean);
         ids.forEach(function(productId) {
           var found = productsList.find(function(p) { return String(p.id) === String(productId); });
-          if (found) {
-            finalProducts.push(JSON.parse(JSON.stringify(found)));
-          }
+          if (found) finalProducts.push(JSON.parse(JSON.stringify(found)));
         });
       }
       // Do not auto-seed a default product — each customer starts empty unless selected
       productsList = finalProducts;
 
       var subTotal = productsList.reduce((sum, p) => sum + (p.priceNum || 0), 0);
-      var discountAmt = productsList.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
-      var totalAmt = subTotal - discountAmt;
+      var discountAmtSum = productsList.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
+      var totalAmt = subTotal - discountAmtSum;
       if (window.MineralBarApp && typeof MineralBarApp.setSelectedProductIds === 'function') {
         MineralBarApp.setSelectedProductIds(customerId, productsList.map(function (p) { return p.id; }));
       }
       this.setState({
         products: productsList,
-        discountAmt: discountAmt,
+        discountAmt: discountAmtSum,
         totalAmt: totalAmt
       });
 
-      // Load customer details
       if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
         try {
-          var res = await MineralBarApp.getCustomer(customerId);
-          var c = res && res.customer;
+          var cres = await MineralBarApp.getCustomer(customerId);
+          var c = cres && cres.customer;
           if (c) {
             if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) {
               c = c.data;
             }
-            var fullAddress = c.address || '';
-            if (c.city || c.city_name) {
-              fullAddress += (fullAddress ? ', ' : '') + (c.city || c.city_name);
+            var ef = this.customerExtraFields(c);
+            var street = this.extraFieldVal(ef, this.ADDR_STREET);
+            var building = this.extraFieldVal(ef, this.ADDR_BUILDING);
+            var floor = this.extraFieldVal(ef, this.ADDR_FLOOR);
+            var apartment = this.extraFieldVal(ef, this.ADDR_APARTMENT);
+            var entrance = this.extraFieldVal(ef, this.ADDR_ENTRANCE);
+            var city = String(c.city || c.city_name || this.state.city || '').trim();
+            var fallbackAddress = String(c.address || '').trim();
+            // Prefer extras; if missing (legacy create), parse joined address string
+            if (!street && !building && !floor && !apartment && !entrance && fallbackAddress) {
+              var parsed = this.parseInstallAddress(fallbackAddress, city);
+              street = parsed.street;
+              building = parsed.building;
+              floor = parsed.floor;
+              apartment = parsed.apartment;
+              entrance = parsed.entrance;
+              if (!city && parsed.city) city = parsed.city;
             }
+            var parts = {
+              street: street || this.state.street || '',
+              building: building || this.state.building || '',
+              floor: floor || this.state.floor || '',
+              apartment: apartment || this.state.apartment || '',
+              entrance: entrance || this.state.entrance || '',
+              city: city || this.state.city || '',
+              address: fallbackAddress || this.state.address || ''
+            };
             this.setState({
               name: c.name || this.state.name || name || ('#' + customerId),
               phone: c.phone || c.mobile || this.state.phone || phone,
-              city: c.city || c.city_name || this.state.city,
-              address: fullAddress || this.state.address
+              city: parts.city,
+              street: parts.street,
+              building: parts.building,
+              floor: parts.floor,
+              apartment: parts.apartment,
+              entrance: parts.entrance,
+              address: this.joinInstallAddress(parts) || parts.address
             });
           }
         } catch (err) {
@@ -374,26 +633,13 @@ mbCss('./common.css');
     var s = this.state;
     var initials = this.getInitials(s.name);
     var subText = s.phone + (s.city ? ' · ' + s.city : '');
-    
+
     var productsMapped = (s.products || []).map(p => ({
       ...p,
       remove: () => this.removeProduct(p.id)
     }));
 
-    var q = new URLSearchParams();
-    if (s.customer_id) {
-      q.set('customer_id', s.customer_id);
-      q.set('cust_id', s.customer_id);
-    }
-    if (s.name) q.set('name', s.name);
-    if (s.phone) q.set('phone', s.phone);
-    if (s.city) q.set('city', s.city);
-    if (s.address) q.set('address', s.address);
-    q.set('discount', String(s.discountAmt || 0));
-    if (s.userName) q.set('userName', s.userName);
-    
     var productIds = (s.products || []).map(p => p.id).join(',');
-    q.set('product_ids', productIds);
     if (window.MineralBarApp && typeof MineralBarApp.setSelectedProductIds === 'function') {
       MineralBarApp.setSelectedProductIds(s.customer_id, productIds);
     } else {
@@ -402,22 +648,51 @@ mbCss('./common.css');
         localStorage.setItem('mb_selected_product_ids', productIds);
       } catch (eSync) { /* ignore */ }
     }
-    
-    var selectProductQuery = new URLSearchParams(q.toString());
+
+    var selectProductQuery = new URLSearchParams();
+    if (s.customer_id) {
+      selectProductQuery.set('customer_id', s.customer_id);
+      selectProductQuery.set('cust_id', s.customer_id);
+    }
+    if (s.name) selectProductQuery.set('name', s.name);
+    if (s.phone) selectProductQuery.set('phone', s.phone);
+    if (s.city) selectProductQuery.set('city', s.city);
+    if (s.street) selectProductQuery.set('street', s.street);
+    if (s.building) selectProductQuery.set('building', s.building);
+    if (s.floor) selectProductQuery.set('floor', s.floor);
+    if (s.apartment) selectProductQuery.set('apartment', s.apartment);
+    if (s.entrance) selectProductQuery.set('entrance', s.entrance);
+    var joined = this.joinInstallAddress(s);
+    if (joined) selectProductQuery.set('address', joined);
+    selectProductQuery.set('product_ids', productIds);
     selectProductQuery.set('from', 'quote');
-    
+    if (s.backUrl) selectProductQuery.set('back', s.backUrl);
+
     return {
       name: s.name,
       subText: subText,
       initials: initials,
       userName: s.userName,
-      address: s.address,
+      city: s.city || '',
+      street: s.street || '',
+      building: s.building || '',
+      floor: s.floor || '',
+      apartment: s.apartment || '',
+      entrance: s.entrance || '',
+      address: joined,
       backUrl: s.backUrl,
       products: productsMapped,
       discountAmt: s.discountAmt || 0,
       totalAmt: s.totalAmt || 0,
-      sendUrl: 'final-quote.html?' + q.toString(),
-      selectProductUrl: 'service-select-product.html?' + selectProductQuery.toString()
+      sendUrl: this.buildSendUrl(),
+      selectProductUrl: 'service-select-product.html?' + selectProductQuery.toString(),
+      onCityInput: (e) => this.onCityInput(e),
+      onStreetInput: (e) => this.onStreetInput(e),
+      onBuildingInput: (e) => this.onBuildingInput(e),
+      onFloorInput: (e) => this.onFloorInput(e),
+      onApartmentInput: (e) => this.onApartmentInput(e),
+      onEntranceInput: (e) => this.onEntranceInput(e),
+      onSendQuote: (e) => this.onSendQuote(e)
     };
   }
 }</script>

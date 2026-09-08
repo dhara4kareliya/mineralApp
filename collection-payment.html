@@ -174,40 +174,38 @@ mbCss('./common.css');
               </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">bank <span style="color:#c0392b;">*</span></label>
-<select style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
-<option>Select a bank</option>
-<option>Bank Hapoalim (12)</option>
-<option>Bank Leumi (10)</option>
-<option>Discount Bank (11)</option>
-<option>Mizrahi Tefahot (20)</option>
-<option>the international (31)</option>
+<select value="{{ standingBank }}" onchange="{{ onStandingBank }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="">{{ bankPlaceholder }}</option>
+<sc-for as="b" hint-placeholder-count="8" list="{{ bankOptions }}">
+<option value="{{ b.value }}">{{ b.label }}</option>
+</sc-for>
 </select>
 </div>
 <div style="display:flex; gap:12px; margin-bottom:15px;">
 <div style="flex:1;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">branch</label>
-<input class="gv-input" placeholder="Branch number" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;"/>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">branch <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onStandingBranch }}" placeholder="Branch number" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;" value="{{ standingBranch }}"/>
 </div>
 <div style="flex:1.4;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Account number</label>
-<input class="gv-input" placeholder="Account number" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;"/>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Account number <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onStandingAccNo }}" placeholder="Account number" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;" value="{{ standingAccNo }}"/>
 </div>
 </div>
 <div style="margin-bottom:15px;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Name of the account holder</label>
-<input class="gv-input" placeholder="as shown in the bank" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;"/>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Name of the account holder <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onStandingAccName }}" placeholder="as shown in the bank" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;" value="{{ standingAccName }}"/>
 </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">T.Z. the account holder <span style="color:#c0392b;">*</span></label>
-<input class="gv-input" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#eaf7ef;" value="123456789"/>
+<input class="gv-input" oninput="{{ onStandingTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#eaf7ef;" value="{{ standingTz }}"/>
 </div>
 <div style="display:flex; gap:12px; margin-bottom:16px;">
 <div style="flex:1;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Billing day per month</label>
-<select style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
-<option>The 1st of the month</option>
-<option>The 10th of the month</option>
-<option>The 15th of the month</option>
+<select value="{{ standingBillingDay }}" onchange="{{ onStandingBillingDay }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="1">The 1st of the month</option>
+<option value="10">The 10th of the month</option>
+<option value="15">The 15th of the month</option>
 </select>
 </div>
 <div style="flex:1;">
@@ -238,6 +236,10 @@ mbCss('./common.css');
 <div style="background:#f6f8fa; border-radius:12px; padding:13px 15px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
 <span style="font-size:14px; color:#7b8595; font-weight:600;">collection amount</span>
 <span style="font-size:18px; color:#2e8a63; font-weight:800;">{{ amountText }}</span>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Payment date <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onCashDate }}" type="date" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; font-weight:700; color:#1f2a3a; text-align:start; background:#fff;" value="{{ cashPaymentDate }}"/>
 </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount received <span style="color:#c0392b;">*</span></label>
@@ -297,39 +299,38 @@ mbCss('./common.css');
 <button onclick="{{ chk.remove }}" style="width:26px; height:26px; border-radius:50%; border:none; background:#f4f0f0; color:#c0392b; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;">?</button>
 </div>
 <div style="margin-bottom:12px;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">bank</label>
-<select style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left; background-color:#fff;">
-<option>Select a bank</option>
-<option>Bank Hapoalim (12)</option>
-<option>Bank Leumi (10)</option>
-<option>Discount Bank (11)</option>
-<option>Mizrahi Tefahot (20)</option>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">bank <span style="color:#c0392b;">*</span></label>
+<select value="{{ chk.bank }}" onchange="{{ chk.onBank }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="">{{ bankPlaceholder }}</option>
+<sc-for as="b" hint-placeholder-count="8" list="{{ bankOptions }}">
+<option value="{{ b.value }}">{{ b.label }}</option>
+</sc-for>
 </select>
 </div>
 <div style="display:flex; gap:10px; margin-bottom:12px;">
 <div style="flex:1;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">branch</label>
-<input class="gv-input" placeholder="branch" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;"/>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">branch <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onBranch }}" placeholder="branch" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;" value="{{ chk.branch }}"/>
 </div>
 <div style="flex:1.3;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">invoice</label>
-<input class="gv-input" placeholder="Account number" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;"/>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Account number <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onAccount }}" placeholder="Account number" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;" value="{{ chk.account }}"/>
 </div>
 </div>
 <div style="display:flex; gap:10px; margin-bottom:12px;">
 <div style="flex:1;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Check No</label>
-<input class="gv-input" placeholder="number" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;"/>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Check No <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onNumber }}" placeholder="number" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;" value="{{ chk.number }}"/>
 </div>
 <div style="flex:1.3;">
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Maturity date</label>
-<input class="gv-input" placeholder="DD/MM/YY" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:center;"/>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Maturity date <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onDate }}" type="date" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:center;" value="{{ chk.date }}"/>
 </div>
 </div>
 <div>
-<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount</label>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount <span style="color:#c0392b;">*</span></label>
 <div style="position:relative;">
-<input class="gv-input" inputmode="numeric" placeholder="0" style="width:100%; padding:11px 13px; padding-inline-end:34px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:start;"/>
+<input class="gv-input" inputmode="numeric" oninput="{{ chk.onAmount }}" placeholder="0" style="width:100%; padding:11px 13px; padding-inline-end:34px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:start;" value="{{ chk.amount }}"/>
 <span style="position:absolute; inset-inline-end:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
 </div>
 </div>
@@ -506,7 +507,42 @@ mbCss('./common.css');
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 444, "height": 940}}' type="text/x-dc">
 class Component extends DCLogic {
-  state = { method: 'standing', entry: 'manual', checks: [{ id: 1 }], cashReceived: '', installments: '1', cardNumber: '', cardExpiry: '', cardCvv: '', cardHolder: '', cardTz: '', docs: [], selectedDocId: '', customerName: 'Customer', customerPhone: '', customerEmail: '', customerAddress: '', companyId: '', amount: 0, currentDate: '', statusMsg: '', noteInternal: '', noteHeader: '', noteFooter: '', sendMail: false, sendWhatsapp: false, busy: false };
+  state = {
+    method: 'standing',
+    entry: 'manual',
+    checks: [{ id: 1, bank: '', branch: '', account: '', number: '', date: '', amount: '' }],
+    cashReceived: '',
+    cashPaymentDate: '',
+    installments: '1',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardHolder: '',
+    cardTz: '',
+    standingBank: '',
+    standingBranch: '',
+    standingAccNo: '',
+    standingAccName: '',
+    standingTz: '',
+    standingBillingDay: '1',
+    banks: [],
+    docs: [],
+    selectedDocId: '',
+    customerName: 'Customer',
+    customerPhone: '',
+    customerEmail: '',
+    customerAddress: '',
+    companyId: '',
+    amount: 0,
+    currentDate: '',
+    statusMsg: '',
+    noteInternal: '',
+    noteHeader: '',
+    noteFooter: '',
+    sendMail: false,
+    sendWhatsapp: false,
+    busy: false
+  };
 
   componentDidMount() {
     this.loadData();
@@ -556,10 +592,130 @@ class Component extends DCLogic {
       transfer: 'transference',
       masav: 'masav',
       bit: 'others',
-      // Standing order UI is bank debit — not a raw CC charge without card fields.
+      // Standing order (הוראת קבע) = masav bank debit — not cc / standing_order.
       standing: 'masav'
     };
     return map[uiMethod] || 'cash';
+  }
+
+  preferHeBanks() {
+    try {
+      var dir = String(document.documentElement.getAttribute('dir') || '').toLowerCase();
+      if (dir === 'rtl') return true;
+      var lang = String(document.documentElement.getAttribute('lang') || localStorage.getItem('mb_lang') || '').toLowerCase();
+      return lang.indexOf('he') === 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  bankOptionsList() {
+    var preferHe = this.preferHeBanks();
+    var rows = Array.isArray(this.state.banks) ? this.state.banks : [];
+    return rows.map(function (b) {
+      var code = String((b && b.code) || '').trim();
+      var id = String((b && b.id) || '').trim();
+      var value = code || id;
+      var label = '';
+      if (window.MineralBarApp && typeof MineralBarApp.bankDisplayLabel === 'function') {
+        label = MineralBarApp.bankDisplayLabel(b, preferHe);
+      } else if (preferHe) {
+        label = (b && (b.labelHe || b.label_he || b.labelEn || b.label)) || value;
+      } else {
+        label = (b && (b.labelEn || b.label || b.labelHe || b.label_he)) || value;
+      }
+      return { value: value, id: id, code: code, label: label };
+    }).filter(function (o) { return !!o.value; });
+  }
+
+  async loadBanks() {
+    if (!window.MineralBarApp || typeof MineralBarApp.listBanks !== 'function') return;
+    try {
+      var res = await MineralBarApp.listBanks({ limit: 100 });
+      var banks = (res && res.banks) || [];
+      this.setState({ banks: banks });
+    } catch (e) {
+      console.warn('[collection] Banks.List failed', e);
+    }
+  }
+
+  attachStandingPaymentFields(payload) {
+    var bank = String(this.state.standingBank || '').trim();
+    var branch = String(this.state.standingBranch || '').trim();
+    var accNo = String(this.state.standingAccNo || '').trim();
+    var accName = String(this.state.standingAccName || '').trim();
+    var tz = String(this.state.standingTz || '').replace(/\D/g, '');
+    if (!bank) throw new Error('Bank is required');
+    if (!branch) throw new Error('Branch is required');
+    if (!accNo) throw new Error('Account number is required');
+    if (!accName) throw new Error('Account holder name is required');
+    if (!tz) throw new Error('Account holder ID (TZ) is required');
+    // Documents.Add standing (הוראת קבע): payment_method=masav + bank fields (not cc).
+    payload.payment_method = 'masav';
+    payload.bank = bank;
+    payload.branch_no = branch;
+    payload.acc_no = accNo;
+    payload.acc_name = accName;
+    payload.tz = tz;
+    // Do not send c_type_pay=standing_order — that is credit-card standing order.
+    payload.c_type_pay = 'regular';
+    if (this.state.standingBillingDay) {
+      payload.billing_day = String(this.state.standingBillingDay);
+    }
+    return payload;
+  }
+
+  normalizeCheckDate(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return '';
+    var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return iso[0];
+    var dmy = s.match(/^(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2}|\d{4})$/);
+    if (dmy) {
+      var dd = dmy[1].length === 1 ? '0' + dmy[1] : dmy[1];
+      var mm = dmy[2].length === 1 ? '0' + dmy[2] : dmy[2];
+      var yy = dmy[3].length === 2 ? '20' + dmy[3] : dmy[3];
+      return yy + '-' + mm + '-' + dd;
+    }
+    return s;
+  }
+
+  attachCheckPaymentFields(payload, amount) {
+    var checks = Array.isArray(this.state.checks) ? this.state.checks : [];
+    var chk = checks[0] || {};
+    var bank = String(chk.bank || '').trim();
+    var branch = String(chk.branch || '').trim();
+    var account = String(chk.account || '').trim();
+    var number = String(chk.number || '').trim();
+    var date = this.normalizeCheckDate(chk.date);
+    var sum = String(chk.amount != null ? chk.amount : '').replace(/[^0-9.]/g, '');
+    if (!sum && amount > 0) sum = String(amount);
+    if (!bank) throw new Error('Check bank is required');
+    if (!branch) throw new Error('Check branch is required');
+    if (!account) throw new Error('Check account number is required');
+    if (!number) throw new Error('Check number is required');
+    if (!date) throw new Error('Check date is required');
+    if (!(Number(sum) > 0)) throw new Error('Check amount is required');
+    payload.payment_method = 'check';
+    payload.check_bank_details = bank;
+    payload.check_bank = bank;
+    payload.check_branch_no = branch;
+    payload.check_acc_number = account;
+    payload.check_number = number;
+    payload.check_date = date;
+    payload.check_sumamount = sum;
+    if (checks.length > 1) {
+      var extra = checks.slice(1).map(function (c, i) {
+        return 'Check ' + (i + 2) + ': bank=' + (c.bank || '') +
+          ' branch=' + (c.branch || '') +
+          ' acc=' + (c.account || '') +
+          ' no=' + (c.number || '') +
+          ' date=' + (c.date || '') +
+          ' amount=' + (c.amount || '');
+      }).join('\n');
+      payload.note = [payload.note || '', extra].filter(Boolean).join('\n');
+    }
+    return payload;
   }
 
   attachCardPaymentFields(payload) {
@@ -617,9 +773,48 @@ class Component extends DCLogic {
     return dd + '/' + mm + '/' + yy;
   }
 
+  todayInputValue() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  /**
+   * payment_date as UTC "Y-m-d H:i:s".
+   * Uses the picked calendar day (not always now). Time = current UTC clock when
+   * the picked day is today; otherwise 12:00:00 so the day stays stable.
+   */
+  formatPaymentDateUtc(ymd) {
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var now = new Date();
+    var m = String(ymd || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var y = m ? Number(m[1]) : now.getFullYear();
+    var mo = m ? Number(m[2]) : (now.getMonth() + 1);
+    var d = m ? Number(m[3]) : now.getDate();
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) {
+      y = now.getUTCFullYear();
+      mo = now.getUTCMonth() + 1;
+      d = now.getUTCDate();
+    }
+    var todayLocal =
+      now.getFullYear() === y &&
+      (now.getMonth() + 1) === mo &&
+      now.getDate() === d;
+    var hh = todayLocal ? now.getUTCHours() : 12;
+    var mm = todayLocal ? now.getUTCMinutes() : 0;
+    var ss = todayLocal ? now.getUTCSeconds() : 0;
+    return y + '-' + pad(mo) + '-' + pad(d) + ' ' + pad(hh) + ':' + pad(mm) + ':' + pad(ss);
+  }
+
   async loadData() {
-    this.setState({ currentDate: this.todayText() });
+    this.setState({
+      currentDate: this.todayText(),
+      cashPaymentDate: this.state.cashPaymentDate || this.todayInputValue()
+    });
     if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) return;
+    this.loadBanks();
     var cid = this.getCustomerId();
     var queryAmount = this.getQueryAmount();
     if (queryAmount > 0) {
@@ -661,6 +856,13 @@ class Component extends DCLogic {
         companyId = (c && (c.company_id || c.id_number || c.vat_number || c.corporation || c.id || '')) ? ('#' + (c.company_id || c.id_number || c.vat_number || c.corporation || c.id)) : companyId;
         if (c && (c.tz || c.id_number || c.identity) && !this.state.cardTz) {
           this.setState({ cardTz: String(c.tz || c.id_number || c.identity || '') });
+        }
+        if (c && !this.state.standingTz) {
+          var tzPrefill = String(c.tz || c.id_number || c.identity || '').replace(/\D/g, '');
+          if (tzPrefill) this.setState({ standingTz: tzPrefill });
+        }
+        if (c && !this.state.standingAccName && customerName && customerName !== 'Customer') {
+          this.setState({ standingAccName: customerName });
         }
       }
 
@@ -821,15 +1023,34 @@ class Component extends DCLogic {
   }
 
   addCheck() {
-    this.setState(s => ({ checks: [...s.checks, { id: Date.now() }] }));
+    this.setState(s => ({
+      checks: [...s.checks, { id: Date.now(), bank: '', branch: '', account: '', number: '', date: '', amount: '' }]
+    }));
   }
   removeCheck(id) {
     this.setState(s => ({ checks: s.checks.length > 1 ? s.checks.filter(c => c.id !== id) : s.checks }));
   }
 
+  updateCheck(id, field, value) {
+    this.setState(s => ({
+      checks: s.checks.map(function (c) {
+        if (c.id !== id) return c;
+        var next = Object.assign({}, c);
+        next[field] = value;
+        return next;
+      })
+    }));
+  }
+
   onCash(e) {
     var raw = (e && e.target && e.target.value != null) ? e.target.value : e;
     this.setState({ cashReceived: String(raw == null ? '' : raw).replace(/[^0-9.]/g, '') });
+  }
+
+  onCashDate(e) {
+    var raw = this.noteValue(e);
+    var m = String(raw || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    this.setState({ cashPaymentDate: m ? m[0] : (this.state.cashPaymentDate || this.todayInputValue()) });
   }
 
   noteValue(e) {
@@ -1024,7 +1245,21 @@ class Component extends DCLogic {
     }
 
     const checks = this.state.checks.map((c, i) => ({
-      ...c, num: i + 1, remove: () => this.removeCheck(c.id),
+      ...c,
+      num: i + 1,
+      bank: c.bank || '',
+      branch: c.branch || '',
+      account: c.account || '',
+      number: c.number || '',
+      date: c.date || '',
+      amount: c.amount || '',
+      remove: () => this.removeCheck(c.id),
+      onBank: (e) => this.updateCheck(c.id, 'bank', this.noteValue(e)),
+      onBranch: (e) => this.updateCheck(c.id, 'branch', this.noteValue(e)),
+      onAccount: (e) => this.updateCheck(c.id, 'account', this.noteValue(e)),
+      onNumber: (e) => this.updateCheck(c.id, 'number', this.noteValue(e)),
+      onDate: (e) => this.updateCheck(c.id, 'date', this.noteValue(e)),
+      onAmount: (e) => this.updateCheck(c.id, 'amount', this.noteValue(e).replace(/[^0-9.]/g, '')),
     }));
 
     let submitLabel = 'Confirm collection and send order';
@@ -1067,11 +1302,14 @@ class Component extends DCLogic {
             type: 'receipt',
             final_amount: amount,
             payment_method: this.mapPaymentMethod(uiMethod),
-            payment_date: new Date(),
+            payment_date: this.formatPaymentDateUtc(
+              uiMethod === 'cash'
+                ? (this.state.cashPaymentDate || this.todayInputValue())
+                : this.todayInputValue()
+            ),
             number_of_payments: installments,
-            c_type_pay: uiMethod === 'standing'
-              ? 'standing_order'
-              : (installments > 1 ? 'installments' : 'regular'),
+            // Standing (masav) must not use c_type_pay=standing_order (that is CC standing).
+            c_type_pay: installments > 1 ? 'installments' : 'regular',
             items: '[]',
             note: [noteInternal, noteFooter].filter(Boolean).join('\n'),
             note_header: noteHeader,
@@ -1086,6 +1324,10 @@ class Component extends DCLogic {
           // payment_method=cc requires card fields (Biz1: "Please fill required fields").
           if (uiMethod === 'card') {
             this.attachCardPaymentFields(payload);
+          } else if (uiMethod === 'standing' || uiMethod === 'masav') {
+            this.attachStandingPaymentFields(payload);
+          } else if (uiMethod === 'check') {
+            this.attachCheckPaymentFields(payload, amount);
           }
           var created = await MineralBarApp.getClient().request('Documents.Add', payload);
           var pdfUrl = this.findPdfUrl(created, 0) || '';
@@ -1107,7 +1349,9 @@ class Component extends DCLogic {
             installments: Number(this.state.installments || 1) || 1,
             cardLast4: cardLast4,
             amount: amount,
-            paidAt: new Date().toISOString(),
+            paidAt: (uiMethod === 'cash'
+              ? this.formatPaymentDateUtc(this.state.cashPaymentDate || this.todayInputValue())
+              : new Date().toISOString()),
             receiptId: createdId,
             pdfUrl: pdfUrl || '',
             advance: Number(new URLSearchParams(window.location.search).get('advance') || sessionStorage.getItem('mb_install_advance') || 0) || 0
@@ -1226,7 +1470,24 @@ class Component extends DCLogic {
 
       checks,
       checkCountLabel: this.state.checks.length + ' checks',
+      bankOptions: this.bankOptionsList(),
+      bankPlaceholder: this.preferHeBanks() ? 'בחר בנק' : 'Select a bank',
+      standingBank: this.state.standingBank || '',
+      standingBranch: this.state.standingBranch || '',
+      standingAccNo: this.state.standingAccNo || '',
+      standingAccName: this.state.standingAccName || '',
+      standingTz: this.state.standingTz || '',
+      standingBillingDay: this.state.standingBillingDay || '1',
+      onStandingBank: (e) => this.setState({ standingBank: this.noteValue(e) }),
+      onStandingBranch: (e) => this.setState({ standingBranch: this.noteValue(e) }),
+      onStandingAccNo: (e) => this.setState({ standingAccNo: this.noteValue(e) }),
+      onStandingAccName: (e) => this.setState({ standingAccName: this.noteValue(e) }),
+      onStandingTz: (e) => this.setState({ standingTz: this.noteValue(e).replace(/\D/g, '') }),
+      onStandingBillingDay: (e) => this.setState({ standingBillingDay: this.noteValue(e) || '1' }),
       cashReceived: this.state.cashReceived,
+      cashPaymentDate: this.state.cashPaymentDate || this.todayInputValue(),
+      onCash: (e) => this.onCash(e),
+      onCashDate: (e) => this.onCashDate(e),
       changeShow, changeLabel, changeAmount, changeColor, changeBg,
       submitLabel,
     };

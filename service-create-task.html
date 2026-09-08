@@ -15,6 +15,7 @@
     './biz1-app.js',
     './page-boot.js',
     './live-sync.js',
+    './customer-search-select.js',
     './mission-create-live.js',
     './i18n-translations.js',
     './common-header-footer.js'
@@ -92,6 +93,10 @@
       display: none;
       margin-top: 10px;
     }
+    #mb-mission-datetime {
+      min-height: 44px;
+      font-weight: 700;
+    }
   </style>
     </head>
 <body data-active-tab="tasks">
@@ -141,13 +146,20 @@
             
             <div style="margin-bottom:14px;">
               <label class="field-label">
-                Task description <span style="color:#c0392b;">*</span>
+                Mission type <span style="color:#c0392b;">*</span>
               </label>
-              <input class="gv-in" id="mb-mission-title" placeholder="For example: Check if they received quote" style="width:100%; box-sizing:border-box;" type="text"/>
+              <select class="gv-in" id="mb-mission-type" style="width:100%; box-sizing:border-box;">
+                <option value="">Choose type</option>
+                <option value="Follow-up call" data-label-he="שיחת מעקב">Follow-up call</option>
+                <option value="Send quote" data-label-he="שליחת הצעת מחיר">Send quote</option>
+                <option value="Send photos" data-label-he="שליחת תמונות">Send photos</option>
+                <option value="Other" data-label-he="אחר">Other</option>
+              </select>
+              <input type="hidden" id="mb-mission-title" value="" />
             </div>
 
             <div>
-              <label class="field-label">Notes (optional)</label>
+              <label class="field-label">Extra text / Notes (optional)</label>
               <textarea class="gv-in" id="mb-mission-note" placeholder="Add context..." style="width:100%; box-sizing:border-box; resize:none; height:74px;"></textarea>
             </div>
 
@@ -165,7 +177,7 @@
           <div class="form-card">
             <div class="card-header-title">Association & Resources</div>
             
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="display:grid; grid-template-columns:1fr; gap:12px;">
               <div>
                 <label class="field-label">Customer Name</label>
                 <select class="gv-in" id="mb-customer-name" style="width:100%; box-sizing:border-box;">
@@ -181,34 +193,13 @@
 
           <!-- Card 4: Schedule -->
           <div class="form-card">
-            <div class="mb-adv-section">
-              <div class="mb-adv-label">Due in</div>
-              <div class="mb-pill-row" id="mb-time-pills">
-                <button type="button" class="mb-pill active" data-time="30min"><span class="mb-pill-dot"></span>30 minutes</button>
-                <button type="button" class="mb-pill" data-time="1h"><span class="mb-pill-dot"></span>1 hour</button>
-                <button type="button" class="mb-pill" data-time="2h"><span class="mb-pill-dot"></span>2 hours</button>
-                <button type="button" class="mb-pill" data-time="custom_hours"><span class="mb-pill-dot"></span>Hours <input class="mb-pill-input" id="mb-time-hours" type="number" min="1" inputmode="numeric" /></button>
-                <button type="button" class="mb-pill" data-time="custom_days"><span class="mb-pill-dot"></span>Days <input class="mb-pill-input" id="mb-time-days" type="number" min="1" inputmode="numeric" /></button>
-              </div>
-              <div class="mb-date-preview" id="mb-time-preview" style="margin-top:10px; color:var(--color-primary);">Task set for: —</div>
+            <div class="mb-adv-section" style="margin-bottom:0;">
+              <div class="mb-adv-label">Date &amp; time <span style="color:#c0392b;">*</span></div>
+              <input class="gv-in" id="mb-mission-datetime" type="datetime-local" step="60" style="width:100%; box-sizing:border-box;" />
+              <div class="mb-date-preview" id="mb-date-preview" style="margin-top:10px;">Due (UTC): —</div>
             </div>
 
-            <div class="mb-adv-section">
-              <div class="mb-adv-label">On day</div>
-              <div class="mb-pill-row" id="mb-duration-pills">
-                <button type="button" class="mb-pill active" data-duration="today"><span class="mb-pill-dot"></span>Today</button>
-                <button type="button" class="mb-pill" data-duration="tomorrow"><span class="mb-pill-dot"></span>Tomorrow</button>
-                <button type="button" class="mb-pill" data-duration="next_week"><span class="mb-pill-dot"></span>Next Week</button>
-                <button type="button" class="mb-pill" data-duration="choose_date"><span class="mb-pill-dot"></span>Choose Date</button>
-                <button type="button" class="mb-pill" data-duration="days_after"><span class="mb-pill-dot"></span>Days <input class="mb-pill-input" id="mb-duration-days" type="number" min="1" inputmode="numeric" /></button>
-              </div>
-              <div id="mb-choose-date-wrap">
-                <input class="gv-in" id="mb-mission-date" type="date" style="width:100%; box-sizing:border-box;" />
-              </div>
-              <div class="mb-date-preview" id="mb-date-preview">Date to do: —</div>
-            </div>
-
-            <div class="mb-adv-section">
+            <div class="mb-adv-section" style="margin-top:16px;">
               <div class="mb-adv-label">Return</div>
               <div class="mb-pill-row" id="mb-repeat-pills">
                 <button type="button" class="mb-pill" data-repeat="monthly"><span class="mb-pill-dot"></span>Monthly</button>

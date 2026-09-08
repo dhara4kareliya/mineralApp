@@ -8,7 +8,6 @@
 
   var currentCustomerId = '';
   var customerData = null;
-  var allSubStatuses = [];
   var allFolders = [];
   var toastTimer = null;
   var hasStarted = false; // prevents double init / double render
@@ -87,7 +86,6 @@
       customerFolders: "CUSTOMER FOLDERS",
       folderLabel: "Folder",
       internalStatus: "Internal status",
-      internalSubStatus: "Internal sub-status",
       selectInternalStatus: "--Select Internal Status--",
       saveFolderBtn: "Save for folder",
       followupDate: "Follow-up date",
@@ -113,7 +111,6 @@
       customerFolders: "תיקיות לקוח",
       folderLabel: "תיקייה",
       internalStatus: "סטטוס פנימי",
-      internalSubStatus: "תת-סטטוס פנימי",
       selectInternalStatus: "-- בחר סטטוס פנימי --",
       saveFolderBtn: "שמור לתיקייה",
       followupDate: "תאריך פולואפ",
@@ -162,7 +159,6 @@
       if (k === 'customer_folders_title') el.textContent = t('customerFolders');
       if (k === 'folder_select_label') el.textContent = t('folderLabel');
       if (k === 'internal_status_label') el.textContent = t('internalStatus');
-      if (k === 'internal_sub_status_label') el.textContent = t('internalSubStatus');
       if (k === 'details_title') el.textContent = t('details');
       if (k === 'details_folder_label') el.textContent = t('folderLabel');
       if (k === 'details_open_missions_label') el.textContent = t('openMissions');
@@ -328,21 +324,6 @@
     }
   }
 
-  async function fetchSubStatuses() {
-    var client = MineralBarApp.getClient();
-    try {
-      var res = await client.request('Statuses.List', {
-        type: 'internal_sub_status',
-        limit: 25
-      });
-      var rows = (res && res.data) || [];
-      return Array.isArray(rows) ? rows : [];
-    } catch (e) {
-      console.error('[DetailsLive] Statuses.List sub-status failed', e);
-      return [];
-    }
-  }
-
   /** Extract UNIQUE folder ids the customer belongs to (handles array / JSON-string array / CSV) */
   function extractFolderIds(c) {
     var ids = [];
@@ -420,13 +401,6 @@
     };
   }
 
-  function getSubStatusesForParent(parentStatusId) {
-    return allSubStatuses.filter(function (x) {
-      var pId = x.parent_status_id || x.patent_status_id || x.data_patent_id || '';
-      return String(pId) === String(parentStatusId);
-    });
-  }
-
   function styleStatusSelect(selectEl, folderStatuses) {
     var selectedId = selectEl ? String(selectEl.value || '') : '';
     var row = (folderStatuses || []).find(function (r) {
@@ -475,31 +449,10 @@
     styleStatusSelect(selectEl, folderStatuses);
   }
 
-  function populateSubStatusSelect(selectEl, parentStatusId, selectedSubId) {
-    selectEl.innerHTML = '';
-    var placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = '----';
-    selectEl.appendChild(placeholder);
-
-    var filtered = getSubStatusesForParent(parentStatusId);
-    filtered.forEach(function (row) {
-      var id = row.status_id || row.id || row.data_id;
-      var label = row.name_he || row.name_for || row.name_en || row.name || '';
-      var option = document.createElement('option');
-      option.value = String(id);
-      option.textContent = String(label);
-      selectEl.appendChild(option);
-    });
-
-    selectEl.value = selectedSubId ? String(selectedSubId) : '';
-  }
-
-  /** Save folder status via Customer.Edit (sub_list_data + optional sub-status) */
+  /** Save folder status via Customer.Edit (sub_list_data) */
   async function saveOneFolder(folderId, block) {
     var btn = block.querySelector('.folder-save-btn');
     var statusSel = block.querySelector('.folder-status-select');
-    var subSel = block.querySelector('.folder-sub-status-select');
 
     if (!btn || btn.disabled) return;
     if (!currentCustomerId) {
@@ -518,8 +471,6 @@
       statusName = String(statusSel.options[statusSel.selectedIndex].textContent || '').trim();
     }
 
-    var subStatusId = subSel ? String(subSel.value || '').trim() : '';
-
     var originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = t('savingBtn');
@@ -527,16 +478,13 @@
     try {
       var client = MineralBarApp.getClient();
       // Official Customer.Edit folder payload:
-      // customer_id, folder_id, sub_list_data, sub_list_data_name, internal_sub_status_list?
+      // customer_id, folder_id, sub_list_data, sub_list_data_name
       var payload = {
         folder_id: String(folderId),
         sub_list_data: statusId,
         sub_list_data_name: statusName,
         status: statusId
       };
-      if (subStatusId) {
-        payload.internal_sub_status_list = subStatusId;
-      }
 
       var followWrap = block.querySelector('.folder-followup-wrap');
       var needFollowup = followWrap && followWrap.style.display !== 'none' &&
@@ -588,7 +536,6 @@
         customerData.status = statusId;
         customerData.sub_list_data = statusId;
         customerData.sub_list_data_name = statusName;
-        if (subStatusId) customerData.internal_sub_status_list = subStatusId;
         if (followUtc) customerData.followup = followUtc;
       }
 
@@ -605,7 +552,7 @@
       btn.textContent = originalText;
     }
   }
-  function buildFolderBlock(folderId, folderName, statusVal, subStatusVal, folderStatuses) {
+  function buildFolderBlock(folderId, folderName, statusVal, folderStatuses) {
     var block = document.createElement('div');
     block.className = 'folder-block';
     block.style.cssText = 'background:#eef4fb;border:1px solid #dce8f5;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px;';
@@ -631,20 +578,6 @@
     statusWrap.appendChild(statusLabel);
     statusWrap.appendChild(statusSelect);
     block.appendChild(statusWrap);
-
-    var subWrap = document.createElement('div');
-    var subLabel = document.createElement('span');
-    subLabel.className = 'detail-label';
-    subLabel.style.cssText = 'display:block;margin-bottom:4px;font-size:11.5px;color:#7b8595;';
-    subLabel.setAttribute('data-i18n', 'internal_sub_status_label');
-    subLabel.textContent = t('internalSubStatus');
-    var subSelect = document.createElement('select');
-    subSelect.className = 'custom-select folder-sub-status-select';
-    subSelect.setAttribute('data-folder-id', folderId);
-    subSelect.style.cssText = 'width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #d7e2ee;font-size:13.5px;color:#1f2a3a;background:#fff;outline:none;-webkit-appearance:none;appearance:none;background-repeat:no-repeat;';
-    subWrap.appendChild(subLabel);
-    subWrap.appendChild(subSelect);
-    block.appendChild(subWrap);
 
     var followWrap = document.createElement('div');
     followWrap.className = 'folder-followup-wrap';
@@ -680,7 +613,6 @@
     block.appendChild(saveBtn);
 
     populateStatusSelect(statusSelect, folderStatuses, statusVal);
-    populateSubStatusSelect(subSelect, statusVal, subStatusVal);
 
     function syncFollowupField() {
       var show = String(folderId) === '1' && isLeadFollowupStatus(statusSelect, folderStatuses);
@@ -690,8 +622,6 @@
 
     statusSelect.addEventListener('change', function () {
       styleStatusSelect(statusSelect, folderStatuses);
-      populateSubStatusSelect(subSelect, statusSelect.value, '');
-      applySelectStyle(subSelect);
       syncFollowupField();
     });
 
@@ -700,7 +630,6 @@
     });
 
     applySelectStyle(statusSelect);
-    applySelectStyle(subSelect);
 
     return block;
   }
@@ -713,10 +642,6 @@
     var folderIds = extractFolderIds(c);
     var isEn = getLang() === 'en';
 
-    if (!allSubStatuses.length) {
-      allSubStatuses = await fetchSubStatuses();
-    }
-
     for (var i = 0; i < folderIds.length; i++) {
       var fId = folderIds[i];
       var folderDef = allFolders.find(function (f) {
@@ -728,7 +653,7 @@
 
       var folderStatuses = await fetchStatusesForFolder(fId);
       var vals = getFolderStatusValue(c, fId, folderStatuses);
-      var block = buildFolderBlock(fId, folderName, vals.status_id, vals.sub_status_id, folderStatuses);
+      var block = buildFolderBlock(fId, folderName, vals.status_id, folderStatuses);
       container.appendChild(block);
     }
   }

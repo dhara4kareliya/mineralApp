@@ -605,6 +605,20 @@
     } catch (e) { /* ignore */ }
   }
 
+  /** List mission steps (Create Mission Step dropdown). */
+  async function listMissionSteps(extra) {
+    var client = getClient();
+    var params = Object.assign({ limit: 25 }, extra || {});
+    var raw = await client.request('Mission.StepsList', params).catch(function () {
+      return client.request('MissionSteps.List', params);
+    });
+    var rows = Array.isArray(raw && raw.data) ? raw.data
+      : Array.isArray(raw && raw.rows) ? raw.rows
+      : Array.isArray(raw && raw.list) ? raw.list
+      : [];
+    return Object.assign({}, raw, { rows: rows, data: rows });
+  }
+
   /** List customers via Customer.List API. */
   async function listCustomers(extra) {
     var client = getClient();
@@ -896,7 +910,28 @@
 
     var due = p.date_to_do || p.due_date;
     if (due != null && due !== '') {
-      payload.date_to_do = toMysqlDateTimeString(due) || String(due).trim();
+      var dueText = String(due).trim();
+      var dueLower = dueText.toLowerCase();
+      // Never forward keyword aliases from our app UI — only UTC Y-m-d H:i:s
+      if (dueLower === 'today' || dueLower === 'tomorrow' || dueLower === 'next_week' || dueLower === 'choose_date') {
+        var keywordDate = new Date();
+        if (dueLower === 'tomorrow') keywordDate.setDate(keywordDate.getDate() + 1);
+        if (dueLower === 'next_week') keywordDate.setDate(keywordDate.getDate() + 7);
+        payload.date_to_do =
+          keywordDate.getUTCFullYear() + '-' + padDatePart(keywordDate.getUTCMonth() + 1) + '-' + padDatePart(keywordDate.getUTCDate()) +
+          ' ' + padDatePart(keywordDate.getUTCHours()) + ':' + padDatePart(keywordDate.getUTCMinutes()) + ':' +
+          padDatePart(keywordDate.getUTCSeconds());
+      } else if (due instanceof Date && !Number.isNaN(due.getTime())) {
+        payload.date_to_do =
+          due.getUTCFullYear() + '-' + padDatePart(due.getUTCMonth() + 1) + '-' + padDatePart(due.getUTCDate()) +
+          ' ' + padDatePart(due.getUTCHours()) + ':' + padDatePart(due.getUTCMinutes()) + ':' +
+          padDatePart(due.getUTCSeconds());
+      } else if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(dueText)) {
+        payload.date_to_do = dueText.replace('T', ' ');
+        if (payload.date_to_do.length === 16) payload.date_to_do += ':00';
+      } else {
+        payload.date_to_do = toMysqlDateTimeString(due) || dueText;
+      }
     }
 
     if (p.days_after_ads != null && p.days_after_ads !== '') {
@@ -1856,8 +1891,24 @@
     return acc;
   }
 
+  function isInsurancePlanExtraField(field) {
+    if (!field || typeof field !== 'object') return false;
+    var en = String(field.en || field.label_en || field.title_en || '').trim().toLowerCase();
+    var he = String(field.he || field.label_he || field.title_he || '').trim();
+    var name = String(
+      field.name || field.field_name || field.update_field_name ||
+      field.key || field.id || ''
+    ).toLowerCase().trim();
+    if (name === 'a-1786435666') return true;
+    if (/insurance\s*plan|insuranceplan/.test(en + ' ' + name)) return true;
+    if (en === 'plans' || he === 'מסלולים') return true;
+    return false;
+  }
+
   function isInsuranceExtraField(field) {
     if (!field || typeof field !== 'object') return false;
+    // Plans / InsurancePlan is a separate field — do not treat it as Insurance.
+    if (isInsurancePlanExtraField(field)) return false;
     var en = String(field.en || field.label_en || field.title_en || '').trim().toLowerCase();
     var he = String(field.he || field.label_he || field.title_he || '').trim();
     var name = String(
@@ -1879,11 +1930,28 @@
     return null;
   }
 
+  function findInsurancePlanExtraField(basic) {
+    var rows = getCustomerExtraFieldsFromUserBasic(basic);
+    if (!rows.length) rows = extractExtraFieldsFromUserBasic(basic);
+    var i;
+    for (i = 0; i < rows.length; i++) {
+      if (isInsurancePlanExtraField(rows[i])) return rows[i];
+    }
+    return null;
+  }
+
   function insuranceFieldStorageName(field) {
     var name = String((field && (
       field.name || field.field_name || field.update_field_name || field.key
     )) || '').trim();
     return name || 'insurance';
+  }
+
+  function insurancePlanFieldStorageName(field) {
+    var name = String((field && (
+      field.name || field.field_name || field.update_field_name || field.key
+    )) || '').trim();
+    return name || 'a-1786435666';
   }
 
   function parseInsuranceOptionsFromField(field) {
@@ -1911,10 +1979,36 @@
     return out;
   }
 
+  /** Plans / InsurancePlan: options_en = send key, options_he = label. */
+  function parseInsurancePlanOptionsFromField(field) {
+    if (!field) return [];
+    var en = splitTicketOptionList(field.options_en || field.option_en);
+    var he = splitTicketOptionList(field.options_he || field.option_he);
+    var n = Math.max(en.length, he.length);
+    var out = [];
+    var i;
+    var labelEn;
+    var labelHe;
+    var value;
+    for (i = 0; i < n; i++) {
+      labelEn = (en[i] != null && String(en[i]).trim() !== '') ? String(en[i]).trim() : '';
+      labelHe = (he[i] != null && String(he[i]).trim() !== '') ? String(he[i]).trim() : '';
+      value = labelEn || labelHe;
+      if (!value) continue;
+      out.push({
+        value: value,
+        label: labelHe || labelEn,
+        labelEn: labelEn || labelHe,
+        labelHe: labelHe || labelEn
+      });
+    }
+    return out;
+  }
+
   async function fetchUserBasic(force) {
     if (!force) {
       var cached = getUserBasic();
-      if (cached && findInsuranceExtraField(cached)) return cached;
+      if (cached && (findInsuranceExtraField(cached) || findInsurancePlanExtraField(cached))) return cached;
     }
     var client = getClient();
     var raw;
@@ -1936,6 +2030,16 @@
       field: field,
       fieldName: insuranceFieldStorageName(field),
       options: parseInsuranceOptionsFromField(field)
+    };
+  }
+
+  async function listInsurancePlanOptions(force) {
+    var basic = await fetchUserBasic(!!force);
+    var field = findInsurancePlanExtraField(basic);
+    return {
+      field: field,
+      fieldName: insurancePlanFieldStorageName(field),
+      options: parseInsurancePlanOptionsFromField(field)
     };
   }
 
@@ -2241,6 +2345,130 @@
     return { ticket: raw.output || raw.data || raw, raw: raw };
   }
 
+  /** Normalize one Banks.List / Banks.Get row (Israel clearing codes). */
+  function normalizeBankRow(row) {
+    if (!row || typeof row !== 'object') return null;
+    var id = String(row.id != null ? row.id : (row.bank_id != null ? row.bank_id : '')).trim();
+    var code = String(row.code != null ? row.code : (row.bank_code != null ? row.bank_code : '')).trim();
+    if (!id && !code) return null;
+    var nameEn = String(row.bank_name || '').trim();
+    var nameHe = String(row.bank_name_he || '').trim();
+    var labelEn = String(row.label || '').trim() ||
+      ([nameEn, code].filter(Boolean).join(' - ') || code || id);
+    var labelHe = String(row.label_he || '').trim() ||
+      ([nameHe || nameEn, code].filter(Boolean).join(' - ') || code || id);
+    return {
+      id: id || code,
+      code: code || id,
+      bank_name: nameEn,
+      bank_name_he: nameHe,
+      label: labelEn,
+      label_he: labelHe,
+      labelEn: labelEn,
+      labelHe: labelHe
+    };
+  }
+
+  function bankDisplayLabel(bank, preferHe) {
+    if (!bank) return '';
+    if (preferHe) return bank.labelHe || bank.label_he || bank.labelEn || bank.label || bank.code || bank.id || '';
+    return bank.labelEn || bank.label || bank.labelHe || bank.label_he || bank.code || bank.id || '';
+  }
+
+  var _banksListCache = null;
+  var _banksListInflight = null;
+
+  /**
+   * Full Israel bank_details list (Banks.List) — same source as dashboard
+   * receipt check / masav / transfer dropdowns. Not a hard-coded subset.
+   * Pages with start when the API caps page size (often 25).
+   */
+  async function listBanks(extra, opts) {
+    opts = opts || {};
+    var force = !!opts.force;
+    if (!force && _banksListCache && _banksListCache.length) {
+      return { banks: _banksListCache.slice(), raw: null, cached: true };
+    }
+    if (!force && _banksListInflight) return _banksListInflight;
+
+    _banksListInflight = (async function () {
+      var client = getClient();
+      var all = [];
+      var start = 0;
+      var pageLimit = 100;
+      var lastRaw = null;
+      var seen = {};
+      for (var page = 0; page < 40; page++) {
+        var body = Object.assign({
+          limit: pageLimit,
+          start: start,
+          order_by: 'bank_name',
+          order_dir: 'asc'
+        }, extra || {});
+        var raw = await client.request('Banks.List', body);
+        lastRaw = raw;
+        var rows = (raw && (raw.data || raw.rows || raw.output)) || [];
+        if (!Array.isArray(rows)) rows = [];
+        var added = 0;
+        for (var i = 0; i < rows.length; i++) {
+          var n = normalizeBankRow(rows[i]);
+          if (!n) continue;
+          var key = n.id + ':' + n.code;
+          if (seen[key]) continue;
+          seen[key] = 1;
+          all.push(n);
+          added++;
+        }
+        var total = Number(raw && (raw.recordsTotal != null ? raw.recordsTotal : raw.count));
+        if (!rows.length) break;
+        if (Number.isFinite(total) && all.length >= total) break;
+        // API may ignore limit>25 — keep paging while we still get a full page.
+        if (rows.length < 25 && (!Number.isFinite(total) || all.length >= total || !added)) break;
+        start += rows.length;
+      }
+      _banksListCache = all;
+      return { banks: all.slice(), raw: lastRaw, cached: false };
+    })();
+
+    try {
+      return await _banksListInflight;
+    } finally {
+      _banksListInflight = null;
+    }
+  }
+
+  async function countBanks(extra) {
+    var client = getClient();
+    var raw = await client.request('Banks.Count', extra || {});
+    return {
+      count: Number(raw && (raw.count != null ? raw.count : raw.recordsTotal)) || 0,
+      raw: raw
+    };
+  }
+
+  async function getBank(idOrCode, extra) {
+    var client = getClient();
+    var key = String(idOrCode == null ? '' : idOrCode).trim();
+    if (!key) throw new Error('bank id or code is required');
+    var body = Object.assign({}, extra || {});
+    if (/^\d+$/.test(key) && key.length <= 4) {
+      // Prefer clearing code for short numeric keys; also send id aliases.
+      body.code = key;
+      body.bank_code = key;
+    }
+    if (/^\d+$/.test(key)) {
+      body.id = key;
+      body.bank_id = key;
+      body.bank_details_id = key;
+    } else {
+      body.code = key;
+      body.bank_code = key;
+    }
+    var raw = await client.request('Banks.Get', body);
+    var row = (raw && (raw.data || raw.output || raw.bank)) || null;
+    return { bank: normalizeBankRow(row), raw: raw };
+  }
+
   /** Documents for one customer — customer_id required. */
   async function listDocuments(customerId, extra) {
     var id = requireId(customerId, 'customer_id');
@@ -2472,6 +2700,68 @@
       count: Number(raw && raw.count != null ? raw.count : rows.length),
       customer_id: raw && (raw.contactus_id || id),
       raw: raw
+    };
+  }
+
+  /**
+   * Chat.CustomerMessages — page through timeline (API caps ~25 per call).
+   * Returns same shape as listCustomerMessages (oldest→newest).
+   */
+  async function listCustomerMessagesAll(customerId, extra) {
+    extra = extra || {};
+    var pageSize = Math.min(25, Math.max(1, Number(extra.limit) || 25));
+    var maxPages = Math.min(20, Math.max(1, Number(extra.maxPages) || 10));
+    var allNewestFirst = [];
+    var seen = {};
+    var total = null;
+    var lastRaw = null;
+    var cid = null;
+    var baseExtra = Object.assign({}, extra);
+    delete baseExtra.maxPages;
+    delete baseExtra.pageAll;
+    delete baseExtra.limit;
+    delete baseExtra.page;
+    delete baseExtra.page_id;
+    delete baseExtra.start;
+
+    for (var page = 1; page <= maxPages; page++) {
+      var res = await listCustomerMessages(customerId, Object.assign({}, baseExtra, {
+        limit: pageSize,
+        page: page,
+        page_id: page,
+        start: (page - 1) * pageSize
+      }));
+      lastRaw = res && res.raw;
+      cid = (res && res.customer_id) || cid;
+      if (lastRaw && lastRaw.total != null && Number.isFinite(Number(lastRaw.total))) {
+        total = Number(lastRaw.total);
+      } else if (res && res.count != null && Number(res.count) > pageSize) {
+        total = Number(res.count);
+      }
+
+      // Helper returns oldest→newest for this page; re-flip to merge newest-first pages
+      var pageNewestFirst = ((res && res.rows) || []).slice().reverse();
+      var added = 0;
+      for (var i = 0; i < pageNewestFirst.length; i++) {
+        var row = pageNewestFirst[i] || {};
+        var key = String(row.id || row.message_id || '').trim() ||
+          (String(row.time || '') + '|' + String(row.message || '').slice(0, 80));
+        if (seen[key]) continue;
+        seen[key] = true;
+        allNewestFirst.push(row);
+        added++;
+      }
+
+      if (!pageNewestFirst.length || pageNewestFirst.length < pageSize) break;
+      if (total != null && allNewestFirst.length >= total) break;
+      if (added === 0) break;
+    }
+
+    return {
+      rows: allNewestFirst.slice().reverse(),
+      count: allNewestFirst.length,
+      customer_id: cid || customerId,
+      raw: lastRaw
     };
   }
 
@@ -3405,7 +3695,9 @@
     fetchUserBasic: fetchUserBasic,
     extractExtraFieldsFromUserBasic: extractExtraFieldsFromUserBasic,
     findInsuranceExtraField: findInsuranceExtraField,
+    findInsurancePlanExtraField: findInsurancePlanExtraField,
     listInsuranceOptions: listInsuranceOptions,
+    listInsurancePlanOptions: listInsurancePlanOptions,
     getUser: getUser,
     getFolders: getFolders,
     populateFolderDropdowns: populateFolderDropdowns,
@@ -3415,6 +3707,7 @@
     requireAuth: requireAuth,
     requireAuthOrRedirect: requireAuth,
     listCustomers: listCustomers,
+    listMissionSteps: listMissionSteps,
     getSelectedProductIds: getSelectedProductIds,
     setSelectedProductIds: setSelectedProductIds,
     createCustomer: createCustomer,
@@ -3450,9 +3743,15 @@
     applyTicketLabeledCustomFields: applyTicketLabeledCustomFields,
     readTicketLabeledField: readTicketLabeledField,
     listDocuments: listDocuments,
+    listBanks: listBanks,
+    countBanks: countBanks,
+    getBank: getBank,
+    normalizeBankRow: normalizeBankRow,
+    bankDisplayLabel: bankDisplayLabel,
     listEmails: listEmails,
     listChatConversations: listChatConversations,
     listCustomerMessages: listCustomerMessages,
+    listCustomerMessagesAll: listCustomerMessagesAll,
     listSingleConversation: listSingleConversation,
     parseEmailsHtml: parseEmailsHtml,
     sendCustomerMessage: sendCustomerMessage,

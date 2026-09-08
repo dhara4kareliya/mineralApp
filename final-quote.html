@@ -215,6 +215,12 @@ mbCss('./common.css');
     email: '',
     tz: '',
     address: '',
+    city: '',
+    street: '',
+    building: '',
+    floor: '',
+    apartment: '',
+    entrance: '',
     companyName: 'mineral app',
     companyPhone: '',
     companyEmail: '',
@@ -227,6 +233,56 @@ mbCss('./common.css');
     downloading: false,
     backUrl: 'service-quote-form.html'
   };
+
+  ADDR_STREET = 'a-1786932384';
+  ADDR_BUILDING = 'a-1786932385';
+  ADDR_FLOOR = 'a-1786932709';
+  ADDR_APARTMENT = 'a-1786932606';
+  ADDR_ENTRANCE = 'a-1786932387';
+
+  joinInstallAddress(parts) {
+    parts = parts || this.state;
+    var out = [];
+    var streetLine = [parts.street, parts.building].filter(Boolean).join(' ').trim();
+    if (streetLine) out.push(streetLine);
+    if (parts.entrance) out.push('Entrance ' + parts.entrance);
+    if (parts.floor) out.push('Floor ' + parts.floor);
+    if (parts.apartment) out.push('Apt ' + parts.apartment);
+    if (parts.city) out.push(parts.city);
+    var joined = out.join(', ');
+    if (joined) return joined;
+    return String(parts.address || '').trim();
+  }
+
+  async persistCustomerAddress(parts) {
+    parts = parts || this.state;
+    var cid = String(parts.customer_id || '').trim();
+    if (!cid || !window.MineralBarApp || !MineralBarApp.getClient) return;
+    var client = MineralBarApp.getClient();
+    if (!client || !client.request) return;
+    var address = this.joinInstallAddress(parts);
+    var body = {
+      customer_id: cid,
+      cust_id: cid,
+      id: cid,
+      city: String(parts.city || '').trim(),
+      address: address
+    };
+    body['extra_fields[' + this.ADDR_STREET + ']'] = String(parts.street || '').trim();
+    body['extra_fields[' + this.ADDR_BUILDING + ']'] = String(parts.building || '').trim();
+    body['extra_fields[' + this.ADDR_FLOOR + ']'] = String(parts.floor || '').trim();
+    body['extra_fields[' + this.ADDR_APARTMENT + ']'] = String(parts.apartment || '').trim();
+    body['extra_fields[' + this.ADDR_ENTRANCE + ']'] = String(parts.entrance || '').trim();
+    try {
+      await client.request('Customer.Update', body);
+    } catch (err) {
+      try {
+        await client.request('Customer.Edit', body);
+      } catch (err2) {
+        console.warn('[FinalQuote] customer address write-back failed', err2 || err);
+      }
+    }
+  }
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
@@ -314,6 +370,27 @@ mbCss('./common.css');
       var phone = q.get('phone') || '';
       var tz = q.get('tz') || q.get('id') || '';
       var address = q.get('address') || '';
+      var city = q.get('city') || '';
+      var street = q.get('street') || '';
+      var building = q.get('building') || '';
+      var floor = q.get('floor') || '';
+      var apartment = q.get('apartment') || '';
+      var entrance = q.get('entrance') || '';
+      try {
+        var stored = sessionStorage.getItem('mb_quote_address_parts');
+        if (stored) {
+          var parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === 'object') {
+            if (!city && parsed.city) city = parsed.city;
+            if (!street && parsed.street) street = parsed.street;
+            if (!building && parsed.building) building = parsed.building;
+            if (!floor && parsed.floor) floor = parsed.floor;
+            if (!apartment && parsed.apartment) apartment = parsed.apartment;
+            if (!entrance && parsed.entrance) entrance = parsed.entrance;
+            if (!address && parsed.address) address = parsed.address;
+          }
+        }
+      } catch (eParts) { /* ignore */ }
       var discount = Number(q.get('discount') || 0);
       // If product_ids is in the URL (even empty), respect it — don't fall back to stale storage
       var productIdsStr = '';
@@ -371,7 +448,19 @@ mbCss('./common.css');
       if (name) stateUpdate.name = name;
       if (phone) stateUpdate.phone = phone;
       if (tz) stateUpdate.tz = tz;
+      if (city) stateUpdate.city = city;
+      if (street) stateUpdate.street = street;
+      if (building) stateUpdate.building = building;
+      if (floor) stateUpdate.floor = floor;
+      if (apartment) stateUpdate.apartment = apartment;
+      if (entrance) stateUpdate.entrance = entrance;
       if (address) stateUpdate.address = address;
+      else if (street || building || floor || apartment || entrance || city) {
+        stateUpdate.address = this.joinInstallAddress({
+          street: street, building: building, floor: floor,
+          apartment: apartment, entrance: entrance, city: city
+        });
+      }
       this.setState(stateUpdate);
 
       // Load products + company letterhead from invoice settings
@@ -474,11 +563,14 @@ mbCss('./common.css');
             if (c.city || c.city_name) {
               fullAddress += (fullAddress ? ', ' : '') + (c.city || c.city_name);
             }
+            // Prefer address already built on quote form (query / session)
+            var keepAddress = !!(this.state.address && String(this.state.address).trim());
             this.setState({
               name: c.name || this.state.name || name || ('#' + customerId),
               phone: c.phone || c.mobile || this.state.phone || phone,
               email: c.email || c.email_address || this.state.email || '',
-              address: fullAddress || this.state.address
+              city: this.state.city || c.city || c.city_name || '',
+              address: keepAddress ? this.state.address : (fullAddress || this.state.address)
             });
           }
         } catch (err) {
@@ -592,8 +684,8 @@ mbCss('./common.css');
       email: s.email || '',
       mobile: s.phone || '',
       phone: s.phone || '',
-      address: s.address || '',
-      document_type: 'proforma_invoice',
+      address: this.joinInstallAddress(s) || s.address || '',
+      document_type: 'order_proposals',
       final_amount: totals.totalPayable || 0,
       items: items,
       note: 'Quotation from MineralBar app',
@@ -636,6 +728,12 @@ mbCss('./common.css');
 
     if (!window.MineralBarApp || !MineralBarApp.getClient) {
       throw new Error('Not connected');
+    }
+    // Sync detailed install address back onto the customer before creating the quote
+    try {
+      await this.persistCustomerAddress(s);
+    } catch (eAddr) {
+      console.warn('[FinalQuote] address persist skipped', eAddr);
     }
     var client2 = MineralBarApp.getClient();
     var created = await client2.request('Documents.Add', this.buildQuotePayload());

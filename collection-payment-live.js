@@ -42,7 +42,24 @@
     );
   }
 
-  function formByMethod(method) {
+  function bankOptionsHtml(banks, selected) {
+    var opts = '<option value="">Select a bank</option>';
+    (banks || []).forEach(function (b) {
+      var code = String((b && b.code) || '').trim();
+      var id = String((b && b.id) || '').trim();
+      var value = code || id;
+      if (!value) return;
+      var label = (window.MineralBarApp && typeof MineralBarApp.bankDisplayLabel === 'function')
+        ? MineralBarApp.bankDisplayLabel(b, false)
+        : ((b && (b.label || b.labelEn || b.label_he)) || value);
+      opts += '<option value="' + esc(value) + '"' + (String(selected) === value ? ' selected' : '') + '>' + esc(label) + '</option>';
+    });
+    return opts;
+  }
+
+  function formByMethod(method, state) {
+    state = state || {};
+    var banks = state.banks || [];
     if (method === 'card') {
       return (
         '<div style="margin-top:10px;">' +
@@ -61,16 +78,30 @@
     if (method === 'check') {
       return (
         '<div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">' +
-        '<input id="mb-check-bank" placeholder="Bank" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '<select id="mb-check-bank" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' + bankOptionsHtml(banks, '') + '</select>' +
+        '<input id="mb-check-branch" placeholder="Branch" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '<input id="mb-check-account" placeholder="Account number" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
         '<input id="mb-check-number" placeholder="Check number" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '<input id="mb-check-date" type="date" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
         '<input id="mb-check-amount" placeholder="Amount" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
         '</div>'
       );
     }
-    if (method === 'transfer' || method === 'masav') {
+    if (method === 'standing' || method === 'masav') {
       return (
         '<div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">' +
-        '<input id="mb-transfer-bank" placeholder="Bank" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '<select id="mb-standing-bank" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' + bankOptionsHtml(banks, '') + '</select>' +
+        '<input id="mb-standing-branch" placeholder="Branch" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '<input id="mb-standing-account" placeholder="Account number" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '<input id="mb-standing-acc-name" placeholder="Account holder name" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '<input id="mb-standing-tz" placeholder="TZ / ID" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+        '</div>'
+      );
+    }
+    if (method === 'transfer') {
+      return (
+        '<div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">' +
+        '<select id="mb-transfer-bank" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' + bankOptionsHtml(banks, '') + '</select>' +
         '<input id="mb-transfer-branch" placeholder="Branch" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
         '<input id="mb-transfer-account" placeholder="Account" style="padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
         '</div>'
@@ -79,7 +110,10 @@
     if (method === 'bit') {
       return '<div style="margin-top:10px;"><input id="mb-bit-phone" placeholder="Bit phone number" style="width:280px; max-width:100%; padding:8px;border:1px solid #d9deea;border-radius:6px;"></div>';
     }
-    return '<div style="margin-top:10px; color:#6b7585;">Cash collection selected.</div>';
+    return '<div style="margin-top:10px; color:#6b7585;">' +
+      '<label style="display:block;font-size:12px;font-weight:700;color:#5a6473;margin-bottom:6px;">Payment date</label>' +
+      '<input id="mb-cash-payment-date" type="date" style="width:220px;max-width:100%;padding:8px;border:1px solid #d9deea;border-radius:6px;">' +
+      '</div>';
   }
 
   function buildHtml(state) {
@@ -120,7 +154,7 @@
       '</div>' +
 
       '<div style="margin-top:18px; font-size:30px; color:#1f2a3a; font-weight:700;">Amount <span style="font-size:24px;">' + esc(state.amount) + '</span></div>' +
-      formByMethod(state.method) +
+      formByMethod(state.method, state) +
 
       '<div style="margin-top:16px; border-top:1px solid #eceff4; padding-top:14px; position:relative;">' +
       '<button type="button" style="position:absolute; right:0; top:14px; background:#163553; color:#fff; border:none; border-radius:12px; padding:6px 10px; font-size:12px; font-weight:700;">+ Add payment gate</button>' +
@@ -161,7 +195,7 @@
       transfer: 'transference',
       masav: 'masav',
       bit: 'others',
-      // Standing order UI is bank debit — not CC without card fields.
+      // Standing order UI is bank debit (masav) — not CC standing_order.
       standing: 'masav'
     };
     return map[method] || 'cash';
@@ -176,6 +210,33 @@
     return mm + '-' + year;
   }
 
+  function todayInputValue() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1);
+    var day = String(d.getDate());
+    if (m.length < 2) m = '0' + m;
+    if (day.length < 2) day = '0' + day;
+    return y + '-' + m + '-' + day;
+  }
+
+  function formatPaymentDateUtc(ymd) {
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    var now = new Date();
+    var m = String(ymd || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var y = m ? Number(m[1]) : now.getFullYear();
+    var mo = m ? Number(m[2]) : (now.getMonth() + 1);
+    var d = m ? Number(m[3]) : now.getDate();
+    var todayLocal =
+      now.getFullYear() === y &&
+      (now.getMonth() + 1) === mo &&
+      now.getDate() === d;
+    var hh = todayLocal ? now.getUTCHours() : 12;
+    var mm = todayLocal ? now.getUTCMinutes() : 0;
+    var ss = todayLocal ? now.getUTCSeconds() : 0;
+    return y + '-' + pad(mo) + '-' + pad(d) + ' ' + pad(hh) + ':' + pad(mm) + ':' + pad(ss);
+  }
+
   function gatherPayload(state) {
     var amountEl = document.getElementById('mb-amount');
     var amount = num(amountEl && amountEl.value);
@@ -185,6 +246,9 @@
     var note = [noteInternal, noteFooter].filter(Boolean).join('\n');
     var installmentsEl = document.getElementById('mb-pay-installments');
     var installments = num(installmentsEl && installmentsEl.value) || 1;
+    var cashDateEl = document.getElementById('mb-cash-payment-date');
+    var cashDate = cashDateEl ? String(cashDateEl.value || '').trim() : '';
+    var paymentDateYmd = (state.method === 'cash' && cashDate) ? cashDate : todayInputValue();
     var payload = {
       customer_id: state.customerId,
       name: state.customerName || '',
@@ -196,11 +260,10 @@
       type: 'receipt',
       final_amount: amount,
       payment_method: mapPaymentMethod(state.method),
-      payment_date: new Date(),
+      payment_date: formatPaymentDateUtc(paymentDateYmd),
       number_of_payments: installments,
-      c_type_pay: state.method === 'standing'
-        ? 'standing_order'
-        : (installments > 1 ? 'installments' : 'regular'),
+      // masav standing must not use c_type_pay=standing_order (that is CC standing).
+      c_type_pay: installments > 1 ? 'installments' : 'regular',
       items: '[]',
       note: note,
       note_header: noteHeader,
@@ -224,11 +287,46 @@
       payload.cvc = cvc;
     }
     if (state.method === 'check') {
-      payload.check_bank = (document.getElementById('mb-check-bank') || {}).value || '';
-      payload.check_number = (document.getElementById('mb-check-number') || {}).value || '';
-      payload.check_amount = (document.getElementById('mb-check-amount') || {}).value || '';
+      var checkBank = String((document.getElementById('mb-check-bank') || {}).value || '').trim();
+      var checkBranch = String((document.getElementById('mb-check-branch') || {}).value || '').trim();
+      var checkAcc = String((document.getElementById('mb-check-account') || {}).value || '').trim();
+      var checkNumber = String((document.getElementById('mb-check-number') || {}).value || '').trim();
+      var checkDate = String((document.getElementById('mb-check-date') || {}).value || '').trim();
+      var checkAmount = String((document.getElementById('mb-check-amount') || {}).value || '').replace(/[^0-9.]/g, '') || String(amount);
+      if (!checkBank) throw new Error('Check bank is required');
+      if (!checkBranch) throw new Error('Check branch is required');
+      if (!checkAcc) throw new Error('Check account number is required');
+      if (!checkNumber) throw new Error('Check number is required');
+      if (!checkDate) throw new Error('Check date is required');
+      payload.payment_method = 'check';
+      payload.check_bank_details = checkBank;
+      payload.check_bank = checkBank;
+      payload.check_branch_no = checkBranch;
+      payload.check_acc_number = checkAcc;
+      payload.check_number = checkNumber;
+      payload.check_date = checkDate;
+      payload.check_sumamount = checkAmount;
     }
-    if (state.method === 'transfer' || state.method === 'masav' || state.method === 'standing') {
+    if (state.method === 'standing' || state.method === 'masav') {
+      var sBank = String((document.getElementById('mb-standing-bank') || {}).value || '').trim();
+      var sBranch = String((document.getElementById('mb-standing-branch') || {}).value || '').trim();
+      var sAcc = String((document.getElementById('mb-standing-account') || {}).value || '').trim();
+      var sName = String((document.getElementById('mb-standing-acc-name') || {}).value || '').trim();
+      var sTz = String((document.getElementById('mb-standing-tz') || {}).value || '').replace(/\D/g, '');
+      if (!sBank) throw new Error('Bank is required');
+      if (!sBranch) throw new Error('Branch is required');
+      if (!sAcc) throw new Error('Account number is required');
+      if (!sName) throw new Error('Account holder name is required');
+      if (!sTz) throw new Error('Account holder ID (TZ) is required');
+      payload.payment_method = 'masav';
+      payload.bank = sBank;
+      payload.branch_no = sBranch;
+      payload.acc_no = sAcc;
+      payload.acc_name = sName;
+      payload.tz = sTz;
+      payload.c_type_pay = 'regular';
+    }
+    if (state.method === 'transfer') {
       payload.transfer_bank = (document.getElementById('mb-transfer-bank') || {}).value || '';
       payload.transfer_branch = (document.getElementById('mb-transfer-branch') || {}).value || '';
       payload.transfer_account = (document.getElementById('mb-transfer-account') || {}).value || '';
@@ -259,6 +357,11 @@
       amountEl.addEventListener('input', function () {
         state.amount = amountEl.value || '0';
       });
+    }
+
+    var cashDateEl = document.getElementById('mb-cash-payment-date');
+    if (cashDateEl && !cashDateEl.value) {
+      cashDateEl.value = todayInputValue();
     }
 
     var docBtn = document.getElementById('mb-doc-picker');
@@ -324,8 +427,18 @@
       company: 'demo company',
       method: 'card',
       amount: String(num((docs[0] && (docs[0].total || docs[0].amount || docs[0].price)) || 0)),
-      selectedDocId: docs[0] ? String(docs[0].id || docs[0].number || '') : ''
+      selectedDocId: docs[0] ? String(docs[0].id || docs[0].number || '') : '',
+      banks: []
     };
+
+    try {
+      if (typeof MineralBarApp.listBanks === 'function') {
+        var bres = await MineralBarApp.listBanks({ limit: 100 }).catch(function () { return null; });
+        state.banks = (bres && bres.banks) || [];
+      }
+    } catch (eBanks) {
+      state.banks = [];
+    }
 
     root.innerHTML = buildHtml(state);
 

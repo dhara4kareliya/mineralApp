@@ -362,7 +362,7 @@
     var custSel = document.getElementById('mb-quick-customer');
     if (custSel) {
       try {
-        var res = await MineralBarApp.listCustomers().catch(function() { return { rows: [] }; });
+        var res = await MineralBarApp.listCustomers({ length: 100, start: 0, draw: 1 }).catch(function() { return { rows: [] }; });
         var rows = res.rows || res.data || (Array.isArray(res) ? res : []);
         custSel.innerHTML = '<option value="">Choose Customer</option>';
         rows.forEach(function(c) {
@@ -375,6 +375,14 @@
             custSel.appendChild(opt);
           }
         });
+        if (window.MineralBarCustomerSearch && typeof MineralBarCustomerSearch.enhance === 'function') {
+          MineralBarCustomerSearch.enhance(custSel, {
+            emptyLabel: 'Choose Customer',
+            placeholder: (typeof window.mbT === 'function')
+              ? window.mbT('Search customer by name or phone…', 'חיפוש לקוח לפי שם או טלפון…')
+              : 'Search customer by name or phone…'
+          });
+        }
       } catch(e) {
         console.warn('Could not populate customer list for Quick Mission', e);
       }

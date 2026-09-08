@@ -418,16 +418,79 @@
     status: 'everything',   // today | late | everything | completed
     priority: 'all',        // all | urgent | regular | low
     association: 'all',     // all | my | <userId>
+    renewal: 'all',         // all | insurance | filter_renew | softener | warranty_expired
+    missionType: 'all',     // all | insurance_renewal | warranty_renewal | filter_replacement
     sortBy: 'date_to_do',   // date_to_do | priority | date_created
     sortDir: 'asc'          // asc | desc
   };
   var draftFilters = null;
+  var missionStepsCache = null;
+  var missionStepsLoadPromise = null;
+
+  /**
+   * Title filters (no dedicated renewal/type field).
+   * match.any = OR substrings; match.all = AND substrings.
+   * stepHints used to match Mission.StepsList → filter_mission_by_mission_step.
+   */
+  var TITLE_FILTERS = {
+    renewal: {
+      insurance: {
+        labelEn: 'Insurance',
+        labelHe: 'ביטוח',
+        any: ['חידוש ביטוח'],
+        stepHints: ['חידוש ביטוח', 'Insurance']
+      },
+      filter_renew: {
+        labelEn: 'Filter to renew',
+        labelHe: 'סנן לחידוש',
+        all: ['סנן', 'חידוש'],
+        any: ['סנן + חידוש'],
+        search: 'סנן',
+        stepHints: ['סנן + חידוש', 'סנן לחידוש', 'Filter to renew']
+      },
+      softener: {
+        labelEn: 'Softener to renew',
+        labelHe: 'מרכך לחידוש',
+        any: ['מרכך'],
+        stepHints: ['מרכך', 'Softener']
+      },
+      warranty_expired: {
+        labelEn: 'Warranty expired',
+        labelHe: 'אחריות פגה',
+        any: ['חידוש אחריות', 'אחריות פגה'],
+        search: 'אחריות',
+        stepHints: ['חידוש אחריות', 'אחריות פגה', 'Warranty expired']
+      }
+    },
+    missionType: {
+      insurance_renewal: {
+        labelEn: 'Insurance renewal',
+        labelHe: 'חידוש ביטוח',
+        any: ['חידוש ביטוח'],
+        stepHints: ['חידוש ביטוח', 'Insurance renewal']
+      },
+      warranty_renewal: {
+        labelEn: 'Warranty renewal',
+        labelHe: 'חידוש אחריות',
+        any: ['חידוש אחריות'],
+        stepHints: ['חידוש אחריות', 'Warranty renewal']
+      },
+      filter_replacement: {
+        labelEn: 'Filter replacement',
+        labelHe: 'החלפת סנן',
+        any: ['החלפת סנן'],
+        stepHints: ['החלפת סנן', 'Filter replacement']
+      }
+    }
+  };
 
   function defaultAdvancedFilters() {
     return {
       status: 'everything',
       priority: 'all',
       association: 'all',
+      renewal: 'all',
+      missionType: 'all',
       sortBy: 'date_to_do',
       sortDir: 'asc'
     };
@@ -436,15 +499,136 @@
   function isAdvancedFilterActive() {
     return advancedFilters.priority !== 'all' ||
       advancedFilters.association !== 'all' ||
+      advancedFilters.renewal !== 'all' ||
+      advancedFilters.missionType !== 'all' ||
       advancedFilters.sortBy !== 'date_to_do' ||
       advancedFilters.sortDir !== 'asc';
+  }
+
+  function missionTitleText(m) {
+    return String((m && (m.mission || m.title || m.name || m.mission_name)) || '').trim();
+  }
+
+  function getActiveTitleFilterSpec() {
+    var renewalKey = advancedFilters.renewal || 'all';
+    var typeKey = advancedFilters.missionType || 'all';
+    // Prefer missionType when both set — they are usually mutually exclusive in UI
+    if (typeKey && typeKey !== 'all' && TITLE_FILTERS.missionType[typeKey]) {
+      return { group: 'missionType', key: typeKey, spec: TITLE_FILTERS.missionType[typeKey] };
+    }
+    if (renewalKey && renewalKey !== 'all' && TITLE_FILTERS.renewal[renewalKey]) {
+      return { group: 'renewal', key: renewalKey, spec: TITLE_FILTERS.renewal[renewalKey] };
+    }
+    return null;
+  }
+
+  function missionMatchesTitleSpec(m, spec) {
+    if (!spec) return true;
+    var title = missionTitleText(m);
+    if (!title) return false;
+    var any = spec.any || [];
+    var all = spec.all || [];
+    var anyHit = !any.length ? false : any.some(function (needle) {
+      return title.indexOf(needle) !== -1;
+    });
+    var allHit = !all.length ? true : all.every(function (needle) {
+      return title.indexOf(needle) !== -1;
+    });
+    if (any.length && all.length) return anyHit || allHit;
+    if (any.length) return anyHit;
+    if (all.length) return allHit;
+    return true;
+  }
+
+  function filterRowsByTitle(rows) {
+    var active = getActiveTitleFilterSpec();
+    if (!active) return rows || [];
+    return (rows || []).filter(function (m) {
+      return missionMatchesTitleSpec(m, active.spec);
+    });
+  }
+
+  function normalizeStepLabel(s) {
+    return String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  async function ensureMissionSteps() {
+    if (Array.isArray(missionStepsCache)) return missionStepsCache;
+    if (missionStepsLoadPromise) return missionStepsLoadPromise;
+    missionStepsLoadPromise = (async function () {
+      try {
+        var listed = null;
+        if (window.MineralBarApp && typeof MineralBarApp.listMissionSteps === 'function') {
+          listed = await MineralBarApp.listMissionSteps({ limit: 25 });
+        } else if (window.MineralBarApp && MineralBarApp.getClient) {
+          var client = MineralBarApp.getClient();
+          listed = await client.request('Mission.StepsList', { limit: 25 }).catch(function () {
+            return client.request('MissionSteps.List', { limit: 25 }).catch(function () { return null; });
+          });
+        }
+        var rows = (listed && (listed.rows || listed.data || listed.list)) || [];
+        missionStepsCache = Array.isArray(rows) ? rows : [];
+      } catch (e) {
+        console.warn('[Tasks] Mission.StepsList failed', e);
+        missionStepsCache = [];
+      }
+      return missionStepsCache;
+    })();
+    return missionStepsLoadPromise;
+  }
+
+  function findStepIdsForSpec(spec, steps) {
+    if (!spec || !steps || !steps.length) return [];
+    var hints = (spec.stepHints || spec.any || []).map(normalizeStepLabel).filter(Boolean);
+    if (!hints.length) return [];
+    var ids = [];
+    var seen = {};
+    steps.forEach(function (row) {
+      if (!row) return;
+      var names = [row.name, row.name_en, row.name_he, row.title, row.step_name]
+        .map(normalizeStepLabel)
+        .filter(Boolean);
+      var hit = hints.some(function (h) {
+        return names.some(function (n) {
+          return n === h || n.indexOf(h) !== -1 || h.indexOf(n) !== -1;
+        });
+      });
+      if (!hit) return;
+      var id = String(row.missions_steps_id || row.id || row.data_id || '').trim();
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      ids.push(id);
+    });
+    return ids;
+  }
+
+  function titleFilterSearchText(spec) {
+    if (!spec) return '';
+    if (spec.search) return spec.search;
+    if (spec.any && spec.any.length) return spec.any[0];
+    if (spec.all && spec.all.length) return spec.all.join(' ');
+    return '';
+  }
+
+  function activeFilterCount() {
+    var n = 0;
+    if (advancedFilters.priority !== 'all') n += 1;
+    if (advancedFilters.association !== 'all') n += 1;
+    if (advancedFilters.renewal !== 'all') n += 1;
+    if (advancedFilters.missionType !== 'all') n += 1;
+    if (advancedFilters.sortBy !== 'date_to_do' || advancedFilters.sortDir !== 'asc') n += 1;
+    return n;
   }
 
   function syncFilterBadge() {
     var badge = document.getElementById('task-filter-badge');
     var btn = document.getElementById('task-filter-btn');
-    var active = isAdvancedFilterActive();
-    if (badge) badge.style.display = active ? 'block' : 'none';
+    var n = activeFilterCount();
+    var active = n > 0;
+    if (badge) {
+      badge.style.display = active ? 'block' : 'none';
+      badge.textContent = String(n);
+    }
     if (btn) {
       btn.style.borderColor = active ? '#9ec0e8' : 'var(--border-panel,#dde2ea)';
       btn.style.background = active ? '#eaf2fb' : 'var(--bg-panel,#fff)';
@@ -615,6 +799,19 @@
         filterChip('priority', 'regular', uiT('Regular', 'רגיל'), f.priority === 'regular') +
         filterChip('priority', 'low', uiT('Low', 'נמוך'), f.priority === 'low')
       ) +
+      filterSection(uiT('Renewals', 'חידושים'),
+        filterChip('renewal', 'all', uiT('All', 'הכל'), f.renewal === 'all') +
+        filterChip('renewal', 'insurance', uiT('Insurance', 'ביטוח'), f.renewal === 'insurance') +
+        filterChip('renewal', 'filter_renew', uiT('Filter to renew', 'סנן לחידוש'), f.renewal === 'filter_renew') +
+        filterChip('renewal', 'softener', uiT('Softener to renew', 'מרכך לחידוש'), f.renewal === 'softener') +
+        filterChip('renewal', 'warranty_expired', uiT('Warranty expired', 'אחריות פגה'), f.renewal === 'warranty_expired')
+      ) +
+      filterSection(uiT('Mission type', 'סוג משימה'),
+        filterChip('missionType', 'all', uiT('All', 'הכל'), f.missionType === 'all') +
+        filterChip('missionType', 'insurance_renewal', uiT('Insurance renewal', 'חידוש ביטוח'), f.missionType === 'insurance_renewal') +
+        filterChip('missionType', 'warranty_renewal', uiT('Warranty renewal', 'חידוש אחריות'), f.missionType === 'warranty_renewal') +
+        filterChip('missionType', 'filter_replacement', uiT('Filter replacement', 'החלפת סנן'), f.missionType === 'filter_replacement')
+      ) +
       filterSection(uiT('Team member', 'איש צוות'), assocChips) +
       '<div style="margin-bottom:8px;">' +
       '<div style="font-size:12px;font-weight:800;color:#8a93a3;margin-bottom:4px;">' + esc(uiT('Sort by', 'מיון לפי')) + '</div>' +
@@ -632,6 +829,9 @@
         var value = btn.getAttribute('data-value');
         if (!group) return;
         draftFilters[group] = value;
+        // Renewals vs mission type are exclusive title filters
+        if (group === 'renewal' && value !== 'all') draftFilters.missionType = 'all';
+        if (group === 'missionType' && value !== 'all') draftFilters.renewal = 'all';
         renderAdvancedFilterPanel();
       });
     });
@@ -676,10 +876,11 @@
     });
   }
 
-  function buildListParams(filterType) {
+  async function buildListParams(filterType) {
     var params = {
       type: filterType || currentFilterType || 'show_all_together_tasks',
       length: PAGE_SIZE,
+      limit: PAGE_SIZE,
       start: currentStart,
       draw: 1,
       include_counts: 1
@@ -688,6 +889,7 @@
     if (needsClientPagination(filterType)) {
       params.start = 0;
       params.length = PAGE_SIZE;
+      params.limit = PAGE_SIZE;
     }
     if (filterType === 'upcoming_tasks' || filterType === 'overdue_tasks' ||
         filterType === 'auto_tasks' || filterType === 'priority_tasks' ||
@@ -697,9 +899,10 @@
     if (filterType === 'auto_tasks' || filterType === 'done_tasks') {
       params.show_done_mission = 1;
     }
-    // Priority is filtered client-side — pull a larger page so results aren't truncated.
-    if (advancedFilters.priority && advancedFilters.priority !== 'all') {
-      params.length = 200;
+    // Priority / title filters are refined client-side — page through Mission.List (max 25).
+    if ((advancedFilters.priority && advancedFilters.priority !== 'all') || getActiveTitleFilterSpec()) {
+      params.length = PAGE_SIZE;
+      params.limit = PAGE_SIZE;
       params.start = 0;
     }
     var f = advancedFilters;
@@ -713,6 +916,22 @@
       params.order_by = f.sortBy;
       params.order_dir = f.sortDir || 'asc';
       params.sort = f.sortBy + '_' + (f.sortDir || 'asc');
+    }
+
+    var titleActive = getActiveTitleFilterSpec();
+    if (titleActive && titleActive.spec) {
+      var steps = await ensureMissionSteps();
+      var stepIds = findStepIdsForSpec(titleActive.spec, steps);
+      if (stepIds.length) {
+        // Prefer step filter when StepsList has a matching step
+        params.filter_mission_by_mission_step = stepIds.length === 1 ? stepIds[0] : stepIds;
+      } else {
+        var q = titleFilterSearchText(titleActive.spec);
+        if (q) {
+          params.mission_name = q;
+          params.search = q;
+        }
+      }
     }
     return params;
   }
@@ -875,7 +1094,7 @@
     var custSel = document.getElementById('mb-quick-customer');
     if (custSel) {
       try {
-        var res = await MineralBarApp.listCustomers().catch(function() { return { rows: [] }; });
+        var res = await MineralBarApp.listCustomers({ length: 100, start: 0, draw: 1 }).catch(function() { return { rows: [] }; });
         var rows = (res && (res.rows || res.data || (Array.isArray(res) ? res : []))) || [];
         custSel.innerHTML = '<option value="">Choose Customer</option>';
         rows.forEach(function(c) {
@@ -888,6 +1107,15 @@
             custSel.appendChild(opt);
           }
         });
+        if (window.MineralBarCustomerSearch && typeof MineralBarCustomerSearch.enhance === 'function') {
+          MineralBarCustomerSearch.enhance(custSel, {
+            emptyLabel: 'Choose Customer',
+            placeholder: (typeof window.mbT === 'function')
+              ? window.mbT('Search customer by name or phone…', 'חיפוש לקוח לפי שם או טלפון…')
+              : 'Search customer by name or phone…',
+            inputStyle: 'border:none;background:transparent;padding:4px 0;font-size:12px;font-weight:700;box-shadow:none;'
+          });
+        }
       } catch(e) {
         console.warn('Could not populate customer list for Quick Mission', e);
       }
@@ -976,7 +1204,7 @@
   var _tasksLoadInFlight = null;
 
   async function listMissionsForChip(filterType) {
-    var params = buildListParams(filterType);
+    var params = await buildListParams(filterType);
     if (needsClientPagination(filterType)) return fetchAllMissionPages(params);
     return MineralBarApp.listMissions(params);
   }
@@ -1070,6 +1298,14 @@
         flatRows = filterRowsByPriority(flatRows, today);
         groups = groups.map(function (g) {
           return Object.assign({}, g, { rows: filterRowsByPriority(g.rows || [], today) });
+        }).filter(function (g) {
+          return g.rows && g.rows.length;
+        });
+
+        // Title filters (renewals / mission type) — client refine after Mission.List paging
+        flatRows = filterRowsByTitle(flatRows);
+        groups = groups.map(function (g) {
+          return Object.assign({}, g, { rows: filterRowsByTitle(g.rows || []) });
         }).filter(function (g) {
           return g.rows && g.rows.length;
         });
@@ -1209,6 +1445,8 @@
     }
     _tasksBooted = true;
     wireFilterChips();
+    ensureMissionSteps();
+    syncFilterBadge();
     populateQuickMissionDropdowns();
     wireQuickMission();
     syncTopChips(currentFilterType);

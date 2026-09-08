@@ -299,8 +299,6 @@
     return content;
   }
 
-  var saveFlight = null;
-
   async function persistNote(msg) {
     var cid = state.customerId;
     if (!window.MineralBarApp) {
@@ -329,6 +327,26 @@
     }
     throw new Error(t('App not ready', 'האפליקציה לא מוכנה'));
   }
+
+  /** Optional card body: Customer.Update note={text} (best-effort; timeline is Chat.SendCustomer). */
+  async function persistCustomerNoteField(cid, text) {
+    text = String(text || '').trim();
+    if (!cid || !text || !window.MineralBarApp || !MineralBarApp.getClient) return;
+    try {
+      var client = MineralBarApp.getClient();
+      if (!client || !client.request) return;
+      await client.request('Customer.Update', {
+        customer_id: cid,
+        cust_id: cid,
+        id: cid,
+        note: text
+      });
+    } catch (err) {
+      console.warn('[AddNote] Customer.Update note failed', err);
+    }
+  }
+
+  var saveFlight = null;
 
   async function saveNote(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -366,7 +384,10 @@
 
     try {
       var msg = buildMessage(content);
+      // Chat.SendCustomer — customer_id + message + from=send_notes
       await persistNote(msg);
+      // Optional: mirror onto customer.note for card body
+      await persistCustomerNoteField(state.customerId, content);
       try {
         sessionStorage.setItem('mb_note_saved_' + state.customerId, String(Date.now()));
       } catch (eStore) { /* ignore */ }

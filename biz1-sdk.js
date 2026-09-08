@@ -105,8 +105,13 @@
     var name = String(key || '').toLowerCase();
     return name === 'work_dairy_add_date'
       || name === 'work_dairy_exit_date'
+      || name === 'work_dairy_vacation_from_date'
+      || name === 'work_dairy_vacation_to_date'
+      || name === 'vacation_from_date'
+      || name === 'vacation_to_date'
       || name === 'sm_date'
       || /_add_date$/.test(name)
+      || /_vacation_(from|to)_date$/.test(name)
       || name === 'from_date'
       || name === 'to_date';
   }
@@ -153,6 +158,15 @@
     var text = value.trim();
     if (!text) return value;
     if (/^\d{2}:\d{2}(:\d{2})?$/.test(text)) return text.length === 5 ? text + ':00' : text;
+
+    // Mission due datetime is UTC on the wire. If the client already sends
+    // Y-m-d H:i:s, keep it (do not treat as local and shift again).
+    var fieldName = String(key || '').toLowerCase();
+    if ((fieldName === 'date_to_do' || fieldName === 'due_date') &&
+        /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(text)) {
+      var utcText = text.replace('T', ' ');
+      return utcText.length === 16 ? utcText + ':00' : utcText;
+    }
 
     // Keep pure Y-m-d for date-only fields (do not expand to UTC datetime).
     if (isDateOnlyField(key) && /^\d{4}-\d{2}-\d{2}$/.test(text)) return text;

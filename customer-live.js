@@ -521,11 +521,20 @@
   }
 
   var leadFolderUi = {
-    subStatuses: [],
     folderStatusCache: {},
     toastTimer: null,
     suppressUntil: 0
   };
+  var customerLoadInFlight = null;
+
+  function suppressLeadLiveReload(ms) {
+    var until = Date.now() + (ms == null ? 5000 : ms);
+    if (until > leadFolderUi.suppressUntil) leadFolderUi.suppressUntil = until;
+  }
+
+  function isLeadLiveSuppressed() {
+    return Date.now() < leadFolderUi.suppressUntil;
+  }
 
   var LEAD_FOLDER_COLORS = { '1': '#f87171', '2': '#3b82f6', '3': '#ef4444' };
 
@@ -605,18 +614,6 @@
     leadFolderUi.toastTimer = setTimeout(function () { el.style.display = 'none'; }, 2800);
   }
 
-  async function fetchLeadSubStatuses() {
-    if (leadFolderUi.subStatuses.length) return leadFolderUi.subStatuses;
-    try {
-      var res = await MineralBarApp.getClient().request('Statuses.List', { type: 'internal_sub_status', limit: 50 });
-      var rows = (res && (res.data || res.rows || res.output)) || [];
-      leadFolderUi.subStatuses = Array.isArray(rows) ? rows : [];
-    } catch (e) {
-      leadFolderUi.subStatuses = [];
-    }
-    return leadFolderUi.subStatuses;
-  }
-
   async function fetchLeadFolderStatuses(folderId) {
     var key = String(folderId || '');
     if (leadFolderUi.folderStatusCache[key]) return leadFolderUi.folderStatusCache[key];
@@ -672,13 +669,6 @@
     };
   }
 
-  function leadSubStatusesForParent(parentStatusId) {
-    return leadFolderUi.subStatuses.filter(function (x) {
-      var pId = x.parent_status_id || x.patent_status_id || x.data_patent_id || '';
-      return String(pId) === String(parentStatusId);
-    });
-  }
-
   function styleLeadStatusSelect(selectEl, folderStatuses) {
     var selectedId = selectEl ? String(selectEl.value || '') : '';
     var row = (folderStatuses || []).find(function (r) {
@@ -729,6 +719,21 @@
   }
 
   var LEAD_FOLLOWUP_STATUS_ID = '10191';
+  var LEAD_IRRELEVANT_STATUS_ID = '10193';
+  var LEAD_REASON_FOLDER_ID = '3851';
+  var LEAD_NOTE_STATUS_IDS = {
+    '10190': 1, // Offer sent / נשלחה הצעה
+    '10192': 1  // No answer / אין מענה
+  };
+  var LEAD_REASON_FALLBACK = [
+    { id: '10092', name_he: 'מחיר', name_en: 'Price' },
+    { id: '10093', name_he: 'גודל מוצר', name_en: 'Product size' },
+    { id: '10094', name_he: 'עדיפות למתחרים', name_en: 'Preference for competitors' },
+    { id: '10095', name_he: 'מטבח לא מוכן', name_en: 'Kitchen not ready' },
+    { id: '10096', name_he: 'נחסם בהוראת קבע', name_en: 'Blocked by standing order' },
+    { id: '10097', name_he: 'מבוטח בחברה מתחרה', name_en: 'Insured by a competing company' },
+    { id: '10098', name_he: 'מספר שגוי', name_en: 'Wrong number' }
+  ];
 
   function isLeadFollowupStatus(selectEl, folderStatuses) {
     var id = String((selectEl && selectEl.value) || '').trim();
@@ -748,6 +753,93 @@
       row && (row.name_for || '')
     ].join(' ');
     return /follow|פולוא|מעקב/i.test(blob);
+  }
+
+  function isLeadNoteRequiredStatus(selectEl, folderStatuses) {
+    var id = String((selectEl && selectEl.value) || '').trim();
+    if (id && LEAD_NOTE_STATUS_IDS[id]) return true;
+    var label = '';
+    if (selectEl && selectEl.selectedIndex >= 0) {
+      label = String(selectEl.options[selectEl.selectedIndex].textContent || '');
+    }
+    var row = (folderStatuses || []).find(function (r) {
+      return String(r.status_id || r.id || r.data_id || '') === id;
+    });
+    var blob = [
+      label,
+      row && (row.name_en || ''),
+      row && (row.name_he || ''),
+      row && (row.name || ''),
+      row && (row.name_for || '')
+    ].join(' ');
+    return /offer\s*sent|נשלחה\s*הצעה|no\s*answer|אין\s*מענה/i.test(blob);
+  }
+
+  function isLeadIrrelevantStatus(selectEl, folderStatuses) {
+    var id = String((selectEl && selectEl.value) || '').trim();
+    if (id && id === LEAD_IRRELEVANT_STATUS_ID) return true;
+    var label = '';
+    if (selectEl && selectEl.selectedIndex >= 0) {
+      label = String(selectEl.options[selectEl.selectedIndex].textContent || '');
+    }
+    var row = (folderStatuses || []).find(function (r) {
+      return String(r.status_id || r.id || r.data_id || '') === id;
+    });
+    var blob = [
+      label,
+      row && (row.name_en || ''),
+      row && (row.name_he || ''),
+      row && (row.name || ''),
+      row && (row.name_for || '')
+    ].join(' ');
+    return /not\s*relevant|irrelevant|לא\s*רלוונט/i.test(blob);
+  }
+
+  function normalizeReasonRows(rows) {
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    var out = [];
+    var seen = {};
+    (Array.isArray(rows) ? rows : []).forEach(function (row) {
+      if (!row) return;
+      var id = String(row.status_id || row.id || row.data_id || '').trim();
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      var label = isEn
+        ? (row.name_en || row.name_for || row.name_he || row.name || id)
+        : (row.name_he || row.name_for || row.name_en || row.name || id);
+      out.push({ id: id, label: String(label) });
+    });
+    if (out.length) return out;
+    return LEAD_REASON_FALLBACK.map(function (r) {
+      return { id: r.id, label: isEn ? r.name_en : r.name_he };
+    });
+  }
+
+  async function fetchLeadReasonOptions() {
+    var rows = await fetchLeadFolderStatuses(LEAD_REASON_FOLDER_ID);
+    return normalizeReasonRows(rows);
+  }
+
+  function populateLeadReasonSelect(selectEl, reasons, selectedId) {
+    if (!selectEl) return;
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    selectEl.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = t('--Select reason--', '-- בחר סיבה --');
+    selectEl.appendChild(placeholder);
+    var known = {};
+    (reasons || []).forEach(function (r) {
+      if (!r || !r.id) return;
+      known[String(r.id)] = true;
+      var option = document.createElement('option');
+      option.value = String(r.id);
+      option.textContent = String(r.label || r.id);
+      selectEl.appendChild(option);
+    });
+    var sel = selectedId ? String(selectedId) : '';
+    selectEl.value = (sel && known[sel]) ? sel : '';
+    applyLeadSelectStyle(selectEl);
   }
 
   function followupRawToLocalInputs(raw) {
@@ -772,25 +864,7 @@
     return m[1] + '-' + m[2] + '-' + m[3] + ' ' + hh + ':' + mm + ':00';
   }
 
-  function populateLeadSubStatusSelect(selectEl, parentStatusId, selectedSubId) {
-    selectEl.innerHTML = '';
-    var placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = '----';
-    selectEl.appendChild(placeholder);
-    leadSubStatusesForParent(parentStatusId).forEach(function (row) {
-      var id = row.status_id || row.id || row.data_id;
-      var label = row.name_he || row.name_for || row.name_en || row.name || '';
-      var option = document.createElement('option');
-      option.value = String(id);
-      option.textContent = String(label);
-      selectEl.appendChild(option);
-    });
-    selectEl.value = selectedSubId ? String(selectedSubId) : '';
-    applyLeadSelectStyle(selectEl);
-  }
-
-  function buildLeadFolderBlock(folderId, folderName, statusVal, subStatusVal, folderStatuses, customerId, followupVal) {
+  function buildLeadFolderBlock(folderId, folderName, statusVal, folderStatuses, customerId, followupVal, reasonOptions, reasonVal) {
     var block = document.createElement('div');
     block.className = 'folder-block';
     block.style.cssText = 'background:#eef4fb;border:1px solid #dce8f5;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px;';
@@ -813,16 +887,18 @@
     statusWrap.appendChild(statusSelect);
     block.appendChild(statusWrap);
 
-    var subWrap = document.createElement('div');
-    var subLabel = document.createElement('span');
-    subLabel.style.cssText = 'display:block;margin-bottom:4px;font-size:11.5px;color:#7b8595;';
-    subLabel.textContent = t('Internal sub-status', 'תת-סטטוס פנימי');
-    var subSelect = document.createElement('select');
-    subSelect.className = 'lead-folder-select folder-sub-status-select';
-    subSelect.style.cssText = 'width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #d7e2ee;font-size:13.5px;color:#1f2a3a;background-color:#fff;';
-    subWrap.appendChild(subLabel);
-    subWrap.appendChild(subSelect);
-    block.appendChild(subWrap);
+    var reasonWrap = document.createElement('div');
+    reasonWrap.className = 'folder-reason-wrap';
+    reasonWrap.style.cssText = 'display:none;';
+    var reasonLabel = document.createElement('span');
+    reasonLabel.style.cssText = 'display:block;margin-bottom:4px;font-size:11.5px;color:#7b8595;';
+    reasonLabel.textContent = t('Reason', 'סיבה') + ' *';
+    var reasonSelect = document.createElement('select');
+    reasonSelect.className = 'lead-folder-select folder-reason-select';
+    reasonSelect.style.cssText = 'width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #f0c9c9;font-size:13.5px;font-weight:700;color:#1f2a3a;background-color:#fff;';
+    reasonWrap.appendChild(reasonLabel);
+    reasonWrap.appendChild(reasonSelect);
+    block.appendChild(reasonWrap);
 
     var followWrap = document.createElement('div');
     followWrap.className = 'folder-followup-wrap';
@@ -849,6 +925,21 @@
     followWrap.appendChild(followRow);
     block.appendChild(followWrap);
 
+    var noteWrap = document.createElement('div');
+    noteWrap.className = 'folder-status-note-wrap';
+    noteWrap.style.cssText = 'display:none;background:#fdf6e8;border:1.6px solid #e8c98a;border-radius:12px;padding:12px;';
+    var noteLabel = document.createElement('span');
+    noteLabel.style.cssText = 'display:block;margin-bottom:8px;font-size:12.5px;font-weight:800;color:#bd8324;';
+    noteLabel.textContent = t('Note', 'הערה') + ' *';
+    var noteTa = document.createElement('textarea');
+    noteTa.className = 'folder-status-note';
+    noteTa.rows = 3;
+    noteTa.placeholder = t('Write a note…', 'כתוב הערה…');
+    noteTa.style.cssText = 'width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1.5px solid #e8c98a;font-size:13.5px;font-weight:600;color:#1f2a3a;background:#fff;resize:vertical;min-height:72px;font-family:inherit;line-height:1.45;';
+    noteWrap.appendChild(noteLabel);
+    noteWrap.appendChild(noteTa);
+    block.appendChild(noteWrap);
+
     var saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'folder-save-btn';
@@ -857,18 +948,29 @@
     block.appendChild(saveBtn);
 
     populateLeadStatusSelect(statusSelect, folderStatuses, statusVal);
-    populateLeadSubStatusSelect(subSelect, statusVal, subStatusVal);
+    populateLeadReasonSelect(reasonSelect, reasonOptions || normalizeReasonRows([]), reasonVal);
 
     function syncFollowupField() {
       var show = String(folderId) === '1' && isLeadFollowupStatus(statusSelect, folderStatuses);
       followWrap.style.display = show ? 'block' : 'none';
     }
+    function syncNoteField() {
+      var show = isLeadNoteRequiredStatus(statusSelect, folderStatuses);
+      noteWrap.style.display = show ? 'block' : 'none';
+    }
+    function syncReasonField() {
+      var show = isLeadIrrelevantStatus(statusSelect, folderStatuses);
+      reasonWrap.style.display = show ? 'block' : 'none';
+    }
     syncFollowupField();
+    syncNoteField();
+    syncReasonField();
 
     statusSelect.addEventListener('change', function () {
       styleLeadStatusSelect(statusSelect, folderStatuses);
-      populateLeadSubStatusSelect(subSelect, statusSelect.value, '');
       syncFollowupField();
+      syncNoteField();
+      syncReasonField();
     });
 
     saveBtn.addEventListener('click', function () {
@@ -881,7 +983,6 @@
   async function saveLeadFolderStatus(folderId, block, customerId) {
     var btn = block.querySelector('.folder-save-btn');
     var statusSel = block.querySelector('.folder-status-select');
-    var subSel = block.querySelector('.folder-sub-status-select');
     if (!btn || btn.disabled || !customerId) return;
 
     var statusId = statusSel ? String(statusSel.value || '').trim() : '';
@@ -894,7 +995,23 @@
     if (statusSel && statusSel.selectedIndex >= 0) {
       statusName = String(statusSel.options[statusSel.selectedIndex].textContent || '').trim();
     }
-    var subStatusId = subSel ? String(subSel.value || '').trim() : '';
+    var reasonSel = block.querySelector('.folder-reason-select');
+    var reasonWrap = block.querySelector('.folder-reason-wrap');
+    var needReason = reasonWrap && reasonWrap.style.display !== 'none' &&
+      isLeadIrrelevantStatus(statusSel, null);
+    var reasonId = '';
+    var reasonName = '';
+    if (needReason) {
+      reasonId = reasonSel ? String(reasonSel.value || '').trim() : '';
+      if (!reasonId) {
+        showLeadStatusToast(t('Select a reason', 'בחר סיבה'), 'error');
+        if (reasonSel) reasonSel.focus();
+        return;
+      }
+      if (reasonSel && reasonSel.selectedIndex >= 0) {
+        reasonName = String(reasonSel.options[reasonSel.selectedIndex].textContent || '').trim();
+      }
+    }
     var originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = t('Saving…', 'שומר…');
@@ -909,7 +1026,6 @@
         sub_list_data_name: statusName,
         status: statusId
       };
-      if (subStatusId) payload.internal_sub_status_list = subStatusId;
 
       var followWrap = block.querySelector('.folder-followup-wrap');
       var needFollowup = followWrap && followWrap.style.display !== 'none' &&
@@ -934,9 +1050,44 @@
         }
       }
 
+      var noteWrap = block.querySelector('.folder-status-note-wrap');
+      var needNote = noteWrap && noteWrap.style.display !== 'none' &&
+        isLeadNoteRequiredStatus(statusSel, null);
+      var noteText = '';
+      if (needNote) {
+        var noteEl = block.querySelector('.folder-status-note');
+        noteText = noteEl ? String(noteEl.value || '').trim() : '';
+        if (!noteText) {
+          showLeadStatusToast(t('Write a note', 'כתוב הערה'), 'error');
+          if (noteEl) noteEl.focus();
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+      }
+
+      // Own writes echo on socket — suppress live Customer.Get storm
+      suppressLeadLiveReload(6000);
+
       var raw = await MineralBarApp.getClient().request('Customer.Edit', payload);
       if (!(raw && (Number(raw.success) === 1 || raw.success === true || raw.output || raw.data))) {
         throw new Error((raw && (raw.message || raw.error)) || 'Customer.Edit failed');
+      }
+
+      // לא רלוונטי (10193) — then folder 3851 with reason id
+      if (reasonId) {
+        var reasonRaw = await MineralBarApp.getClient().request('Customer.Edit', {
+          customer_id: customerId,
+          id: customerId,
+          cust_id: customerId,
+          folder_id: String(LEAD_REASON_FOLDER_ID),
+          sub_list_data: reasonId,
+          sub_list_data_name: reasonName,
+          status: reasonId
+        });
+        if (!(reasonRaw && (Number(reasonRaw.success) === 1 || reasonRaw.success === true || reasonRaw.output || reasonRaw.data))) {
+          throw new Error((reasonRaw && (reasonRaw.message || reasonRaw.error)) || 'Reason save failed');
+        }
       }
 
       if (followUtc) {
@@ -951,13 +1102,57 @@
         }
       }
 
-      leadFolderUi.suppressUntil = Date.now() + 2800;
+      // Offer sent (10190) / No answer (10192) — Chat.SendCustomer from=send_notes
+      if (noteText) {
+        if (typeof MineralBarApp.sendCustomerNote === 'function') {
+          await MineralBarApp.sendCustomerNote(customerId, noteText);
+        } else if (typeof MineralBarApp.sendCustomerMessage === 'function') {
+          await MineralBarApp.sendCustomerMessage({
+            customer_id: customerId,
+            message: noteText,
+            from: 'send_notes'
+          });
+        } else {
+          var noteRaw = await MineralBarApp.getClient().request('Chat.SendCustomer', {
+            customer_id: customerId,
+            message: noteText,
+            from: 'send_notes'
+          });
+          if (!(noteRaw && (Number(noteRaw.success) === 1 || noteRaw.success === true || Number(noteRaw.output) === 1))) {
+            throw new Error((noteRaw && (noteRaw.message || noteRaw.error)) || 'Chat.SendCustomer failed');
+          }
+        }
+        try {
+          await MineralBarApp.getClient().request('Customer.Update', {
+            customer_id: customerId,
+            cust_id: customerId,
+            id: customerId,
+            note: noteText
+          });
+        } catch (eNoteUpd) {
+          console.warn('[CustomerLive] Customer.Update note after status failed', eNoteUpd);
+        }
+        try {
+          sessionStorage.setItem('mb_note_saved_' + customerId, String(Date.now()));
+        } catch (eStore) { /* ignore */ }
+      }
+
+      suppressLeadLiveReload(6000);
       if (window.__mbLeadCardCustomer) {
         window.__mbLeadCardCustomer.status = statusId;
         window.__mbLeadCardCustomer.sub_list_data = statusId;
         window.__mbLeadCardCustomer.sub_list_data_name = statusName;
-        if (subStatusId) window.__mbLeadCardCustomer.internal_sub_status_list = subStatusId;
         if (followUtc) window.__mbLeadCardCustomer.followup = followUtc;
+        if (noteText) window.__mbLeadCardCustomer.note = noteText;
+        if (reasonId) {
+          if (!window.__mbLeadCardCustomer.folder_status_map) {
+            window.__mbLeadCardCustomer.folder_status_map = {};
+          }
+          window.__mbLeadCardCustomer.folder_status_map[LEAD_REASON_FOLDER_ID] = {
+            status_id: reasonId,
+            sub_status_id: ''
+          };
+        }
       }
       showLeadStatusToast(t('Details saved successfully!', 'הפרטים נשמרו בהצלחה!'));
 
@@ -967,11 +1162,30 @@
         statusMapById = {};
         statusMapByName = {};
         await ensureStatusMaps();
-        var extras = await fetchCustomerExtras(customerId).catch(function () { return {}; });
-        rememberCardState(window.__mbLeadCardCustomer, mount.kind, extras || {}, { resetPage: true });
+        // Soft card refresh without Customer.Get — extras only when a note was sent
+        var extras = noteText
+          ? await fetchCustomerExtras(customerId).catch(function () { return cardUi.extras || {}; })
+          : (cardUi.extras || {});
+        rememberCardState(window.__mbLeadCardCustomer, mount.kind, extras || {}, { resetPage: !!noteText });
         setMountHtml(renderLead(window.__mbLeadCardCustomer, mount.kind, extras || {}));
         bindLeadCardActions(window.__mbLeadCardCustomer, mount);
         bindHistoryPager();
+        if (noteText) {
+          try {
+            var hist = document.getElementById('mb-interaction-history');
+            if (hist && hist.scrollIntoView) hist.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } catch (eScroll) { /* ignore */ }
+          setTimeout(async function () {
+            try {
+              var extras2 = await fetchCustomerExtras(customerId);
+              rememberCardState(window.__mbLeadCardCustomer, mount.kind, extras2 || {}, { resetPage: false });
+              setMountHtml(renderLead(window.__mbLeadCardCustomer, mount.kind, extras2 || {}));
+              bindLeadCardActions(window.__mbLeadCardCustomer, mount);
+              bindHistoryPager();
+              try { sessionStorage.removeItem('mb_note_saved_' + customerId); } catch (eRm) { /* ignore */ }
+            } catch (eRetry) { /* ignore */ }
+          }, 900);
+        }
       }
     } catch (err) {
       showLeadStatusToast(t('Error saving details: ', 'שגיאה בשמירת הפרטים: ') + ((err && err.message) || String(err)), 'error');
@@ -994,7 +1208,9 @@
         : [];
     } catch (e0) { /* ignore */ }
 
-    await fetchLeadSubStatuses();
+    var reasonStatuses = await fetchLeadFolderStatuses(LEAD_REASON_FOLDER_ID);
+    var reasonOptions = normalizeReasonRows(reasonStatuses);
+    var reasonSelected = leadFolderStatusValue(c, LEAD_REASON_FOLDER_ID, reasonStatuses).status_id;
     var folderIds = extractLeadFolderIds(c);
     var customerId = c.customer_id || c.id;
     container.innerHTML = '';
@@ -1014,10 +1230,11 @@
         fId,
         folderName,
         vals.status_id,
-        vals.sub_status_id,
         folderStatuses,
         customerId,
-        c.followup
+        c.followup,
+        reasonOptions,
+        reasonSelected
       ));
     }
 
@@ -1280,8 +1497,11 @@
   }
 
   function historyKind(row) {
-    var type = String((row && (row.type || row.channel || row.message_type)) || '').toLowerCase();
+    var type = String((row && (row.type || row.channel || row.message_type || row.from)) || '').toLowerCase();
     var msg = String((row && (row.message || row.msg || row.note || row.subject)) || '').toLowerCase();
+    // Internal notes (Chat.SendCustomer from=send_notes) before call heuristics —
+    // typed notes may start with "שיחה" / "Call" and would otherwise look like calls.
+    if (/notes?|send_notes|import_note|internal/.test(type)) return 'note';
     if (/whatsapp|wa|וואטס/.test(type) || /whatsapp|וואטס/.test(msg)) return 'wa';
     if (/email|mail|אימייל/.test(type) || /@/.test(msg)) return 'email';
     if (/call|phone|שיחה|חיוג/.test(type) || /call|שיחה/.test(msg)) return 'call';
@@ -1353,6 +1573,126 @@
 
   function pickRegion(c) {
     return stripHtmlText(c.region || c.area || c.zone || c.district || c.city_area || '');
+  }
+
+  var SERVICE_AREA_FIELD = 'a-1786331132';
+  var CUST_SERVICE_AREA_FIELD = 'a-1786932388';
+  var SERVICE_AREA_OPTS = [
+    {
+      id: 'jerusalem',
+      en: 'Jerusalem',
+      he: 'ירושלים',
+      keys: /ירושלים|jerusalem|בית.?שמש|מבשרת/i
+    },
+    {
+      id: 'north',
+      en: 'North',
+      he: 'צפון',
+      keys: /צפון|north|חיפה|נהריה|נהרייה|haifa|עכו|טבריה|כרמיאל|צפת|קריות|נהרייה/i
+    },
+    {
+      id: 'south',
+      en: 'South',
+      he: 'דרום',
+      keys: /דרום|south|באר.?שבע|beer.?sheva|אשדוד|אשקלון|אילת|דימונה|שדרות|נתיבות/i
+    },
+    {
+      id: 'center',
+      en: 'Center',
+      he: 'מרכז',
+      keys: /מרכז|center|tel.?aviv|תל.?אביב|פתח.?תקווה|רחובות|ראשון|רמת.?גן|הרצליה|נתניה|חולון|בת.?ים|כפר.?סבא|רעננה|מודיעין|ראש.?העין|גבעתיים|רמלה|לוד/i
+    }
+  ];
+  var _serviceAreaPersistBusy = {};
+
+  function normalizeServiceAreaId(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s) return '';
+    var low = s.toLowerCase();
+    if (/^(north|צפון)$/i.test(low)) return 'north';
+    if (/^(south|דרום)$/i.test(low)) return 'south';
+    if (/^(center|central|מרכז)$/i.test(low)) return 'center';
+    if (/^(jerusalem|ירושלים)$/i.test(low)) return 'jerusalem';
+    for (var i = 0; i < SERVICE_AREA_OPTS.length; i++) {
+      if (SERVICE_AREA_OPTS[i].keys.test(s)) return SERVICE_AREA_OPTS[i].id;
+    }
+    return '';
+  }
+
+  function serviceAreaLabel(id) {
+    var hit = null;
+    for (var i = 0; i < SERVICE_AREA_OPTS.length; i++) {
+      if (SERVICE_AREA_OPTS[i].id === id) { hit = SERVICE_AREA_OPTS[i]; break; }
+    }
+    if (!hit) return '';
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    return isEn ? hit.en : hit.he;
+  }
+
+  function inferServiceAreaFromPlace(city, address) {
+    var blob = [city, address].filter(Boolean).join(' ');
+    if (!blob) return '';
+    for (var i = 0; i < SERVICE_AREA_OPTS.length; i++) {
+      if (SERVICE_AREA_OPTS[i].keys.test(blob)) return SERVICE_AREA_OPTS[i].id;
+    }
+    return '';
+  }
+
+  /** Prefer ServiceArea extra field, then CustServiceArea, then map city/settlement → north|south|center|jerusalem. */
+  function resolveLeadServiceArea(c) {
+    c = c || {};
+    var ef = customerExtraFields(c);
+    var fromPrimary = normalizeServiceAreaId(extraFieldVal(ef, SERVICE_AREA_FIELD));
+    if (fromPrimary) return { id: fromPrimary, persisted: true, field: SERVICE_AREA_FIELD };
+    var fromFallback = normalizeServiceAreaId(extraFieldVal(ef, CUST_SERVICE_AREA_FIELD));
+    if (fromFallback) return { id: fromFallback, persisted: true, field: CUST_SERVICE_AREA_FIELD };
+
+    var city = stripHtmlText(c.city || c.city_name || '');
+    var address = stripHtmlText(c.address || c.full_address || c.exact_address || '');
+    var inferred = inferServiceAreaFromPlace(city, address);
+    // Still must not leave Area empty when a settlement exists — default center.
+    if (!inferred && (city || address)) inferred = 'center';
+    return { id: inferred, persisted: false, field: SERVICE_AREA_FIELD };
+  }
+
+  async function ensureLeadServiceAreaPersisted(c) {
+    c = c || {};
+    var info = resolveLeadServiceArea(c);
+    if (!info.id || info.persisted) return info;
+    var cid = String(c.customer_id || c.id || '').trim();
+    if (!cid || _serviceAreaPersistBusy[cid]) return info;
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return info;
+    var client = MineralBarApp.getClient();
+    if (!client || (client.getToken && !client.getToken())) return info;
+
+    _serviceAreaPersistBusy[cid] = true;
+    try {
+      var body = {
+        customer_id: cid,
+        cust_id: cid,
+        id: cid
+      };
+      body['extra_fields[' + SERVICE_AREA_FIELD + ']'] = info.id;
+      var ef = customerExtraFields(c);
+      if (!normalizeServiceAreaId(extraFieldVal(ef, CUST_SERVICE_AREA_FIELD))) {
+        body['extra_fields[' + CUST_SERVICE_AREA_FIELD + ']'] = info.id;
+      }
+      await client.request('Customer.Update', body);
+      suppressLeadLiveReload(5000);
+      if (!c.extra_fields || typeof c.extra_fields !== 'object' || Array.isArray(c.extra_fields)) {
+        c.extra_fields = Object.assign({}, ef);
+      }
+      c.extra_fields[SERVICE_AREA_FIELD] = info.id;
+      if (body['extra_fields[' + CUST_SERVICE_AREA_FIELD + ']']) {
+        c.extra_fields[CUST_SERVICE_AREA_FIELD] = info.id;
+      }
+      info.persisted = true;
+    } catch (err) {
+      console.warn('[CustomerLive] ServiceArea Customer.Update failed', err);
+    } finally {
+      delete _serviceAreaPersistBusy[cid];
+    }
+    return info;
   }
 
   function customerExtraFields(c) {
@@ -1687,8 +2027,15 @@
 
     var historyP = (async function () {
       try {
-        if (!MineralBarApp.listCustomerMessages) return [];
-        var res = await MineralBarApp.listCustomerMessages(cid, { limit: 100 });
+        var res;
+        if (typeof MineralBarApp.listCustomerMessagesAll === 'function') {
+          // Chat.CustomerMessages — limit 25 per page, page until exhausted
+          res = await MineralBarApp.listCustomerMessagesAll(cid, { limit: 25, maxPages: 10 });
+        } else if (MineralBarApp.listCustomerMessages) {
+          res = await MineralBarApp.listCustomerMessages(cid, { limit: 25 });
+        } else {
+          return [];
+        }
         var rows = (res && res.rows) || [];
         // API helper returns oldest→newest; interaction list shows newest first
         return rows.slice().reverse();
@@ -2214,7 +2561,9 @@
     var email = stripHtmlText(c.email || c.second_email || '');
     var city = stripHtmlText(c.city || c.city_name || '');
     var address = stripHtmlText(c.address || c.full_address || c.exact_address || '');
-    var region = pickRegion(c) || city;
+    var areaInfo = resolveLeadServiceArea(c);
+    var regionId = areaInfo.id || '';
+    var region = serviceAreaLabel(regionId);
     var salesperson = pickSalesperson(c);
     var owner = pickOwner(c);
     var source = pickSource(c);
@@ -2234,7 +2583,7 @@
       (email ? '&email=' + encodeURIComponent(email) : '') +
       (address ? '&address=' + encodeURIComponent(address) : '') +
       (city ? '&city=' + encodeURIComponent(city) : '') +
-      (region && region !== city ? '&area=' + encodeURIComponent(region) : '');
+      (regionId ? '&area=' + encodeURIComponent(regionId) : '');
     var backCard = 'lead-card.html?customer_id=' + encodeURIComponent(id) + '&cust_id=' + encodeURIComponent(id);
     try {
       var entryBack = sessionStorage.getItem('mb_customer_card_back');
@@ -2255,8 +2604,15 @@
     if (salesperson) rows.push({ label: t('Responsible salesperson', 'איש מכירות אחראי'), value: salesperson, icon: iconPerson() });
     if (owner && owner !== salesperson) rows.push({ label: t('Owner', 'בעלים'), value: owner, icon: iconPerson() });
     if (source) rows.push({ label: t('Source', 'מקור'), value: source, icon: iconGlobe() });
-    if (region) rows.push({ label: t('Area', 'אזור'), value: region, icon: iconPin() });
-    if (address && address !== region) rows.push({ label: t('Address', 'כתובת'), value: address, icon: iconPin() });
+    // Area from ServiceArea / CustServiceArea (never raw city)
+    rows.push({
+      label: t('Area', 'אזור'),
+      value: region || t('Not set', 'לא הוגדר'),
+      icon: iconPin(),
+      accent: !!region
+    });
+    if (address) rows.push({ label: t('Address', 'כתובת'), value: address, icon: iconPin() });
+    else if (city) rows.push({ label: t('City', 'עיר'), value: city, icon: iconPin() });
     if (created) rows.push({ label: t('Created', 'נוצר'), value: created, icon: iconCalendar() });
 
     var detailsHtml = rows.map(function (r, i) {
@@ -2346,6 +2702,7 @@
     var orderUrl = 'service-order-form.html?' + qs + '&from=customer&back=' + encodeURIComponent(backCard);
     var docsUrl = 'all-documents.html?' + qs + '&back=' + encodeURIComponent(backCard);
     var chatUrl = 'chat-customer.html?' + qs + '&back=' + encodeURIComponent(backCard);
+    var taskUrl = 'service-create-task.html?' + qs + '&from=customer&back=' + encodeURIComponent(backCard);
 
     var rows = [];
     if (phone) rows.push({ label: t('Phone', 'טלפון'), value: phone, icon: iconPhone(), accent: true, href: telHref(phoneRaw) });
@@ -2394,6 +2751,7 @@
         ? actionTile(waHref(phoneRaw), '<svg width="22" height="22" viewBox="0 0 24 24" fill="#25b35e"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg>', t('WhatsApp', 'וואטסאפ'), ' target="_blank" rel="noopener"')
         : '') +
       actionTile(serviceUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>', t('Service call', 'קריאת שירות')) +
+      actionTile(taskUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M12 8v8M8 12h8"/></svg>', t('Add task', 'הוסף משימה')) +
       actionTile(quoteUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#50439d" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>', t('Quote', 'הצעת מחיר')) +
       actionTile(orderUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bd8324" stroke-width="1.8"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M9 2v4M15 2v4M8 11l2 2 3.5-3.5M8 16h6"/></svg>', t('Order', 'הזמנה')) +
       actionTile(docsUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a6473" stroke-width="1.8"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><rect x="7" y="7" width="13" height="14" rx="2"/><path d="M11 12h6M11 16h6"/></svg>', t('Document', 'מסמכים')) +
@@ -2445,6 +2803,16 @@
   async function loadCustomer(mount, opts) {
     opts = opts || {};
     var silent = !!opts.silent;
+
+    // Socket echo after our own Customer.Edit/Update — skip silent Customer.Get storm
+    if (silent && isLeadLiveSuppressed()) return;
+
+    if (customerLoadInFlight) {
+      if (silent) return customerLoadInFlight;
+      try { await customerLoadInFlight; } catch (eWait) { /* ignore */ }
+    }
+
+    var run = (async function () {
     var kind = mount.kind;
     var loadId = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
     mount._activeLoadId = loadId;
@@ -2494,7 +2862,16 @@
       // Paint core card first, then enrich with products / tickets / missions / history
       rememberCardState(c, kind, {}, { resetPage: !silent });
       setMountHtml(kind === 'lead' ? renderLead(c, kind, {}) : renderCustomer(c, kind, {}));
-      if (kind === 'lead') bindLeadCardActions(c, mount);
+      if (kind === 'lead') {
+        bindLeadCardActions(c, mount);
+        ensureLeadServiceAreaPersisted(c).then(function () {
+          if (mount._activeLoadId !== loadId) return;
+          rememberCardState(c, kind, cardUi.extras || {}, { resetPage: false });
+          setMountHtml(renderLead(c, kind, cardUi.extras || {}));
+          bindLeadCardActions(c, mount);
+          bindHistoryPager();
+        }).catch(function () { /* ignore */ });
+      }
       bindHistoryPager();
       var extrasId = c.customer_id || c.id || customerId;
       try {
@@ -2505,22 +2882,33 @@
         if (kind === 'lead') bindLeadCardActions(c, mount);
         bindHistoryPager();
 
-        // After saving a note, history can lag one beat — one silent retry
+        // After saving a note, Chat.CustomerMessages can lag — refresh history a few times
         var noteFlag = '';
         try { noteFlag = sessionStorage.getItem('mb_note_saved_' + extrasId) || ''; } catch (eFlag) { /* ignore */ }
-        if (noteFlag && (Date.now() - Number(noteFlag)) < 15000) {
-          try { sessionStorage.removeItem('mb_note_saved_' + extrasId); } catch (eRm) { /* ignore */ }
-          setTimeout(async function () {
-            if (mount._activeLoadId !== loadId) return;
-            try {
-              var extras2 = await fetchCustomerExtras(extrasId);
+        if (noteFlag && (Date.now() - Number(noteFlag)) < 20000) {
+          var noteRetryDelays = [800, 1800];
+          noteRetryDelays.forEach(function (delay, idx) {
+            setTimeout(async function () {
               if (mount._activeLoadId !== loadId) return;
-              rememberCardState(c, kind, extras2, { resetPage: false });
-              setMountHtml(kind === 'lead' ? renderLead(c, kind, extras2) : renderCustomer(c, kind, extras2));
-              if (kind === 'lead') bindLeadCardActions(c, mount);
-              bindHistoryPager();
-            } catch (eRetry) { /* ignore */ }
-          }, 600);
+              try {
+                var extras2 = await fetchCustomerExtras(extrasId);
+                if (mount._activeLoadId !== loadId) return;
+                rememberCardState(c, kind, extras2, { resetPage: false });
+                setMountHtml(kind === 'lead' ? renderLead(c, kind, extras2) : renderCustomer(c, kind, extras2));
+                if (kind === 'lead') bindLeadCardActions(c, mount);
+                bindHistoryPager();
+                if (idx === 0) {
+                  try {
+                    var hist = document.getElementById('mb-interaction-history');
+                    if (hist && hist.scrollIntoView) hist.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } catch (eScrollHist) { /* ignore */ }
+                }
+                if (idx === noteRetryDelays.length - 1) {
+                  try { sessionStorage.removeItem('mb_note_saved_' + extrasId); } catch (eRm) { /* ignore */ }
+                }
+              } catch (eRetry) { /* ignore */ }
+            }, delay);
+          });
         }
       } catch (extraErr) {
         console.warn('[CustomerLive] extras failed — keeping core card', extraErr);
@@ -2535,6 +2923,14 @@
       setMountHtml(errorHtml(err));
       var btn = document.getElementById('mb-customer-retry');
       if (btn) btn.addEventListener('click', function () { loadCustomer(mount); });
+    }
+    })();
+
+    customerLoadInFlight = run;
+    try {
+      return await run;
+    } finally {
+      if (customerLoadInFlight === run) customerLoadInFlight = null;
     }
   }
 
@@ -2565,7 +2961,13 @@
     loadCustomer(mount, opts);
   }
 
+  function softReloadCustomer() {
+    if (isLeadLiveSuppressed()) return;
+    start({ silent: true });
+  }
+
   function onLiveRefresh(ev) {
+    if (isLeadLiveSuppressed()) return;
     var detail = (ev && ev.detail) || {};
     var key = String(detail.key || '').toLowerCase();
     var group = String(detail.group || '').toLowerCase();
@@ -2578,9 +2980,7 @@
       group === 'unknown';
     if (!relevant) return;
     clearTimeout(window.__mbCustomerRtTimer);
-    window.__mbCustomerRtTimer = setTimeout(function () {
-      start({ silent: true });
-    }, 150);
+    window.__mbCustomerRtTimer = setTimeout(softReloadCustomer, 400);
   }
 
   window.addEventListener('mineralbar:ready', start);
@@ -2606,14 +3006,14 @@
   }
 
   if (window.LiveSync && typeof LiveSync.bind === 'function') {
-    LiveSync.bind(function () { start({ silent: true }); }, {
+    LiveSync.bind(softReloadCustomer, {
       keys: /customer|lead|crm|reminder|socket\.nudge/i,
       mount: '#mb-live-customer',
-      delay: 200,
+      delay: 400,
       retries: true
     });
   } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-    MineralBarApp.bindLiveReload(function () { start({ silent: true }); }, { keys: /customer|lead|crm|reminder|socket\.nudge/i, delay: 180 });
+    MineralBarApp.bindLiveReload(softReloadCustomer, { keys: /customer|lead|crm|reminder|socket\.nudge/i, delay: 400 });
   }
 
 })();

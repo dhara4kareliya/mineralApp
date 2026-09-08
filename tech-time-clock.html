@@ -29,6 +29,15 @@ mbCss('./common.css');
   html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
   button { font-family: 'Heebo', sans-serif; }
   .dc-scroll::-webkit-scrollbar { width: 0; }
+  .ttc-sheet-backdrop {
+    position: absolute; inset: 0; z-index: 40;
+    background: rgba(15, 24, 40, 0.45);
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .ttc-sheet {
+    width: 100%; background: #fff; border-radius: 22px 22px 0 0;
+    padding: 18px 16px 22px; box-shadow: 0 -8px 28px rgba(15,24,40,.18);
+  }
 </style>
 </helmet>
 <div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
@@ -72,9 +81,14 @@ mbCss('./common.css');
           </button>
 </div>
 <button type="button" onclick="{{ sickAction }}" disabled="{{ sickDisabled }}"
-  style="width:100%; padding:13px 14px; margin-bottom:16px; border:1.6px solid {{ sickBorder }}; border-radius:14px; background:{{ sickBg }}; color:{{ sickColor }}; font-size:14.5px; font-weight:800; cursor:{{ sickCursor }}; opacity:{{ sickOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; box-shadow:{{ sickShadow }};">
+  style="width:100%; padding:13px 14px; margin-bottom:10px; border:1.6px solid {{ sickBorder }}; border-radius:14px; background:{{ sickBg }}; color:{{ sickColor }}; font-size:14.5px; font-weight:800; cursor:{{ sickCursor }}; opacity:{{ sickOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; box-shadow:{{ sickShadow }};">
   <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path><path d="M9.5 12h5M12 9.5v5"></path></svg>
   {{ sickLabel }}
+</button>
+<button type="button" onclick="{{ vacationAction }}" disabled="{{ vacationDisabled }}"
+  style="width:100%; padding:13px 14px; margin-bottom:16px; border:1.6px solid {{ vacationBorder }}; border-radius:14px; background:{{ vacationBg }}; color:{{ vacationColor }}; font-size:14.5px; font-weight:800; cursor:{{ vacationCursor }}; opacity:{{ vacationOpacity }}; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; box-shadow:{{ vacationShadow }};">
+  <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><rect height="16" rx="2" width="18" x="3" y="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+  {{ vacationLabel }}
 </button>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ hasSuccess }}">
   <div style="background:#e9f4ec; border:1px solid #c2e6d1; border-radius:14px; padding:11px 14px; margin-bottom:13px; color:#257550; font-size:13px; font-weight:700;">{{ successMsg }}</div>
@@ -110,6 +124,7 @@ mbCss('./common.css');
 <sc-if hint-placeholder-val="{{ true }}" value="{{ e.isEnter }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5M15 12H3"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ e.isLeave }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5M21 12H9"></path></svg></sc-if>
 <sc-if hint-placeholder-val="{{ false }}" value="{{ e.isSick }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path><path d="M9.5 12h5M12 9.5v5"></path></svg></sc-if>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ e.isVacation }}"><svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><rect height="16" rx="2" width="18" x="3" y="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></sc-if>
 </div>
 <div style="flex:1; font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ e.label }}</div>
 <div style="font-size:13.5px; font-weight:700; color:#5a6473;">{{ e.time }}</div>
@@ -149,6 +164,35 @@ mbCss('./common.css');
 </sc-if>
 </div>
 </div>
+
+<!-- Vacation range sheet (over screen card) -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ vacationSheetOpen }}">
+  <div class="ttc-sheet-backdrop" onclick="{{ closeVacationSheet }}">
+    <div class="ttc-sheet" onclick="{{ stopSheetBubble }}">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div style="font-size:16px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ vacationSheetTitle }}</div>
+        <button type="button" onclick="{{ closeVacationSheet }}" style="border:none; background:#f0f2f5; width:32px; height:32px; border-radius:10px; font-size:18px; font-weight:700; color:#5a6473; cursor:pointer; font-family:inherit;">×</button>
+      </div>
+      <div style="font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:14px; line-height:1.4;" data-no-i18n="true">{{ vacationSheetHint }}</div>
+      <div style="display:flex; gap:10px; margin-bottom:14px;">
+        <div style="flex:1; min-width:0;">
+          <label style="display:block; font-size:12px; font-weight:700; color:#5a6473; margin-bottom:6px;" data-no-i18n="true">{{ vacationFromLabel }}</label>
+          <input type="date" value="{{ vacationFrom }}" oninput="{{ onVacationFrom }}"
+            style="width:100%; padding:12px 11px; border:1.5px solid #e4e8ee; border-radius:12px; background:#f8f9fb; font-size:14px; font-weight:700; color:#1f2a3a; font-family:inherit;" />
+        </div>
+        <div style="flex:1; min-width:0;">
+          <label style="display:block; font-size:12px; font-weight:700; color:#5a6473; margin-bottom:6px;" data-no-i18n="true">{{ vacationToLabel }}</label>
+          <input type="date" value="{{ vacationTo }}" min="{{ vacationFrom }}" oninput="{{ onVacationTo }}"
+            style="width:100%; padding:12px 11px; border:1.5px solid #e4e8ee; border-radius:12px; background:#f8f9fb; font-size:14px; font-weight:700; color:#1f2a3a; font-family:inherit;" />
+        </div>
+      </div>
+      <button type="button" onclick="{{ saveVacationRange }}" disabled="{{ vacationBusy }}"
+        style="width:100%; padding:14px; border:none; border-radius:14px; background:linear-gradient(#4a8fd4,#1d60a2); color:#fff; font-size:15px; font-weight:800; cursor:pointer; opacity:{{ vacationSaveOpacity }}; font-family:inherit;">
+        {{ vacationSaveLabel }}
+      </button>
+    </div>
+  </div>
+</sc-if>
 </div>
 </div>
 </div>
@@ -179,6 +223,12 @@ class Component extends DCLogic {
     sickDays: [],
     todaySick: false,
     sickBusy: false,
+    vacationDays: [],
+    todayVacation: false,
+    vacationBusy: false,
+    vacationSheetOpen: false,
+    vacationFrom: '',
+    vacationTo: '',
     successMsg: '',
     hoursTodayApi: null,
     historyPage: 1,
@@ -313,10 +363,20 @@ class Component extends DCLogic {
   }
 
   isSickRow(row) {
-    if (!row) return false;
-    if (Number(row.sick_day) === 1 || Number(row.sick) === 1 || row.sick_day === true || row.sick === true) return true;
+    if (!row || this.isVacationRow(row)) return false;
+    if (Number(row.sick_day) === 1 || Number(row.sick) === 1 || row.sick === true) return true;
+    // Exact sick flag only — sick_day=2 is vacation (Workdiary.Attendance.Save)
+    if (row.sick_day === true) return true;
     var note = String(row.note || row.work_dairy_notes || row.notes || '').toLowerCase();
+    if (/(vacation(\s*day)?|יום\s*חופש|חופשה)/i.test(note)) return false;
     return /(sick\s*day|sick|מחלה|יום\s*מחלה)/i.test(note);
+  }
+
+  isVacationRow(row) {
+    if (!row) return false;
+    if (Number(row.sick_day) === 2 || Number(row.sick) === 2) return true;
+    var note = String(row.note || row.work_dairy_notes || row.notes || '').toLowerCase();
+    return /(vacation(\s*day)?|יום\s*חופש|חופשה)/i.test(note);
   }
 
   sessionDateKey(row) {
@@ -382,7 +442,61 @@ class Component extends DCLogic {
     return (sickList || []).some(function (s) { return s && String(s.dateKey) === key; });
   }
 
-  async fetchSickDays(client, monthsBack) {
+  normalizeVacationRows(list) {
+    var byKey = {};
+    (list || []).forEach(function (row) {
+      if (!row || !this.isVacationRow(row)) return;
+      var d = this.parseWorkdiaryDate(row.date || row.work_dairy_add_date || row.work_dairy_vacation_from_date || row.start_time || row.from_date);
+      if (!d) {
+        var start = this.parseDateTime(row.start_time);
+        if (start) d = start;
+      }
+      if (!d) return;
+      var key = this.ymdLocal(d);
+      byKey[key] = {
+        dateKey: key,
+        date: d,
+        note: String(row.note || row.work_dairy_notes || '').trim(),
+        teamHoursId: row.team_hours_id || row.id || row.teamHoursId || null,
+        raw: row
+      };
+    }.bind(this));
+    return Object.keys(byKey).sort().reverse().map(function (k) { return byKey[k]; });
+  }
+
+  mergeVacationDays(workdiaryVacation, sessions) {
+    var byKey = {};
+    (workdiaryVacation || []).forEach(function (s) {
+      if (!s || !s.dateKey) return;
+      byKey[s.dateKey] = s;
+    });
+    (sessions || []).forEach(function (row) {
+      if (!this.isVacationRow(row)) return;
+      var key = this.sessionDateKey(row);
+      if (!key) return;
+      if (!byKey[key]) {
+        var d = this.parseDateTime(row.start_time) || this.parseWorkdiaryDate(row.date || row.work_dairy_add_date || row.work_dairy_vacation_from_date);
+        byKey[key] = {
+          dateKey: key,
+          date: d || new Date(),
+          note: String(row.note || row.work_dairy_notes || '').trim(),
+          teamHoursId: row.id || row.team_hours_id || null,
+          raw: row
+        };
+      } else if (!byKey[key].teamHoursId) {
+        byKey[key].teamHoursId = row.id || row.team_hours_id || null;
+      }
+    }.bind(this));
+    return Object.keys(byKey).sort().reverse().map(function (k) { return byKey[k]; });
+  }
+
+  isDateVacation(dateKey, vacationList) {
+    var key = String(dateKey || '').trim();
+    if (!key) return false;
+    return (vacationList || []).some(function (s) { return s && String(s.dateKey) === key; });
+  }
+
+  async fetchAttendanceFlags(client, monthsBack) {
     var now = new Date();
     var n = Math.max(1, Number(monthsBack) || 3);
     var months = [];
@@ -391,7 +505,6 @@ class Component extends DCLogic {
       months.push(d.getFullYear() + '-' + this.pad(d.getMonth() + 1));
     }
     var results = await Promise.all(months.map(function (sm) {
-      // Prefer unfiltered month list, then keep sick rows client-side (filter APIs vary by tenant)
       return client.request('Workdiary.Entries.List', {
         sm_date: sm,
         this_day: 'all_data',
@@ -420,7 +533,16 @@ class Component extends DCLogic {
         merged = this.extractRows(alt);
       } catch (eAlt) { /* ignore */ }
     }
-    return this.normalizeSickRows(merged);
+    return {
+      sickDays: this.normalizeSickRows(merged),
+      vacationDays: this.normalizeVacationRows(merged)
+    };
+  }
+
+  /** @deprecated use fetchAttendanceFlags */
+  async fetchSickDays(client, monthsBack) {
+    var flags = await this.fetchAttendanceFlags(client, monthsBack);
+    return flags.sickDays;
   }
 
   elapsedToSeconds(val) {
@@ -656,7 +778,7 @@ class Component extends DCLogic {
     }
   }
 
-  applyApiBundle(statusRes, listRes, whenStop, showLoading, sickDays) {
+  applyApiBundle(statusRes, listRes, whenStop, showLoading, attendanceFlags) {
     var historySessions = this.extractRows(listRes);
     var byId = {};
     historySessions.forEach((r) => {
@@ -737,12 +859,21 @@ class Component extends DCLogic {
       hoursTodayApi = whenStop.hours_today;
     }
 
+    var flags = attendanceFlags;
+    if (Array.isArray(flags)) flags = { sickDays: flags, vacationDays: this.state.vacationDays || [] };
+    flags = flags || {};
+
     var sickList = this.mergeSickDays(
-      Array.isArray(sickDays) ? sickDays : (this.state.sickDays || []),
+      Array.isArray(flags.sickDays) ? flags.sickDays : (this.state.sickDays || []),
+      sessions
+    );
+    var vacationList = this.mergeVacationDays(
+      Array.isArray(flags.vacationDays) ? flags.vacationDays : (this.state.vacationDays || []),
       sessions
     );
     var todayKey = this.ymdLocal(new Date());
     var todaySick = this.isDateSick(todayKey, sickList);
+    var todayVacation = this.isDateVacation(todayKey, vacationList);
 
     this.setState({
       loading: false,
@@ -756,6 +887,8 @@ class Component extends DCLogic {
       sessions: sessions,
       sickDays: sickList,
       todaySick: todaySick,
+      vacationDays: vacationList,
+      todayVacation: todayVacation,
       hoursTodayApi: hoursTodayApi,
       historyPage: showLoading ? 1 : (this.state.historyPage || 1),
       tickNow: Date.now()
@@ -799,7 +932,7 @@ class Component extends DCLogic {
           client.request('TeamHours.Get', {}),
           client.request('TeamHours.List', { page: 1, limit: 200, from_date: fromHistory }),
           client.request('TeamHours.WhenStop', {}).catch(function () { return null; }),
-          self.fetchSickDays(client, 6)
+          self.fetchAttendanceFlags(client, 6)
         ]);
         self.applyApiBundle(results[0], results[1], results[2], !!showLoading, results[3]);
       } catch (e) {
@@ -825,12 +958,23 @@ class Component extends DCLogic {
     if (this.state.busy) return;
     var todayKey = this.ymdLocal(new Date());
     var sickNow = this.isDateSick(todayKey, this.mergeSickDays(this.state.sickDays, this.state.sessions));
+    var vacationNow = this.isDateVacation(todayKey, this.mergeVacationDays(this.state.vacationDays, this.state.sessions));
     if (sickNow || this.state.todaySick) {
       if (!this.state.todaySick) this.setState({ todaySick: true });
       this.setState({
         errorMsg: this.t(
           'Today is marked as a sick day — clock in/out is disabled.',
           'היום מסומן כיום מחלה — לא ניתן להחתים כניסה או יציאה.'
+        )
+      });
+      return;
+    }
+    if (vacationNow || this.state.todayVacation) {
+      if (!this.state.todayVacation) this.setState({ todayVacation: true });
+      this.setState({
+        errorMsg: this.t(
+          'Today is marked as a vacation day — clock in/out is disabled.',
+          'היום מסומן כיום חופשה — לא ניתן להחתים כניסה או יציאה.'
         )
       });
       return;
@@ -938,7 +1082,7 @@ class Component extends DCLogic {
   }
 
   async markSickDay() {
-    if (this.state.busy || this.state.sickBusy) return;
+    if (this.state.busy || this.state.sickBusy || this.state.vacationBusy) return;
     var client = this.getClient();
     if (!client) {
       this.setState({ errorMsg: 'SDK not ready' });
@@ -951,10 +1095,17 @@ class Component extends DCLogic {
       return;
     }
 
-    // Local calendar day only (Y-m-d). Do not send Date/datetime — SDK UTC
-    // conversion was shifting IST midnight to the previous day 18:30.
-    var now = new Date();
-    var todayIso = now.getFullYear() + '-' + this.pad(now.getMonth() + 1) + '-' + this.pad(now.getDate());
+    var todayIso = this.localTodayIso();
+    var vacationMerged = this.mergeVacationDays(this.state.vacationDays, this.state.sessions);
+    if (this.isDateVacation(todayIso, vacationMerged) || this.state.todayVacation) {
+      this.setState({
+        errorMsg: this.t(
+          'Remove the vacation day before marking a sick day.',
+          'יש לבטל את יום החופשה לפני סימון יום מחלה.'
+        )
+      });
+      return;
+    }
     var sickMerged = this.mergeSickDays(this.state.sickDays, this.state.sessions);
     var alreadySick = this.isDateSick(todayIso, sickMerged);
     var clearing = alreadySick;
@@ -994,6 +1145,7 @@ class Component extends DCLogic {
         throw new Error((res && res.message) || this.t('Failed to save sick day', 'שמירת יום מחלה נכשלה'));
       }
       // Optimistic lock so clock in/out is blocked immediately
+      var now = new Date();
       var nextSick = clearing
         ? sickMerged.filter(function (s) { return !(s && s.dateKey === todayIso); })
         : sickMerged.filter(function (s) { return !(s && s.dateKey === todayIso); }).concat([{
@@ -1026,6 +1178,256 @@ class Component extends DCLogic {
     }
   }
 
+  localTodayIso() {
+    var now = new Date();
+    return now.getFullYear() + '-' + this.pad(now.getMonth() + 1) + '-' + this.pad(now.getDate());
+  }
+
+  eachYmdInRange(fromIso, toIso) {
+    var from = this.parseWorkdiaryDate(fromIso);
+    var to = this.parseWorkdiaryDate(toIso);
+    if (!from || !to) return [];
+    if (to < from) {
+      var tmp = from;
+      from = to;
+      to = tmp;
+    }
+    var out = [];
+    var cur = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 12, 0, 0);
+    var end = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 12, 0, 0);
+    var guard = 0;
+    while (cur <= end && guard < 400) {
+      out.push(this.ymdLocal(cur));
+      cur.setDate(cur.getDate() + 1);
+      guard += 1;
+    }
+    return out;
+  }
+
+  openVacationSheet() {
+    if (this.state.busy || this.state.sickBusy || this.state.vacationBusy) return;
+    if (this.state.running) {
+      this.setState({
+        errorMsg: this.t('Clock out before marking a vacation day.', 'יש להחתים יציאה לפני סימון יום חופשה.')
+      });
+      return;
+    }
+    var todayIso = this.localTodayIso();
+    this.setState({
+      vacationSheetOpen: true,
+      vacationFrom: todayIso,
+      vacationTo: todayIso,
+      errorMsg: '',
+      successMsg: ''
+    });
+  }
+
+  closeVacationSheet() {
+    if (this.state.vacationBusy) return;
+    this.setState({ vacationSheetOpen: false });
+  }
+
+  stopSheetBubble(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
+
+  onVacationFrom(e) {
+    var val = String((e && e.target && e.target.value) || '').trim();
+    var to = String(this.state.vacationTo || '').trim();
+    if (val && to && to < val) to = val;
+    this.setState({ vacationFrom: val, vacationTo: to || val });
+  }
+
+  onVacationTo(e) {
+    var val = String((e && e.target && e.target.value) || '').trim();
+    var from = String(this.state.vacationFrom || '').trim();
+    if (val && from && val < from) val = from;
+    this.setState({ vacationTo: val });
+  }
+
+  /** Button: remove today's vacation, or open from/to calendar sheet. */
+  vacationAction() {
+    if (this.state.todayVacation || this.isDateVacation(this.localTodayIso(), this.mergeVacationDays(this.state.vacationDays, this.state.sessions))) {
+      return this.clearTodayVacation();
+    }
+    return this.openVacationSheet();
+  }
+
+  async clearTodayVacation() {
+    if (this.state.busy || this.state.sickBusy || this.state.vacationBusy) return;
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ errorMsg: 'SDK not ready' });
+      return;
+    }
+    if (this.state.running) {
+      this.setState({
+        errorMsg: this.t('Clock out before changing vacation.', 'יש להחתים יציאה לפני שינוי חופשה.')
+      });
+      return;
+    }
+
+    var todayIso = this.localTodayIso();
+    var vacationMerged = this.mergeVacationDays(this.state.vacationDays, this.state.sessions);
+    var todayVacationRow = vacationMerged.find(function (s) { return s && s.dateKey === todayIso; });
+    if (!todayVacationRow) {
+      this.setState({ todayVacation: false, vacationSheetOpen: false });
+      return this.openVacationSheet();
+    }
+
+    this.setState({ vacationBusy: true, busy: true, errorMsg: '', successMsg: '' });
+    try {
+      var payload = {
+        work_dairy_add_date: todayIso,
+        work_dairy_check_in: '',
+        work_dairy_check_out: '',
+        work_dairy_notes: '',
+        sick_day: '0',
+        team_hours_id: todayVacationRow.teamHoursId
+      };
+      var res = await client.request('Workdiary.Attendance.Save', payload);
+      var ok = res && (Number(res.success) === 1 || res.success === true);
+      if (!ok) {
+        res = await client.request('Workdiary.Entry.Save', payload);
+        ok = res && (Number(res.success) === 1 || res.success === true);
+      }
+      if (!ok) {
+        throw new Error((res && res.message) || this.t('Failed to remove vacation day', 'ביטול יום חופשה נכשל'));
+      }
+      var nextVacation = vacationMerged.filter(function (s) { return !(s && s.dateKey === todayIso); });
+      this.setState({
+        vacationBusy: false,
+        busy: false,
+        todayVacation: false,
+        vacationDays: nextVacation,
+        vacationSheetOpen: false,
+        successMsg: this.t('Vacation day removed', 'יום החופשה בוטל')
+      });
+      await this.refreshAll(false);
+      var self = this;
+      setTimeout(function () {
+        if (self.state.successMsg) self.setState({ successMsg: '' });
+      }, 2500);
+    } catch (e) {
+      console.error('[TimeClock] clear vacation failed', e);
+      this.setState({
+        vacationBusy: false,
+        busy: false,
+        errorMsg: (e && e.message) || this.t('Failed to remove vacation day', 'ביטול יום חופשה נכשל')
+      });
+    }
+  }
+
+  async saveVacationRange() {
+    if (this.state.busy || this.state.sickBusy || this.state.vacationBusy) return;
+    var client = this.getClient();
+    if (!client) {
+      this.setState({ errorMsg: 'SDK not ready' });
+      return;
+    }
+    if (this.state.running) {
+      this.setState({
+        errorMsg: this.t('Clock out before marking a vacation day.', 'יש להחתים יציאה לפני סימון יום חופשה.')
+      });
+      return;
+    }
+
+    var fromIso = String(this.state.vacationFrom || '').trim();
+    var toIso = String(this.state.vacationTo || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fromIso) || !/^\d{4}-\d{2}-\d{2}$/.test(toIso)) {
+      this.setState({ errorMsg: this.t('Select vacation from and to dates.', 'יש לבחור תאריכי חופשה.') });
+      return;
+    }
+    if (toIso < fromIso) {
+      var swap = fromIso;
+      fromIso = toIso;
+      toIso = swap;
+    }
+
+    var keys = this.eachYmdInRange(fromIso, toIso);
+    if (!keys.length) {
+      this.setState({ errorMsg: this.t('Select vacation from and to dates.', 'יש לבחור תאריכי חופשה.') });
+      return;
+    }
+
+    var sickMerged = this.mergeSickDays(this.state.sickDays, this.state.sessions);
+    var sickOverlap = keys.some(function (k) {
+      return sickMerged.some(function (s) { return s && s.dateKey === k; });
+    });
+    if (sickOverlap) {
+      this.setState({
+        errorMsg: this.t(
+          'Vacation range overlaps a sick day. Remove the sick day first.',
+          'טווח החופשה חופף ליום מחלה. יש לבטל את יום המחלה קודם.'
+        )
+      });
+      return;
+    }
+
+    this.setState({ vacationBusy: true, busy: true, errorMsg: '', successMsg: '' });
+    try {
+      // Date-only Y-m-d (SDK must not UTC-shift vacation_* fields)
+      var payload = {
+        sick_day: '2',
+        work_dairy_vacation_from_date: fromIso,
+        work_dairy_vacation_to_date: toIso,
+        vacation_from_date: fromIso,
+        vacation_to_date: toIso,
+        work_dairy_notes: this.t('Vacation day', 'יום חופשה')
+      };
+      var res = await client.request('Workdiary.Attendance.Save', payload);
+      var ok = res && (Number(res.success) === 1 || res.success === true);
+      if (!ok) {
+        res = await client.request('Workdiary.Entry.Save', payload);
+        ok = res && (Number(res.success) === 1 || res.success === true);
+      }
+      if (!ok) {
+        throw new Error((res && res.message) || this.t('Failed to save vacation day', 'שמירת יום חופשה נכשלה'));
+      }
+
+      var vacationMerged = this.mergeVacationDays(this.state.vacationDays, this.state.sessions);
+      var byKey = {};
+      vacationMerged.forEach(function (s) {
+        if (s && s.dateKey) byKey[s.dateKey] = s;
+      });
+      keys.forEach(function (k) {
+        var parts = k.split('-');
+        byKey[k] = {
+          dateKey: k,
+          date: new Date(+parts[0], +parts[1] - 1, +parts[2], 12, 0, 0),
+          note: this.t('Vacation day', 'יום חופשה'),
+          teamHoursId: (byKey[k] && byKey[k].teamHoursId) || null
+        };
+      }.bind(this));
+      var nextVacation = Object.keys(byKey).sort().reverse().map(function (k) { return byKey[k]; });
+      var todayIso = this.localTodayIso();
+      var coversToday = keys.indexOf(todayIso) !== -1;
+
+      this.setState({
+        vacationBusy: false,
+        busy: false,
+        todayVacation: coversToday || this.state.todayVacation,
+        vacationDays: nextVacation,
+        vacationSheetOpen: false,
+        successMsg: keys.length === 1
+          ? this.t('Vacation day saved', 'יום חופשה נשמר')
+          : this.t('Vacation range saved', 'טווח החופשה נשמר') + ' (' + keys.length + ')'
+      });
+      await this.refreshAll(false);
+      var self = this;
+      setTimeout(function () {
+        if (self.state.successMsg) self.setState({ successMsg: '' });
+      }, 2500);
+    } catch (e) {
+      console.error('[TimeClock] vacation range save failed', e);
+      this.setState({
+        vacationBusy: false,
+        busy: false,
+        errorMsg: (e && e.message) || this.t('Failed to save vacation day', 'שמירת יום חופשה נכשלה')
+      });
+    }
+  }
+
   // Newest entry/exit first so latest punches are visible at the top
   buildTodayEvents(sessions, running, startTime) {
     var events = [];
@@ -1033,8 +1435,10 @@ class Component extends DCLogic {
     var enterLabel = this.t('Entry', 'כניסה');
     var exitLabel = this.t('Exit', 'יציאה');
     var sickLabel = this.t('Sick day', 'יום מחלה');
+    var vacationLabel = this.t('Vacation day', 'יום חופשה');
     var todayKey = this.ymdLocal(now);
     var todaySick = this.state.todaySick || this.isDateSick(todayKey, this.mergeSickDays(this.state.sickDays, sessions));
+    var todayVacation = this.state.todayVacation || this.isDateVacation(todayKey, this.mergeVacationDays(this.state.vacationDays, sessions));
 
     if (todaySick) {
       events.push({
@@ -1043,11 +1447,18 @@ class Component extends DCLogic {
         ts: now.getTime() + 1,
         label: sickLabel
       });
+    } else if (todayVacation) {
+      events.push({
+        kind: 'vacation',
+        at: now,
+        ts: now.getTime() + 1,
+        label: vacationLabel
+      });
     }
 
     (sessions || []).forEach((row) => {
       if (!this.isTodaySession(row)) return;
-      if (this.isSickRow(row)) return;
+      if (this.isSickRow(row) || this.isVacationRow(row)) return;
       var start = this.parseDateTime(row.start_time);
       if (start) events.push({ kind: 'enter', at: start, ts: start.getTime(), label: enterLabel });
       var end = this.parseDateTime(row.end_time);
@@ -1056,7 +1467,7 @@ class Component extends DCLogic {
       }
     });
 
-    if (!todaySick && running && startTime) {
+    if (!todaySick && !todayVacation && running && startTime) {
       var liveStart = this.parseDateTime(startTime);
       var key = this.dateKey(startTime);
       if (liveStart && (this.isSameLocalDay(liveStart, now) || key === this.ymdLocal(now) || key === this.ymdUtc(now))) {
@@ -1067,39 +1478,47 @@ class Component extends DCLogic {
 
     events.sort((a, b) => b.ts - a.ts);
 
-    // Show only the most recent punch (last entry or exit), but always keep sick if present
+    // Show only the most recent punch (last entry or exit), but always keep sick/vacation if present
     var top = events.slice(0, 1);
     if (todaySick && !top.some(function (e) { return e.kind === 'sick'; })) {
       top = events.filter(function (e) { return e.kind === 'sick'; }).slice(0, 1).concat(top).slice(0, 2);
     }
+    if (todayVacation && !top.some(function (e) { return e.kind === 'vacation'; })) {
+      top = events.filter(function (e) { return e.kind === 'vacation'; }).slice(0, 1).concat(top).slice(0, 2);
+    }
     return top.map((e) => ({
       label: e.label,
-      time: e.kind === 'sick' ? this.t('All day', 'כל היום') : this.localTimeLabel(e.at),
+      time: (e.kind === 'sick' || e.kind === 'vacation') ? this.t('All day', 'כל היום') : this.localTimeLabel(e.at),
       isEnter: e.kind === 'enter',
       isLeave: e.kind === 'leave',
       isSick: e.kind === 'sick',
-      iconBg: e.kind === 'sick' ? '#fdf6e8' : (e.kind === 'enter' ? '#e9f5ee' : '#fbeeed'),
-      iconColor: e.kind === 'sick' ? '#bd8324' : (e.kind === 'enter' ? '#2e8a63' : '#c0392b')
+      isVacation: e.kind === 'vacation',
+      iconBg: e.kind === 'sick' ? '#fdf6e8' : (e.kind === 'vacation' ? '#e8f1fb' : (e.kind === 'enter' ? '#e9f5ee' : '#fbeeed')),
+      iconColor: e.kind === 'sick' ? '#bd8324' : (e.kind === 'vacation' ? '#1d60a2' : (e.kind === 'enter' ? '#2e8a63' : '#c0392b'))
     }));
   }
 
   buildHistoryRows(sessions) {
     var sickMerged = this.mergeSickDays(this.state.sickDays, sessions);
-    var sickDayKeys = {};
+    var vacationMerged = this.mergeVacationDays(this.state.vacationDays, sessions);
+    var specialKeys = {};
     sickMerged.forEach(function (s) {
-      if (s && s.dateKey) sickDayKeys[s.dateKey] = true;
+      if (s && s.dateKey) specialKeys[s.dateKey] = true;
+    });
+    vacationMerged.forEach(function (s) {
+      if (s && s.dateKey) specialKeys[s.dateKey] = true;
     });
 
-    // Regular (non-sick) punches only — sick days rendered once below
+    // Regular punches only — sick/vacation days rendered once below
     var rows = (sessions || [])
       .map((row) => {
-        if (this.isSickRow(row)) return null;
+        if (this.isSickRow(row) || this.isVacationRow(row)) return null;
         var key = this.sessionDateKey(row);
-        if (key && sickDayKeys[key]) return null;
+        if (key && specialKeys[key]) return null;
         var start = this.parseDateTime(row.start_time);
         var end = this.parseDateTime(row.end_time);
         var sec = this.sessionSeconds(row, true);
-        return { row: row, start: start, end: end, sec: sec, sick: false };
+        return { row: row, start: start, end: end, sec: sec, sick: false, vacation: false };
       })
       .filter(function (x) { return x && x.start; });
 
@@ -1114,7 +1533,24 @@ class Component extends DCLogic {
         start: s.date,
         end: s.date,
         sec: 0,
-        sick: true
+        sick: true,
+        vacation: false
+      });
+    }.bind(this));
+
+    vacationMerged.forEach(function (s) {
+      if (!s || !s.date) return;
+      rows.push({
+        row: {
+          sick_day: 2,
+          note: s.note || this.t('Vacation day', 'יום חופשה'),
+          id: s.teamHoursId || ('vacation-' + s.dateKey)
+        },
+        start: s.date,
+        end: s.date,
+        sec: 0,
+        sick: false,
+        vacation: true
       });
     }.bind(this));
 
@@ -1132,23 +1568,32 @@ class Component extends DCLogic {
     var to = Math.min(startIdx + slice.length, all.length);
 
     var history = slice.map((x, i, arr) => {
-      var running = !x.sick && (Number(x.row.status) === 1 || (!x.end && this.state.running && String(x.row.id) === String(this.state.teamHoursId)));
+      var special = !!(x.sick || x.vacation);
+      var running = !special && (Number(x.row.status) === 1 || (!x.end && this.state.running && String(x.row.id) === String(this.state.teamHoursId)));
       var range = x.sick
         ? this.t('Sick day', 'יום מחלה')
-        : (this.localTimeLabel(x.start) + ' – ' + (x.end ? this.localTimeLabel(x.end) : (running ? '…' : '--:--:--')));
+        : (x.vacation
+          ? this.t('Vacation day', 'יום חופשה')
+          : (this.localTimeLabel(x.start) + ' – ' + (x.end ? this.localTimeLabel(x.end) : (running ? '…' : '--:--:--'))));
       var note = x.sick
         ? (x.row.note || this.t('Sick day', 'יום מחלה'))
-        : (running
-          ? this.t('In progress', 'בתהליך')
-          : (x.row.note || x.row.project_name || (x.sec >= 8 * 3600 ? this.t('Full day', 'יום מלא') : this.t('Session', 'משמרת'))));
+        : (x.vacation
+          ? (x.row.note || this.t('Vacation day', 'יום חופשה'))
+          : (running
+            ? this.t('In progress', 'בתהליך')
+            : (x.row.note || x.row.project_name || (x.sec >= 8 * 3600 ? this.t('Full day', 'יום מלא') : this.t('Session', 'משמרת')))));
       var ok = x.sec >= 7 * 3600;
       return {
         day: String(x.start.getDate()),
         dow: this.dowLabel(x.start),
         range: range,
         note: note,
-        hours: x.sick ? this.t('Sick', 'מחלה') : this.formatHm(x.sec),
-        hoursColor: x.sick ? '#bd8324' : (running ? '#1d60a2' : (ok ? '#2e8a63' : '#bd8324')),
+        hours: x.sick
+          ? this.t('Sick', 'מחלה')
+          : (x.vacation ? this.t('Vacation', 'חופשה') : this.formatHm(x.sec)),
+        hoursColor: x.sick
+          ? '#bd8324'
+          : (x.vacation ? '#1d60a2' : (running ? '#1d60a2' : (ok ? '#2e8a63' : '#bd8324'))),
         border: i === arr.length - 1 ? 'transparent' : '#f0f2f5'
       };
     });
@@ -1225,8 +1670,11 @@ class Component extends DCLogic {
     var running = !!st.running;
     var liveSec = this.liveElapsedSeconds();
     var sickMerged = this.mergeSickDays(st.sickDays, st.sessions);
+    var vacationMerged = this.mergeVacationDays(st.vacationDays, st.sessions);
     var todayKey = this.ymdLocal(new Date());
     var todaySick = !!(st.todaySick || this.isDateSick(todayKey, sickMerged));
+    var todayVacation = !!(st.todayVacation || this.isDateVacation(todayKey, vacationMerged));
+    var dayLocked = todaySick || todayVacation;
     var todayEvents = this.buildTodayEvents(st.sessions, running, st.startTime);
     var hist = this.buildHistoryPage(st.sessions);
 
@@ -1235,7 +1683,7 @@ class Component extends DCLogic {
 
     var sinceLabel;
     var displaySec;
-    if (running && !todaySick) {
+    if (running && !dayLocked) {
       var start = st.startTime ? this.parseDateTime(st.startTime) : null;
       sinceLabel = start
         ? (this.t('Since ', 'מ־') + this.localTimeLabel(start))
@@ -1243,12 +1691,14 @@ class Component extends DCLogic {
       displaySec = liveSec;
     } else {
       // Off shift: always 00:00:00 — live timer only runs after clock in
-      sinceLabel = todaySick ? this.t('Sick day', 'יום מחלה') : this.t('Total today', 'סה״כ היום');
+      sinceLabel = todaySick
+        ? this.t('Sick day', 'יום מחלה')
+        : (todayVacation ? this.t('Vacation day', 'יום חופשה') : this.t('Total today', 'סה״כ היום'));
       displaySec = 0;
     }
 
     var primaryLabel, primaryBg, primaryShadow;
-    var primaryLocked = !!st.busy || todaySick;
+    var primaryLocked = !!st.busy || dayLocked;
     if (st.busy) {
       primaryLabel = this.t('Saving…', 'שומר…');
       primaryBg = '#cdd2da';
@@ -1256,6 +1706,10 @@ class Component extends DCLogic {
     } else if (todaySick) {
       primaryLabel = this.t('Sick day — clock locked', 'יום מחלה — שעון נעול');
       primaryBg = 'linear-gradient(#d4a84b,#bd8324)';
+      primaryShadow = 'none';
+    } else if (todayVacation) {
+      primaryLabel = this.t('Vacation day — clock locked', 'יום חופשה — שעון נעול');
+      primaryBg = 'linear-gradient(#4a8fd4,#1d60a2)';
       primaryShadow = 'none';
     } else if (!running) {
       primaryLabel = this.t('Clock in', 'החתם כניסה');
@@ -1269,6 +1723,9 @@ class Component extends DCLogic {
 
     var canPrev = hist.historyPage > 1;
     var canNext = hist.historyPage < hist.historyTotalPages;
+    var specialBusy = !!(st.busy || st.sickBusy || st.vacationBusy || running);
+    var sickBlocked = specialBusy || todayVacation;
+    var vacationBlocked = specialBusy || todaySick;
 
     return {
       userName: st.userName || this.t('Technician', 'טכנאי'),
@@ -1279,13 +1736,17 @@ class Component extends DCLogic {
 
       statusLabel: todaySick
         ? this.t('Sick day', 'יום מחלה')
-        : (running ? this.t('On shift', 'בעבודה') : this.t('Off shift', 'לא בעבודה')),
-      statusBg: todaySick ? '#fdf6e8' : (running ? '#e6f4ec' : '#f0f1f4'),
-      statusColor: todaySick ? '#bd8324' : (running ? '#2e8a63' : '#8a93a3'),
+        : (todayVacation
+          ? this.t('Vacation day', 'יום חופשה')
+          : (running ? this.t('On shift', 'בעבודה') : this.t('Off shift', 'לא בעבודה'))),
+      statusBg: todaySick ? '#fdf6e8' : (todayVacation ? '#e8f1fb' : (running ? '#e6f4ec' : '#f0f1f4')),
+      statusColor: todaySick ? '#bd8324' : (todayVacation ? '#1d60a2' : (running ? '#2e8a63' : '#8a93a3')),
 
       clockCaption: todaySick
         ? this.t('Marked as sick day', 'סומן כיום מחלה')
-        : (running ? this.t('Shift active', 'משמרת פעילה') : this.t('Shift ended', 'משמרת הסתיימה')),
+        : (todayVacation
+          ? this.t('Marked as vacation day', 'סומן כיום חופשה')
+          : (running ? this.t('Shift active', 'משמרת פעילה') : this.t('Shift ended', 'משמרת הסתיימה'))),
       elapsed: this.formatClock(displaySec),
       sinceLabel: sinceLabel,
 
@@ -1297,8 +1758,8 @@ class Component extends DCLogic {
       primaryCursor: primaryLocked ? 'not-allowed' : 'pointer',
       primaryOpacity: primaryLocked ? '0.75' : '1',
       busy: !!st.busy,
-      iconIn: !running && !todaySick,
-      iconOut: running && !todaySick,
+      iconIn: !running && !dayLocked,
+      iconOut: running && !dayLocked,
 
       sickAction: () => this.markSickDay(),
       sickLabel: st.sickBusy
@@ -1306,13 +1767,46 @@ class Component extends DCLogic {
         : (todaySick
           ? this.t('Remove sick day', 'בטל יום מחלה')
           : this.t('Mark sick day', 'סמן יום מחלה')),
-      sickDisabled: !!(st.busy || st.sickBusy || running),
+      sickDisabled: sickBlocked,
       sickBg: todaySick ? '#fdf6e8' : '#fff',
       sickBorder: todaySick ? '#ecd7a4' : '#e4e8ee',
       sickColor: todaySick ? '#9a7320' : '#5a6473',
-      sickCursor: (st.busy || st.sickBusy || running) ? 'not-allowed' : 'pointer',
-      sickOpacity: (st.busy || st.sickBusy || running) ? '0.65' : '1',
+      sickCursor: sickBlocked ? 'not-allowed' : 'pointer',
+      sickOpacity: sickBlocked ? '0.65' : '1',
       sickShadow: 'none',
+
+      vacationAction: () => this.vacationAction(),
+      vacationLabel: st.vacationBusy
+        ? this.t('Saving…', 'שומר…')
+        : (todayVacation
+          ? this.t('Remove vacation day', 'בטל יום חופשה')
+          : this.t('Mark vacation day', 'סמן יום חופשה')),
+      vacationDisabled: vacationBlocked,
+      vacationBg: todayVacation ? '#e8f1fb' : '#fff',
+      vacationBorder: todayVacation ? '#b7d0ea' : '#e4e8ee',
+      vacationColor: todayVacation ? '#1d60a2' : '#5a6473',
+      vacationCursor: vacationBlocked ? 'not-allowed' : 'pointer',
+      vacationOpacity: vacationBlocked ? '0.65' : '1',
+      vacationShadow: 'none',
+      vacationSheetOpen: !!st.vacationSheetOpen,
+      vacationSheetTitle: this.t('Vacation range', 'טווח חופשה'),
+      vacationSheetHint: this.t(
+        'Choose from and to dates. Each day in the range is marked as vacation — clock in/out and sick day are blocked.',
+        'בחרו תאריך התחלה וסיום. כל יום בטווח יסומן כחופשה — החתמה ויום מחלה ייחסמו.'
+      ),
+      vacationFromLabel: this.t('From date', 'מתאריך'),
+      vacationToLabel: this.t('To date', 'עד תאריך'),
+      vacationFrom: st.vacationFrom || '',
+      vacationTo: st.vacationTo || '',
+      onVacationFrom: (e) => this.onVacationFrom(e),
+      onVacationTo: (e) => this.onVacationTo(e),
+      closeVacationSheet: () => this.closeVacationSheet(),
+      stopSheetBubble: (e) => this.stopSheetBubble(e),
+      saveVacationRange: () => this.saveVacationRange(),
+      vacationSaveLabel: st.vacationBusy
+        ? this.t('Saving…', 'שומר…')
+        : this.t('Save vacation', 'שמור חופשה'),
+      vacationSaveOpacity: st.vacationBusy ? '0.7' : '1',
       hasSuccess: !!st.successMsg,
       successMsg: st.successMsg || '',
 

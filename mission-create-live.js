@@ -25,14 +25,6 @@
     return n < 10 ? '0' + n : String(n);
   }
 
-  function todayParts() {
-    var d = new Date();
-    return {
-      date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()),
-      time: pad(d.getHours()) + ':' + pad(d.getMinutes())
-    };
-  }
-
   function isEn() {
     return typeof window.getCurrentLanguage === 'function'
       ? window.getCurrentLanguage() === 'en'
@@ -44,23 +36,154 @@
     return isEn() ? en : he;
   }
 
+  /** Parse API datetime (UTC Y-m-d H:i:s) into a Date. */
+  function parseUtcDateTime(str) {
+    var s = String(str == null ? '' : str).trim();
+    if (!s) return null;
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (m) {
+      return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)));
+    }
+    var d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
   function formatDisplayDate(d) {
     if (!d || Number.isNaN(d.getTime())) return '—';
     return pad(d.getDate()) + '-' + pad(d.getMonth() + 1) + '-' + d.getFullYear() +
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
-  function formatDateToDoPayload(d) {
-    // MySQL DATETIME for missions.date_to_do_format: YYYY-MM-DD HH:mm:ss (local).
+  /** Mission.Create expects UTC Y-m-d H:i:s only (not today/tomorrow/next_week). */
+  function formatUtcDateToDo(d) {
     if (!d || Number.isNaN(d.getTime())) return '';
-    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
-      ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':00';
+    return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()) +
+      ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds());
   }
 
-  function addDays(base, days) {
-    var d = new Date(base.getTime());
-    d.setDate(d.getDate() + days);
+  function toDatetimeLocalValue(d) {
+    if (!d || Number.isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function readDatetimeLocal() {
+    var input = document.getElementById('mb-mission-datetime');
+    var raw = input && input.value ? String(input.value).trim() : '';
+    if (!raw) return null;
+    var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) return null;
+    var d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0), 0);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function defaultDueDate() {
+    var d = new Date(Date.now() + 60 * 60 * 1000);
+    d.setSeconds(0, 0);
     return d;
+  }
+
+  function updateDatePreview() {
+    var due = readDatetimeLocal();
+    var preview = document.getElementById('mb-date-preview');
+    if (!preview) return;
+    if (!due) {
+      preview.textContent = uiT('Pick a date and time', 'בחרו תאריך ושעה');
+      return;
+    }
+    preview.textContent = uiT('Local: ', 'מקומי: ') + formatDisplayDate(due) +
+      ' · UTC: ' + formatUtcDateToDo(due);
+  }
+
+  function buildDateToDoPayload() {
+    var due = readDatetimeLocal();
+    if (!due) return '';
+    return formatUtcDateToDo(due);
+  }
+
+  function getRepeatDays() {
+    var active = getActivePill('mb-repeat-pills');
+    return active ? (active.getAttribute('data-repeat') || '') : '';
+  }
+
+  var MISSION_TYPE_KEYS = [
+    { en: 'Follow-up call', he: 'שיחת מעקב' },
+    { en: 'Send quote', he: 'שליחת הצעת מחיר' },
+    { en: 'Send photos', he: 'שליחת תמונות' },
+    { en: 'Other', he: 'אחר' }
+  ];
+
+  var missionStepsCache = [];
+
+  function normalizeStepName(s) {
+    return String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  function missionTypeLabel(opt) {
+    if (!opt) return '';
+    var he = opt.getAttribute('data-label-he') || '';
+    return isEn() ? String(opt.value || '').trim() : (he || String(opt.value || '').trim());
+  }
+
+  function syncMissionTitleFromType() {
+    var typeSel = document.getElementById('mb-mission-type');
+    var titleIn = document.getElementById('mb-mission-title');
+    if (!typeSel || !titleIn) return '';
+    var opt = typeSel.options[typeSel.selectedIndex];
+    var label = missionTypeLabel(opt);
+    titleIn.value = label;
+    return label;
+  }
+
+  function findMissionsStepsId(label) {
+    var needle = normalizeStepName(label);
+    if (!needle) return '';
+    var match = null;
+    (missionStepsCache || []).forEach(function (row) {
+      if (match || !row) return;
+      var names = [row.name, row.name_en, row.name_he, row.title, row.step_name];
+      for (var i = 0; i < names.length; i++) {
+        if (normalizeStepName(names[i]) === needle) {
+          match = row;
+          break;
+        }
+      }
+    });
+    if (!match) return '';
+    return String(match.missions_steps_id || match.id || match.data_id || '').trim();
+  }
+
+  async function loadMissionSteps() {
+    missionStepsCache = [];
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.listMissionSteps === 'function') {
+        var listed = await MineralBarApp.listMissionSteps({ limit: 25 });
+        missionStepsCache = (listed && (listed.rows || listed.data)) || [];
+      } else if (window.MineralBarApp && MineralBarApp.getClient) {
+        var client = MineralBarApp.getClient();
+        var res = await client.request('Mission.StepsList', { limit: 25 }).catch(function () {
+          return client.request('MissionSteps.List', { limit: 25 }).catch(function () { return null; });
+        });
+        missionStepsCache = (res && (res.data || res.rows || res.list)) || [];
+      }
+      if (!Array.isArray(missionStepsCache)) missionStepsCache = [];
+    } catch (e) {
+      console.warn('[MissionCreate] Mission.StepsList failed', e);
+      missionStepsCache = [];
+    }
+  }
+
+  function localizeMissionTypeOptions() {
+    var typeSel = document.getElementById('mb-mission-type');
+    if (!typeSel) return;
+    Array.prototype.slice.call(typeSel.options).forEach(function (opt) {
+      if (!opt.value) {
+        opt.textContent = uiT('Choose type', 'בחרו סוג');
+        return;
+      }
+      var he = opt.getAttribute('data-label-he') || opt.value;
+      opt.textContent = isEn() ? opt.value : he;
+    });
   }
 
   function showStatus(kind, text) {
@@ -91,115 +214,6 @@
 
   function getActivePill(containerId) {
     return qs('#' + containerId + ' .mb-pill.active');
-  }
-
-  function resolveDueDate() {
-    var now = new Date();
-    now.setSeconds(0, 0);
-    var active = getActivePill('mb-duration-pills');
-    var mode = active ? active.getAttribute('data-duration') : 'today';
-    var chooseWrap = document.getElementById('mb-choose-date-wrap');
-    if (chooseWrap) chooseWrap.style.display = mode === 'choose_date' ? 'block' : 'none';
-
-    if (mode === 'tomorrow') return addDays(now, 1);
-    if (mode === 'next_week') return addDays(now, 7);
-    if (mode === 'choose_date') {
-      var dateIn = document.getElementById('mb-mission-date');
-      if (dateIn && dateIn.value) {
-        var parts = dateIn.value.split('-').map(Number);
-        return new Date(parts[0], parts[1] - 1, parts[2], now.getHours(), now.getMinutes(), 0, 0);
-      }
-      return now;
-    }
-    if (mode === 'days_after') {
-      var daysIn = document.getElementById('mb-duration-days');
-      var n = Number(daysIn && daysIn.value ? daysIn.value : 0);
-      return addDays(now, n > 0 ? n : 0);
-    }
-    return now;
-  }
-
-  function getTimeOffsetMs() {
-    var active = getActivePill('mb-time-pills');
-    var mode = active ? active.getAttribute('data-time') : '30min';
-    if (mode === '30min') return 30 * 60 * 1000;
-    if (mode === '1h') return 60 * 60 * 1000;
-    if (mode === '2h') return 2 * 60 * 60 * 1000;
-    if (mode === 'custom_hours') {
-      var hoursIn = document.getElementById('mb-time-hours');
-      var hours = Number(hoursIn && hoursIn.value ? hoursIn.value : 0);
-      return (hours > 0 ? hours : 0) * 60 * 60 * 1000;
-    }
-    if (mode === 'custom_days') {
-      var daysIn = document.getElementById('mb-time-days');
-      var days = Number(daysIn && daysIn.value ? daysIn.value : 0);
-      return (days > 0 ? days : 0) * 24 * 60 * 60 * 1000;
-    }
-    return 30 * 60 * 1000;
-  }
-
-  function resolveDueDateTime() {
-    var base = resolveDueDate();
-    var activeDur = getActivePill('mb-duration-pills');
-    var dayMode = activeDur ? activeDur.getAttribute('data-duration') : 'today';
-    var offsetMs = getTimeOffsetMs();
-
-    // Today: due = now + selected offset (makes the clock hour clear).
-    if (dayMode === 'today' || !dayMode) {
-      return new Date(Date.now() + offsetMs);
-    }
-
-    // Other days: keep that calendar day, use the clock from (now + offset).
-    var clock = new Date(Date.now() + offsetMs);
-    var due = new Date(base.getTime());
-    due.setHours(clock.getHours(), clock.getMinutes(), 0, 0);
-    return due;
-  }
-
-  function updateDatePreview() {
-    var due = resolveDueDateTime();
-    var formatted = formatDisplayDate(due);
-    var clockOnly = pad(due.getHours()) + ':' + pad(due.getMinutes());
-
-    var timePreview = document.getElementById('mb-time-preview');
-    if (timePreview) {
-      timePreview.textContent = uiT('Task set for: ', 'המשימה נקבעה ל: ') + formatted + uiT(' (at ', ' (בשעה ') + clockOnly + ')';
-    }
-
-    var preview = document.getElementById('mb-date-preview');
-    if (preview) {
-      preview.textContent = uiT('Date to do: ', 'תאריך לביצוע: ') + formatted;
-    }
-  }
-
-  function buildDateToDoPayload() {
-    var formatted = formatDateToDoPayload(resolveDueDateTime());
-    if (formatted) return formatted;
-    return formatDateToDoPayload(new Date(Date.now() + 30 * 60 * 1000));
-  }
-
-  function buildTimeMissionPayload() {
-    var active = getActivePill('mb-time-pills');
-    var mode = active ? active.getAttribute('data-time') : '30min';
-    if (mode === '30min') return { time_mission: '30min' };
-    if (mode === '1h') return { time_mission: '1h', time_mission_hours: 1 };
-    if (mode === '2h') return { time_mission: '2h', time_mission_hours: 2 };
-    if (mode === 'custom_hours') {
-      var hoursIn = document.getElementById('mb-time-hours');
-      var hours = Number(hoursIn && hoursIn.value ? hoursIn.value : 0);
-      if (hours > 0) return { time_mission: hours + 'h', time_mission_hours: hours };
-    }
-    if (mode === 'custom_days') {
-      var daysIn = document.getElementById('mb-time-days');
-      var days = Number(daysIn && daysIn.value ? daysIn.value : 0);
-      if (days > 0) return { time_mission: days + 'd', time_mission_days: days };
-    }
-    return { time_mission: '30min' };
-  }
-
-  function getRepeatDays() {
-    var active = getActivePill('mb-repeat-pills');
-    return active ? (active.getAttribute('data-repeat') || '') : '';
   }
 
   var PRIORITY_API_COLORS = {
@@ -259,77 +273,23 @@
   }
 
   function wireSchedulePills() {
-    function wireGroup(containerId, onSelect) {
-      var container = document.getElementById(containerId);
-      if (!container || container.dataset.wired) return;
+    var container = document.getElementById('mb-repeat-pills');
+    if (container && !container.dataset.wired) {
       container.dataset.wired = 'true';
       qsa('.mb-pill', container).forEach(function (pill) {
-        pill.addEventListener('click', function (e) {
-          if (e.target && e.target.tagName === 'INPUT') {
-            setActivePill(container, pill);
-            onSelect(pill);
-            return;
-          }
-          setActivePill(container, pill);
-          onSelect(pill);
+        pill.addEventListener('click', function () {
+          if (pill.classList.contains('active')) pill.classList.remove('active');
+          else setActivePill(container, pill);
         });
-        var input = pill.querySelector('input');
-        if (input) {
-          input.addEventListener('focus', function () {
-            setActivePill(container, pill);
-            onSelect(pill);
-          });
-          input.addEventListener('input', function () {
-            setActivePill(container, pill);
-            onSelect(pill);
-          });
-        }
       });
     }
 
-    wireGroup('mb-time-pills', updateDatePreview);
-    wireGroup('mb-duration-pills', updateDatePreview);
-    wireGroup('mb-repeat-pills', function () {});
-
-    var dateIn = document.getElementById('mb-mission-date');
+    var dateIn = document.getElementById('mb-mission-datetime');
     if (dateIn && !dateIn.dataset.wired) {
       dateIn.dataset.wired = 'true';
       dateIn.addEventListener('change', updateDatePreview);
-      if (!dateIn.value) dateIn.value = todayParts().date;
-    }
-    updateDatePreview();
-  }
-
-  function selectDurationMode(mode, extra) {
-    var container = document.getElementById('mb-duration-pills');
-    if (!container) return;
-    var pill = qs('.mb-pill[data-duration="' + mode + '"]', container);
-    if (!pill) return;
-    setActivePill(container, pill);
-    if (mode === 'days_after' && extra != null) {
-      var daysIn = document.getElementById('mb-duration-days');
-      if (daysIn) daysIn.value = String(extra);
-    }
-    if (mode === 'choose_date' && extra) {
-      var dateIn = document.getElementById('mb-mission-date');
-      if (dateIn) dateIn.value = extra;
-    }
-    updateDatePreview();
-  }
-
-  function selectTimeMode(mode, extra) {
-    var container = document.getElementById('mb-time-pills');
-    if (!container) return;
-    var pill = qs('.mb-pill[data-time="' + mode + '"]', container);
-    if (!pill) return;
-    setActivePill(container, pill);
-    if (mode === 'custom_hours' && extra != null) {
-      var hoursIn = document.getElementById('mb-time-hours');
-      if (hoursIn) hoursIn.value = String(extra);
-    }
-    if (mode === 'custom_days' && extra != null) {
-      var daysIn = document.getElementById('mb-time-days');
-      if (daysIn) daysIn.value = String(extra);
+      dateIn.addEventListener('input', updateDatePreview);
+      if (!dateIn.value) dateIn.value = toDatetimeLocalValue(defaultDueDate());
     }
     updateDatePreview();
   }
@@ -344,31 +304,59 @@
   function applyLoadedSchedule(m) {
     var dueRaw = m.date_to_do_format || m.date_to_do || '';
     var dueStr = String(dueRaw).toLowerCase().trim();
-    if (dueStr === 'today' || dueStr === 'tomorrow' || dueStr === 'next_week') {
-      selectDurationMode(dueStr);
-    } else if (m.days_after_ads) {
-      selectDurationMode('days_after', m.days_after_ads);
-    } else if (dueRaw) {
-      var localDue = new Date(m.date_to_do_format || dueRaw);
-      if (!Number.isNaN(localDue.getTime())) {
-        selectDurationMode(
-          'choose_date',
-          localDue.getFullYear() + '-' + pad(localDue.getMonth() + 1) + '-' + pad(localDue.getDate())
-        );
-      }
-    }
+    var dateIn = document.getElementById('mb-mission-datetime');
+    if (!dateIn) return;
 
-    var timeVal = String(m.time_mission || m.time || '').toLowerCase();
-    if (timeVal === '30min' || timeVal === '30') selectTimeMode('30min');
-    else if (timeVal === '1h' || timeVal === '1hour' || Number(m.time_mission_hours) === 1) selectTimeMode('1h');
-    else if (timeVal === '2h' || timeVal === '2hour' || Number(m.time_mission_hours) === 2) selectTimeMode('2h');
-    else if (m.time_mission_hours) selectTimeMode('custom_hours', m.time_mission_hours);
-    else if (m.time_mission_days) selectTimeMode('custom_days', m.time_mission_days);
-    else if (/^\d+h$/.test(timeVal)) selectTimeMode('custom_hours', parseInt(timeVal, 10));
-    else if (/^\d+d$/.test(timeVal)) selectTimeMode('custom_days', parseInt(timeVal, 10));
+    var due = null;
+    if (dueStr === 'today') due = new Date();
+    else if (dueStr === 'tomorrow') {
+      due = new Date();
+      due.setDate(due.getDate() + 1);
+    } else if (dueStr === 'next_week') {
+      due = new Date();
+      due.setDate(due.getDate() + 7);
+    } else if (dueRaw) {
+      due = parseUtcDateTime(dueRaw) || new Date(dueRaw);
+    }
+    if (!due || Number.isNaN(due.getTime())) due = defaultDueDate();
+    due.setSeconds(0, 0);
+    dateIn.value = toDatetimeLocalValue(due);
 
     if (m.repeat_days) selectRepeatMode(String(m.repeat_days).toLowerCase());
     updateDatePreview();
+  }
+
+  function applyLoadedMissionType(m) {
+    var typeSel = document.getElementById('mb-mission-type');
+    var titleIn = document.getElementById('mb-mission-title');
+    var noteIn = document.getElementById('mb-mission-note');
+    if (!typeSel) return;
+
+    var missionText = String((m && (m.mission || m.title)) || '').trim();
+    var noteText = String((m && (m.note || m.description)) || '').trim();
+    var matched = '';
+    MISSION_TYPE_KEYS.forEach(function (row) {
+      if (matched) return;
+      if (normalizeStepName(missionText) === normalizeStepName(row.en) ||
+          normalizeStepName(missionText) === normalizeStepName(row.he)) {
+        matched = row.en;
+      }
+    });
+    if (matched) typeSel.value = matched;
+    else if (missionText) {
+      typeSel.value = 'Other';
+      if (noteIn && !noteText) noteIn.value = missionText;
+    }
+    syncMissionTitleFromType();
+    if (titleIn && typeSel.value) titleIn.value = missionTypeLabel(typeSel.options[typeSel.selectedIndex]);
+  }
+
+  function wireMissionType() {
+    var typeSel = document.getElementById('mb-mission-type');
+    if (!typeSel || typeSel.dataset.wired) return;
+    typeSel.dataset.wired = 'true';
+    localizeMissionTypeOptions();
+    typeSel.addEventListener('change', function () { syncMissionTitleFromType(); });
   }
 
   function normalizeColumnValue(value) {
@@ -505,7 +493,7 @@
     var custSel = document.getElementById('mb-customer-name');
     if (custSel) {
       try {
-        var res = await MineralBarApp.listCustomers().catch(function() { return { rows: [] }; });
+        var res = await MineralBarApp.listCustomers({ length: 100, start: 0, draw: 1 }).catch(function() { return { rows: [] }; });
         var rows = (res && (res.rows || res.data || (Array.isArray(res) ? res : []))) || [];
         custSel.innerHTML = '<option value="">Choose Customer</option>';
         rows.forEach(function(c) {
@@ -541,6 +529,15 @@
             }
             linkedEl.style.display = 'flex';
           }
+        }
+
+        if (window.MineralBarCustomerSearch && typeof MineralBarCustomerSearch.enhance === 'function') {
+          MineralBarCustomerSearch.enhance(custSel, {
+            emptyLabel: 'Choose Customer',
+            placeholder: (typeof window.mbT === 'function')
+              ? window.mbT('Search customer by name or phone…', 'חיפוש לקוח לפי שם או טלפון…')
+              : 'Search customer by name or phone…'
+          });
         }
       } catch(e) {
         console.warn('Could not populate customer dropdown', e);
@@ -858,8 +855,9 @@
 
       var fullTitle = m.mission || m.title || '';
       var note = m.note || m.description || '';
-      if (titleIn) titleIn.value = fullTitle;
       if (noteIn) noteIn.value = note;
+      applyLoadedMissionType(m);
+      if (titleIn && !titleIn.value && fullTitle) titleIn.value = fullTitle;
       applyLoadedSchedule(m);
 
       // 4. Customer
@@ -876,6 +874,11 @@
           custSel.appendChild(opt);
         }
         custSel.value = String(cid);
+        if (custSel._mbCustCombo && typeof custSel._mbCustCombo.sync === 'function') {
+          custSel._mbCustCombo.sync();
+        } else if (window.MineralBarCustomerSearch && typeof MineralBarCustomerSearch.enhance === 'function') {
+          MineralBarCustomerSearch.enhance(custSel);
+        }
       }
       if (cname) {
         var linkedEl = document.getElementById('mb-linked-customer');
@@ -1195,12 +1198,15 @@
       var notifyCb = document.getElementById('mb-notify-client');
       var templateCb = document.getElementById('mb-use-template');
 
-      var title = (titleIn && titleIn.value || '').trim();
-      if (!title) {
-        showStatus('error', 'Please enter task description.');
-        if (titleIn) titleIn.focus();
+      var title = syncMissionTitleFromType() || (titleIn && titleIn.value || '').trim();
+      var typeSel = document.getElementById('mb-mission-type');
+      if (!title || (typeSel && !typeSel.value)) {
+        showStatus('error', uiT('Please choose a mission type.', 'יש לבחור סוג משימה.'));
+        if (typeSel) typeSel.focus();
         return;
       }
+
+      var noteText = (noteIn && noteIn.value || '').trim();
 
       var customerId = custSel ? custSel.value : '';
       if (selectedFiles.length && !customerId) {
@@ -1219,9 +1225,8 @@
       try {
         var duePayload = buildDateToDoPayload();
         if (!duePayload) {
-          throw new Error('Could not determine a valid due date.');
+          throw new Error(uiT('Pick a date and time.', 'יש לבחור תאריך ושעה.'));
         }
-        var timePayload = buildTimeMissionPayload();
         var bizDate = duePayload;
 
         var isPrivate = privateCb && privateCb.checked ? 1 : 0;
@@ -1230,12 +1235,13 @@
         var colorVal = PRIORITY_API_COLORS[priorityKey] || 'yellow';
 
         var projChoice = projectSel && projectSel.value ? projectSel.value : undefined;
-        var stepChoice = stepSel && stepSel.value ? Number(stepSel.value) : 0;
+        var stepChoice = findMissionsStepsId(title);
+        if (stepSel && stepSel.value) stepChoice = String(stepSel.value);
         var repeatDays = getRepeatDays();
 
         var payload = {
           mission: title,
-          note: (noteIn && noteIn.value) || title,
+          note: noteText,
           date_to_do: bizDate,
           private_mission: isPrivate,
           priority: colorVal,
@@ -1251,16 +1257,13 @@
         };
         if (projChoice) payload.project_id = Number(projChoice);
         if (stepChoice) payload.missions_steps_id = stepChoice;
-
-        Object.keys(timePayload).forEach(function (key) {
-          payload[key] = timePayload[key];
-        });
+        // time_mission is duration only — never send it for the due clock time
         if (repeatDays) payload.repeat_days = repeatDays;
 
         if (editingMissionId) {
           var fields = {
             mission: title,
-            note: payload.note,
+            note: noteText,
             date_to_do: payload.date_to_do || bizDate,
             color: colorVal,
             priority: colorVal,
@@ -1268,8 +1271,8 @@
             project_column: payload.project_column || 'to_do',
             private_mission: isPrivate,
             project_id: projChoice ? Number(projChoice) : 0,
-            step_id: stepChoice,
-            missions_steps_id: stepChoice,
+            step_id: stepChoice ? Number(stepChoice) : 0,
+            missions_steps_id: stepChoice ? Number(stepChoice) : 0,
             notify_client: payload.notify_client,
             email_me_employee: payload.email_me_employee,
             whatsApp_reminder: payload.whatsApp_reminder,
@@ -1365,15 +1368,18 @@
     wireBackNavigation();
     wireMarkDone();
     wireSchedulePills();
+    wireMissionType();
     wirePriorityPills();
     wireProjectColumnLiveUpdate();
-    populateDropdowns().then(function() {
+    Promise.all([populateDropdowns(), loadMissionSteps()]).then(function() {
       return loadExistingMissionOnce();
     });
     wireMediaAndUploads();
     wireSubmit();
     window.addEventListener('mineralbar:language-changed', function () {
       updatePriorityLabels();
+      localizeMissionTypeOptions();
+      syncMissionTitleFromType();
       loadProjectColumns(document.getElementById('mb-project-column') && document.getElementById('mb-project-column').value);
     });
   }

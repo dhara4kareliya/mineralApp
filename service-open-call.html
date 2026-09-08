@@ -242,28 +242,19 @@ mbCss('./common.css');
 
 <div class="soc-block">
   <label class="soc-label" data-no-i18n="true">{{ relatedProductLabel }}</label>
-  <div class="soc-sku-row">
-    <input id="soc-sku-input" class="soc-field ds-input" type="text" autocomplete="off" inputmode="text"
-      value="{{ productSku }}" placeholder="{{ skuPlaceholder }}"
-      oninput="{{ onSkuInput }}" onkeydown="{{ onSkuKeydown }}" onblur="{{ onSkuBlur }}"/>
-    <button type="button" class="soc-scan-btn" onclick="{{ openScanner }}" aria-label="{{ scanBarcodeLabel }}" title="{{ scanBarcodeLabel }}">
-      <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="22"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M14 8v8M17 8v8"/></svg>
-    </button>
-  </div>
-  <sc-if hint-placeholder-val="{{ false }}" value="{{ productLookupLoading }}">
-    <div style="margin-top:8px; font-size:12px; color:#7b8595; font-weight:600;" data-no-i18n="true">{{ productLookupLabel }}</div>
+  <sc-if hint-placeholder-val="{{ false }}" value="{{ productsLoading }}">
+    <div style="margin-top:4px; font-size:12px; color:#7b8595; font-weight:600;" data-no-i18n="true">{{ productLookupLabel }}</div>
   </sc-if>
-  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasProductScanError }}">
-    <div style="margin-top:8px; font-size:12px; color:#a3302e; font-weight:600;">{{ productScanError }}</div>
-  </sc-if>
-  <sc-if hint-placeholder-val="{{ false }}" value="{{ hasScannedProduct }}">
-    <div class="soc-product-found">
-      <div style="min-width:0; flex:1;">
-        <div style="font-size:13.5px; font-weight:800; color:#1f2a3a; word-break:break-word;">{{ productName }}</div>
-        <div style="font-size:11.5px; color:#5a7fa8; margin-top:3px; font-weight:600;">SKU · {{ productSkuDisplay }} · #{{ productId }}</div>
-      </div>
-      <button type="button" onclick="{{ clearProduct }}" style="border:none; background:none; color:#c0392b; font-size:12px; font-weight:700; cursor:pointer; flex:none; padding:2px 0;">Clear</button>
-    </div>
+  <sc-if hint-placeholder-val="{{ true }}" value="{{ productsReady }}">
+    <select onchange="{{ onLinkedProduct }}" class="soc-field ds-input">
+      <option value="">{{ linkedProductPlaceholder }}</option>
+      <sc-for as="p" hint-placeholder-count="0" list="{{ linkedProductOpts }}">
+        <option value="{{ p.value }}" selected="{{ p.selected }}">{{ p.name }}</option>
+      </sc-for>
+    </select>
+    <sc-if hint-placeholder-val="{{ false }}" value="{{ linkedProductsEmpty }}">
+      <div style="margin-top:8px; font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ linkedProductsEmptyLabel }}</div>
+    </sc-if>
   </sc-if>
 </div>
 
@@ -454,20 +445,20 @@ class Component extends DCLogic {
     this.syncTopicFromCallType();
     this.loadCustomer();
     this.loadFormOptions();
-    this.loadPaidProducts();
+    this.loadLinkedProducts();
     this.bindSafeDropZone();
     window.addEventListener('mineralbar:ready', () => {
       this.loadCustomer();
       this.loadFormOptions();
-      this.loadPaidProducts();
+      this.loadLinkedProducts();
       this.syncTopicFromCallType();
     });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => {
         this.loadCustomer();
         this.loadFormOptions();
-        this.loadPaidProducts();
-      }, { keys: /ticket|product|customer|socket\.nudge/i, delay: 400 });
+        this.loadLinkedProducts();
+      }, { keys: /ticket|product|customer|document|socket\.nudge/i, delay: 400 });
     }
     var self = this;
     window.addEventListener('mineralbar:language-changed', function () {
@@ -578,6 +569,7 @@ class Component extends DCLogic {
     if (cust) this.applyCustomer(cust);
 
     var customerId = String((cust && (cust.customer_id || cust.id)) || (fromQuery && fromQuery.customer_id) || '').trim();
+    if (customerId) this.loadLinkedProducts();
     if (!customerId) return;
     if (!window.MineralBarApp || typeof MineralBarApp.getCustomer !== 'function') return;
 
@@ -594,6 +586,7 @@ class Component extends DCLogic {
         email: c.email || (cust && cust.email) || '',
         isNew: false
       }));
+      this.loadLinkedProducts();
     } catch (err) {
       console.warn('[service-open-call] Customer.Get failed', err);
     }
@@ -812,152 +805,109 @@ class Component extends DCLogic {
     return String(row.document_id || row.id || row.doc_id || '').trim();
   }
 
-  normalizeProducts(raw) {
+  normalizeLinkedProducts(raw) {
     var list = [];
     if (!raw) return list;
     if (Array.isArray(raw)) list = raw;
-    else if (Array.isArray(raw.products)) list = raw.products;
     else if (Array.isArray(raw.data)) list = raw.data;
     else if (Array.isArray(raw.output)) list = raw.output;
+    else if (Array.isArray(raw.products)) list = raw.products;
     else if (Array.isArray(raw.rows)) list = raw.rows;
-    else if (raw.output && Array.isArray(raw.output.products)) list = raw.output.products;
-    else if (raw.data && Array.isArray(raw.data.products)) list = raw.data.products;
+    else if (raw.data && Array.isArray(raw.data.data)) list = raw.data.data;
 
     return list.map(function (p) {
       if (!p) return null;
-      var productName = String(
-        p.product_name || p.item_name || p.name || p.title || p.label || p.product || ''
-      ).trim();
-      if (!productName) return null;
-      var rawId = String(p.product_id != null ? p.product_id : (p.id != null ? p.id : '')).trim();
-      // Documents.Products often returns product_id "0" for line items without a catalog id
-      if (!rawId || rawId === '0') rawId = '';
-      var documentId = String(p.document_id || p.doc_id || '').trim();
-      // Unique select key: prefer real catalog id, else name+document (many products share product_id 0)
-      var selectKey = rawId || (productName + '::' + (documentId || 'nodoc'));
+      var name = String(p.name || p.product_name || p.item_name || p.title || p.label || '').trim();
+      var value = p.value != null ? p.value
+        : (p.product_id != null ? p.product_id
+          : (p.id != null ? p.id : ''));
+      value = String(value == null ? '' : value).trim();
+      if (!name && !value) return null;
+      if (!name) name = value;
+      if (!value) value = name;
       return {
-        id: selectKey,
-        name: productName,
-        product_name: productName,
-        product_id: rawId,
-        document_id: documentId,
-        raw: p
+        id: value,
+        name: name,
+        value: value,
+        product_id: value,
+        selected: !!(p.selected === true || p.selected === 1 || p.selected === '1')
       };
     }).filter(Boolean);
   }
 
-  async fetchProductsForCustomer(client, customerId, documentId) {
-    var cid = String(customerId || '').trim();
-    if (!cid) return [];
-
-    var attempts = [];
-    if (documentId) {
-      attempts.push({ customer_id: cid, document_id: documentId });
-      attempts.push({ cust_id: cid, document_id: documentId });
-    } else {
-      attempts.push({ customer_id: cid });
-      attempts.push({ cust_id: cid });
-      attempts.push({ customer_id: cid, length: 100, start: 0, draw: 1 });
-    }
-
-    for (var i = 0; i < attempts.length; i++) {
-      try {
-        var res = await client.request('Documents.Products', attempts[i]);
-        var products = this.normalizeProducts(res);
-        if (products.length) return products;
-        if (res && String(res.success) !== '0' && !res.error) return products;
-      } catch (e) { /* try next */ }
-    }
-    return [];
-  }
-
-  async loadPaidProducts() {
+  async loadLinkedProducts() {
     try {
       if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return;
       var client = MineralBarApp.getClient();
       if (!client || !client.getToken || !client.getToken()) return;
 
-      this.setState({ productsLoading: true });
-
       var cid = this.getCustomerId();
       if (!cid) {
-        console.warn('[service-open-call] No customer_id — cannot load Documents.Products');
-        this.setState({ products: [], productsLoading: false });
+        this.setState({ products: [], productsLoading: false, productId: '', productName: '' });
         return;
       }
 
-      // 1) Documents.List → paid document_ids (status lives here)
-      var dRes = await client.request('Documents.List', {
-        customer_id: cid,
-        length: 50,
-        start: 0,
-        draw: 1
+      this.setState({ productsLoading: true });
+      var res = await client.request('Ticket.ProductsByCustomer', {
+        cust_id: cid,
+        customer_id: cid
       }).catch(function (err) {
-        console.warn('[service-open-call] Documents.List failed', err);
+        console.warn('[service-open-call] Ticket.ProductsByCustomer failed', err);
         return null;
       });
 
-      var rows = (dRes && (dRes.rows || dRes.data || dRes.output)) || [];
-      if (!Array.isArray(rows)) rows = [];
-
-      var paidIdSet = {};
-      var paidDocIds = [];
-      rows.filter((r) => this.isPaidDoc(r)).forEach((r) => {
-        var id = this.docIdOf(r);
-        if (!id || paidIdSet[id]) return;
-        paidIdSet[id] = true;
-        paidDocIds.push(id);
-      });
-
-      var allProducts = [];
-      var productSeen = {};
-
-      function addProducts(products, requirePaidDoc) {
-        (products || []).forEach(function (p) {
-          var docId = String(p.document_id || '');
-          if (requirePaidDoc) {
-            if (!docId || !paidIdSet[docId]) return;
-          }
-          // Prefer unique catalog id; otherwise name+document so different products don't collapse
-          var key = p.product_id
-            ? ('id:' + p.product_id)
-            : ('name:' + String(p.product_name || p.name || '').toLowerCase() + '::' + docId);
-          if (!key || productSeen[key]) return;
-          productSeen[key] = true;
-          allProducts.push(p);
-        });
+      var products = this.normalizeLinkedProducts(res);
+      var selected = '';
+      var selectedName = '';
+      for (var i = 0; i < products.length; i++) {
+        if (products[i].selected) {
+          selected = products[i].value;
+          selectedName = products[i].name;
+          break;
+        }
       }
-
-      // 2) Documents.Products for customer → keep only rows whose document_id is paid
-      var customerProducts = await this.fetchProductsForCustomer(client, cid, null);
-      if (customerProducts.length && paidDocIds.length) {
-        addProducts(customerProducts, true);
-      }
-
-      // 3) Fallback: fetch products only for paid document_ids
-      if (!allProducts.length && paidDocIds.length) {
-        var maxDocs = paidDocIds.slice(0, 15);
-        for (var i = 0; i < maxDocs.length; i++) {
-          var products = await this.fetchProductsForCustomer(client, cid, maxDocs[i]);
-          products.forEach(function (p) {
-            if (!p.document_id) p.document_id = maxDocs[i];
-          });
-          addProducts(products, false);
+      var prev = String(this.state.productId || '').trim();
+      if (prev) {
+        var still = products.find(function (p) { return String(p.value) === prev; });
+        if (still) {
+          selected = still.value;
+          selectedName = still.name;
         }
       }
 
-      // Product is chosen by SKU scan — do not clear productId from paid-doc list
       this.setState({
-        products: allProducts,
-        productsLoading: false
+        products: products,
+        productsLoading: false,
+        productId: selected,
+        productName: selectedName,
+        productSku: '',
+        productScanError: ''
       });
     } catch (e) {
-      console.warn('[service-open-call] loadPaidProducts failed', e);
+      console.warn('[service-open-call] loadLinkedProducts failed', e);
       this.setState({ products: [], productsLoading: false });
     }
   }
 
-  initials(name) {
+  onLinkedProduct(e) {
+    var val = String((e && e.target && e.target.value) || '').trim();
+    var row = (this.state.products || []).find(function (p) {
+      return String(p.value) === val;
+    });
+    this.setState({
+      productId: val,
+      productName: row ? row.name : '',
+      productSku: '',
+      productScanError: ''
+    });
+  }
+
+  /** Kept as alias for older callers / live-reload paths. */
+  async loadPaidProducts() {
+    return this.loadLinkedProducts();
+  }
+
+    initials(name) {
     const parts = (name || '').trim().split(/\s+/);
     if (parts.length === 1) return parts[0].slice(0, 2);
     return parts[0][0] + parts[1][0];
@@ -1164,14 +1114,13 @@ class Component extends DCLogic {
         form.append('assign_member_id[]', String(val));
         return;
       }
-      if (key === 'product_id') {
-        // Multipart product_id[] becomes a PHP array; Ticket.Add then stores
-        // the string "Array". Send a scalar, same as the no-file payload.
+      if (key === 'product_id' || key === 'product_id[]') {
+        // Ticket.Add expects product_id[] = Ticket.ProductsByCustomer data[].value
         var ids = Array.isArray(val) ? val : [val];
-        var joined = ids.map(function (item) {
-          return String(item == null ? '' : item).trim();
-        }).filter(Boolean).join(',');
-        if (joined) form.append('product_id', joined);
+        ids.forEach(function (item) {
+          var s = String(item == null ? '' : item).trim();
+          if (s && s !== '0') form.append('product_id[]', s);
+        });
         return;
       }
       if (val instanceof Date) {
@@ -1219,21 +1168,19 @@ class Component extends DCLogic {
 
   selectedProduct() {
     var id = String(this.state.productId || '').trim();
+    if (!id) return null;
+    var row = (this.state.products || []).find(function (p) {
+      return String(p.value || p.id) === id;
+    });
+    if (row) return row;
     var name = String(this.state.productName || '').trim();
-    var sku = String(this.state.productSku || '').trim();
-    if (id || name) {
-      return {
-        id: id,
-        product_id: id,
-        name: name,
-        product_name: name,
-        sku: sku,
-        product_sku: sku
-      };
-    }
-    return (this.state.products || []).find((p) => {
-      return String(p.id) === String(this.state.productId);
-    }) || null;
+    return {
+      id: id,
+      value: id,
+      product_id: id,
+      name: name || id,
+      product_name: name || id
+    };
   }
 
   productRowsFromList(raw) {
@@ -1557,10 +1504,14 @@ class Component extends DCLogic {
         payload.customer_id = customerId;
       }
       if (this.state.teamMemberId) payload.assign_member_id = String(this.state.teamMemberId);
-      // Only send real catalog ids — never "0" or a product name string
-      var realProductId = product && String(product.product_id || product.id || '').trim();
-      if (realProductId && realProductId !== '0' && /^\d+$/.test(realProductId)) {
-        payload.product_id = realProductId;
+      // Ticket.ProductsByCustomer → product_id[] = selected data[].value (id or free-text name)
+      var linkedValue = String(this.state.productId || '').trim();
+      if (!linkedValue && product) {
+        linkedValue = String(product.value || product.product_id || product.id || '').trim();
+      }
+      if (linkedValue && linkedValue !== '0') {
+        payload['product_id[]'] = [linkedValue];
+        payload.product_id = [linkedValue];
       }
       if (this.state.dueDate) payload.due_date = this.dueDateUtc();
       if (this.state.fromTime) {
@@ -1820,8 +1771,18 @@ class Component extends DCLogic {
       };
     }.bind(this));
 
-    var hasScannedProduct = !!(String(this.state.productName || '').trim() || String(this.state.productId || '').trim());
-    var productSkuDisplay = String(this.state.productSku || '').trim() || '—';
+    var selectedProductValue = String(this.state.productId || '').trim();
+    var linkedProductOpts = (this.state.products || []).map(function (p) {
+      var value = String(p.value || p.id || '').trim();
+      return {
+        name: p.name || value,
+        value: value,
+        selected: value === selectedProductValue
+      };
+    });
+    var productsLoading = !!this.state.productsLoading;
+    var productsReady = !productsLoading;
+    var linkedProductsEmpty = !productsLoading && linkedProductOpts.length === 0;
 
     return {
       email: this.state.email, onEmail: e => this.setState({ email: e.target.value }),
@@ -1843,20 +1804,20 @@ class Component extends DCLogic {
       topic: this.state.topic || this.typeLabel((this.TYPES || []).find((x) => x.id === this.state.callType)),
       readingTypeLabel: this.isEn() ? 'Reading type' : 'סוג קריאה',
       detailsSectionLabel: this.isEn() ? 'Details' : 'פרטים',
-      relatedProductLabel: this.isEn() ? 'Related product' : 'מוצר מקושר',
+      relatedProductLabel: this.isEn() ? 'Linked product' : 'ציוד',
+      linkedProductPlaceholder: this.isEn() ? 'Select linked product' : 'בחר ציוד / מוצר מקושר',
+      linkedProductsEmptyLabel: this.isEn()
+        ? 'No invoice/order products for this customer'
+        : 'אין מוצרים מחשבוניות/הזמנות ללקוח זה',
       problemLabel: this.isEn() ? 'Problem description' : 'תיאור הבעיה',
       problemPlaceholder: this.isEn() ? '...Briefly describe what the customer reported' : '...תאר בקצרה מה הלקוח דיווח',
       addressPhotoLabel: this.isEn() ? 'Address and photo' : 'כתובת ותמונה',
       areaLabel: this.isEn() ? 'Area' : 'אזור',
-      deliveryAddressLabel: this.isEn() ? 'Delivery address' : 'כתובת למשלוח',
+      deliveryAddressLabel: this.isEn() ? 'Full address' : 'כתובת מלאה',
       photoOptionalLabel: this.isEn() ? '(optional)' : '(אופציונלי)',
       photoAttachLabel: this.isEn() ? 'Attach a photo' : 'צרף תמונה',
       filledFieldsHint: this.isEn() ? 'Filled fields will appear here' : 'השדות שמולאו יופיעו כאן',
-      skuPlaceholder: this.isEn() ? 'Scan or type SKU' : 'סרוק או הקלד מק״ט',
-      scanBarcodeLabel: this.isEn() ? 'Scan barcode' : 'סרוק ברקוד',
-      productLookupLabel: this.isEn() ? 'Looking up product…' : 'מחפש מוצר…',
-      scannerTitle: this.isEn() ? 'Scan barcode / SKU' : 'סרוק ברקוד / מק״ט',
-      scannerHint: this.isEn() ? 'Point the camera at the product barcode' : 'כוון את המצלמה לברקוד המוצר',
+      productLookupLabel: this.isEn() ? 'Loading products…' : 'טוען מוצרים…',
       assignFieldLabel: this.isEn()
         ? 'Service member'
         : 'נציג שירות',
@@ -1868,21 +1829,15 @@ class Component extends DCLogic {
       fromTime: this.state.fromTime, onFromTime: e => this.setState({ fromTime: e.target.value }),
       toTime: this.state.toTime, onToTime: e => this.setState({ toTime: e.target.value }),
       teamMembers: teamMembersList, onTeamMember: e => this.setState({ teamMemberId: e.target.value }),
-      productSku: this.state.productSku || '',
-      productSkuDisplay,
-      productName: this.state.productName || '',
+      productsLoading,
+      productsReady,
+      linkedProductsEmpty,
+      linkedProductOpts,
+      onLinkedProduct: (e) => this.onLinkedProduct(e),
       productId: this.state.productId || '',
-      productScanError: this.state.productScanError || '',
-      hasProductScanError: !!String(this.state.productScanError || '').trim(),
-      hasScannedProduct,
-      productLookupLoading: !!this.state.productLookupLoading,
-      scannerOpen: !!this.state.scannerOpen,
-      onSkuInput: (e) => this.onSkuInput(e),
-      onSkuKeydown: (e) => this.onSkuKeydown(e),
-      onSkuBlur: (e) => this.onSkuBlur(e),
-      openScanner: () => this.openScanner(),
-      closeScanner: () => this.closeScanner(),
-      clearProduct: () => this.clearProduct(),
+      productName: this.state.productName || '',
+      scannerOpen: false,
+      closeScanner: () => this.closeScanner && this.closeScanner(),
       callTypes,
       closeUrl,
       onClose: (e) => {

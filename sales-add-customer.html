@@ -121,9 +121,15 @@ mbCss('./common.css');
         <label class="field-label">Entrance</label>
         <input id="mb-entrance" class="ds-input" placeholder="Entrance" />
       </div>
-      <div style="flex:1;">
-        <label class="field-label">Area</label>
-        <input id="mb-area" class="ds-input" placeholder="Area" />
+      <div style="flex:1.15; min-width:0;">
+        <label class="field-label" id="mb-area-label" data-no-i18n="true">Area</label>
+        <select id="mb-area" class="ds-input" data-no-i18n="true">
+          <option value="">-- Select --</option>
+          <option value="north">North</option>
+          <option value="south">South</option>
+          <option value="center">Center</option>
+          <option value="jerusalem">Jerusalem</option>
+        </select>
       </div>
     </div>
 
@@ -204,10 +210,16 @@ mbCss('./common.css');
       </select>
     </div>
 
-    <!-- Filter / insurance + warranty end date (extra_fields on Customer.Add) -->
+    <!-- Insurance + Plans + warranty end date (extra_fields on Customer.Add) -->
     <div class="field-group">
       <label class="field-label" id="mb-insurance-label" data-no-i18n="true">Insurance <span style="color:#9aa3b0; font-weight:500;">(optional)</span></label>
       <select id="mb-insurance" class="ds-input" data-no-i18n="true">
+        <option value="">-- Select --</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label" id="mb-plans-label" data-no-i18n="true">Plans <span style="color:#9aa3b0; font-weight:500;">(optional)</span></label>
+      <select id="mb-plans" class="ds-input" data-no-i18n="true">
         <option value="">-- Select --</option>
       </select>
     </div>
@@ -316,16 +328,114 @@ mbCss('./common.css');
   }
 
   var INSURANCE_FIELD = 'insurance';
+  var PLANS_FIELD = 'a-1786435666';
   var WARRANTY_END_FIELD = 'a-1786435543';
-  var insuranceOptionsFromApi = [];
+  var SERVICE_AREA_FIELD = 'a-1786331132';
+  var ADDR_STREET_FIELD = 'a-1786932384';       // CustStreet
+  var ADDR_BUILDING_FIELD = 'a-1786932385';     // CustBuildingNo
+  var ADDR_FLOOR_FIELD = 'a-1786932709';
+  var ADDR_APARTMENT_FIELD = 'a-1786932606';
+  var ADDR_ENTRANCE_FIELD = 'a-1786932387';
+  var SERVICE_AREA_OPTIONS = [
+    { value: 'north', labelEn: 'North', labelHe: 'צפון' },
+    { value: 'south', labelEn: 'South', labelHe: 'דרום' },
+    { value: 'center', labelEn: 'Center', labelHe: 'מרכז' },
+    { value: 'jerusalem', labelEn: 'Jerusalem', labelHe: 'ירושלים' }
+  ];
+  // Send values = Hebrew labels (as configured on insurance extra field)
+  var INSURANCE_OPTIONS = [
+    {
+      value: 'רכש ביטוח (3 שנים)',
+      labelHe: 'רכש ביטוח (3 שנים)',
+      labelEn: 'Purchased insurance (3 years)'
+    },
+    {
+      value: 'לא רכש ביטוח',
+      labelHe: 'לא רכש ביטוח',
+      labelEn: 'Did not purchase insurance'
+    }
+  ];
+  // InsurancePlan fallback if User.Basic has no options yet
+  var PLANS_OPTIONS_FALLBACK = [
+    {
+      value: 'regular_filter',
+      labelHe: 'רכש סנן רגיל',
+      labelEn: 'Purchased regular filter'
+    },
+    {
+      value: 'main_filter_softener_with_plan',
+      labelHe: 'סנן ראשי/מרכך במסלול החלפות',
+      labelEn: 'Main filter/softener with replacement plan'
+    },
+    {
+      value: 'main_filter_softener_no_plan',
+      labelHe: 'סנן ראשי/מרכך ללא מסלול',
+      labelEn: 'Main filter/softener without plan'
+    },
+    {
+      value: 'filtration_system_with_plan',
+      labelHe: 'מערכת סינון במסלול החלפות',
+      labelEn: 'Filtration system with replacement plan'
+    },
+    {
+      value: 'filtration_osmosis_no_plan',
+      labelHe: 'מערכת סינון/אוסמוזה ללא מסלול',
+      labelEn: 'Filtration/osmosis system without plan'
+    }
+  ];
+  var plansOptionsFromApi = [];
 
-  function updateInsuranceLabels() {
+  function fillSelectOptions(select, options, isEn) {
+    if (!select) return;
+    var currentValue = select.value;
+    select.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = isEn ? '-- Select --' : '-- בחר --';
+    select.appendChild(placeholder);
+    (options || []).forEach(function (opt) {
+      if (!opt || !opt.value) return;
+      var option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = isEn
+        ? String(opt.labelEn || opt.labelHe || opt.value)
+        : String(opt.labelHe || opt.labelEn || opt.value);
+      select.appendChild(option);
+    });
+    if (currentValue && Array.from(select.options).some(function (option) {
+      return option.value === currentValue;
+    })) {
+      select.value = currentValue;
+    }
+  }
+
+  function renderServiceAreaOptions() {
+    var select = document.getElementById('mb-area');
+    var labelEl = document.getElementById('mb-area-label');
+    if (!select) return;
+    var isEn = isEnLang();
+    if (labelEl) labelEl.textContent = isEn ? 'Area' : 'אזור';
+    fillSelectOptions(select, SERVICE_AREA_OPTIONS, isEn);
+  }
+
+  function selectedServiceAreaLabel(select) {
+    if (!select || !select.value) return '';
+    var opt = select.options[select.selectedIndex];
+    return opt ? String(opt.textContent || '').trim() : '';
+  }
+
+  function updateInsurancePlanLabels() {
     var isEn = isEnLang();
     var optional = isEn ? '(optional)' : '(אופציונלי)';
     var insLabel = document.getElementById('mb-insurance-label');
+    var plansLabel = document.getElementById('mb-plans-label');
     var warLabel = document.getElementById('mb-warranty-end-label');
     if (insLabel) {
       insLabel.innerHTML = (isEn ? 'Insurance' : 'ביטוח') +
+        ' <span style="color:#9aa3b0;font-weight:500;">' + optional + '</span>';
+    }
+    if (plansLabel) {
+      plansLabel.innerHTML = (isEn ? 'Plans' : 'מסלולים') +
         ' <span style="color:#9aa3b0;font-weight:500;">' + optional + '</span>';
     }
     if (warLabel) {
@@ -334,51 +444,35 @@ mbCss('./common.css');
     }
   }
 
-  function renderInsuranceOptions(options) {
-    var select = document.getElementById('mb-insurance');
-    if (!select) return;
-    var currentValue = select.value;
-    var isEn = isEnLang();
-    updateInsuranceLabels();
-    options = Array.isArray(options) ? options : [];
-
-    select.innerHTML = '';
-    var placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = isEn ? '-- Select --' : '-- בחר --';
-    select.appendChild(placeholder);
-
-    options.forEach(function (opt) {
-      var value = String((opt && (opt.value || opt.labelHe || opt.labelEn)) || '').trim();
-      if (!value) return;
-      var option = document.createElement('option');
-      option.value = value;
-      option.textContent = isEn
-        ? String(opt.labelEn || opt.label || value)
-        : String(opt.labelHe || opt.label || value);
-      select.appendChild(option);
-    });
-
-    if (currentValue && Array.from(select.options).some(function (option) {
-      return option.value === currentValue;
-    })) {
-      select.value = currentValue;
-    }
+  function renderInsuranceOptions() {
+    updateInsurancePlanLabels();
+    fillSelectOptions(document.getElementById('mb-insurance'), INSURANCE_OPTIONS, isEnLang());
   }
 
-  async function loadInsuranceOptions(force) {
-    var select = document.getElementById('mb-insurance');
-    if (!select) return;
-    updateInsuranceLabels();
+  function renderPlansOptions(options) {
+    updateInsurancePlanLabels();
+    var list = (Array.isArray(options) && options.length)
+      ? options
+      : (plansOptionsFromApi.length ? plansOptionsFromApi : PLANS_OPTIONS_FALLBACK);
+    fillSelectOptions(document.getElementById('mb-plans'), list, isEnLang());
+  }
 
-    if (!force && insuranceOptionsFromApi.length) {
-      renderInsuranceOptions(insuranceOptionsFromApi);
+  async function loadPlansOptions(force) {
+    var select = document.getElementById('mb-plans');
+    if (!select) return;
+    updateInsurancePlanLabels();
+
+    if (!force && plansOptionsFromApi.length) {
+      renderPlansOptions(plansOptionsFromApi);
       return;
     }
 
-    if (!window.MineralBarApp || typeof MineralBarApp.listInsuranceOptions !== 'function') return;
+    if (!window.MineralBarApp || typeof MineralBarApp.listInsurancePlanOptions !== 'function') {
+      renderPlansOptions(PLANS_OPTIONS_FALLBACK);
+      return;
+    }
 
-    if (!insuranceOptionsFromApi.length) {
+    if (!plansOptionsFromApi.length) {
       select.innerHTML = '';
       var loading = document.createElement('option');
       loading.value = '';
@@ -387,23 +481,28 @@ mbCss('./common.css');
     }
 
     try {
-      var res = await MineralBarApp.listInsuranceOptions(!!force);
-      if (res && res.fieldName) INSURANCE_FIELD = res.fieldName;
-      insuranceOptionsFromApi = (res && res.options) || [];
-      renderInsuranceOptions(insuranceOptionsFromApi);
-      if (!insuranceOptionsFromApi.length) {
-        console.warn('[sales-add-customer] User.Basic extra_fields Insurance has no options_en/options_he');
+      var res = await MineralBarApp.listInsurancePlanOptions(!!force);
+      if (res && res.fieldName) PLANS_FIELD = res.fieldName;
+      plansOptionsFromApi = (res && res.options) || [];
+      renderPlansOptions(plansOptionsFromApi.length ? plansOptionsFromApi : PLANS_OPTIONS_FALLBACK);
+      if (!plansOptionsFromApi.length) {
+        console.warn('[sales-add-customer] User.Basic InsurancePlan has no options — using fallback');
       }
     } catch (e) {
-      console.error('[sales-add-customer] User.Basic insurance options failed', e);
-      renderInsuranceOptions(insuranceOptionsFromApi);
+      console.error('[sales-add-customer] User.Basic plans options failed', e);
+      renderPlansOptions(plansOptionsFromApi.length ? plansOptionsFromApi : PLANS_OPTIONS_FALLBACK);
     }
   }
 
   function statusRowId(row) {
     if (!row) return '';
     var id = row.status_id != null ? row.status_id : (row.id != null ? row.id : row.data_id);
-    return id == null ? '' : String(id).trim();
+    if (id != null && String(id).trim() !== '' && String(id).toLowerCase() !== 'null') {
+      return String(id).trim();
+    }
+    // Default/name-only statuses come back with null id — use a stable name key.
+    var key = row.name_for || row.name_en || row.name_he || row.name || row.label || '';
+    return String(key).trim();
   }
 
   function statusRowLabel(row, isEn) {
@@ -455,14 +554,19 @@ mbCss('./common.css');
       select.appendChild(placeholder);
 
       var openingId = '';
+      var seen = {};
       rows.forEach(function (row) {
-        var id = statusRowId(row);
         var label = statusRowLabel(row, isEn);
-        if (!id || !label) return;
+        if (!label) return;
+        var id = statusRowId(row) || label;
+        var seenKey = String(id).toLowerCase();
+        if (seen[seenKey]) return;
+        seen[seenKey] = true;
         var option = document.createElement('option');
         option.value = id;
         option.textContent = label;
         option.setAttribute('data-status-name', label);
+        if (!/^\d+$/.test(String(id))) option.setAttribute('data-status-by-name', '1');
         var color = String(row.color || row.status_color || '').trim();
         if (color) {
           option.setAttribute('data-status-color', color);
@@ -497,13 +601,17 @@ mbCss('./common.css');
   }
 
   loadStatuses();
-  loadInsuranceOptions(true);
+  renderInsuranceOptions();
+  loadPlansOptions(true);
   loadSalespeople();
+  renderServiceAreaOptions();
   updateFormLabels();
   window.addEventListener('mineralbar:ready', function () {
     loadStatuses();
-    loadInsuranceOptions(true);
+    renderInsuranceOptions();
+    loadPlansOptions(true);
     loadSalespeople();
+    renderServiceAreaOptions();
     updateFormLabels();
   });
   if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
@@ -511,8 +619,10 @@ mbCss('./common.css');
   }
   window.addEventListener('mineralbar:language-changed', function () {
     loadStatuses();
-    loadInsuranceOptions(false);
+    renderInsuranceOptions();
+    loadPlansOptions(false);
     loadSalespeople();
+    renderServiceAreaOptions();
     updateFormLabels();
   });
 
@@ -553,6 +663,7 @@ mbCss('./common.css');
       var salespersonSel = document.getElementById('mb-salesperson');
       var statusSel = document.getElementById('mb-status');
       var insuranceSel = document.getElementById('mb-insurance');
+      var plansSel = document.getElementById('mb-plans');
       var warrantyEndIn = document.getElementById('mb-warranty-end');
 
       var name = nameIn ? nameIn.value.trim() : '';
@@ -575,7 +686,8 @@ mbCss('./common.css');
       var floor = floorIn ? floorIn.value.trim() : '';
       var apartment = apartmentIn ? apartmentIn.value.trim() : '';
       var entrance = entranceIn ? entranceIn.value.trim() : '';
-      var area = areaIn ? areaIn.value.trim() : '';
+      var areaVal = areaIn ? String(areaIn.value || '').trim() : '';
+      var areaLabel = selectedServiceAreaLabel(areaIn);
       // Only include parts the user actually filled — empty fields stay out of address
       var addressParts = [];
       var streetLine = [street, building].filter(Boolean).join(' ');
@@ -583,7 +695,7 @@ mbCss('./common.css');
       if (entrance) addressParts.push('Entrance ' + entrance);
       if (floor) addressParts.push('Floor ' + floor);
       if (apartment) addressParts.push('Apt ' + apartment);
-      if (area) addressParts.push(area);
+      if (areaLabel) addressParts.push(areaLabel);
       var address = addressParts.join(', ');
 
       var btn = document.getElementById('mb-create-client-btn');
@@ -612,7 +724,15 @@ mbCss('./common.css');
 
         var statusId = statusSel ? String(statusSel.value || '').trim() : '';
         if (statusId) {
-          payload.status_id = /^\d+$/.test(statusId) ? Number(statusId) : statusId;
+          var statusOpt = statusSel.options[statusSel.selectedIndex];
+          var statusName = (statusOpt && statusOpt.getAttribute('data-status-name')) || statusId;
+          if (/^\d+$/.test(statusId)) {
+            payload.status_id = Number(statusId);
+          } else {
+            // Name-only statuses (id null from CustomerStatuses.List)
+            payload.status = statusId;
+            payload.sub_list_data_name = statusName;
+          }
         }
 
         var ownerName = ownerIn ? ownerIn.value.trim() : '';
@@ -623,11 +743,20 @@ mbCss('./common.css');
         if (csvId && /^\d+$/.test(csvId)) payload.csv_id = csvId;
 
         var insuranceVal = insuranceSel ? insuranceSel.value : '';
+        var plansVal = plansSel ? plansSel.value : '';
         var warrantyEndVal = warrantyEndIn ? warrantyEndIn.value.trim() : '';
-        if (insuranceVal || warrantyEndVal) {
-          var extraFields = {};
-          if (insuranceVal) extraFields[INSURANCE_FIELD] = insuranceVal;
-          if (warrantyEndVal) extraFields[WARRANTY_END_FIELD] = warrantyEndVal;
+        var extraFields = {};
+        if (insuranceVal) extraFields[INSURANCE_FIELD] = insuranceVal;
+        if (plansVal) extraFields[PLANS_FIELD] = plansVal;
+        if (warrantyEndVal) extraFields[WARRANTY_END_FIELD] = warrantyEndVal;
+        if (areaVal) extraFields[SERVICE_AREA_FIELD] = areaVal;
+        // Detailed install address → customer extras (quote form reads these)
+        if (street) extraFields[ADDR_STREET_FIELD] = street;
+        if (building) extraFields[ADDR_BUILDING_FIELD] = building;
+        if (floor) extraFields[ADDR_FLOOR_FIELD] = floor;
+        if (apartment) extraFields[ADDR_APARTMENT_FIELD] = apartment;
+        if (entrance) extraFields[ADDR_ENTRANCE_FIELD] = entrance;
+        if (Object.keys(extraFields).length) {
           payload.extra_fields = extraFields;
         }
 
