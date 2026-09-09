@@ -185,6 +185,24 @@
   var statusMapByName = {};
   var statusMapsPromise = null;
 
+  /** Known lead / reason status ids (folder 1 + reason folder) — used when Statuses.List is thin. */
+  var KNOWN_STATUS_LABELS = {
+    '1': { name_en: 'New lead', name_he: 'ליד חדש' },
+    '10085': { name_en: 'New lead', name_he: 'ליד חדש' },
+    '10190': { name_en: 'Offer sent', name_he: 'נשלחה הצעה' },
+    '10191': { name_en: 'Follow up', name_he: 'פולואפ' },
+    '10192': { name_en: 'No answer', name_he: 'אין מענה' },
+    '10193': { name_en: 'Not relevant', name_he: 'לא רלוונטי' },
+    '10092': { name_en: 'Price', name_he: 'מחיר' },
+    '10093': { name_en: 'Product size', name_he: 'גודל מוצר' },
+    '10094': { name_en: 'Preference for competitors', name_he: 'עדיפות למתחרים' },
+    '10095': { name_en: 'Kitchen not ready', name_he: 'מטבח לא מוכן' },
+    '10096': { name_en: 'Blocked by standing order', name_he: 'נחסם בהוראת קבע' },
+    '10097': { name_en: 'Insured by a competing company', name_he: 'מבוטח בחברה מתחרה' },
+    '10098': { name_en: 'Wrong number', name_he: 'מספר שגוי' },
+    '1399': { name_en: 'Paid', name_he: 'שולם' }
+  };
+
   function stripHtmlText(s) {
     return String(s == null ? '' : s)
       .replace(/<[^>]+>/g, ' ')
@@ -201,9 +219,15 @@
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
     return stripHtmlText(
       isEn
-        ? (row.name_en || row.name || row.name_he || row.name_for || row.status_name || row.label)
-        : (row.name_he || row.name || row.name_en || row.name_for || row.status_name || row.label)
+        ? (row.name_en || row.name || row.name_he || row.name_for || row.status_name || row.label || row.title || row.text)
+        : (row.name_he || row.name || row.name_en || row.name_for || row.status_name || row.label || row.title || row.text)
     );
+  }
+
+  function putStatusEntry(id, entry) {
+    id = id == null ? '' : String(id).trim();
+    if (!id || !entry || !entry.name) return;
+    statusMapById[id] = entry;
   }
 
   function ingestStatusRows(rows) {
@@ -213,54 +237,88 @@
       if (!label) return;
       var color = String(row.color || row.status_color || '').trim() || '#1d60a2';
       var entry = { name: label, color: color };
-      var id = row.status_id != null ? row.status_id : (row.id != null ? row.id : row.data_id);
-      if (id != null && String(id).trim() !== '') {
-        statusMapById[String(id).trim()] = entry;
-      }
+      // Index every id field — Customer.List `status` may match data_id, status_id, or id
+      putStatusEntry(row.status_id, entry);
+      putStatusEntry(row.data_id, entry);
+      putStatusEntry(row.id, entry);
+      putStatusEntry(row.value, entry);
       statusMapByName[label.toLowerCase()] = entry;
       if (row.name_en) statusMapByName[String(row.name_en).toLowerCase()] = entry;
       if (row.name_he) statusMapByName[String(row.name_he).toLowerCase()] = entry;
+      if (row.name_for) statusMapByName[String(row.name_for).toLowerCase()] = entry;
     });
   }
 
+  function seedKnownStatusLabels() {
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    Object.keys(KNOWN_STATUS_LABELS).forEach(function (id) {
+      if (statusMapById[id]) return;
+      var row = KNOWN_STATUS_LABELS[id];
+      var name = isEn ? (row.name_en || row.name_he) : (row.name_he || row.name_en);
+      putStatusEntry(id, { name: name, color: '#1d60a2' });
+      if (name) statusMapByName[name.toLowerCase()] = statusMapById[id];
+    });
+  }
+
+  function extractStatusRows(res) {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res.data)) return res.data;
+    if (res.data && Array.isArray(res.data.rows)) return res.data.rows;
+    if (Array.isArray(res.rows)) return res.rows;
+    if (Array.isArray(res.output)) return res.output;
+    if (Array.isArray(res.list)) return res.list;
+    return [];
+  }
+
   async function fetchStatusTypePages(client, type, folderId) {
-    // One page is enough for chip/status label maps (was paging up to 12× per type).
     var params = {
       type: type,
-      limit: 50,
-      length: 50,
+      limit: 100,
+      length: 100,
       start: 0
     };
     if (folderId != null && folderId !== '' && folderId !== '0') {
       params.folder_id = folderId;
     }
     var res = await client.request('Statuses.List', params);
-    var rows = (res && (res.data || res.rows || res.output)) || [];
-    if (Array.isArray(rows) && rows.length) ingestStatusRows(rows);
+    var rows = extractStatusRows(res);
+    if (rows.length) ingestStatusRows(rows);
   }
 
   async function ensureStatusMaps() {
     if (statusMapsPromise) return statusMapsPromise;
     statusMapsPromise = (async function () {
+      seedKnownStatusLabels();
       try {
         if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return statusMapById;
         var client = MineralBarApp.getClient();
         if (!client || !client.request) return statusMapById;
         var folderId = lockedFolderIdForPage(pageKind());
-        // Leads need internal folder statuses; customers also use customer_status.
-        // Was 3 types × multi-page = many Statuses.List on every list open.
-        var types = kindIsCustomersPage()
-          ? ['internal_status', 'customer_status']
-          : ['internal_status', 'status'];
-        await Promise.all(types.map(function (type) {
-          return fetchStatusTypePages(client, type, folderId).catch(function () { /* try others */ });
-        }));
+        var jobs = [];
+        // Leads folder internal statuses (this is what Customer.List `status` usually is)
+        jobs.push(fetchStatusTypePages(client, 'internal_status', folderId || 1).catch(function () {}));
+        jobs.push(fetchStatusTypePages(client, 'internal_status', 1).catch(function () {}));
+        // Reason / sub-status folder used on lead card
+        jobs.push(fetchStatusTypePages(client, 'internal_status', 3851).catch(function () {}));
+        jobs.push(fetchStatusTypePages(client, 'customer_status', null).catch(function () {}));
+        jobs.push(fetchStatusTypePages(client, 'status', null).catch(function () {}));
+        await Promise.all(jobs);
       } catch (e) {
         console.warn('[ListLive] Statuses.List failed', e);
       }
+      seedKnownStatusLabels();
       return statusMapById;
     })();
     return statusMapsPromise;
+  }
+
+  function lookupStatusById(sid) {
+    sid = sid == null ? '' : String(sid).trim();
+    if (!sid) return null;
+    if (statusMapById[sid]) return statusMapById[sid];
+    seedKnownStatusLabels();
+    return statusMapById[sid] || null;
   }
 
   function pickCity(row) {
@@ -353,22 +411,31 @@
       };
     }
 
-    // 3) Resolve numeric status id via Statuses.List maps
+    // 3) Resolve numeric status id via Statuses.List maps (+ known fallbacks)
     var idCand = [
       rawStatus,
       row.sub_list_data,
       row.status_id,
-      row.internal_status_id
+      row.internal_status_id,
+      row.internal_status_wise_client_new,
+      row.data_id
     ];
     for (var i = 0; i < idCand.length; i++) {
       var sid = idCand[i] == null ? '' : String(idCand[i]).trim();
       if (!sid || !/^\d+$/.test(sid)) continue;
-      if (statusMapById[sid]) {
+      var mapped = lookupStatusById(sid);
+      if (mapped && mapped.name) {
         return {
-          label: localizeCustomerStatus(statusMapById[sid].name),
-          color: statusMapById[sid].color || '#1d60a2'
+          label: localizeCustomerStatus(mapped.name),
+          color: mapped.color || '#1d60a2'
         };
       }
+    }
+
+    // 4) Derive a friendly chip label from status text/key — never return bare ids
+    var key = leadStatusKey(named || rawStatus, row);
+    if (key && key !== 'other') {
+      return { label: leadStatusFilterLabel(key), color: '#1d60a2' };
     }
 
     return { label: '', color: '#1d60a2' };
@@ -827,17 +894,29 @@
     var address = String(c.address || '').trim();
     var place = city || address;
     var createdRaw = String((c.created || (c.raw && (c.raw.date_created || c.raw.created_at || c.raw.created))) || '').trim();
-    var statusText = String(c.status || '').trim();
-    if (!statusText && c.raw) {
-      statusText = String(
-        c.raw.sub_list_data_name || c.raw.status_name || c.raw.status ||
-        c.raw.status_id || c.raw.sub_list_data || ''
-      ).trim();
+    var resolved = resolveStatus(c.raw || {});
+    var statusText = String(resolved.label || '').trim();
+    if (!statusText || /^\d+$/.test(statusText)) {
+      var rawId = '';
+      if (c.raw) {
+        rawId = String(
+          c.raw.status || c.raw.sub_list_data || c.raw.status_id || c.raw.internal_status_id || ''
+        ).trim();
+      }
+      if (!rawId && c.status && /^\d+$/.test(String(c.status).trim())) rawId = String(c.status).trim();
+      var mapped = rawId ? lookupStatusById(rawId) : null;
+      if (mapped && mapped.name) {
+        statusText = localizeCustomerStatus(mapped.name);
+        if (mapped.color) resolved.color = mapped.color;
+      }
     }
-    if (!statusText && c.statusKey && c.statusKey !== 'other') {
-      statusText = leadStatusFilterLabel(c.statusKey);
+    if (!statusText || /^\d+$/.test(statusText)) {
+      var key = c.statusKey || leadStatusKey(statusText, c.raw);
+      if (key && key !== 'other') statusText = leadStatusFilterLabel(key);
+      else statusText = '';
     }
-    var statusColor = String(c.statusColor || '#1d60a2').trim() || '#1d60a2';
+    if (/^\d+$/.test(statusText)) statusText = '';
+    var statusColor = String(resolved.color || c.statusColor || '#1d60a2').trim() || '#1d60a2';
     var statusBg = statusColor.charAt(0) === '#' ? (statusColor + '22') : '#eaf2fb';
     var meta = [];
     if (phone) meta.push(esc(phone));
@@ -1234,7 +1313,8 @@
   }
 
   var _warrantyEndedCache = [];
-  var LIST_PAGE_SIZE = 10;
+  /** UI + Customer.List page size (API caps ~25). One API call per pager page. */
+  var LIST_PAGE_SIZE = 25;
   var _listPage = 1;
 
   function resetListPage() {
@@ -1246,6 +1326,19 @@
     var scroller = document.querySelector('.mb-cust-list-scroll');
     if (!scroller && list && list.parentElement) scroller = list.parentElement;
     if (scroller && typeof scroller.scrollTop === 'number') scroller.scrollTop = 0;
+  }
+
+  function goListApiPage(nextPage) {
+    nextPage = Number(nextPage) || 1;
+    var total = Number(_rowsCacheTotal) || 0;
+    var totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE) || 1);
+    if (nextPage < 1 || nextPage > totalPages) return;
+    if (nextPage === _listPage && _rowsCache && _rowsCache.length) return;
+    _listPage = nextPage;
+    var mount = detectMount();
+    if (!mount) return;
+    loadList(mount, getActiveFolderId(mount), { force: true, keepPage: true });
+    scrollListToTop();
   }
 
   function ensureListPager() {
@@ -1275,49 +1368,57 @@
     var next = document.getElementById('mb-list-pager-next');
     if (prev) {
       prev.addEventListener('click', function () {
-        if (_listPage <= 1) return;
-        _listPage -= 1;
-        applyClientFilters(document.getElementById('mb-live-list'));
-        scrollListToTop();
+        goListApiPage(_listPage - 1);
       });
     }
     if (next) {
       next.addEventListener('click', function () {
-        var label = document.getElementById('mb-list-pager-label');
-        var maxHint = label && label.getAttribute('data-pages');
-        var maxPages = Number(maxHint) || 1;
-        if (_listPage >= maxPages) return;
-        _listPage += 1;
-        applyClientFilters(document.getElementById('mb-live-list'));
-        scrollListToTop();
+        goListApiPage(_listPage + 1);
       });
     }
     return pager;
   }
 
-  function updateListPager(matchCount) {
+  function updateListPager(matchCount, opts) {
     var pager = ensureListPager();
     if (!pager) return;
+    opts = opts || {};
+    var apiTotal = Number(_rowsCacheTotal) || 0;
     matchCount = Number(matchCount) || 0;
-    var totalPages = Math.max(1, Math.ceil(matchCount / LIST_PAGE_SIZE) || 1);
+    // When client filters hide rows, never claim “Showing 1–N of N” for hidden cards
+    var clientTrimmed = !!opts.clientTrimmed;
+    var totalForPager = clientTrimmed ? matchCount : (apiTotal > 0 ? apiTotal : matchCount);
+    var totalPages = Math.max(1, Math.ceil((apiTotal > 0 ? apiTotal : totalForPager) / LIST_PAGE_SIZE) || 1);
     if (_listPage > totalPages) _listPage = totalPages;
     if (_listPage < 1) _listPage = 1;
 
-    var start = matchCount ? ((_listPage - 1) * LIST_PAGE_SIZE) + 1 : 0;
-    var end = Math.min(_listPage * LIST_PAGE_SIZE, matchCount);
     var label = document.getElementById('mb-list-pager-label');
     var prev = document.getElementById('mb-list-pager-prev');
     var next = document.getElementById('mb-list-pager-next');
 
     if (label) {
       label.setAttribute('data-pages', String(totalPages));
-      label.textContent = matchCount
-        ? (t('Showing ', 'מציג ') + start + '–' + end + t(' of ', ' מתוך ') + matchCount)
-        : t('No results', 'אין תוצאות');
+      if (clientTrimmed) {
+        label.textContent = matchCount
+          ? (t('Showing ', 'מציג ') + matchCount + (apiTotal > matchCount ? t(' on this page', ' בעמוד זה') : ''))
+          : t('No results', 'אין תוצאות');
+      } else if (totalForPager) {
+        var start = ((_listPage - 1) * LIST_PAGE_SIZE) + 1;
+        var end = Math.min(((_listPage - 1) * LIST_PAGE_SIZE) + Math.max(matchCount, 1), totalForPager);
+        if (!matchCount) {
+          label.textContent = t('No results', 'אין תוצאות');
+        } else {
+          label.textContent = t('Showing ', 'מציג ') + start + '–' + end + t(' of ', ' מתוך ') + totalForPager;
+        }
+      } else {
+        label.textContent = t('No results', 'אין תוצאות');
+      }
     }
-    if (prev) prev.disabled = _listPage <= 1 || matchCount === 0;
-    if (next) next.disabled = _listPage >= totalPages || matchCount === 0;
-    pager.style.display = matchCount > 0 ? 'flex' : 'none';
+    // Keep API prev/next even if this page’s client filter matched nothing
+    var pageTotal = apiTotal > 0 ? apiTotal : totalForPager;
+    if (prev) prev.disabled = _listPage <= 1 || pageTotal === 0;
+    if (next) next.disabled = _listPage >= totalPages || pageTotal === 0;
+    pager.style.display = pageTotal > 0 || matchCount > 0 ? 'flex' : 'none';
   }
 
   function endedWarrantyMount() {
@@ -1470,8 +1571,7 @@
   var _rowsCache = null;
   var _rowsCacheKind = '';
   var _rowsCacheTotal = 0;
-  var CUSTOMER_LIST_PAGE_SIZE = 25;
-  var CUSTOMER_LIST_MAX_PAGES = 40;
+  var CUSTOMER_LIST_PAGE_SIZE = LIST_PAGE_SIZE;
 
   function extractCustomerListRows(listRes) {
     var rows = (listRes && (listRes.rows || listRes.data || listRes.items || listRes.records)) || [];
@@ -1494,45 +1594,27 @@
     return id ? String(id) : String(fallback || '');
   }
 
-  /** Customer.List caps length at 25 — page until a short/empty page. */
-  async function listAllCustomerPages(baseParams) {
-    var all = [];
-    var seen = {};
-    var start = 0;
-    var reportedTotal = null;
+  /** One Customer.List page only — never walk the full folder. */
+  async function listCustomerPage(baseParams, pageIndex) {
+    pageIndex = Math.max(0, Number(pageIndex) || 0);
     var pageSize = CUSTOMER_LIST_PAGE_SIZE;
-
-    for (var page = 0; page < CUSTOMER_LIST_MAX_PAGES; page++) {
-      var params = Object.assign({}, baseParams || {}, {
-        length: pageSize,
-        limit: pageSize,
-        per_page: pageSize,
-        start: start,
-        draw: page + 1
-      });
-      var listRes = await MineralBarApp.listCustomers(params);
-      var rows = extractCustomerListRows(listRes);
-      var pageTotal = extractCustomerListTotal(listRes, rows);
-      if (reportedTotal == null || pageTotal > reportedTotal) reportedTotal = pageTotal;
-
-      var added = 0;
-      for (var i = 0; i < rows.length; i++) {
-        var row = rows[i] || {};
-        var id = customerRowId(row, start + '-' + i);
-        if (seen[id]) continue;
-        seen[id] = true;
-        all.push(row);
-        added++;
-      }
-
-      // Full page ⇒ more may exist (don't trust recordsTotal alone — it can match page size).
-      if (!rows.length || rows.length < pageSize || added === 0) break;
-      start += pageSize;
-    }
-
+    var start = pageIndex * pageSize;
+    var params = Object.assign({}, baseParams || {}, {
+      length: pageSize,
+      limit: pageSize,
+      per_page: pageSize,
+      start: start,
+      draw: pageIndex + 1
+    });
+    var listRes = await MineralBarApp.listCustomers(params);
+    var rows = extractCustomerListRows(listRes);
+    var total = extractCustomerListTotal(listRes, rows);
     return {
-      rows: all,
-      total: Math.max(reportedTotal != null ? reportedTotal : 0, all.length)
+      rows: rows,
+      total: total,
+      start: start,
+      pageSize: pageSize,
+      pageIndex: pageIndex
     };
   }
 
@@ -1547,9 +1629,10 @@
     var siteParams = Object.assign({}, base);
     siteParams['extra_fields[' + WEBSITE_SOURCE_FIELD + ']'] = 'אתר';
 
+    var pageIndex = Math.max(0, _listPage - 1);
     var results = await Promise.all([
-      listAllCustomerPages(newParams).catch(function () { return { rows: [], total: 0 }; }),
-      listAllCustomerPages(siteParams).catch(function () { return { rows: [], total: 0 }; })
+      listCustomerPage(newParams, pageIndex).catch(function () { return { rows: [], total: 0 }; }),
+      listCustomerPage(siteParams, pageIndex).catch(function () { return { rows: [], total: 0 }; })
     ]);
     var seen = {};
     var merged = [];
@@ -1564,19 +1647,12 @@
     addRows(results[0] && results[0].rows);
     addRows(results[1] && results[1].rows);
 
-    // If website API filter returned nothing, fall back to new-lead pages + client website flag
-    if (!(results[1] && results[1].rows && results[1].rows.length)) {
-      var fallback = await listAllCustomerPages(base).catch(function () { return { rows: [], total: 0 }; });
-      (fallback.rows || []).forEach(function (row) {
-        if (!isWebsiteLead(row) && !isNewLeadStatus(row)) return;
-        var id = customerRowId(row);
-        if (!id || seen[id]) return;
-        seen[id] = true;
-        merged.push(row);
-      });
-    }
-
-    return { rows: merged, total: merged.length };
+    var total = Math.max(
+      (results[0] && results[0].total) || 0,
+      (results[1] && results[1].total) || 0,
+      merged.length
+    );
+    return { rows: merged, total: total };
   }
 
   function entryCell(row, key) {
@@ -1713,6 +1789,8 @@
     var loadId = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
     mount._activeLoadId = loadId;
 
+    if (!opts.keepPage) resetListPage();
+
     el = document.getElementById('mb-live-list') || el;
     var hasRows = !!(el && el.querySelector('[data-customer-id]'));
     // Socket / soft refresh: keep current list visible — never flash "Loading…"
@@ -1762,6 +1840,7 @@
     try {
       await ensureStatusMaps();
       var listRes;
+      var pageIndex = Math.max(0, _listPage - 1);
       var useDualOr = kind === 'customers' && custFilters &&
         custFilters.listMode === 'leads' &&
         custFilters.matchMode === 'or' &&
@@ -1770,7 +1849,7 @@
       if (useDualOr && custFilters.chip === 'new-or-website') {
         listRes = await listCustomersNewOrWebsite(folderVal, queryParams);
       } else {
-        listRes = await listAllCustomerPages(queryParams);
+        listRes = await listCustomerPage(queryParams, pageIndex);
       }
       if (mount._activeLoadId !== loadId) return;
 
@@ -1785,12 +1864,11 @@
       }
 
       if (!rows.length) {
-        _rowsCache = [];
+        _rowsCache = null;
         _rowsCacheKind = kind;
         _rowsCacheTotal = total;
-        resetListPage();
         el.innerHTML = emptyHtml(kind);
-        updateListPager(0);
+        updateListPager(0, { clientTrimmed: true });
         if (kind === 'leads') loadEndedWarrantyCustomers();
         return;
       }
@@ -1801,7 +1879,6 @@
       _rowsCache = rows.slice();
       _rowsCacheKind = kind;
       _rowsCacheTotal = total;
-      resetListPage();
       // Re-query mount — DC may have replaced #mb-live-list while Statuses/List were in flight
       el = document.getElementById('mb-live-list') || el;
       el.setAttribute('data-initial-loaded', '1');
@@ -2098,12 +2175,7 @@
       else item.style.display = 'none';
     }
 
-    var totalPages = Math.max(1, Math.ceil(matching.length / LIST_PAGE_SIZE) || 1);
-    if (_listPage > totalPages) _listPage = totalPages;
-    if (_listPage < 1) _listPage = 1;
-    var pageStart = (_listPage - 1) * LIST_PAGE_SIZE;
-    var pageEnd = pageStart + LIST_PAGE_SIZE;
-
+    // Current API page is already one page — show all matching rows (no second client slice).
     function showListRow(node, on) {
       if (on) {
         if (node.dataset.originalDisplay) node.style.display = node.dataset.originalDisplay;
@@ -2114,24 +2186,49 @@
     }
 
     for (var j = 0; j < matching.length; j++) {
-      showListRow(matching[j], j >= pageStart && j < pageEnd);
+      showListRow(matching[j], true);
     }
 
     var totalEl = document.getElementById('mb-total-label');
+    var apiTotal = Number(_rowsCacheTotal) || 0;
+    var loadedCount = items.length;
+    var visibleCount = matching.length;
+    // Renewals / chip / search can hide every card — count must follow what’s visible
+    var clientTrimmed = visibleCount < loadedCount || !!query ||
+      (kindVis === 'customers' && custFilters && (
+        custFilters.listMode === 'renewals' ||
+        (custFilters.chip && custFilters.chip !== 'all') ||
+        !!custFilters.expiryFrom || !!custFilters.expiryTo
+      ));
+
     if (totalEl) {
-      setTotalLabel(matching.length, kindVis);
+      setTotalLabel(clientTrimmed ? visibleCount : (apiTotal > 0 ? apiTotal : visibleCount), kindVis);
     }
 
-    updateListPager(matching.length);
+    updateListPager(visibleCount, { clientTrimmed: clientTrimmed });
 
     if (kindVis === 'customers') {
       matching = sortCustomerItems(listEl, custFilters, matching);
       for (var cj = 0; cj < matching.length; cj++) {
-        showListRow(matching[cj], cj >= pageStart && cj < pageEnd);
+        showListRow(matching[cj], true);
+      }
+      // Empty filter result: show message instead of a blank white area
+      var emptyNote = listEl.querySelector('[data-mb-filter-empty]');
+      if (!matching.length && loadedCount > 0) {
+        if (!emptyNote) {
+          emptyNote = document.createElement('div');
+          emptyNote.setAttribute('data-mb-filter-empty', '1');
+          emptyNote.style.cssText = 'padding:28px 12px;text-align:center;font-size:13.5px;font-weight:600;color:#9aa3b0;';
+          listEl.appendChild(emptyNote);
+        }
+        emptyNote.textContent = t('No customers match these filters', 'אין לקוחות שתואמים לסינון');
+        emptyNote.style.display = 'block';
+      } else if (emptyNote) {
+        emptyNote.style.display = 'none';
       }
     } else if (kindVis === 'leads') {
       sortLeadItems(listEl, getLeadFilters());
-      // Re-apply page visibility after sort (sort moves DOM nodes)
+      // Re-apply visibility after sort (sort moves DOM nodes)
       var rematched = [];
       var allItems = listEl.querySelectorAll('a[data-customer-id]');
       for (var k = 0; k < allItems.length; k++) {
@@ -2143,9 +2240,11 @@
         else node.style.display = 'none';
       }
       for (var m = 0; m < rematched.length; m++) {
-        showListRow(rematched[m], m >= pageStart && m < pageEnd);
+        showListRow(rematched[m], true);
       }
-      updateLeadsTopSummary(rematched.length);
+      var leadTrimmed = rematched.length < allItems.length || !!query;
+      updateLeadsTopSummary(leadTrimmed ? rematched.length : (apiTotal > 0 ? apiTotal : rematched.length));
+      updateListPager(rematched.length, { clientTrimmed: leadTrimmed });
       applyEndedWarrantySearch();
     }
   }
@@ -2177,7 +2276,6 @@
       btn.addEventListener('click', function () {
         setActiveLeadFilter(btn.getAttribute('data-chip-id') || 'all');
         renderLeadFilterChips(container);
-        resetListPage();
         applyClientFilters(document.getElementById('mb-live-list'));
       });
     });
@@ -2306,17 +2404,20 @@
     container.querySelectorAll('.mb-cust-chip').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var chipId = btn.getAttribute('data-chip-id') || 'all';
-        setActiveCustFilter(chipId);
         var patch = { chip: chipId };
         if (chipId === 'new-or-website') patch.matchMode = 'or';
+        // Lead-source chips belong in Leads mode — Renewals hides rows without expiry dates
+        if (chipId === 'new-or-website' || chipId === 'new-lead' || chipId === 'website') {
+          patch.listMode = 'leads';
+          patch.expiryFrom = '';
+          patch.expiryTo = '';
+        }
+        setActiveCustFilter(chipId);
         setCustFilters(patch);
         renderCustFilterChips(container);
-        resetListPage();
-        if (chipId === 'new-or-website' || chipId === 'new-lead' || chipId === 'website') {
-          reloadCustList();
-        } else {
-          applyClientFilters(document.getElementById('mb-live-list'));
-        }
+        syncCustModeToggle();
+        // Always refetch — client re-filter cannot restore rows after an empty tab wiped the DOM
+        reloadCustList();
       });
     });
   }
@@ -2680,13 +2781,17 @@
     var mount = detectMount();
     if (!mount || !mount.el) return;
     // Invalidate any in-flight paint, then force a new Customer.List with current filters.
-    // (Calling start() while _listInFlight was set previously aborted the reload and left 0 rows.)
     mount._activeLoadId = '';
     _listBooted = true;
     _listBootAt = Date.now();
     _rowsCache = null;
+    _rowsCacheTotal = 0;
     resetListPage();
-    mount.el.setAttribute('data-initial-loaded', '1');
+    // Clear empty-state HTML immediately so a follow-up tab with data can paint cleanly
+    try {
+      mount.el.innerHTML = loadingHtml();
+      mount.el.setAttribute('data-initial-loaded', '1');
+    } catch (eClr) { /* ignore */ }
     var folder = getActiveFolderId(mount);
     setActiveFolderId(folder);
     loadList(mount, folder, { force: true });
@@ -2821,7 +2926,7 @@
     if (!mount || !mount.el) return;
     // Initial load only — later updates come from socket partial patches
     if (_listBooted || _listInFlight || mount.el.getAttribute('data-initial-loaded') === '1') {
-      if (mount.el.getAttribute('data-initial-loaded') !== '1' && _rowsCache) {
+      if (mount.el.getAttribute('data-initial-loaded') !== '1' && _rowsCache && _rowsCache.length) {
         paintCachedRows(mount.el, mount.kind);
       }
       return;
@@ -2847,11 +2952,14 @@
         // Ignore card/innerHTML churn — only act when the list root node is replaced
         if (!el || el === lastListEl) return;
         lastListEl = el;
-        // Never kick a second Customer.List for DC remount — reuse cache / in-flight
-        if (_listBooted || _listInFlight || _rowsCache) {
+        // Reuse in-memory rows only when we actually have some; empty cache must refetch
+        if (_listInFlight) return;
+        if (_rowsCache && _rowsCache.length) {
           paintCachedRows(el, el.getAttribute('data-kind') || pageKind());
           return;
         }
+        _listBooted = false;
+        el.removeAttribute('data-initial-loaded');
         start();
       }, 0);
     });
@@ -2956,7 +3064,7 @@
       var pending = _fullRefreshPendingReason;
       _fullRefreshPendingReason = '';
       var folder = getActiveFolderId(mount);
-      loadList(mount, folder, { silent: true });
+      loadList(mount, folder, { silent: true, keepPage: true, force: true });
       syncChipActiveStyles(folder);
       if (window.Biz1Pulse) window.Biz1Pulse(mount.el);
       console.log('[ListLive] silent refresh', pending, 'folder=' + folder);

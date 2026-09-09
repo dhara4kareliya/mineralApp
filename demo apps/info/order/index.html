@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>Orders · Biz1</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('orderapp_theme');
+        if (t !== 'dark' && t !== 'light') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+      try {
+        var l = localStorage.getItem('orderapp_lang');
+        if (l !== 'he' && l !== 'en') l = 'en';
+        document.documentElement.lang = l === 'he' ? 'he' : 'en';
+        document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/app.css?v=orders-3" />
+</head>
+<body data-page="login">
+  <div id="app" class="app">
+    <section class="view view-login">
+      <div class="login-frame">
+        <div class="login-hero">
+          <div class="hero-actions">
+            <div class="lang-switch" role="group" data-i18n-aria="language" aria-label="Language">
+              <button type="button" data-set-lang="en" class="active">EN</button>
+              <button type="button" data-set-lang="he">עב</button>
+            </div>
+            <button type="button" class="icon-btn" id="loginThemeBtn" data-i18n-aria="toggleTheme" aria-label="Toggle theme"></button>
+          </div>
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 7h16M4 12h16M4 17h10" stroke-linecap="round" />
+              <circle cx="18.5" cy="17" r="2.2" />
+            </svg>
+          </div>
+          <div class="hero-title" data-i18n="brandTitle">Order App</div>
+          <div class="hero-tagline" data-i18n="brandSub">Sign in to manage customer orders and send email templates.</div>
+        </div>
+
+        <form id="loginForm" class="card login-card" autocomplete="off" novalidate>
+          <div class="login-title" data-i18n="signIn">Sign in</div>
+          <div class="login-subtitle" data-i18n="loginSubtitle">Username, email, phone or ID — plus password and OTP when required</div>
+          <div id="loginAlert" class="alert alert-error" hidden></div>
+          <label class="field">
+            <span data-i18n="loginUserLabel">Email / Username / Phone / ID</span>
+            <input id="loginUsername" name="username" type="text" autocomplete="username" data-i18n-placeholder="loginUserPlaceholder" placeholder="you@company.com" required />
+          </label>
+          <label class="field">
+            <span data-i18n="loginPasswordLabel">Password</span>
+            <div class="password-wrap">
+              <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+              <button type="button" class="eye-btn" id="togglePassword" data-i18n-aria="show" aria-label="Show">👁</button>
+            </div>
+          </label>
+          <div id="otpWrap" hidden>
+            <label class="field">
+              <span data-i18n="otpLabel">Verification code (OTP)</span>
+              <input id="loginOtp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" data-i18n-placeholder="otpPlaceholder" placeholder="6-digit code" />
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="loginBtn" data-i18n="signIn">Sign in</button>
+        </form>
+
+        <div class="demo-users">
+          <div class="demo-users-title" data-i18n="demoAccount">Demo Credentials</div>
+          <div class="demo-user-row">
+            <span class="demo-user-creds" dir="ltr">info@feed-back.co.il</span>
+            <button type="button" class="demo-user-btn" id="fillDemo" data-user="info@feed-back.co.il" data-pass="" data-i18n="fillDemo">Login As Demo User</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="./js/i18n.js?v=orders-3"></script>
+  <script src="./js/common.js?v=orders-3"></script>
+  <script src="./js/login.js?v=orders-3"></script>
+</body>
+</html>

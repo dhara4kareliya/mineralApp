@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>Orders · Biz1</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('orderapp_theme');
+        if (t !== 'dark' && t !== 'light') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+      try {
+        var l = localStorage.getItem('orderapp_lang');
+        if (l !== 'he' && l !== 'en') l = 'en';
+        document.documentElement.lang = l === 'he' ? 'he' : 'en';
+        document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/app.css?v=orders-3" />
+</head>
+<body data-page="orders">
+  <div id="app" class="app">
+    <section class="view view-app">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-mark sm" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 7h16M4 12h16M4 17h10" stroke-linecap="round" />
+              <circle cx="18.5" cy="17" r="2.2" />
+            </svg>
+          </div>
+          <div>
+            <div class="topbar-title" id="pageTitle" data-i18n="ordersTitle">Orders</div>
+            <div class="topbar-sub" id="pageSub" data-i18n="ordersSub">Catalog order rows</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <span class="live-pill" id="livePill" title="Realtime">
+            <i></i><span id="liveText" data-i18n="offline">Offline</span>
+          </span>
+          <div class="lang-switch" role="group" data-i18n-aria="language" aria-label="Language">
+            <button type="button" data-set-lang="en" class="active">EN</button>
+            <button type="button" data-set-lang="he">עב</button>
+          </div>
+          <span class="user-chip" id="userChip"></span>
+          <button type="button" class="icon-btn" id="themeBtn" data-i18n-aria="toggleTheme" aria-label="Toggle theme"></button>
+          <button type="button" class="btn btn-ghost" id="logoutBtn" data-i18n="logout">Log out</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="panel">
+          <div class="toolbar">
+            <div class="catalog-scroll" id="catalogChips" role="tablist" data-i18n-aria="catalogProducts" aria-label="Catalog products"></div>
+            <div class="filters">
+              <select id="filterStatus" data-i18n-aria="orderStatus" aria-label="Order status">
+                <option value="" data-i18n="allStatuses">All statuses</option>
+              </select>
+              <select id="filterPaid" data-i18n-aria="paidStatus" aria-label="Paid status">
+                <option value="" data-i18n="allPayments">All payments</option>
+                <option value="0" data-i18n="unpaid">Unpaid</option>
+                <option value="1" data-i18n="paid">Paid</option>
+                <option value="2" data-i18n="partlyPaid">Partly paid</option>
+              </select>
+              <input id="filterFrom" type="date" data-i18n-aria="fromDate" aria-label="From date" />
+              <input id="filterTo" type="date" data-i18n-aria="toDate" aria-label="To date" />
+              <input id="filterSearch" type="search" data-i18n-placeholder="searchOrders" placeholder="Order # or note" data-i18n-aria="searchOrders" aria-label="Search orders" />
+              <div class="field-picker-wrap">
+                <button type="button" class="btn btn-secondary" id="fieldsBtn" data-i18n="fields">Fields</button>
+                <div class="field-picker" id="fieldPicker" hidden>
+                  <div class="field-picker-head">
+                    <label class="field-picker-search">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3" stroke-linecap="round"/></svg>
+                      <input id="fieldPickerSearch" type="search" data-i18n-placeholder="searchFields" placeholder="Search..." />
+                    </label>
+                    <button type="button" class="field-picker-close" id="fieldPickerClose" data-i18n-aria="close" aria-label="Close">×</button>
+                  </div>
+                  <div class="field-picker-list" id="fieldPickerList"></div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-primary" id="createOrderBtn" data-i18n="newOrder">New order</button>
+            </div>
+          </div>
+          <div class="stats-row" id="orderStats"></div>
+          <div class="bulk-bar" id="bulkBar" hidden>
+            <button type="button" class="btn btn-action btn-email" id="bulkEmailBtn" data-i18n-aria="sendSelected" aria-label="Send email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M4 6h16v12H4V6z" stroke-linejoin="round"/>
+                <path d="m4 7 8 6 8-6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span data-i18n="sendSelected">Send email</span>
+              <span class="bulk-count bulk-count-email" id="bulkEmailMeta"></span>
+            </button>
+            <button type="button" class="btn btn-action btn-delete" id="bulkDeleteBtn" data-i18n-aria="deleteSelected" aria-label="Delete selected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span data-i18n="deleteSelected">Delete selected</span>
+              <span class="bulk-count" id="bulkMeta"></span>
+            </button>
+          </div>
+          <div id="ordersAlert" class="alert alert-error" hidden></div>
+          <div id="ordersLoading" class="loading-block hidden" data-i18n="loadingOrders">Loading orders…</div>
+          <div id="ordersEmpty" class="empty-block hidden">
+            <h3 data-i18n="noOrdersTitle">No orders yet</h3>
+            <p data-i18n="noOrdersText">Pick a catalog product, or create an order for a customer.</p>
+          </div>
+          <div class="table-wrap card" id="ordersTableWrap" hidden>
+            <table class="data-table" id="ordersTable">
+              <thead id="ordersHead">
+                <tr>
+                  <th class="col-check"><input type="checkbox" id="selectAllRows" aria-label="Select all" /></th>
+                </tr>
+              </thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+          <div class="cards-list" id="ordersCards"></div>
+          <div class="pager" id="ordersPager" hidden>
+            <button type="button" class="btn btn-secondary" id="ordersPrev" data-i18n="previous">Previous</button>
+            <span id="ordersPageLabel"></span>
+            <button type="button" class="btn btn-secondary" id="ordersNext" data-i18n="next">Next</button>
+          </div>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="orderModal" hidden>
+    <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
+      <div class="modal-head">
+        <h2 id="orderModalTitle" data-i18n="createOrder">Create order</h2>
+        <button type="button" class="icon-btn" data-close="orderModal" data-i18n-aria="close" aria-label="Close">×</button>
+      </div>
+      <form id="orderForm" class="modal-body">
+        <div id="orderFormAlert" class="alert alert-error" hidden></div>
+        <input type="hidden" id="orderRowId" />
+        <div class="field" id="customerPickField">
+          <span data-i18n="customer">Customer</span>
+          <input id="customerSearch" type="search" data-i18n-placeholder="searchCustomer" placeholder="Search customer name, email, phone" />
+          <input type="hidden" id="orderCustId" />
+          <div class="picked" id="pickedCustomer" hidden></div>
+          <div class="suggest" id="customerSuggest" hidden></div>
+        </div>
+        <label class="field">
+          <span data-i18n="catalogProduct">Catalog product</span>
+          <select id="orderCatalog" required>
+            <option value="" data-i18n="selectProduct">Select product</option>
+          </select>
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span data-i18n="date">Date</span>
+            <input id="orderDate" type="date" />
+          </label>
+          <label class="field">
+            <span data-i18n="orderStatus">Order status</span>
+            <select id="orderStatus"></select>
+          </label>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span data-i18n="price">Price</span>
+            <input id="orderPrice" type="number" step="0.01" min="0" />
+          </label>
+          <label class="field">
+            <span data-i18n="totalPrice">Total price</span>
+            <input id="orderTotal" type="number" step="0.01" min="0" />
+          </label>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span data-i18n="discount">Discount</span>
+            <input id="orderDiscount" type="number" step="0.01" min="0" />
+          </label>
+          <label class="field">
+            <span data-i18n="paidStatus">Paid status</span>
+            <select id="orderPaid">
+              <option value="0" data-i18n="unpaid">Unpaid</option>
+              <option value="1" data-i18n="paid">Paid</option>
+              <option value="2" data-i18n="partlyPaid">Partly paid</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span data-i18n="notes">Notes</span>
+          <textarea id="orderNotes" rows="3" data-i18n-placeholder="optionalNote" placeholder="Optional note"></textarea>
+        </label>
+        <div id="customFields"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="orderModal" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="orderSaveBtn" data-i18n="saveOrder">Save order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="emailModal" hidden>
+    <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="emailModalTitle">
+      <div class="modal-head">
+        <h2 id="emailModalTitle" data-i18n="emailModalTitle">Send email template</h2>
+        <button type="button" class="icon-btn" data-close="emailModal" data-i18n-aria="close" aria-label="Close">×</button>
+      </div>
+      <form id="emailForm" class="modal-body">
+        <div id="emailAlert" class="alert alert-error" hidden></div>
+        <p class="hint" id="emailToHint"></p>
+        <label class="field">
+          <span data-i18n="template">Template</span>
+          <select id="emailTemplate" required>
+            <option value="" data-i18n="selectTemplate">Select template</option>
+          </select>
+        </label>
+        <div id="emailTokenFields" class="email-token-fields" hidden></div>
+        <div class="preview card-inset" id="emailPreview" hidden></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="emailModal" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="emailSendBtn" data-i18n="sendEmail">Send email</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="confirmModal" hidden>
+    <div class="modal card modal-sm" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h2 id="confirmTitle" data-i18n="deleteOrderRow">Delete order row</h2>
+        <button type="button" class="icon-btn" data-close="confirmModal" data-i18n-aria="close" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmText" data-i18n="deleteConfirmText">Only unpaid order rows can be deleted. This cannot be undone.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="confirmModal" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-i18n="delete">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="./js/i18n.js?v=orders-3"></script>
+  <script src="./js/common.js?v=orders-3"></script>
+  <script src="./js/orders.js?v=orders-3"></script>
+</body>
+</html>
