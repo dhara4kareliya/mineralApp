@@ -26,6 +26,7 @@ window.OrderApp = (function () {
     customerCount: 0,
     customerStart: 0,
     templates: [],
+    emailPackByCust: {},
     pendingDeleteId: null,
     pendingDeleteIds: [],
     selectedIds: {},
@@ -120,6 +121,24 @@ window.OrderApp = (function () {
   }
   function catalogIdOf(row) {
     return String((row && (row.catalog_order_id || row.product_order_id || row.order_id || row.id)) || "");
+  }
+  function catalogNameOf(id) {
+    id = String(id || "").trim();
+    if (!id) return "";
+    var found = (state.catalog || []).find(function (item) {
+      return catalogIdOf(item) === id || String(item.id || "") === id;
+    });
+    if (!found) return "";
+    return String(found.name || found.order_name || found.product_name || found.title || "").trim();
+  }
+  function productNameOf(row) {
+    if (!row) return "";
+    var cid = String(row.catalog_order_id || row.product_order_id || row.order_id || "").trim();
+    var fromCatalog = catalogNameOf(cid);
+    if (fromCatalog) return fromCatalog;
+    var named = displayScalar(row.order_name || row.product_name || row.catalog_name || "");
+    if (named && named !== cid) return named;
+    return named || "";
   }
   function customerName(row) {
     return (row && (row.customer_name || row.client_name || row.cust_name || row.name || row.full_name)) || t("customer");
@@ -594,7 +613,7 @@ window.OrderApp = (function () {
       return escapeHtml(labeled || displayScalar(raw) || "—");
     }
     if (kind === "product") {
-      return escapeHtml(displayScalar(raw) || row.order_name || row.name || "—");
+      return escapeHtml(productNameOf(row) || "—");
     }
     return escapeHtml(displayScalar(raw) || "—");
   }
@@ -1242,6 +1261,241 @@ window.OrderApp = (function () {
     $("customerSearch").value = name;
   }
 
+  var EMAIL_ORDER_LIMIT = 100;
+  var EMAIL_AUTO_TOKENS = {
+    message: true,
+    orders_block: true
+  };
+
+  function resolveEmailCustomer(id) {
+    id = String(id || "");
+    if (state.customer && custIdOf(state.customer) === id) return state.customer;
+    var row = (state.orders || []).concat(state.customerOrders || []).find(function (item) {
+      return custIdOf(item) === id;
+    });
+    if (row) {
+      return {
+        id: id,
+        customer_id: id,
+        cust_id: id,
+        name: customerName(row),
+        email: customerEmailOf(row) || row.email || row.customer_email || ""
+      };
+    }
+    return { id: id, customer_id: id, cust_id: id };
+  }
+
+  function emailCellText(row, col) {
+    if (!row || !col) return "—";
+    if (col.kind === "customer") return customerName(row) || "—";
+    if (col.kind === "status") {
+      var meta = statusMeta(row);
+      return (!meta.id || meta.id === "0") ? "—" : (meta.label || "—");
+    }
+    if (col.kind === "paid") {
+      var paid = paidOf(row);
+      var labels = paidLabels();
+      return labels[paid] || labels[0] || "—";
+    }
+    if (col.kind === "id") return rowId(row) ? ("#" + rowId(row)) : "—";
+    var raw = rowFieldValue(row, col);
+    if (col.kind === "date") return formatCellDate(raw) || "—";
+    if (col.kind === "select") return selectOptionLabel(col.field, raw) || displayScalar(raw) || "—";
+    if (col.kind === "product") return productNameOf(row) || "—";
+    return displayScalar(raw) || "—";
+  }
+
+  function emailTableColumns() {
+    var preferred = ["id", "date", "order_name", "order_status", "total_price", "notes"];
+    var bySlug = {};
+    visibleTableColumns(false).forEach(function (col) {
+      bySlug[normKey(col.key)] = col;
+    });
+    var out = [];
+    var seen = {};
+    preferred.forEach(function (key) {
+      var col = bySlug[normKey(key)] || makeColumn(key);
+      if (key === "order_name") col = Object.assign({}, col, { kind: "product", key: "order_name" });
+      var slug = normKey(col.key);
+      if (seen[slug]) return;
+      seen[slug] = true;
+      out.push(col);
+    });
+    return out;
+  }
+
+  function emailStatusHtml(row) {
+    var meta = statusMeta(row);
+    if (!meta.id || meta.id === "0") {
+      return '<span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eef1f6;color:#64748b;font-size:12px;font-weight:700;">—</span>';
+    }
+    var bg = meta.color || "#dbeafe";
+    return '<span style="display:inline-block;padding:3px 8px;border-radius:999px;background:' +
+      escapeHtml(bg) + ';color:#0f172a;font-size:12px;font-weight:700;">' +
+      escapeHtml(meta.label || "—") + "</span>";
+  }
+
+  function emailCellHtml(row, col) {
+    if (!row || !col) return "—";
+    if (col.kind === "status") return emailStatusHtml(row);
+    if (col.kind === "product") return escapeHtml(productNameOf(row) || "—");
+    if (col.kind === "id") return '<span style="font-weight:700;color:#0f172a;">' + escapeHtml(rowId(row) ? ("#" + rowId(row)) : "—") + "</span>";
+    if (col.kind === "price") {
+      var price = displayScalar(rowFieldValue(row, col) || row.total_price || row.book_price || "");
+      return '<span style="font-weight:700;color:#0f172a;">' + escapeHtml(price || "—") + "</span>";
+    }
+    return escapeHtml(emailCellText(row, col));
+  }
+
+  function buildCustomerDetailHtml(customer) {
+    customer = customer || {};
+    var name = customer.name || customer.customer_name || customer.full_name || t("customer");
+    var email = customerEmailOf(customer) || customer.email || customer.mail || "";
+    var phone = customer.mobile || customer.phone || customer.tel || "";
+    var id = custIdOf(customer) || customer.id || "";
+    var dir = isHe() ? "rtl" : "ltr";
+    var align = dir === "rtl" ? "right" : "left";
+    var items = [
+      { label: t("customerId"), value: id ? ("#" + id) : "—" },
+      { label: t("email"), value: email || t("noEmail") },
+      { label: t("phone"), value: phone || t("noPhone") }
+    ];
+    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;direction:' + dir + ';">' +
+      '<tr><td style="padding:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:1.3;font-weight:700;color:#0f172a;text-align:' + align + ';">' +
+      escapeHtml(name) + "</td></tr>" +
+      '<tr><td style="padding:0;">' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:separate;border-spacing:8px 0;">' +
+      "<tr>" + items.map(function (item) {
+        return '<td valign="top" style="width:33.33%;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-family:Arial,Helvetica,sans-serif;text-align:' + align + ';">' +
+          '<div style="font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:#64748b;font-weight:700;margin:0 0 6px;">' +
+          escapeHtml(item.label) + "</div>" +
+          '<div style="font-size:14px;color:#0f172a;font-weight:600;word-break:break-word;">' +
+          escapeHtml(item.value) + "</div></td>";
+      }).join("") +
+      "</tr></table></td></tr></table>";
+  }
+
+  function buildOrdersTableHtml(rows) {
+    var dir = isHe() ? "rtl" : "ltr";
+    var align = dir === "rtl" ? "right" : "left";
+    var cols = emailTableColumns();
+    if (!rows || !rows.length) {
+      return '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#64748b;direction:' + dir + ';text-align:' + align + ';">' +
+        escapeHtml(t("emailNoOrderRows")) + "</p>";
+    }
+    var head = cols.map(function (col) {
+      return '<th style="padding:11px 12px;border-bottom:1px solid #cbd5e1;background:#0f172a;color:#f8fafc;text-align:' +
+        align + ';font-size:12px;font-weight:700;letter-spacing:0.02em;white-space:nowrap;">' +
+        escapeHtml(columnLabel(col)) + "</th>";
+    }).join("");
+    var body = rows.map(function (row, index) {
+      var bg = index % 2 ? "#f8fafc" : "#ffffff";
+      return '<tr style="background:' + bg + ';">' + cols.map(function (col) {
+        return '<td style="padding:12px;border-bottom:1px solid #e2e8f0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.4;color:#334155;text-align:' +
+          align + ';vertical-align:top;">' +
+          emailCellHtml(row, col) + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;direction:' + dir + ';">' +
+      "<thead><tr>" + head + "</tr></thead><tbody>" + body + "</tbody></table>";
+  }
+
+  function buildOrdersBlockHtml(customer, orders) {
+    var dir = isHe() ? "rtl" : "ltr";
+    var align = dir === "rtl" ? "right" : "left";
+    var count = (orders && orders.length) || 0;
+    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;max-width:720px;width:100%;direction:' + dir + ';font-family:Arial,Helvetica,sans-serif;">' +
+      '<tr><td style="padding:0;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">' +
+      '<tr><td style="padding:16px 18px;background:#0f172a;color:#f8fafc;font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;text-align:' + align + ';">' +
+      escapeHtml(t("emailOrdersBlockTitle")) + "</td></tr>" +
+      '<tr><td style="padding:18px;">' +
+      buildCustomerDetailHtml(customer) +
+      "</td></tr>" +
+      '<tr><td style="padding:0 18px 8px;text-align:' + align + ';">' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">' +
+      "<tr>" +
+      '<td style="font-size:15px;font-weight:700;color:#0f172a;text-align:' + align + ';">' + escapeHtml(t("emailOrdersHeading")) + "</td>" +
+      '<td style="text-align:' + (dir === "rtl" ? "left" : "right") + ';">' +
+      '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;">' +
+      escapeHtml(t("emailOrdersCount", { n: count })) + "</span></td>" +
+      "</tr></table></td></tr>" +
+      '<tr><td style="padding:0 18px 18px;">' +
+      '<div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">' +
+      buildOrdersTableHtml(orders || []) +
+      "</div></td></tr>" +
+      "</table></td></tr></table>";
+  }
+
+  async function ensureCatalogLoaded() {
+    if (state.catalog && state.catalog.length) return;
+    try {
+      var catalog = await api("Order.Catalog", { order_type: "all" });
+      state.catalog = (catalog && catalog.data) || [];
+    } catch (e) {}
+  }
+
+  async function fetchOrdersForCustomer(custId) {
+    custId = String(custId || "").trim();
+    if (!custId) return [];
+    var list = await client.list("Order.List", {
+      cust_id: custId,
+      limit: EMAIL_ORDER_LIMIT,
+      start: 0
+    });
+    applyListMeta(list.raw);
+    return list.rows || [];
+  }
+
+  function emailIncludeOrdersOn() {
+    var el = $("emailIncludeOrders");
+    return !!(el && el.checked);
+  }
+
+  function setEmailOrdersUi(opts) {
+    opts = opts || {};
+    var box = $("emailOrdersBox");
+    var hint = $("emailOrdersHint");
+    var preview = $("emailOrdersPreview");
+    var check = $("emailIncludeOrders");
+    if (!box) return;
+    box.hidden = false;
+    if (check) {
+      check.disabled = !!opts.disabled;
+      if (opts.checked != null) check.checked = !!opts.checked;
+    }
+    if (hint) hint.textContent = opts.hint || "";
+    if (preview) {
+      if (opts.previewHtml) {
+        preview.hidden = false;
+        preview.innerHTML = opts.previewHtml;
+      } else {
+        preview.hidden = true;
+        preview.innerHTML = "";
+      }
+    }
+  }
+
+  async function prepareEmailCustomerData(custId) {
+    await ensureCatalogLoaded();
+    var customer = resolveEmailCustomer(custId);
+    if ((!customer.email && !customer.name) || (state.customer && custIdOf(state.customer) !== String(custId))) {
+      try {
+        var got = await api("Customer.Get", { customer_id: custId });
+        var data = (got && (got.data || got.customer)) || null;
+        if (data) customer = data;
+      } catch (e) {}
+    }
+    var orders = await fetchOrdersForCustomer(custId);
+    var block = buildOrdersBlockHtml(customer, orders);
+    return {
+      customer: customer,
+      orders: orders,
+      orders_block: block
+    };
+  }
+
+
   async function openEmailModal(cid) {
     var ids = Array.isArray(cid)
       ? cid.map(function (id) { return String(id || "").trim(); }).filter(Boolean)
@@ -1261,22 +1515,24 @@ window.OrderApp = (function () {
     showAlert("emailAlert");
     $("emailForm").reset();
     clearEmailTokenFields();
+    state.emailPackByCust = {};
     $("emailPreview").hidden = true;
     $("emailPreview").innerHTML = "";
     var names = [];
     ids.forEach(function (id) {
-      var customer = state.customer && custIdOf(state.customer) === String(id) ? state.customer : null;
-      if (!customer) {
-        customer = state.orders.concat(state.customerOrders).find(function (row) {
-          return custIdOf(row) === String(id);
-        }) || { id: id };
-      }
+      var customer = resolveEmailCustomer(id);
       names.push(customer.name || customer.customer_name || customer.customer_email || customer.email || ("#" + id));
     });
     $("emailToHint").textContent = ids.length > 1
       ? t("sendingToMany", { n: ids.length })
       : t("sendingTo", { name: names[0] });
     $("emailForm").dataset.custId = ids.join(",");
+    setEmailOrdersUi({
+      checked: true,
+      disabled: false,
+      hint: t("emailOrdersLoading"),
+      previewHtml: ""
+    });
     $("emailModal").hidden = false;
     try {
       var list = await client.list("EmailTemplates.List", { status: 1, limit: 100, start: 0 });
@@ -1287,6 +1543,33 @@ window.OrderApp = (function () {
       }).join("");
       if (!state.templates.length) showAlert("emailAlert", t("noTemplates"));
     } catch (err) {
+      showAlert("emailAlert", errMessage(err));
+    }
+    try {
+      if (ids.length === 1) {
+        var pack = await prepareEmailCustomerData(ids[0]);
+        state.emailPackByCust[ids[0]] = pack;
+        setEmailOrdersUi({
+          checked: true,
+          disabled: false,
+          hint: t("emailOrdersHint", { n: pack.orders.length }),
+          previewHtml: pack.orders_block
+        });
+      } else {
+        setEmailOrdersUi({
+          checked: true,
+          disabled: false,
+          hint: t("emailOrdersHintMany", { n: ids.length }),
+          previewHtml: ""
+        });
+      }
+    } catch (err) {
+      setEmailOrdersUi({
+        checked: false,
+        disabled: false,
+        hint: t("emailOrdersLoadFailed"),
+        previewHtml: ""
+      });
       showAlert("emailAlert", errMessage(err));
     }
   }
@@ -1316,13 +1599,16 @@ window.OrderApp = (function () {
     var wrap = $("emailTokenFields");
     if (!wrap) return;
     wrap.innerHTML = "";
-    if (!tokens.length) {
+    var manual = (tokens || []).filter(function (token) {
+      return !EMAIL_AUTO_TOKENS[token];
+    });
+    if (!manual.length) {
       wrap.hidden = true;
       return;
     }
     wrap.hidden = false;
     wrap.setAttribute("dir", isHe() ? "rtl" : "ltr");
-    tokens.forEach(function (token) {
+    manual.forEach(function (token) {
       var label = document.createElement("label");
       label.className = "field";
       label.setAttribute("dir", isHe() ? "rtl" : "ltr");
@@ -1444,20 +1730,60 @@ window.OrderApp = (function () {
     }
     $("emailSendBtn").disabled = true;
     try {
-      var payload = {
-        template_id: templateId,
-        cust_ids: custIds.join(",")
-      };
-      var overrides = collectEmailTokenData();
-      if (Object.keys(overrides).length) payload.data = overrides;
-      var res = await api("Send.EmailTemplate", payload);
-      if (!res || res.success === 0 || res.success === "0") {
-        throw new Error((res && (res.message || res.error)) || t("emailSendFailed"));
+      var baseOverrides = collectEmailTokenData();
+      var includeOrders = emailIncludeOrdersOn();
+      var sentTotal = 0;
+      var failedTotal = 0;
+
+      async function sendOne(ids, pack) {
+        var payload = {
+          template_id: templateId,
+          cust_ids: ids.join(",")
+        };
+        if (includeOrders && pack && pack.orders_block) {
+          // Send.EmailTemplate: custom_email fills {message} or is appended to the template body.
+          payload.custom_email = pack.orders_block;
+        }
+        var data = Object.assign({}, baseOverrides);
+        delete data.message;
+        delete data["cf-message"];
+        delete data.orders_block;
+        delete data["cf-orders_block"];
+        if (Object.keys(data).length) payload.data = data;
+        var res = await api("Send.EmailTemplate", payload);
+        if (!res || res.success === 0 || res.success === "0") {
+          throw new Error((res && (res.message || res.error)) || t("emailSendFailed"));
+        }
+        sentTotal += Number(res.sent != null ? res.sent : (res.total != null ? res.total : ids.length)) || 0;
+        failedTotal += Number(res.failed) || 0;
       }
-      var sent = res.sent != null ? res.sent : (res.total != null ? res.total : custIds.length);
-      var failed = Number(res.failed) || 0;
-      toast(t("emailSent", { sent: sent }));
-      if (failed) toast(t("emailSendFailedCount", { n: failed }));
+
+      if (includeOrders && custIds.length > 1) {
+        for (var i = 0; i < custIds.length; i++) {
+          var cid = custIds[i];
+          var pack = state.emailPackByCust && state.emailPackByCust[cid];
+          if (!pack) {
+            pack = await prepareEmailCustomerData(cid);
+            if (!state.emailPackByCust) state.emailPackByCust = {};
+            state.emailPackByCust[cid] = pack;
+          }
+          try {
+            await sendOne([cid], pack);
+          } catch (oneErr) {
+            failedTotal += 1;
+          }
+        }
+      } else {
+        var singlePack = null;
+        if (includeOrders && custIds.length === 1) {
+          singlePack = (state.emailPackByCust && state.emailPackByCust[custIds[0]]) || await prepareEmailCustomerData(custIds[0]);
+        }
+        await sendOne(custIds, singlePack);
+      }
+
+      if (!sentTotal && failedTotal) throw new Error(t("emailSendFailed"));
+      toast(t("emailSent", { sent: sentTotal || custIds.length }));
+      if (failedTotal) toast(t("emailSendFailedCount", { n: failedTotal }));
       closeModal("emailModal");
     } catch (err) {
       showAlert("emailAlert", errMessage(err));
@@ -1546,6 +1872,17 @@ window.OrderApp = (function () {
     if ($("bulkDeleteBtn")) $("bulkDeleteBtn").addEventListener("click", askDeleteSelected);
     if ($("bulkEmailBtn")) $("bulkEmailBtn").addEventListener("click", openEmailForSelected);
     if ($("emailTemplate")) $("emailTemplate").addEventListener("change", previewTemplate);
+    if ($("emailIncludeOrders")) {
+      $("emailIncludeOrders").addEventListener("change", function () {
+        var preview = $("emailOrdersPreview");
+        if (!preview) return;
+        if (!emailIncludeOrdersOn()) {
+          preview.hidden = true;
+          return;
+        }
+        if (preview.innerHTML) preview.hidden = false;
+      });
+    }
     if ($("orderCatalog")) {
       $("orderCatalog").addEventListener("change", function () {
         var opt = this.selectedOptions[0];

@@ -783,28 +783,33 @@ html[dir="rtl"] .email-preview-frame {
   background: var(--bg-elev);
 }
 .data-table tr:last-child td { border-bottom: 0; }
-.data-table tr.is-selected td { background: var(--primary-soft); }
+.data-table tr.is-selected td {
+  background: color-mix(in srgb, var(--primary) 12%, var(--bg-elev));
+}
 .col-check {
-  width: 42px;
-  min-width: 42px;
-  max-width: 42px;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding-left: 10px;
+  padding-right: 10px;
+  box-sizing: border-box;
   text-align: center;
   vertical-align: middle;
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 4;
   background: var(--bg-elev);
 }
 .data-table th.col-check {
   background: color-mix(in srgb, var(--primary) 10%, var(--bg-muted));
-  z-index: 5;
+  z-index: 6;
 }
 .col-client {
   min-width: 140px;
   max-width: 220px;
   position: sticky;
-  left: 42px;
-  z-index: 3;
+  left: 44px;
+  z-index: 4;
   background: var(--bg-elev);
   border-right: 1px solid var(--line);
   box-shadow: 8px 0 12px -8px rgba(15, 23, 42, 0.45);
@@ -820,12 +825,12 @@ html[dir="rtl"] .email-preview-frame {
 }
 .data-table th.col-client {
   background: color-mix(in srgb, var(--primary) 10%, var(--bg-muted));
-  z-index: 5;
+  z-index: 6;
 }
 .data-table tr.is-selected td.col-check,
 .data-table tr.is-selected td.col-client,
 .data-table tr.is-selected td.col-actions {
-  background: var(--primary-soft);
+  background: color-mix(in srgb, var(--primary) 12%, var(--bg-elev));
 }
 .col-notes {
   min-width: 160px;
@@ -836,14 +841,14 @@ html[dir="rtl"] .email-preview-frame {
   white-space: nowrap;
   position: sticky;
   right: 0;
-  z-index: 3;
+  z-index: 4;
   background: var(--bg-elev);
   border-left: 1px solid var(--line);
   box-shadow: -8px 0 12px -8px rgba(15, 23, 42, 0.45);
 }
 .data-table th.col-actions {
   background: color-mix(in srgb, var(--primary) 10%, var(--bg-muted));
-  z-index: 5;
+  z-index: 6;
 }
 .col-check input,
 .row-check {
@@ -1091,6 +1096,43 @@ a.customer-link { display: inline; }
 .email-token-fields {
   display: grid;
   gap: 12px;
+}
+.email-orders-box {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-muted);
+}
+.email-orders-box .check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 650;
+  font-size: 13px;
+  cursor: pointer;
+}
+.email-orders-box .check-row input {
+  margin-top: 2px;
+}
+.email-orders-box .hint,
+.email-token-tip {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.email-orders-preview {
+  max-height: 320px;
+  background: #fff;
+  color: #0f172a;
+  padding: 12px;
+  overflow: auto;
+}
+.email-orders-preview table {
+  width: 100%;
 }
 .email-preview-frame {
   display: block;

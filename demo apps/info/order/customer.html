@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/app.css?v=orders-3" />
+  <link rel="stylesheet" href="./css/app.css?v=orders-4" />
 </head>
 <body data-page="customer">
   <div id="app" class="app">
@@ -212,6 +212,15 @@
             <option value="" data-i18n="selectTemplate">Select template</option>
           </select>
         </label>
+        <div id="emailOrdersBox" class="email-orders-box" hidden>
+          <label class="check-row">
+            <input type="checkbox" id="emailIncludeOrders" checked />
+            <span data-i18n="emailIncludeOrders">Include customer details and order lines</span>
+          </label>
+          <p class="hint" id="emailOrdersHint"></p>
+          <p class="hint email-token-tip" data-i18n="emailOrdersTokens">Sent as custom_email · use {message} in the template (or leave empty to append)</p>
+          <div id="emailOrdersPreview" class="preview card-inset email-orders-preview" hidden></div>
+        </div>
         <div id="emailTokenFields" class="email-token-fields" hidden></div>
         <div class="preview card-inset" id="emailPreview" hidden></div>
         <div class="modal-actions">
@@ -239,8 +248,8 @@
   </div>
 
   <div id="toasts" class="toasts" aria-live="polite"></div>
-  <script src="./js/i18n.js?v=orders-3"></script>
-  <script src="./js/common.js?v=orders-3"></script>
-  <script src="./js/customer.js?v=orders-3"></script>
+  <script src="./js/i18n.js?v=orders-4"></script>
+  <script src="./js/common.js?v=orders-4"></script>
+  <script src="./js/customer.js?v=orders-4"></script>
 </body>
 </html>
