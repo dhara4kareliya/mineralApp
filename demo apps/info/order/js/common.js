@@ -1306,22 +1306,22 @@ window.OrderApp = (function () {
   }
 
   function emailTableColumns() {
-    var preferred = ["id", "date", "order_name", "order_status", "total_price", "notes"];
-    var bySlug = {};
-    visibleTableColumns(false).forEach(function (col) {
-      bySlug[normKey(col.key)] = col;
+    // Include every field from the Fields picker (on + off), not only visible table columns.
+    var cols = pickerFields();
+    if (!cols.length) cols = availableFieldColumns();
+    if (!cols.length) {
+      cols = ["customer_name", "date", "order_name", "order_status", "total_price", "id", "notes"].map(makeColumn);
+    }
+    return cols.map(function (col) {
+      if (!col) return col;
+      if (col.kind === "product" || sameColKey(col.key, "order_id") || sameColKey(col.key, "order_name")) {
+        return Object.assign({}, col, { kind: "product" });
+      }
+      if (col.kind === "paid" || sameColKey(col.key, "paid_status")) {
+        return Object.assign({}, col, { kind: "paid" });
+      }
+      return col;
     });
-    var out = [];
-    var seen = {};
-    preferred.forEach(function (key) {
-      var col = bySlug[normKey(key)] || makeColumn(key);
-      if (key === "order_name") col = Object.assign({}, col, { kind: "product", key: "order_name" });
-      var slug = normKey(col.key);
-      if (seen[slug]) return;
-      seen[slug] = true;
-      out.push(col);
-    });
-    return out;
   }
 
   function emailStatusHtml(row) {
@@ -1338,6 +1338,11 @@ window.OrderApp = (function () {
   function emailCellHtml(row, col) {
     if (!row || !col) return "—";
     if (col.kind === "status") return emailStatusHtml(row);
+    if (col.kind === "paid") {
+      var paid = paidOf(row);
+      var labels = paidLabels();
+      return escapeHtml(labels[paid] || labels[0] || "—");
+    }
     if (col.kind === "product") return escapeHtml(productNameOf(row) || "—");
     if (col.kind === "id") return '<span style="font-weight:700;color:#0f172a;">' + escapeHtml(rowId(row) ? ("#" + rowId(row)) : "—") + "</span>";
     if (col.kind === "price") {

@@ -81,7 +81,34 @@ mbCss('./common.css');
 <svg fill="none" height="14" stroke="#aeb6c2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
             Exact address <span style="color:#c0392b;">*</span>
 </label>
-<input class="gv-in" oninput="{{ onAddressInput }}" placeholder="Street, apartment, city…" style="background:{{ addressBg }}; border-color:{{ addressBorder }};" type="text" value="{{ address }}"/>
+<div style="margin-bottom:9px;">
+<label style="display:block; font-size:11.5px; font-weight:700; color:#9aa3b0; margin:0 2px 5px;">City <span style="color:#c0392b;">*</span></label>
+<input class="gv-in" oninput="{{ onCityInput }}" placeholder="City" style="background:{{ cityBg }}; border-color:{{ cityBorder }};" type="text" value="{{ city }}"/>
+</div>
+<div style="display:flex; gap:9px; margin-bottom:9px;">
+<div style="flex:1.4; min-width:0;">
+<label style="display:block; font-size:11.5px; font-weight:700; color:#9aa3b0; margin:0 2px 5px;">Street <span style="color:#c0392b;">*</span></label>
+<input class="gv-in" oninput="{{ onStreetInput }}" placeholder="Street" style="background:{{ streetBg }}; border-color:{{ streetBorder }};" type="text" value="{{ street }}"/>
+</div>
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:11.5px; font-weight:700; color:#9aa3b0; margin:0 2px 5px;">Building</label>
+<input class="gv-in" oninput="{{ onBuildingInput }}" placeholder="Building number" type="text" value="{{ building }}"/>
+</div>
+</div>
+<div style="display:flex; gap:9px;">
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:11.5px; font-weight:700; color:#9aa3b0; margin:0 2px 5px;">Floor</label>
+<input class="gv-in" oninput="{{ onFloorInput }}" placeholder="Floor" type="text" value="{{ floor }}"/>
+</div>
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:11.5px; font-weight:700; color:#9aa3b0; margin:0 2px 5px;">Apartment</label>
+<input class="gv-in" oninput="{{ onApartmentInput }}" placeholder="Apartment" type="text" value="{{ apartment }}"/>
+</div>
+<div style="flex:1; min-width:0;">
+<label style="display:block; font-size:11.5px; font-weight:700; color:#9aa3b0; margin:0 2px 5px;">Entrance</label>
+<input class="gv-in" oninput="{{ onEntranceInput }}" placeholder="Entrance" type="text" value="{{ entrance }}"/>
+</div>
+</div>
 </div>
 <!-- products -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin:0 2px 10px;">
@@ -153,7 +180,7 @@ mbCss('./common.css');
 </div>
 <!-- pinned CTA -->
 <div style="background:#fff; border-top:1px solid #eceef1; padding:13px 16px 20px; flex:none;">
-<a href="{{ collectionPaymentUrl }}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:15px; border-radius:14px; background:#1d60a2; color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(29,96,162,.28);">
+<a href="{{ collectionPaymentUrl }}" onclick="{{ onContinueClick }}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:15px; border-radius:14px; background:{{ continueBg }}; color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(29,96,162,.28); opacity:{{ continueOpacity }};">
           Continue collection
           <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg>
 </a>
@@ -169,9 +196,22 @@ class Component extends DCLogic {
     name: '',
     phone: '',
     tz: '',
+    city: '',
+    street: '',
+    building: '',
+    floor: '',
+    apartment: '',
+    entrance: '',
     address: '',
-    products: []
+    products: [],
+    addressError: false
   };
+
+  ADDR_STREET_FIELD = 'a-1786932384';
+  ADDR_BUILDING_FIELD = 'a-1786932385';
+  ADDR_FLOOR_FIELD = 'a-1786932709';
+  ADDR_APARTMENT_FIELD = 'a-1786932606';
+  ADDR_ENTRANCE_FIELD = 'a-1786932387';
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
@@ -213,6 +253,128 @@ class Component extends DCLogic {
     return String(raw || '');
   }
 
+  parseExtraFields(c) {
+    c = c || {};
+    var ef = c.extra_fields_json;
+    if (typeof ef === 'string') {
+      try { ef = JSON.parse(ef); } catch (e0) { ef = null; }
+    }
+    if (!ef && c.extra_fields != null) {
+      if (typeof c.extra_fields === 'string') {
+        try { ef = JSON.parse(c.extra_fields); } catch (e1) { ef = null; }
+      } else if (typeof c.extra_fields === 'object') {
+        ef = c.extra_fields;
+      }
+    }
+    return (ef && typeof ef === 'object' && !Array.isArray(ef)) ? ef : {};
+  }
+
+  extraVal(ef, key) {
+    if (!ef) return '';
+    var v = ef[key];
+    if (v && typeof v === 'object') {
+      v = v.value != null ? v.value : (v.val != null ? v.val : '');
+    }
+    return String(v == null ? '' : v).trim();
+  }
+
+  parseComposedAddress(full) {
+    var out = { street: '', building: '', entrance: '', floor: '', apartment: '', city: '' };
+    full = String(full || '').trim();
+    if (!full) return out;
+    var parts = full.split(',').map(function (p) { return String(p || '').trim(); }).filter(Boolean);
+    var rest = [];
+    parts.forEach(function (p) {
+      var mEnt = p.match(/^(Entrance|כניסה)\s*(.*)$/i);
+      var mFl = p.match(/^(Floor|קומה)\s*(.*)$/i);
+      var mApt = p.match(/^(Apt\.?|Apartment|דירה)\s*(.*)$/i);
+      if (mEnt) out.entrance = String(mEnt[2] || '').trim();
+      else if (mFl) out.floor = String(mFl[2] || '').trim();
+      else if (mApt) out.apartment = String(mApt[2] || '').trim();
+      else rest.push(p);
+    });
+    if (rest.length === 1) {
+      out.street = rest[0];
+    } else if (rest.length >= 2) {
+      out.street = rest[0];
+      out.city = rest[rest.length - 1];
+      if (rest.length > 2) {
+        // middle leftover often building-ish; append to street if no separate building
+        out.building = rest.slice(1, -1).join(' ');
+      }
+    }
+    return out;
+  }
+
+  composeAddress(parts) {
+    parts = parts || this.state;
+    var streetLine = [parts.street, parts.building].map(function (x) {
+      return String(x || '').trim();
+    }).filter(Boolean).join(' ');
+    var bits = [];
+    if (streetLine) bits.push(streetLine);
+    if (parts.entrance) bits.push('Entrance ' + String(parts.entrance).trim());
+    if (parts.floor) bits.push('Floor ' + String(parts.floor).trim());
+    if (parts.apartment) bits.push('Apt ' + String(parts.apartment).trim());
+    if (parts.city) bits.push(String(parts.city).trim());
+    return bits.join(', ');
+  }
+
+  addressPartsFromCustomer(c, fallbackAddress) {
+    c = c || {};
+    var ef = this.parseExtraFields(c);
+    var city = String(c.city || c.city_name || c.town || '').trim();
+    var street = this.extraVal(ef, this.ADDR_STREET_FIELD) || String(c.street || c.street_name || '').trim();
+    var building = this.extraVal(ef, this.ADDR_BUILDING_FIELD) || String(c.building || c.house || c.house_number || '').trim();
+    var floor = this.extraVal(ef, this.ADDR_FLOOR_FIELD) || String(c.floor || c.floor_number || '').trim();
+    var apartment = this.extraVal(ef, this.ADDR_APARTMENT_FIELD) || String(c.apartment || c.apt || c.flat || '').trim();
+    var entrance = this.extraVal(ef, this.ADDR_ENTRANCE_FIELD) || String(c.entrance || c.entry || '').trim();
+    var composed = String(c.address || c.full_address || c.exact_address || fallbackAddress || '').trim();
+
+    // If extras are empty, split the composed exact address string
+    if (!street && !building && !floor && !apartment && !entrance && composed) {
+      var parsed = this.parseComposedAddress(composed);
+      street = parsed.street || street;
+      building = parsed.building || building;
+      floor = parsed.floor || floor;
+      apartment = parsed.apartment || apartment;
+      entrance = parsed.entrance || entrance;
+      if (!city) city = parsed.city || '';
+    } else if (composed && !street) {
+      var parsed2 = this.parseComposedAddress(composed);
+      street = parsed2.street || street;
+      if (!city) city = parsed2.city || city;
+      if (!building) building = parsed2.building || building;
+      if (!floor) floor = parsed2.floor || floor;
+      if (!apartment) apartment = parsed2.apartment || apartment;
+      if (!entrance) entrance = parsed2.entrance || entrance;
+    }
+
+    // If city is still glued into composed address only
+    if (!city && composed) {
+      var last = composed.split(',').map(function (p) { return p.trim(); }).filter(Boolean).pop() || '';
+      if (last && !/^(Entrance|Floor|Apt|כניסה|קומה|דירה)/i.test(last)) city = last;
+    }
+
+    var parts = { city: city, street: street, building: building, floor: floor, apartment: apartment, entrance: entrance };
+    parts.address = this.composeAddress(parts) || composed;
+    return parts;
+  }
+
+  isAddressDetailed(parts) {
+    parts = parts || this.state;
+    return !!(String(parts.street || '').trim() && String(parts.city || '').trim());
+  }
+
+  patchAddressField(key, val) {
+    var next = {};
+    next[key] = val || '';
+    next.addressError = false;
+    var merged = Object.assign({}, this.state, next);
+    next.address = this.composeAddress(merged);
+    this.setState(next);
+  }
+
   async initData() {
     try {
       var q = new URLSearchParams(window.location.search);
@@ -236,9 +398,13 @@ class Component extends DCLogic {
       if (name) stateUpdate.name = name;
       if (phone) stateUpdate.phone = phone;
       if (tz) stateUpdate.tz = tz;
-      if (address) stateUpdate.address = address;
+      if (address) {
+        var fromQuery = this.parseComposedAddress(address);
+        Object.assign(stateUpdate, fromQuery);
+        stateUpdate.address = this.composeAddress(Object.assign({}, fromQuery)) || address;
+      }
 
-      // Load customer details — Exact address from customer card/API
+      // Load customer details — detailed address from customer card/API extras
       if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
         try {
           var custRes = await MineralBarApp.getCustomer(customerId);
@@ -247,21 +413,13 @@ class Component extends DCLogic {
             if (c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) {
               c = c.data;
             }
-            var fullAddress = String(c.address || '').trim();
-            if (c.city || c.city_name) {
-              var cityPart = String(c.city || c.city_name || '').trim();
-              if (cityPart && fullAddress.toLowerCase().indexOf(cityPart.toLowerCase()) === -1) {
-                fullAddress += (fullAddress ? ', ' : '') + cityPart;
-              }
-            }
             stateUpdate.name = c.name || stateUpdate.name || ('#' + customerId);
             stateUpdate.phone = this.formatPhone(c.mobile || c.phone) || stateUpdate.phone || phone;
             if (!stateUpdate.tz) {
               stateUpdate.tz = String(c.tz || c.id_number || c.identity || c.customer_id || c.id || customerId || '');
             }
-            // Prefer live customer address; keep query address only if API has none
-            if (fullAddress) stateUpdate.address = fullAddress;
-            else if (!stateUpdate.address) stateUpdate.address = '';
+            var parts = this.addressPartsFromCustomer(c, stateUpdate.address || address);
+            Object.assign(stateUpdate, parts);
           }
         } catch (custErr) {
           console.warn('[MineralBar] failed to fetch customer for order form', custErr);
@@ -335,8 +493,24 @@ class Component extends DCLogic {
     }
   }
 
-  onAddressInput(val) {
-    this.setState({ address: val || '' });
+  onCityInput(val) { this.patchAddressField('city', val); }
+  onStreetInput(val) { this.patchAddressField('street', val); }
+  onBuildingInput(val) { this.patchAddressField('building', val); }
+  onFloorInput(val) { this.patchAddressField('floor', val); }
+  onApartmentInput(val) { this.patchAddressField('apartment', val); }
+  onEntranceInput(val) { this.patchAddressField('entrance', val); }
+
+  onContinueClick(e) {
+    if (this.isAddressDetailed()) return true;
+    if (e && e.preventDefault) e.preventDefault();
+    this.setState({ addressError: true });
+    try {
+      var msg = this.isEn()
+        ? 'Please fill Street and City for a detailed address.'
+        : 'נא למלא רחוב ועיר לכתובת מפורטת.';
+      alert(msg);
+    } catch (err) { /* ignore */ }
+    return false;
   }
 
   onRemoveProduct(productId) {
@@ -388,14 +562,14 @@ class Component extends DCLogic {
       : { sales: 'מכירות', service: 'שירות', tech: 'טכנאי' };
     var roleLabel = roleMap[role] || '';
     if (name && roleLabel) return name + ' · ' + roleLabel;
-    return name || roleLabel || '';
+    return name || roleLabel || 'sales · Sales';
   }
 
   getInitials(name) {
-    var p = String(name || '').trim().split(/[\s@._-]+/).filter(Boolean);
-    if (!p.length) return '?';
-    if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
-    return ((p[0][0] || '') + (p[1][0] || '')).toUpperCase();
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '—';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
   }
 
   renderVals() {
@@ -415,6 +589,9 @@ class Component extends DCLogic {
     var totalPayableVal = beforeVat + vatAmt;
     var totalPayable = totalPayableVal + ' NIS/month';
 
+    var composedAddress = this.composeAddress(s) || s.address || '';
+    var addressOk = this.isAddressDetailed(s);
+
     var q = new URLSearchParams();
     if (s.customer_id) {
       q.set('customer_id', s.customer_id);
@@ -423,7 +600,13 @@ class Component extends DCLogic {
     if (s.name) q.set('name', s.name);
     if (s.phone) q.set('phone', s.phone);
     if (s.tz) q.set('tz', s.tz);
-    if (s.address) q.set('address', s.address);
+    if (composedAddress) q.set('address', composedAddress);
+    if (s.city) q.set('city', s.city);
+    if (s.street) q.set('street', s.street);
+    if (s.building) q.set('building', s.building);
+    if (s.floor) q.set('floor', s.floor);
+    if (s.apartment) q.set('apartment', s.apartment);
+    if (s.entrance) q.set('entrance', s.entrance);
     var productIds = (s.products || []).map(function (p) { return p.id; }).join(',');
     if (productIds) q.set('product_ids', productIds);
     q.set('amount', String(totalPayableVal));
@@ -434,13 +617,18 @@ class Component extends DCLogic {
       localStorage.setItem('mb_collection_amount', String(totalPayableVal));
     } catch (eAmt) { /* ignore */ }
 
-    var nextUrl = 'collection-payment.html?' + q.toString();
+    var nextUrl = addressOk ? ('collection-payment.html?' + q.toString()) : '#';
 
     var selectProductQuery = new URLSearchParams(q.toString());
     selectProductQuery.set('from', 'order');
     var selectProductUrl = 'service-select-product.html?' + selectProductQuery.toString();
 
-    var hasAddress = !!(s.address && String(s.address).trim());
+    var filledBg = '#eafaf0';
+    var filledBorder = '#bfe6cd';
+    var emptyBorder = s.addressError ? '#e8a9a4' : '#e4e8ee';
+    var streetFilled = !!(s.street && String(s.street).trim());
+    var cityFilled = !!(s.city && String(s.city).trim());
+
     var backToCustomerUrl = s.customer_id
       ? 'service-customer-card.html?customer_id=' + encodeURIComponent(s.customer_id) + '&cust_id=' + encodeURIComponent(s.customer_id)
       : 'service-customer-card.html';
@@ -462,9 +650,17 @@ class Component extends DCLogic {
       phone: s.phone || '',
       tz: s.tz || s.customer_id || '',
       initials: initials,
-      address: s.address || '',
-      addressBg: hasAddress ? '#eafaf0' : '#fff',
-      addressBorder: hasAddress ? '#bfe6cd' : '#e4e8ee',
+      city: s.city || '',
+      street: s.street || '',
+      building: s.building || '',
+      floor: s.floor || '',
+      apartment: s.apartment || '',
+      entrance: s.entrance || '',
+      address: composedAddress,
+      cityBg: cityFilled ? filledBg : '#fff',
+      cityBorder: cityFilled ? filledBorder : emptyBorder,
+      streetBg: streetFilled ? filledBg : '#fff',
+      streetBorder: streetFilled ? filledBorder : emptyBorder,
       products: productsWithIndex,
       hasProducts: productsWithIndex.length > 0,
       totalDiscountAmt: totalDiscount,
@@ -474,7 +670,15 @@ class Component extends DCLogic {
       collectionPaymentUrl: nextUrl,
       selectProductUrl: selectProductUrl,
       backToCustomerUrl: backToCustomerUrl,
-      onAddressInput: (e) => this.onAddressInput(e && e.target ? e.target.value : e),
+      continueBg: addressOk ? '#1d60a2' : '#9aa3b0',
+      continueOpacity: addressOk ? '1' : '0.75',
+      onCityInput: (e) => this.onCityInput(e && e.target ? e.target.value : e),
+      onStreetInput: (e) => this.onStreetInput(e && e.target ? e.target.value : e),
+      onBuildingInput: (e) => this.onBuildingInput(e && e.target ? e.target.value : e),
+      onFloorInput: (e) => this.onFloorInput(e && e.target ? e.target.value : e),
+      onApartmentInput: (e) => this.onApartmentInput(e && e.target ? e.target.value : e),
+      onEntranceInput: (e) => this.onEntranceInput(e && e.target ? e.target.value : e),
+      onContinueClick: (e) => this.onContinueClick(e),
       onRemoveProduct: (id) => this.onRemoveProduct(id),
       onDiscountInput: (id, val) => this.onDiscountInput(id, val)
     };
