@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.invoices">Invoices — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input class="form-control" id="search" data-i18n-placeholder="invoices.search" placeholder="Search invoices…" />
+      </div>
+    </div>
+    <div class="card">
+      <div id="list"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    Layout.render({ active: 'invoices', titleKey: 'nav.invoices' });
+    let search = '';
+    let timer;
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        search = e.target.value.trim();
+        load();
+      }, 350);
+    });
+
+    async function load() {
+      const el = document.getElementById('list');
+      Layout.loading(el);
+      try {
+        const data = await API.invoicesList({ search, limit: 25 });
+        const rows = data.data || [];
+        if (!rows.length) {
+          Layout.empty(el, I18n.t('invoices.none'), I18n.t('invoices.noneHint'));
+          return;
+        }
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr><th>${I18n.t('table.id')}</th><th>${I18n.t('invoices.type')}</th><th>${I18n.t('invoices.address')}</th><th>${I18n.t('invoices.amount')}</th><th>${I18n.t('invoices.paid')}</th><th>${I18n.t('invoices.status')}</th></tr></thead>
+          <tbody>
+            ${rows
+              .map(
+                (r) => `<tr>
+                <td><strong>#${r.id}</strong></td>
+                <td>${Layout.escapeHtml(r.type || '—')}</td>
+                <td>${Layout.escapeHtml(r.address || '—')}</td>
+                <td>${UI.formatMoney(r.final_amount, r.coin || '')}</td>
+                <td><span class="badge ${r.paid ? 'badge-success' : 'badge-warning'}">${Layout.escapeHtml(r.paid_label || (r.paid ? I18n.t('invoices.paid') : I18n.t('invoices.unpaid')))}</span></td>
+                <td>${Layout.escapeHtml(r.custom_status_name || '—')}</td>
+              </tr>`
+              )
+              .join('')}
+          </tbody>
+        </table></div>`;
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

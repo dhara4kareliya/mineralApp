@@ -1,0 +1,48 @@
+<!-- status bar -->
+<div class="app-header-status">
+  <span>9:41</span>
+  <div style="display:flex; gap:5px; align-items:center;">
+    <svg width="17" height="11" viewBox="0 0 17 11"><rect x="0" y="3" width="3" height="8" rx="1"></rect><rect x="4.5" y="1.5" width="3" height="9.5" rx="1"></rect><rect x="9" y="0" width="3" height="11" rx="1"></rect><rect x="13.5" y="0" width="3" height="11" rx="1" opacity="0.35"></rect></svg>
+    <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5"></rect><rect x="2.5" y="2.5" width="15" height="7" rx="1.2"></rect><rect x="22" y="4" width="1.6" height="4" rx="0.8" opacity="0.5"></rect></svg>
+  </div>
+</div>
+
+<!-- header: avatar · greeting · profile button -->
+<div class="app-header-bar">
+  <div style="position:relative;" id="avatar-menu-wrapper">
+    <div class="app-avatar" onclick="event.stopPropagation(); var menu = document.getElementById('avatar-menu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';" style="cursor:pointer;" title="Menu">M</div>
+    
+    <div id="avatar-menu" style="display:none; position:absolute; top:calc(100% + 8px); left:0; background:#fff; border-radius:12px; padding:8px 16px; box-shadow:0 6px 20px rgba(0,0,0,0.1); z-index:9999; border:1px solid #e5e7eb; white-space:nowrap; animation:fadeIn 0.15s ease-out;">
+      <div onclick="document.getElementById('avatar-menu').style.display='none'; document.getElementById('logout-modal-overlay').style.display='flex'; if(window.MineralBarApp && window.MineralBarApp.translateDOM) window.MineralBarApp.translateDOM(document.getElementById('logout-modal-overlay'));" style="display:flex; align-items:center; gap:8px; color:#c0392b; font-weight:700; font-size:15px; cursor:pointer; padding:6px 0;">
+        <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+        <span data-i18n="logout"></span>
+      </div>
+    </div>
+  </div>
+  <div id="mb-home-greeting" class="app-greeting" data-i18n="loading"></div>
+</div>
+
+<!-- Custom Logout Modal -->
+<div id="logout-modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:10000; align-items:center; justify-content:center; animation:fadeIn 0.2s ease-out;">
+  <div style="background:var(--bg-form, #fff); width:320px; border-radius:24px; padding:24px; box-shadow:0 12px 40px rgba(0,0,0,0.2); text-align:center;">
+    <div style="width:48px; height:48px; border-radius:50%; background:#fbeeed; color:#c0392b; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+    </div>
+    <div style="font-size:18px; font-weight:800; color:var(--text-title); margin-bottom:8px;" data-i18n="logout"></div>
+    <div style="font-size:14px; font-weight:500; color:var(--text-sub); margin-bottom:24px; line-height:1.4;" data-i18n="confirm_logout"></div>
+    <div style="display:flex; gap:12px;">
+      <button onclick="document.getElementById('logout-modal-overlay').style.display='none'" style="flex:1; padding:12px; border-radius:12px; border:none; background:var(--bg-accent); color:var(--text-title); font-size:15px; font-weight:700; cursor:pointer;" data-i18n="cancel"></button>
+      <button onclick="localStorage.clear(); location.href='login.html';" style="flex:1; padding:12px; border-radius:12px; border:none; background:#c0392b; color:#fff; font-size:15px; font-weight:700; cursor:pointer;" data-i18n="logout"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('click', function(e) {
+    var wrapper = document.getElementById('avatar-menu-wrapper');
+    var menu = document.getElementById('avatar-menu');
+    if (wrapper && menu && !wrapper.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  });
+</script>

@@ -392,7 +392,12 @@ class Component extends DCLogic {
 
   firstName(name) {
     var p = String(name || '').trim().split(/\s+/).filter(Boolean);
-    return p[0] || this.t('there', 'שלום');
+    var first = p[0] || '';
+    // Avoid showing system/login names in customer-facing preview.
+    if (!first || /^(admin|administrator|user|test|null|undefined)$/i.test(first)) {
+      return this.t('customer', 'לקוח');
+    }
+    return first;
   }
 
   todayKey() {

@@ -25,8 +25,12 @@
     return 'index.html#login';
   }
 
-  function scheduleHref() {
-    return 'index.html#schedule';
+  function scheduleHref(filter) {
+    filter = String(filter == null ? 'opened' : filter).trim() || 'opened';
+    if (filter === 'mine') return 'tickets.html?filter=mine';
+    if (filter === 'opened') return 'tickets.html?filter=opened';
+    if (filter === 'all') return 'tickets.html?filter=all';
+    return 'tickets.html?filter=' + encodeURIComponent(filter);
   }
 
   function detailsHref(id) {

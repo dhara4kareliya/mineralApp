@@ -1,179 +1,247 @@
 <!DOCTYPE html>
 
 <html>
+
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script>document.write('<script src="./asset-version.js?_='+Date.now()+'"><\/script>');</script>
-<script>
-mbScripts([
-  './support.js',
-  './biz1-sdk.js',
-  './biz1-app.js',
-  './page-boot.js',
-  './live-sync.js',
-  './i18n-translations.js',
-  './common-header-footer.js'
-]);
-mbCss('./common.css');
-</script>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <script>document.write('<script src="./asset-version.js?_=' + Date.now() + '"><\/script>');</script>
+  <script>
+    mbScripts([
+      './support.js',
+      './biz1-sdk.js',
+      './biz1-app.js',
+      './page-boot.js',
+      './live-sync.js',
+      './i18n-translations.js',
+      './common-header-footer.js'
+    ]);
+    mbCss('./common.css');
+  </script>
 </head>
+
 <body data-role="tech" data-active-tab="main">
-<x-dc>
-<helmet>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<style>
-  * { box-sizing: border-box; }
-  html, body { margin: 0; direction: rtl; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
-  button { font-family: 'Heebo', sans-serif; }
-  .dc-scroll::-webkit-scrollbar { width: 0; }
-</style>
-</helmet>
-<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
-<div style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
-<div style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;" class="screen-card">
-<!-- header -->
-<div style="padding:6px 18px 14px; flex:none; position:relative; z-index:20;">
-<div style="display:flex; align-items:flex-start; justify-content:space-between;">
-<div>
-<div style="font-size:13px; color:#8a93a3; font-weight:600;">my performance</div>
-<div style="font-size:22px; font-weight:800; color:#1f2a3a; margin-top:1px;">{{ monthLabel }}</div>
-</div>
-<button type="button" onclick="{{ toggleMonthPicker }}" style="display:flex; align-items:center; gap:7px; background:#fff; border:none; border-radius:12px; padding:9px 13px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06);">
-<span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ monthShort }}</span>
-<svg fill="none" height="15" stroke="#7b8595" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="15"><path d="m6 9 6 6 6-6"></path></svg>
-</button>
-</div>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ monthPickerOpen }}">
-<div style="position:absolute; top:58px; left:18px; right:18px; background:#fff; border-radius:14px; box-shadow:0 10px 28px rgba(15,24,40,.16); max-height:260px; overflow-y:auto; padding:6px;">
-<sc-for as="m" hint-placeholder-count="6" list="{{ monthOptions }}">
-<button type="button" onclick="{{ m.select }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; border:none; background:{{ m.bg }}; color:#1f2a3a; padding:11px 12px; border-radius:10px; cursor:pointer; font-family:inherit;">
-<span style="font-size:13.5px; font-weight:700;">{{ m.label }}</span>
-<span style="font-size:12px; font-weight:700; color:{{ m.checkColor }};">{{ m.check }}</span>
-</button>
-</sc-for>
-</div>
-</sc-if>
-</div>
-<div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
-<!-- hero: monthly sales -->
-<div style="background:linear-gradient(135deg,#1d60a2,#16487c); border-radius:20px; padding:19px; color:#fff; margin-bottom:13px; position:relative; overflow:hidden;">
-<div style="position:absolute; top:-30px; left:-20px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.07);"></div>
-<div style="position:relative;">
-<div style="font-size:13px; opacity:.8; font-weight:600;">Total sales for the month</div>
-<div style="display:flex; align-items:baseline; gap:9px; margin-top:6px;">
-<span style="font-size:34px; font-weight:800; line-height:1;">{{ salesTotal }}</span>
-</div>
-<div style="display:flex; gap:12px; margin-top:16px;">
-<div style="min-width:0; flex:1;">
-<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ salesAvg }}</div>
-<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Average for sale</div>
-</div>
-<div style="width:1px; background:rgba(255,255,255,.2); flex:none;"></div>
-<div style="min-width:0; flex:1;">
-<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ closedTickets }}</div>
-<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Closed tickets</div>
-</div>
-<div style="width:1px; background:rgba(255,255,255,.2); flex:none;"></div>
-<div style="min-width:0; flex:1;">
-<div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ docCount }}</div>
-<div style="font-size:11.5px; opacity:.75; margin-top:3px;">Sales</div>
-</div>
-</div>
-</div>
-</div>
-<!-- weekly chart -->
-<div style="background:#fff; border-radius:18px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
-<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Tickets created by week</span>
-<span style="font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ weeksTotalLabel }}</span>
-</div>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ weeksLoading }}">
-<div class="mb-inline-loader" style="padding:28px 16px;">
-<div class="mb-page-loader__spin" aria-hidden="true"></div>
-<div class="mb-page-loader__label">Loading…</div>
-</div>
-</sc-if>
-<sc-if hint-placeholder-val="{{ true }}" value="{{ weeksReady }}">
-<div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; height:130px;">
-<sc-for as="w" hint-placeholder-count="4" list="{{ weeks }}">
-<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
-<span style="font-size:10px; font-weight:800; color:#1d60a2; white-space:nowrap;" data-no-i18n="true">{{ w.val }}</span>
-<div style="width:100%; max-width:40px; border-radius:8px 8px 4px 4px; background:{{ w.bg }}; height:{{ w.h }};"></div>
-<span style="font-size:10.5px; color:#9aa3b0; font-weight:600; white-space:nowrap;" data-no-i18n="true">{{ w.label }}</span>
-</div>
-</sc-for>
-</div>
-</sc-if>
-</div>
-<!-- installation types (closed tickets grouped) -->
-<div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
-<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ openTicketsSectionLabel }}</span>
-<span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ openTicketsCountLabel }}</span>
-</div>
-<div style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
-<sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsLoading }}">
-<div class="mb-inline-loader">
-<div class="mb-page-loader__spin" aria-hidden="true"></div>
-<div class="mb-page-loader__label" data-no-i18n="true">{{ loadingLabel }}</div>
-</div>
-</sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsEmpty }}">
-<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;" data-no-i18n="true">{{ openTicketsEmptyLabel }}</div>
-</sc-if>
-<sc-for as="ot" hint-placeholder-count="0" list="{{ openTickets }}">
-<div style="padding:13px 0; border-bottom:1px solid {{ ot.border }}; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-<div style="display:flex; align-items:center; gap:11px; min-width:0; flex:1;">
-<div style="width:34px; height:34px; border-radius:9px; background:{{ ot.iconBg }}; color:{{ ot.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
-<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z"></path></svg>
-</div>
-<span style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ot.name }}</span>
-</div>
-<span style="display:inline-flex; align-items:center; justify-content:center; min-width:34px; padding:5px 10px; border-radius:99px; background:{{ ot.badgeBg }}; color:{{ ot.badgeColor }}; font-size:13px; font-weight:800; flex:none;">{{ ot.count }}</span>
-</div>
-</sc-for>
-</div>
+  <x-dc>
+    <helmet>
+      <link href="https://fonts.googleapis.com" rel="preconnect" />
+      <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+      <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+      <style>
+        * {
+          box-sizing: border-box;
+        }
 
-<!-- field orders by product -->
-<div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
-<span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ ordersSectionLabel }}</span>
-<span style="font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ ordersCountLabel }}</span>
-</div>
-<div style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
-<sc-if hint-placeholder-val="{{ false }}" value="{{ ordersLoading }}">
-<div class="mb-inline-loader">
-<div class="mb-page-loader__spin" aria-hidden="true"></div>
-<div class="mb-page-loader__label" data-no-i18n="true">{{ loadingLabel }}</div>
-</div>
-</sc-if>
-<sc-if hint-placeholder-val="{{ false }}" value="{{ ordersEmpty }}">
-<div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;" data-no-i18n="true">{{ ordersEmptyLabel }}</div>
-</sc-if>
-<sc-for as="od" hint-placeholder-count="0" list="{{ fieldOrders }}">
-<div style="padding:13px 0; border-bottom:1px solid {{ od.border }}; display:flex; align-items:flex-start; gap:11px;">
-<div style="width:34px; height:34px; border-radius:9px; background:{{ od.iconBg }}; color:{{ od.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
-<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="16"><path d="M7 3h8l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M15 3v5h5"></path></svg>
-</div>
-<div style="flex:1; min-width:0;">
-<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-<span style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ od.name }}</span>
-<span style="font-size:13px; font-weight:800; color:#2e8a63; flex:none;">{{ od.amount }}</span>
-</div>
-<div style="font-size:12px; color:#5a6473; font-weight:600; margin-top:4px;">{{ od.qtyLabel }}</div>
-</div>
-</div>
-</sc-for>
-</div>
+        html,
+        body {
+          margin: 0;
+          direction: rtl;
+          font-family: 'Heebo', sans-serif;
+          -webkit-font-smoothing: antialiased;
+        }
 
-<div style="text-align:center; padding:4px 0; color:#b6bdc8; font-size:12px; font-weight:600;">{{ updatedLabel }}</div>
-</div>
-</div>
-</div>
-</div>
-</x-dc>
-<script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
+        button {
+          font-family: 'Heebo', sans-serif;
+        }
+
+        .dc-scroll::-webkit-scrollbar {
+          width: 0;
+        }
+      </style>
+    </helmet>
+    <div
+      style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+      <div
+        style="width:392px; max-width:100%; background:#0f1828; border-radius:34px; padding:9px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+        <div
+          style="background:#eef0f3; border-radius:26px; overflow:hidden; position:relative; height:812px; display:flex; flex-direction:column;"
+          class="screen-card">
+          <!-- header -->
+          <div style="padding:6px 18px 14px; flex:none; position:relative; z-index:20;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+              <div>
+                <div style="font-size:13px; color:#8a93a3; font-weight:600;">my performance</div>
+                <div style="font-size:22px; font-weight:800; color:#1f2a3a; margin-top:1px;">{{ monthLabel }}</div>
+              </div>
+              <button type="button" onclick="{{ toggleMonthPicker }}"
+                style="display:flex; align-items:center; gap:7px; background:#fff; border:none; border-radius:12px; padding:9px 13px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+                <span style="font-size:13.5px; font-weight:700; color:#1f2a3a;">{{ monthShort }}</span>
+                <svg fill="none" height="15" stroke="#7b8595" stroke-linecap="round" stroke-linejoin="round"
+                  stroke-width="2.2" viewbox="0 0 24 24" width="15">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </button>
+            </div>
+            <sc-if hint-placeholder-val="{{ false }}" value="{{ monthPickerOpen }}">
+              <div
+                style="position:absolute; top:58px; left:18px; right:18px; background:#fff; border-radius:14px; box-shadow:0 10px 28px rgba(15,24,40,.16); max-height:260px; overflow-y:auto; padding:6px;">
+                <sc-for as="m" hint-placeholder-count="6" list="{{ monthOptions }}">
+                  <button type="button" onclick="{{ m.select }}"
+                    style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; border:none; background:{{ m.bg }}; color:#1f2a3a; padding:11px 12px; border-radius:10px; cursor:pointer; font-family:inherit;">
+                    <span style="font-size:13.5px; font-weight:700;">{{ m.label }}</span>
+                    <span style="font-size:12px; font-weight:700; color:{{ m.checkColor }};">{{ m.check }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div class="dc-scroll" style="flex:1; overflow-y:auto; padding:2px 16px 24px;">
+            <!-- hero: monthly sales -->
+            <div
+              style="background:linear-gradient(135deg,#1d60a2,#16487c); border-radius:20px; padding:19px; color:#fff; margin-bottom:13px; position:relative; overflow:hidden;">
+              <div
+                style="position:absolute; top:-30px; left:-20px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.07);">
+              </div>
+              <div style="position:relative;">
+                <div style="font-size:13px; opacity:.8; font-weight:600;">Total sales for the month</div>
+                <div style="display:flex; align-items:baseline; gap:9px; margin-top:6px;">
+                  <span style="font-size:34px; font-weight:800; line-height:1;">{{ salesTotal }}</span>
+                </div>
+                <div style="display:flex; gap:12px; margin-top:16px;">
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ salesAvg
+                      }}</div>
+                    <div style="font-size:11.5px; opacity:.75; margin-top:3px;">Average for sale</div>
+                  </div>
+                  <div style="width:1px; background:rgba(255,255,255,.2); flex:none;"></div>
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{
+                      closedTickets }}</div>
+                    <div style="font-size:11.5px; opacity:.75; margin-top:3px;">Closed tickets</div>
+                  </div>
+                  <div style="width:1px; background:rgba(255,255,255,.2); flex:none;"></div>
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-size:18px; font-weight:800; line-height:1.15; word-break:break-word;">{{ docCount
+                      }}</div>
+                    <div style="font-size:11.5px; opacity:.75; margin-top:3px;">Sales</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- weekly chart -->
+            <div
+              style="background:#fff; border-radius:18px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;">Tickets created by week</span>
+                <span style="font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ weeksTotalLabel
+                  }}</span>
+              </div>
+              <sc-if hint-placeholder-val="{{ false }}" value="{{ weeksLoading }}">
+                <div class="mb-inline-loader" style="padding:28px 16px;">
+                  <div class="mb-page-loader__spin" aria-hidden="true"></div>
+                  <div class="mb-page-loader__label">Loading…</div>
+                </div>
+              </sc-if>
+              <sc-if hint-placeholder-val="{{ true }}" value="{{ weeksReady }}">
+                <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; height:130px;">
+                  <sc-for as="w" hint-placeholder-count="4" list="{{ weeks }}">
+                    <div
+                      style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                      <span style="font-size:10px; font-weight:800; color:#1d60a2; white-space:nowrap;"
+                        data-no-i18n="true">{{ w.val }}</span>
+                      <div
+                        style="width:100%; max-width:40px; border-radius:8px 8px 4px 4px; background:{{ w.bg }}; height:{{ w.h }};">
+                      </div>
+                      <span style="font-size:10.5px; color:#9aa3b0; font-weight:600; white-space:nowrap;"
+                        data-no-i18n="true">{{ w.label }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <!-- installation types (closed tickets grouped) -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
+              <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{
+                openTicketsSectionLabel }}</span>
+              <span style="font-size:12px; color:#9aa3b0; font-weight:600;">{{ openTicketsCountLabel }}</span>
+            </div>
+            <div
+              style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+              <sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsLoading }}">
+                <div class="mb-inline-loader">
+                  <div class="mb-page-loader__spin" aria-hidden="true"></div>
+                  <div class="mb-page-loader__label" data-no-i18n="true">{{ loadingLabel }}</div>
+                </div>
+              </sc-if>
+              <sc-if hint-placeholder-val="{{ false }}" value="{{ openTicketsEmpty }}">
+                <div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;"
+                  data-no-i18n="true">{{ openTicketsEmptyLabel }}</div>
+              </sc-if>
+              <sc-for as="ot" hint-placeholder-count="0" list="{{ openTickets }}">
+                <div
+                  style="padding:13px 0; border-bottom:1px solid {{ ot.border }}; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                  <div style="display:flex; align-items:center; gap:11px; min-width:0; flex:1;">
+                    <div
+                      style="width:34px; height:34px; border-radius:9px; background:{{ ot.iconBg }}; color:{{ ot.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+                      <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2" viewbox="0 0 24 24" width="16">
+                        <path
+                          d="M14.5 6a3.5 3.5 0 0 0-4.6 4.3L3 17.2 6.8 21l6.9-6.9A3.5 3.5 0 0 0 18 9.5l-2.4 2.4-1.5-1.5L16.5 8z">
+                        </path>
+                      </svg>
+                    </div>
+                    <span
+                      style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{
+                      ot.name }}</span>
+                  </div>
+                  <span
+                    style="display:inline-flex; align-items:center; justify-content:center; min-width:34px; padding:5px 10px; border-radius:99px; background:{{ ot.badgeBg }}; color:{{ ot.badgeColor }}; font-size:13px; font-weight:800; flex:none;">{{
+                    ot.count }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <!-- field orders by product -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin:4px 2px 11px;">
+              <span style="font-size:14.5px; font-weight:800; color:#1f2a3a;" data-no-i18n="true">{{ ordersSectionLabel
+                }}</span>
+              <span style="font-size:12px; color:#9aa3b0; font-weight:600;" data-no-i18n="true">{{ ordersCountLabel
+                }}</span>
+            </div>
+            <div
+              style="background:#fff; border-radius:18px; padding:7px 15px 12px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:13px;">
+              <sc-if hint-placeholder-val="{{ false }}" value="{{ ordersLoading }}">
+                <div class="mb-inline-loader">
+                  <div class="mb-page-loader__spin" aria-hidden="true"></div>
+                  <div class="mb-page-loader__label" data-no-i18n="true">{{ loadingLabel }}</div>
+                </div>
+              </sc-if>
+              <sc-if hint-placeholder-val="{{ false }}" value="{{ ordersEmpty }}">
+                <div style="padding:18px 4px; text-align:center; color:#9aa3b0; font-size:13px; font-weight:600;"
+                  data-no-i18n="true">{{ ordersEmptyLabel }}</div>
+              </sc-if>
+              <sc-for as="od" hint-placeholder-count="0" list="{{ fieldOrders }}">
+                <div
+                  style="padding:13px 0; border-bottom:1px solid {{ od.border }}; display:flex; align-items:flex-start; gap:11px;">
+                  <div
+                    style="width:34px; height:34px; border-radius:9px; background:{{ od.iconBg }}; color:{{ od.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" viewbox="0 0 24 24" width="16">
+                      <path d="M7 3h8l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path>
+                      <path d="M15 3v5h5"></path>
+                    </svg>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                      <span
+                        style="font-size:13.5px; font-weight:700; color:#1f2a3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{
+                        od.name }}</span>
+                      <span style="font-size:13px; font-weight:800; color:#2e8a63; flex:none;">{{ od.amount }}</span>
+                    </div>
+                    <div style="font-size:12px; color:#5a6473; font-weight:600; margin-top:4px;">{{ od.qtyLabel }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="text-align:center; padding:4px 0; color:#b6bdc8; font-size:12px; font-weight:600;">{{
+              updatedLabel }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </x-dc>
+  <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = {
     loadingDocs: true,
@@ -1160,20 +1228,20 @@ class Component extends DCLogic {
 }
 </script>
 
-<script>
-  function mbEnsureDashboardChrome() {
-    if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
-    if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
-    if (typeof applyTranslations === 'function') {
-      applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+  <script>
+    function mbEnsureDashboardChrome() {
+      if (typeof ensureCommonHeader === 'function') ensureCommonHeader();
+      if (typeof ensureCommonFooter === 'function') ensureCommonFooter();
+      if (typeof applyTranslations === 'function') {
+        applyTranslations(typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'he');
+      }
     }
-  }
-  window.addEventListener('load', mbEnsureDashboardChrome);
-  window.addEventListener('mineralbar:ready', mbEnsureDashboardChrome);
-  setTimeout(mbEnsureDashboardChrome, 300);
-  setTimeout(mbEnsureDashboardChrome, 1000);
-  setTimeout(mbEnsureDashboardChrome, 2000);
-</script>
+    window.addEventListener('load', mbEnsureDashboardChrome);
+    window.addEventListener('mineralbar:ready', mbEnsureDashboardChrome);
+    setTimeout(mbEnsureDashboardChrome, 300);
+    setTimeout(mbEnsureDashboardChrome, 1000);
+    setTimeout(mbEnsureDashboardChrome, 2000);
+  </script>
 </body>
 
 </html>

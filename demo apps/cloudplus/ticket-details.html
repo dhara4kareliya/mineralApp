@@ -5,30 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CloudPlus — Ticket details</title>
 <script>
-(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
 (function(){try{var l=localStorage.getItem('cloudplus_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/app.css?v=20260909a">
-<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260909a">
-<script src="./assets/config.js?v=20260908a"></script>
+<link rel="stylesheet" href="./assets/css/app.css?v=20260917a">
+<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260917a">
+<script src="./assets/config.js?v=20260917a"></script>
 <script>
 (function () {
   var user = (window.Biz1Config && Biz1Config.user) || 'demo';
   user = String(user).trim().toLowerCase()
     .replace(/^https?:\/\//, '')
-    .replace(/\.bull36\.com.*$/i, '')
+    .replace(/\.biz1\.co\.il.*$/i, '')
     .replace(/[^a-z0-9-]/g, '');
   if (user) {
-    document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+    document.write('<script src="https://' + user + '.biz1.co.il/app/sdk/biz1-sdk.js"><\/script>');
   }
 })();
 </script>
-<script src="./assets/js/app.js?v=20260909a"></script>
-<script src="./assets/js/page-boot.js?v=20260909a"></script>
-<script src="./assets/js/ticket-details.js?v=20260909a"></script>
+<script src="./assets/js/app.js?v=20260917a"></script>
+<script src="./assets/js/page-boot.js?v=20260917a"></script>
+<script src="./assets/js/ticket-details.js?v=20260917a"></script>
 </head>
 <body>
 <div id="appRoot" dir="ltr" class="page-wrap">
@@ -62,7 +62,7 @@
       <div id="tdContent" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0;">
         <div class="ticket-header">
           <div class="ticket-header-row">
-            <a href="index.html#schedule" id="tdBackBtn" class="ticket-header-round">
+            <a href="tickets.html" id="tdBackBtn" class="ticket-header-round">
               <svg class="page-back-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
             </a>
             <div class="ticket-header-mid">
@@ -130,17 +130,16 @@
           </div>
 
           <div id="tdClosingWrap" class="hidden">
-            <div class="td-section-title" data-i18n="closing_details">Closing details</div>
-            <div class="td-card">
-              <div id="tdClosingStatusBlock">
+            <div id="tdClosingTitle" class="td-section-title" data-i18n="completion_reason">Completion reason</div>
+            <div class="td-card" style="padding:14px;">
+              <div id="tdClosingStatusBlock" class="hidden">
                 <div class="td-row-label" data-i18n="closing_status">Closing status</div>
                 <div id="tdClosingStatus" class="td-row-value"></div>
               </div>
-              <div id="tdClosingReasonBlock" class="hidden" style="padding-top:12px;border-top:1px solid var(--border-row);margin-top:12px;">
-                <div class="td-row-label" data-i18n="followup_reason">Follow-up reason</div>
-                <div id="tdClosingReason" class="td-row-value"></div>
+              <div id="tdClosingReasonBlock" class="hidden">
+                <div id="tdClosingReason" class="td-row-value" style="margin:0;"></div>
               </div>
-              <div id="tdWarrantyBlock" class="hidden" style="padding-top:12px;border-top:1px solid var(--border-row);margin-top:12px;">
+              <div id="tdWarrantyBlock" class="hidden">
                 <div class="td-row-label" data-i18n="warranty_months">Warranty (months)</div>
                 <div id="tdWarranty" class="td-row-value"></div>
               </div>
@@ -170,11 +169,36 @@
             <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M3 4h18l-7 9v6l-4 2v-8z"></path></svg>
             <span data-i18n="no_linked_product">No product linked to this ticket</span>
           </div>
+          <div id="tdProductAddWrap" class="td-card td-product-add">
+            <label class="td-row-label" for="tdProductSelect" data-i18n="add_product">Add product</label>
+            <div class="td-product-add-row">
+              <select id="tdProductSelect" class="ds-input" data-i18n-placeholder="select_product">
+                <option value="" data-i18n="select_product">Select product</option>
+              </select>
+              <button type="button" id="tdProductAddBtn" class="td-product-add-btn" data-i18n="add">Add</button>
+            </div>
+            <div id="tdProductAddError" class="hidden field-error" style="margin-top:8px;"></div>
+          </div>
 
           <div class="td-section-title" data-i18n="problem_description">Description of the problem</div>
           <div class="td-card">
             <div id="tdProblem" class="td-problem">—</div>
             <div id="tdTags" class="td-tags"></div>
+          </div>
+
+          <div class="td-section-title" data-i18n="ticket_chat">Chat</div>
+          <div class="td-card td-chat">
+            <div id="tdChatList" class="td-chat-list">
+              <div id="tdChatEmpty" class="td-chat-empty" data-i18n="no_chat_messages">No messages yet</div>
+            </div>
+              <div id="tdChatNoCustomer" class="td-chat-empty hidden" data-i18n="chat_needs_ticket">Ticket is missing — cannot chat</div>
+            <div id="tdChatCompose" class="td-chat-compose">
+              <input id="tdChatInput" class="ds-input td-chat-input" type="text" data-i18n-placeholder="chat_placeholder" placeholder="Write a message…">
+              <button type="button" id="tdChatSend" class="td-chat-send" data-i18n-title="send_message" title="Send">
+                <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="18"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+              </button>
+            </div>
+            <div id="tdChatError" class="hidden field-error" style="margin-top:8px;"></div>
           </div>
 
           <div style="display:flex;align-items:center;justify-content:space-between;margin:2px 2px 9px;">

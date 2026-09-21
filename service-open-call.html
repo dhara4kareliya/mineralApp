@@ -431,6 +431,13 @@ mbCss('./common.css');
 </x-dc>
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
+  // Customer.Get / Add Customer address extras (same as quote / add-customer)
+  ADDR_STREET = 'a-1786932384';
+  ADDR_BUILDING = 'a-1786932385';
+  ADDR_FLOOR = 'a-1786932709';
+  ADDR_APARTMENT = 'a-1786932606';
+  ADDR_ENTRANCE = 'a-1786932387';
+
   state = {
     callType: 'tech', charge: false, cashAmount: '', priority: 'normal', cust: null, email: '', phone: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '', city: '', phone2: '', topic: '', problem: '', dueDate: '', fromTime: '', toTime: '', teamMembers: [], teamMemberId: '',
     products: [], productId: '', productSku: '', productName: '', productScanError: '', productLookupLoading: false, scannerOpen: false,
@@ -592,33 +599,163 @@ class Component extends DCLogic {
     }
   }
 
-  /** Prefill address fields from structured customer fields, then free-text address/city. */
+  customerExtraFields(c) {
+    c = c || {};
+    var ef = c.extra_fields_json != null ? c.extra_fields_json : c.extra_fields;
+    if (typeof ef === 'string') {
+      try { ef = JSON.parse(ef); } catch (e) { ef = {}; }
+    }
+    var out = {};
+    if (Array.isArray(ef)) {
+      ef.forEach(function (row) {
+        if (!row || typeof row !== 'object') return;
+        var key = String(row.name || row.field_name || row.update_field_name || row.key || row.id || '').trim();
+        if (!key) return;
+        var val = row.value != null ? row.value : (row.val != null ? row.val : (row.data != null ? row.data : ''));
+        if (val !== '' && val != null) out[key] = val;
+      });
+    } else if (ef && typeof ef === 'object') {
+      out = Object.assign({}, ef);
+    }
+    // Merge root a-… aliases when present on the customer object.
+    var keys = [this.ADDR_STREET, this.ADDR_BUILDING, this.ADDR_FLOOR, this.ADDR_APARTMENT, this.ADDR_ENTRANCE];
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if ((out[k] == null || out[k] === '') && c[k] != null && c[k] !== '') out[k] = c[k];
+    }
+    return out;
+  }
+
+  extraFieldVal(ef, key) {
+    if (!ef || !key) return '';
+    var v = ef[key];
+    if (v == null || v === '') {
+      if (ef.extra_fields && typeof ef.extra_fields === 'object') v = ef.extra_fields[key];
+    }
+    if (v && typeof v === 'object') {
+      v = v.value != null ? v.value : (v.name != null ? v.name : (v.label != null ? v.label : ''));
+    }
+    return String(v == null ? '' : v).trim();
+  }
+
+  /**
+   * Split joined customer.address / street dump into street/building/floor/apt/entrance.
+   * Supports English + Hebrew labels (Entrance/כניסה, Floor/קומה, Apt/דירה).
+   */
+  parseJoinedAddress(raw, cityHint) {
+    var empty = { street: '', building: '', floor: '', apartment: '', entrance: '', city: String(cityHint || '').trim() };
+    raw = String(raw || '').trim();
+    if (!raw) return empty;
+    var city = empty.city;
+    var segments = raw.split(/\s*,\s*/).map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+    var floor = '';
+    var apartment = '';
+    var entrance = '';
+    var leftover = [];
+    var areaRe = /^(north|south|center|jerusalem|צפון|דרום|מרכז|ירושלים)$/i;
+    for (var i = 0; i < segments.length; i++) {
+      var seg = segments[i];
+      var m;
+      if ((m = seg.match(/^(?:Entrance|כניסה)\s*[—:\-]?\s*(.+)$/i))) {
+        entrance = String(m[1] || '').trim();
+        continue;
+      }
+      if ((m = seg.match(/^(?:Floor|קומה)\s*[—:\-]?\s*(.+)$/i))) {
+        floor = String(m[1] || '').trim();
+        continue;
+      }
+      if ((m = seg.match(/^(?:Apt\.?|Apartment|דירה)\s*[—:\-]?\s*(.+)$/i))) {
+        apartment = String(m[1] || '').trim();
+        continue;
+      }
+      if (areaRe.test(seg)) continue;
+      if (city && seg.toLowerCase() === city.toLowerCase()) continue;
+      leftover.push(seg);
+    }
+    // Trailing bare number after labeled parts is often floor (e.g. "דירה 4, 3").
+    if (!floor && leftover.length >= 2) {
+      var lastSeg = leftover[leftover.length - 1];
+      if (/^\d{1,3}[A-Za-zא-ת]?$/.test(lastSeg)) {
+        floor = lastSeg;
+        leftover = leftover.slice(0, -1);
+      }
+    }
+    var streetLine = leftover.join(', ').trim();
+    var street = '';
+    var building = '';
+    if (streetLine) {
+      var tokens = streetLine.split(/\s+/).filter(Boolean);
+      if (tokens.length >= 2) {
+        var last = tokens[tokens.length - 1];
+        if (
+          /^[\dA-Za-zא-ת\-./]{1,8}$/.test(last) &&
+          !/^(st|street|rd|ave|avenue|blvd|road|lane|dr|drive|רחוב|שדרות)$/i.test(last)
+        ) {
+          building = last;
+          street = tokens.slice(0, -1).join(' ');
+        } else {
+          street = streetLine;
+        }
+      } else {
+        street = streetLine;
+      }
+    }
+    return {
+      street: street,
+      building: building,
+      floor: floor,
+      apartment: apartment,
+      entrance: entrance,
+      city: city
+    };
+  }
+
+  /** Prefill address fields from extras → structured fields → parsed free-text address. */
   parseAddressParts(cust) {
     var c = cust || {};
     var city = String(c.city || c.city_name || '').trim();
     var area = String(c.area || c.region || c.zone || c.district || c.city_area || '').trim();
-    var street = String(c.street || c.street_name || '').trim();
-    var building = String(c.building || c.house || c.house_number || c.building_number || '').trim();
-    var floor = String(c.floor || '').trim();
-    var apartment = String(c.apartment || c.apt || c.flat || '').trim();
-    var entrance = String(c.entrance || c.entry || '').trim();
+    var ef = this.customerExtraFields(c);
+    var street = this.extraFieldVal(ef, this.ADDR_STREET) ||
+      String(c.street || c.street_name || '').trim();
+    var building = this.extraFieldVal(ef, this.ADDR_BUILDING) ||
+      String(c.building || c.house || c.house_number || c.building_number || '').trim();
+    var floor = this.extraFieldVal(ef, this.ADDR_FLOOR) ||
+      String(c.floor || '').trim();
+    var apartment = this.extraFieldVal(ef, this.ADDR_APARTMENT) ||
+      String(c.apartment || c.apt || c.flat || '').trim();
+    var entrance = this.extraFieldVal(ef, this.ADDR_ENTRANCE) ||
+      String(c.entrance || c.entry || '').trim();
     var address = String(c.address || c.full_address || c.fullAddress || '').trim();
 
-    if (!street && address) {
-      // Use free-text address as street; drop trailing city if duplicated.
-      street = address;
-      if (city) {
-        var re = new RegExp('[,\\s]+' + city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i');
-        street = street.replace(re, '').trim();
+    var needsParse = !street ||
+      (!building && !floor && !apartment && !entrance) ||
+      /(?:Entrance|כניסה|Floor|קומה|Apt\.?|Apartment|דירה)\s/i.test(street);
+
+    if (needsParse) {
+      var raw = address || street;
+      if (raw) {
+        var parsed = this.parseJoinedAddress(raw, city);
+        if (!this.extraFieldVal(ef, this.ADDR_STREET)) street = parsed.street || street;
+        if (!building && parsed.building) building = parsed.building;
+        if (!floor && parsed.floor) floor = parsed.floor;
+        if (!apartment && parsed.apartment) apartment = parsed.apartment;
+        if (!entrance && parsed.entrance) entrance = parsed.entrance;
+        if (!city && parsed.city) city = parsed.city;
+        // If street still looks like a joined dump, replace with parsed street only.
+        if (/(?:Entrance|כניסה|Floor|קומה|Apt\.?|Apartment|דירה)\s/i.test(street) && parsed.street) {
+          street = parsed.street;
+          if (parsed.building) building = building || parsed.building;
+        }
       }
-      if (!street) street = address;
     }
+
     if (!city && address) {
       var bits = address.split(',').map(function (x) { return String(x || '').trim(); }).filter(Boolean);
-      if (bits.length > 1) city = bits[bits.length - 1];
-    }
-    if (area && city && area.toLowerCase() === city.toLowerCase()) {
-      // Keep city; leave area only if distinct
+      if (bits.length > 1) {
+        var lastBit = bits[bits.length - 1];
+        if (!/(?:Entrance|כניסה|Floor|קומה|Apt|דירה)/i.test(lastBit)) city = lastBit;
+      }
     }
 
     return {

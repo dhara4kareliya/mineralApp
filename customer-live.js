@@ -1211,7 +1211,9 @@
     var reasonStatuses = await fetchLeadFolderStatuses(LEAD_REASON_FOLDER_ID);
     var reasonOptions = normalizeReasonRows(reasonStatuses);
     var reasonSelected = leadFolderStatusValue(c, LEAD_REASON_FOLDER_ID, reasonStatuses).status_id;
-    var folderIds = extractLeadFolderIds(c);
+    // Lead card status sheet: only the Leads folder (not Customers / Collection)
+    var leadsId = leadFolderId();
+    var folderIds = [leadsId];
     var customerId = c.customer_id || c.id;
     container.innerHTML = '';
 
@@ -1223,7 +1225,7 @@
       var folderName = folderDef
         ? (isEn ? (folderDef.name_en || folderDef.name || folderDef.name_he)
           : (folderDef.name_he || folderDef.name || folderDef.name_en))
-        : ('Folder #' + fId);
+        : t('Leads', 'לידים');
       var folderStatuses = await fetchLeadFolderStatuses(fId);
       var vals = leadFolderStatusValue(c, fId, folderStatuses);
       container.appendChild(buildLeadFolderBlock(
@@ -1987,9 +1989,10 @@
         var client = MineralBarApp.getClient();
         if (!client || !client.request) return [];
         var res = await client.request('Ticket.List', {
+          // Ticket.List accepts customer_id / cust_id only (not contactus_id).
+          type: 'company_tickets',
           customer_id: cid,
           cust_id: cid,
-          contactus_id: cid,
           limit: 10,
           length: 10,
           start: 0

@@ -49,7 +49,7 @@
 
   function normalizeDomain(domain) {
     if (!domain || typeof domain !== 'string') {
-      throw new Error('Biz1 SDK requires domain, for example: https://eli.bull36.com');
+      throw new Error('Biz1 SDK requires domain, for example: https://eli.biz1.co.il');
     }
     return domain.replace(/\/+$/, '');
   }
@@ -239,8 +239,11 @@
   };
 
   Biz1RealtimeClient.prototype.setLastEventId = function (eventId) {
-    if (!eventId || Number(eventId) <= this.lastEventId()) return false;
-    this.storage.setItem(LAST_EVENT_ID_KEY, String(Number(eventId)));
+    if (!eventId) return true;
+    var n = Number(eventId);
+    if (!Number.isFinite(n)) return true;
+    if (n <= this.lastEventId()) return true;
+    this.storage.setItem(LAST_EVENT_ID_KEY, String(n));
     return true;
   };
 
@@ -282,10 +285,10 @@
     });
 
     this.socket.on('biz1:event', function (event) {
-      if (!self.setLastEventId(event && event.id)) return;
+      self.setLastEventId(event && event.id);
       self.emitLocal(event && event.key, event);
       self.emitLocal('*', event);
-      self.socket.emit('realtime:ack', { eventId: event.id });
+      if (event && event.id) self.socket.emit('realtime:ack', { eventId: event.id });
     });
 
     this.socket.on('biz1:ready', function (payload) {
@@ -388,19 +391,15 @@
 
   Biz1Client.prototype.login = async function (credentials) {
     credentials = credentials || {};
-    var body = {
+    var payload = {
       password: credentials.password || '',
-      otp: String(credentials.otp || '').trim()
+      otp: credentials.otp || ''
     };
-    if (credentials.email) body.email = credentials.email;
-    else if (credentials.id !== undefined && credentials.id !== null && String(credentials.id).trim() !== '') {
-      body.id = credentials.id;
-    } else if (credentials.phone) {
-      body.phone = credentials.phone;
-    } else if (credentials.username || credentials.user) {
-      body.username = credentials.username || credentials.user;
-    }
-    var data = await this.request('Login', body, { public: true, throwOnError: false });
+    if (credentials.email) payload.email = credentials.email;
+    else if (credentials.phone) payload.phone = credentials.phone;
+    else if (credentials.id != null && credentials.id !== '') payload.id = credentials.id;
+    else payload.username = credentials.username || credentials.user || '';
+    var data = await this.request('Login', payload, { public: true, throwOnError: false });
     if (data && data.token) this.setToken(data.token);
     return data;
   };

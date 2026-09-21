@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hosted Apps Manager</title>
+  <link rel="stylesheet" href="./manager.css?v=2026090701">
+</head>
+<body>
+  <main class="manager-shell">
+    <section class="login-panel" id="login-panel">
+      <div class="brand-row">
+        <span class="brand-mark">A</span>
+        <div>
+          <h1 data-i18n="title">Hosted Apps</h1>
+          <p data-i18n="subtitle">Upload, approve, disable, and manage apps on server225.</p>
+        </div>
+      </div>
+      <div class="lang-row" role="group" aria-label="Language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="he">HE</button>
+        <button type="button" data-lang="ar">AR</button>
+      </div>
+      <form id="login-form" class="form-grid">
+        <label>
+          <span data-i18n="accountDomain">Account domain</span>
+          <input name="api_base" value="https://eli.bull36.com" autocomplete="url" required>
+        </label>
+        <label>
+          <span data-i18n="username">Username</span>
+          <input name="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span data-i18n="password">Password</span>
+          <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <label id="otp-row" hidden>
+          <span data-i18n="otp">OTP code</span>
+          <input name="otp" inputmode="numeric" autocomplete="one-time-code">
+        </label>
+        <button class="primary" type="submit" data-i18n="login">Login</button>
+      </form>
+      <p class="message" id="login-message"></p>
+    </section>
+
+    <section class="app-panel" id="app-panel" hidden>
+      <header class="topbar">
+        <div>
+          <h1 data-i18n="title">Hosted Apps</h1>
+          <p><span data-i18n="account">Account</span>: <strong id="account-name"></strong></p>
+        </div>
+        <div class="top-actions">
+          <select id="status-filter" aria-label="Status filter">
+            <option value="" data-i18n="allStatuses">All statuses</option>
+            <option value="active" data-i18n="active">Active</option>
+            <option value="disabled" data-i18n="disabled">Not active</option>
+            <option value="removed" data-i18n="removed">Removed</option>
+          </select>
+          <label class="admin-toggle" id="admin-toggle" hidden>
+            <input type="checkbox" id="admin-all">
+            <span data-i18n="adminAll">All users</span>
+          </label>
+          <button type="button" id="logout" data-i18n="logout">Logout</button>
+        </div>
+      </header>
+
+      <section class="upload-band">
+        <form id="upload-form" class="upload-grid">
+          <label>
+            <span data-i18n="appName">App name</span>
+            <input name="app_name" required>
+          </label>
+          <label>
+            <span data-i18n="slug">Slug</span>
+            <input name="app_slug" pattern="[a-z0-9_-]+">
+          </label>
+          <label>
+            <span data-i18n="developer">Developer</span>
+            <select name="developer_user_id" id="developer-select"></select>
+          </label>
+          <label>
+            <span data-i18n="zip">Static ZIP</span>
+            <input name="zip" type="file" accept=".zip,application/zip" required>
+          </label>
+          <button class="primary" type="submit" data-i18n="upload">Upload and approve</button>
+        </form>
+      </section>
+
+      <section class="list-band">
+        <div class="list-tools">
+          <input id="search" data-i18n-placeholder="search" placeholder="Search apps">
+          <button type="button" id="refresh" data-i18n="refresh">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="app">App</th>
+                <th data-i18n="owner">Owner</th>
+                <th data-i18n="developer">Developer</th>
+                <th data-i18n="status">Status</th>
+                <th data-i18n="version">Version</th>
+                <th data-i18n="actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="apps-body"></tbody>
+          </table>
+        </div>
+        <p class="message" id="list-message"></p>
+      </section>
+    </section>
+  </main>
+  <script src="./manager.js?v=2026090701"></script>
+</body>
+</html>

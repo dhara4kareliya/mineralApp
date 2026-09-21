@@ -93,9 +93,27 @@
       display: none;
       margin-top: 10px;
     }
-    #mb-mission-datetime {
+    #mb-mission-datetime,
+    #mb-mission-date,
+    #mb-mission-time {
       min-height: 44px;
       font-weight: 700;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    /* Keep date/time controls inside the phone frame (datetime-local popup overflows). */
+    .mb-datetime-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .mb-datetime-row input {
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
   </style>
     </head>
@@ -159,7 +177,7 @@
             </div>
 
             <div>
-              <label class="field-label">Extra text / Notes (optional)</label>
+              <label class="field-label">Notes (optional)</label>
               <textarea class="gv-in" id="mb-mission-note" placeholder="Add context..." style="width:100%; box-sizing:border-box; resize:none; height:74px;"></textarea>
             </div>
 
@@ -195,7 +213,11 @@
           <div class="form-card">
             <div class="mb-adv-section" style="margin-bottom:0;">
               <div class="mb-adv-label">Date &amp; time <span style="color:#c0392b;">*</span></div>
-              <input class="gv-in" id="mb-mission-datetime" type="datetime-local" step="60" style="width:100%; box-sizing:border-box;" />
+              <div class="mb-datetime-row">
+                <input class="gv-in" id="mb-mission-date" type="date" required style="width:100%; box-sizing:border-box;" />
+                <input class="gv-in" id="mb-mission-time" type="time" step="60" required style="width:100%; box-sizing:border-box;" />
+              </div>
+              <input id="mb-mission-datetime" type="hidden" value="" />
               <div class="mb-date-preview" id="mb-date-preview" style="margin-top:10px;">Due (UTC): —</div>
             </div>
 

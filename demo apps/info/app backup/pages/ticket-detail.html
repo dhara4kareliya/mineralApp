@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.tickets">Ticket — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="mb-2">
+      <a class="btn btn-ghost btn-sm" href="tickets.html">← <span data-i18n="tickets.backToTickets">Back to tickets</span></a>
+    </div>
+    <div id="detail"><div class="spinner"></div></div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    const ticketId = UI.param('id');
+    Layout.render({ active: 'tickets', title: ticketId ? `${I18n.t('nav.tickets')} #${ticketId}` : I18n.t('nav.tickets') });
+
+    if (!ticketId) {
+      Layout.error(document.getElementById('detail'), I18n.t('tickets.missingId'));
+    } else {
+      load();
+    }
+
+    async function load() {
+      const el = document.getElementById('detail');
+      Layout.loading(el);
+      try {
+        const res = await API.ticketGet(ticketId);
+        const t = res.data || res;
+        const messages = t.messages || [];
+        const isOpen = t.show == null ? true : Number(t.show) === 1;
+
+        el.innerHTML = `
+          <div class="card mb-2" data-live-target>
+            <div class="flex-between wrap">
+              <div>
+                <div class="card-title">${Layout.escapeHtml(t.subject || t.topic || I18n.t('nav.tickets'))}</div>
+                <div class="card-meta mt-1">${I18n.t('nav.tickets')} #${t.ticket_id || ticketId}</div>
+              </div>
+              <div class="flex gap-1 wrap">
+                <span class="badge ${isOpen ? 'badge-success' : 'badge-muted'}">${isOpen ? I18n.t('tickets.open') : I18n.t('tickets.closed')}</span>
+                <button type="button" class="btn btn-sm btn-secondary" id="btn-toggle">
+                  ${isOpen ? I18n.t('tickets.closeTicket') : I18n.t('tickets.reopen')}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title mb-2">${I18n.t('tickets.conversation')}</div>
+            <div class="thread" id="thread">
+              ${
+                messages.length
+                  ? messages
+                      .map((m) => {
+                        const out = Number(m.direction) === 0;
+                        return `<div class="bubble ${out ? 'out' : 'in'}">
+                          <div>${Layout.escapeHtml(m.message || m.text || '')}</div>
+                          <div class="time">${Layout.escapeHtml(m.time || '')}</div>
+                        </div>`;
+                      })
+                      .join('')
+                  : `<p class="muted text-sm">${I18n.t('tickets.noMessages')}</p>`
+              }
+            </div>
+            ${
+              isOpen
+                ? `<form class="reply-box" id="reply-form">
+                <textarea class="form-control" id="reply" placeholder="${I18n.t('tickets.writeReply')}" required></textarea>
+                <button type="submit" class="btn btn-primary">${I18n.t('tickets.send')}</button>
+              </form>`
+                : `<p class="muted text-sm">${I18n.t('tickets.closedHint')}</p>`
+            }
+          </div>`;
+
+        document.getElementById('btn-toggle')?.addEventListener('click', async () => {
+          try {
+            const show = isOpen ? 0 : 1;
+            const out = await API.ticketStatus({ id: ticketId, show });
+            Toast.success(out.output || (show ? I18n.t('tickets.opened') : I18n.t('tickets.closedToast')));
+            Realtime.handleEvent({ type: 'status', message: `Ticket #${ticketId} status updated` });
+            load();
+          } catch (err) {
+            Toast.error(err.message);
+          }
+        });
+
+        document.getElementById('reply-form')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const message = document.getElementById('reply').value.trim();
+          if (!message) return;
+          const btn = e.target.querySelector('button[type="submit"]');
+          await UI.withButton(btn, async () => {
+            try {
+              await API.ticketReply({ t_id: ticketId, message });
+              Toast.success(I18n.t('tickets.replySent'));
+              Realtime.handleEvent({ type: 'ticket', message: 'Your reply was posted' });
+              load();
+            } catch (err) {
+              Toast.error(err.message);
+            }
+          });
+        });
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    }
+
+    Realtime.on((p) => {
+      if (p.type === 'ticket' || p.type === 'whatsapp' || p.type === 'status') {
+        // optional auto-refresh
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+﻿// Extracted from the mockup so server225 CSP can keep scripts external and cacheable.
+// Mockup i18n follows the existing Biz1 mobile language model: he/en/ar, with Hebrew as the default production language.
+    const translations = {
+      en: {
+        title: "Hosted Apps",
+        subtitle: "apps.biz1.co.il deployments",
+        my_apps: "My Apps",
+        admin_all_apps: "Admin: All Apps",
+        metric_total: "Total hosted apps",
+        metric_active: "Active apps",
+        metric_failed: "Failed scans",
+        upload_app: "＋ Upload App",
+        upload_app_plain: "Upload App",
+        search: "Search",
+        status: "Status",
+        all_statuses: "All statuses",
+        active: "Active",
+        pending_scan: "Pending scan",
+        failed_scan: "Failed scan",
+        removed: "Removed",
+        filter: "Filter",
+        app: "App",
+        version: "Version",
+        updated: "Updated",
+        actions: "Actions",
+        owner_user: "Owner / user",
+        all_users: "All users",
+        size: "Size",
+        pending: "Pending",
+        failed: "Failed",
+        disabled: "Disabled",
+        open: "Open",
+        copy_url: "Copy URL",
+        replace_zip: "Replace ZIP",
+        remove: "Remove",
+        refresh: "Refresh",
+        review: "Review",
+        disable: "Disable",
+        enable: "Enable",
+        view_error: "View Error",
+        admin_search_placeholder: "Search by app, slug, owner, or user id",
+        footer_note: "Showing 4 of 128 apps. Admin API page size stays capped at 25 for stable list performance.",
+        owner: "Owner",
+        app_name: "App name",
+        folder_slug: "Folder slug",
+        drop_zip: "Drop ZIP here",
+        choose_file: "or choose a file from your computer",
+        rule_index: "ZIP must include index.html at root",
+        rule_static: "Static files only, max 25MB ZIP",
+        rule_permission: "Owner or member-admin only",
+        upload_scan: "Upload and Scan",
+        selected_app: "Selected App",
+        public_url: "Public URL",
+        copy: "Copy",
+        scan_status: "Scan status",
+        scan_passed: "Passed, static assets only",
+        failed_example: "Failed upload example",
+        scan_error: "ZIP rejected: JavaScript dynamic execution is blocked. File: app.js"
+      },
+      he: {
+        title: "אפליקציות מתארחות",
+        subtitle: "פריסות apps.biz1.co.il",
+        my_apps: "האפליקציות שלי",
+        admin_all_apps: "ניהול: כל האפליקציות",
+        metric_total: "סה״כ אפליקציות",
+        metric_active: "אפליקציות פעילות",
+        metric_failed: "סריקות שנכשלו",
+        upload_app: "＋ העלאת אפליקציה",
+        upload_app_plain: "העלאת אפליקציה",
+        search: "חיפוש",
+        status: "סטטוס",
+        all_statuses: "כל הסטטוסים",
+        active: "פעיל",
+        pending_scan: "ממתין לסריקה",
+        failed_scan: "סריקה נכשלה",
+        removed: "הוסר",
+        filter: "סנן",
+        app: "אפליקציה",
+        version: "גרסה",
+        updated: "עודכן",
+        actions: "פעולות",
+        owner_user: "בעלים / משתמש",
+        all_users: "כל המשתמשים",
+        size: "גודל",
+        pending: "ממתין",
+        failed: "נכשל",
+        disabled: "מושבת",
+        open: "פתח",
+        copy_url: "העתק קישור",
+        replace_zip: "החלף ZIP",
+        remove: "הסר",
+        refresh: "רענן",
+        review: "בדיקה",
+        disable: "השבת",
+        enable: "הפעל",
+        view_error: "הצג שגיאה",
+        admin_search_placeholder: "חפש לפי אפליקציה, תיקייה, בעלים או מזהה משתמש",
+        footer_note: "מוצגות 4 מתוך 128 אפליקציות. גודל עמוד API לניהול מוגבל ל-25 לביצועים יציבים.",
+        owner: "בעלים",
+        app_name: "שם אפליקציה",
+        folder_slug: "שם תיקייה",
+        drop_zip: "גרור ZIP לכאן",
+        choose_file: "או בחר קובץ מהמחשב",
+        rule_index: "ה-ZIP חייב לכלול index.html בשורש",
+        rule_static: "קבצים סטטיים בלבד, ZIP עד 25MB",
+        rule_permission: "בעלים או מנהל משתמשים בלבד",
+        upload_scan: "העלה וסרוק",
+        selected_app: "אפליקציה נבחרת",
+        public_url: "קישור ציבורי",
+        copy: "העתק",
+        scan_status: "סטטוס סריקה",
+        scan_passed: "עבר, נכסים סטטיים בלבד",
+        failed_example: "דוגמת העלאה שנכשלה",
+        scan_error: "ה-ZIP נדחה: הרצת JavaScript דינמית חסומה. קובץ: app.js"
+      },
+      ar: {
+        title: "التطبيقات المستضافة",
+        subtitle: "نشر apps.biz1.co.il",
+        my_apps: "تطبيقاتي",
+        admin_all_apps: "الإدارة: كل التطبيقات",
+        metric_total: "إجمالي التطبيقات المستضافة",
+        metric_active: "التطبيقات النشطة",
+        metric_failed: "عمليات فحص فاشلة",
+        upload_app: "＋ رفع تطبيق",
+        upload_app_plain: "رفع تطبيق",
+        search: "بحث",
+        status: "الحالة",
+        all_statuses: "كل الحالات",
+        active: "نشط",
+        pending_scan: "بانتظار الفحص",
+        failed_scan: "فشل الفحص",
+        removed: "تمت الإزالة",
+        filter: "تصفية",
+        app: "التطبيق",
+        version: "الإصدار",
+        updated: "آخر تحديث",
+        actions: "إجراءات",
+        owner_user: "المالك / المستخدم",
+        all_users: "كل المستخدمين",
+        size: "الحجم",
+        pending: "بانتظار",
+        failed: "فشل",
+        disabled: "معطل",
+        open: "فتح",
+        copy_url: "نسخ الرابط",
+        replace_zip: "استبدال ZIP",
+        remove: "إزالة",
+        refresh: "تحديث",
+        review: "مراجعة",
+        disable: "تعطيل",
+        enable: "تفعيل",
+        view_error: "عرض الخطأ",
+        admin_search_placeholder: "بحث حسب التطبيق أو المجلد أو المالك أو رقم المستخدم",
+        footer_note: "يتم عرض 4 من 128 تطبيقا. حجم صفحة API للإدارة محدود بـ 25 لأداء مستقر.",
+        owner: "المالك",
+        app_name: "اسم التطبيق",
+        folder_slug: "اسم المجلد",
+        drop_zip: "اسحب ملف ZIP هنا",
+        choose_file: "أو اختر ملفا من جهازك",
+        rule_index: "يجب أن يحتوي ZIP على index.html في الجذر",
+        rule_static: "ملفات ثابتة فقط، ZIP حتى 25MB",
+        rule_permission: "المالك أو مدير المستخدمين فقط",
+        upload_scan: "رفع وفحص",
+        selected_app: "التطبيق المحدد",
+        public_url: "الرابط العام",
+        copy: "نسخ",
+        scan_status: "حالة الفحص",
+        scan_passed: "نجح، ملفات ثابتة فقط",
+        failed_example: "مثال رفع فاشل",
+        scan_error: "تم رفض ZIP: تنفيذ JavaScript الديناميكي محظور. الملف: app.js"
+      }
+    };
+
+    function applyLanguage(lang) {
+      // Keep direction in sync with the rest of Biz1: Hebrew and Arabic are RTL, English is LTR.
+      const activeLang = translations[lang] ? lang : "he";
+      const dict = translations[activeLang];
+      document.documentElement.lang = activeLang;
+      document.documentElement.dir = activeLang === "en" ? "ltr" : "rtl";
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        if (dict[key]) node.textContent = dict[key];
+      });
+      document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+        const key = node.getAttribute("data-i18n-title");
+        if (dict[key]) node.setAttribute("title", dict[key]);
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+        const key = node.getAttribute("data-i18n-placeholder");
+        if (dict[key]) node.setAttribute("placeholder", dict[key]);
+      });
+      document.querySelectorAll("[data-lang]").forEach((node) => {
+        node.classList.toggle("active", node.getAttribute("data-lang") === activeLang);
+      });
+    }
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.getAttribute("data-lang")));
+    });
+

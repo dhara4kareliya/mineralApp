@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="appt.appointment">Appointment — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="mb-2">
+      <a class="btn btn-ghost btn-sm" href="appointments.html">← <span data-i18n="back">Back</span></a>
+    </div>
+    <div id="detail"><div class="spinner"></div></div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    const id = UI.param('id');
+    Layout.render({ active: 'appointments', titleKey: 'appt.appointment' });
+
+    if (!id) {
+      Layout.error(document.getElementById('detail'), I18n.t('appt.missingId'));
+    } else {
+      load();
+    }
+
+    async function load() {
+      const el = document.getElementById('detail');
+      Layout.loading(el);
+      try {
+        const [res, docsRes, typesRes] = await Promise.all([
+          API.appointmentGet(id),
+          API.appointmentsDoctors().catch(() => ({ data: [] })),
+          API.appointmentsTypes().catch(() => ({ data: [] })),
+        ]);
+        const a = res.data || res;
+        const doctors = UI.listRows(docsRes);
+        const types = UI.listRows(typesRes);
+        const doctorId = a.team_member_id || a.doctor_id;
+        const doctor = doctors.find((d) => String(d.doctor_id || d.team_member_id || d.id) === String(doctorId));
+        const typeId = a.appointments_type_data_id || a.appointments_type_id || a.appointment_type_id;
+        const type = types.find((tp) => String(tp.id) === String(typeId));
+
+        el.innerHTML = `<div class="card" style="max-width:560px" data-live-target>
+          <div class="card-title">${I18n.t('appt.appointment')} #${Layout.escapeHtml(a.id || id)}</div>
+          <div class="grid grid-2 mt-2">
+            <div>
+              <div class="form-label">${I18n.t('appt.patient')}</div>
+              <div style="font-weight:700">${Layout.escapeHtml(a.patient_name || '—')}</div>
+            </div>
+            <div>
+              <div class="form-label">${I18n.t('appt.subject')}</div>
+              <div style="font-weight:700">${Layout.escapeHtml(a.subject || '—')}</div>
+            </div>
+            <div>
+              <div class="form-label">${I18n.t('appt.doctor')}</div>
+              <div style="font-weight:700">${Layout.escapeHtml(doctor?.name || a.doctor_name || '—')}</div>
+            </div>
+            <div>
+              <div class="form-label">${I18n.t('appt.type')}</div>
+              <div style="font-weight:700">${Layout.escapeHtml(type?.name || a.type_name || a.type || '—')}</div>
+            </div>
+            <div>
+              <div class="form-label">${I18n.t('appt.date')}</div>
+              <div style="font-weight:700">${UI.formatDateOnly(a.date)}</div>
+            </div>
+            <div>
+              <div class="form-label">${I18n.t('appt.time')}</div>
+              <div style="font-weight:700">${Layout.escapeHtml(a.start_time || '—')}${a.end_time ? ' – ' + Layout.escapeHtml(a.end_time) : ''}</div>
+            </div>
+          </div>
+          ${a.notes || a.note ? `<p class="mt-2 text-sm">${Layout.escapeHtml(a.notes || a.note)}</p>` : ''}
+          <div class="flex gap-1 mt-2 wrap">
+            <button type="button" class="btn btn-secondary" id="btn-edit">${I18n.t('edit')}</button>
+            <button type="button" class="btn btn-ghost" id="btn-delete">${I18n.t('appt.cancelMeeting')}</button>
+          </div>
+        </div>`;
+
+        document.getElementById('btn-edit')?.addEventListener('click', () => {
+          location.href = `appointments.html#edit=${encodeURIComponent(a.id || id)}`;
+        });
+
+        document.getElementById('btn-delete')?.addEventListener('click', async () => {
+          if (!confirm(I18n.t('appt.confirmCancel'))) return;
+          try {
+            const out = await API.appointmentDelete(a.id || id);
+            if (String(out.success) === '0' || out.success === 0) {
+              throw new Error(out.message || I18n.t('appt.couldNotDelete'));
+            }
+            Toast.success(out.message || I18n.t('appt.deleted'));
+            location.href = 'appointments.html';
+          } catch (err) {
+            Toast.error(err.message || I18n.t('appt.couldNotDelete'));
+          }
+        });
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    }
+  </script>
+</body>
+</html>

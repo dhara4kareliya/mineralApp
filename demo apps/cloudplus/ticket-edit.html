@@ -5,30 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CloudPlus — Edit ticket</title>
 <script>
-(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
 (function(){try{var l=localStorage.getItem('cloudplus_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/app.css?v=20260909a">
-<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260909a">
-<script src="./assets/config.js?v=20260908a"></script>
+<link rel="stylesheet" href="./assets/css/app.css?v=20260917a">
+<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260917a">
+<script src="./assets/config.js?v=20260917a"></script>
 <script>
 (function () {
   var user = (window.Biz1Config && Biz1Config.user) || 'demo';
   user = String(user).trim().toLowerCase()
     .replace(/^https?:\/\//, '')
-    .replace(/\.bull36\.com.*$/i, '')
+    .replace(/\.biz1\.co\.il.*$/i, '')
     .replace(/[^a-z0-9-]/g, '');
   if (user) {
-    document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+    document.write('<script src="https://' + user + '.biz1.co.il/app/sdk/biz1-sdk.js"><\/script>');
   }
 })();
 </script>
-<script src="./assets/js/app.js?v=20260909a"></script>
-<script src="./assets/js/page-boot.js?v=20260909a"></script>
-<script src="./assets/js/ticket-edit.js?v=20260909b"></script>
+<script src="./assets/js/app.js?v=20260917a"></script>
+<script src="./assets/js/page-boot.js?v=20260917a"></script>
+<script src="./assets/js/ticket-edit.js?v=20260917a"></script>
 </head>
 <body>
 <div id="appRoot" dir="ltr" class="page-wrap">

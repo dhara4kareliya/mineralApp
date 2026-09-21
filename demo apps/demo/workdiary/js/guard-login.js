@@ -1,0 +1,1 @@
+AuthGuard.redirectIfLoggedIn('home.html');

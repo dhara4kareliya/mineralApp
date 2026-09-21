@@ -52,7 +52,7 @@
 
   function normalizeDomain(domain) {
     if (!domain || typeof domain !== 'string') {
-      throw new Error('Biz1 SDK requires domain, for example: https://eli.bull36.com');
+      throw new Error('Biz1 SDK requires domain, for example: https://eli.biz1.co.il');
     }
     return domain.replace(/\/+$/, '');
   }
@@ -498,7 +498,7 @@
 /**
  * Biz1 Showcase — SDK bootstrap
  * Domain comes from assets/config.js → Biz1Config.user
- * API base: https://{user}.bull36.com
+ * API base: https://{user}.biz1.co.il
  */
 (function (global) {
   'use strict';
@@ -506,7 +506,7 @@
   function normalizeTenantUser(raw) {
     var s = String(raw == null ? '' : raw).trim().toLowerCase();
     s = s.replace(/^https?:\/\//, '');
-    s = s.replace(/\.bull36\.com.*$/i, '');
+    s = s.replace(/\.biz1\.co\.il.*$/i, '');
     s = s.split('/')[0];
     s = s.replace(/[^a-z0-9-]/g, '');
     return s;
@@ -516,9 +516,9 @@
     var cfg = global.Biz1Config || {};
     var user = normalizeTenantUser(cfg.user || cfg.tenant || cfg.account);
     if (!user) {
-      throw new Error('Set Biz1Config.user in assets/config.js (Bull36 subdomain)');
+      throw new Error('Set Biz1Config.user in assets/config.js (Biz1 subdomain)');
     }
-    return 'https://' + user + '.bull36.com';
+    return 'https://' + user + '.biz1.co.il';
   }
 
   function getTenantUser() {
@@ -552,9 +552,9 @@
   };
 
   var ROLE_HOME = {
-    sales: 'index.html#schedule',
-    service: 'index.html#schedule',
-    tech: 'index.html#schedule'
+    sales: 'tickets.html?filter=opened',
+    service: 'tickets.html?filter=opened',
+    tech: 'tickets.html?filter=opened'
   };
 
   /**
@@ -1416,6 +1416,150 @@
     return { ticket: ticket, raw: raw };
   }
 
+  /** Ticket.Messages — CHAT panel rows for one ticket. */
+  async function listTicketMessages(ticketId, extra) {
+    var id = requireId(ticketId, 'ticket_id');
+    var client = getClient();
+    var raw = await client.request('Ticket.Messages', Object.assign({
+      ticket_id: id,
+      id: id
+    }, extra || {}));
+    var data = (raw && (raw.data || raw.messages || raw.output)) || [];
+    if (!Array.isArray(data)) data = [];
+    var rows = data.map(function (r) {
+      var who = String((r && r.who) || '').toLowerCase();
+      var type = String((r && r.type) || '').toLowerCase();
+      var direction = (who === 'agent' || who === 'user' || who === 'staff' || type === 'only_member' || type === 'internal')
+        ? 'out'
+        : (who === 'customer' ? 'in' : 'in');
+      if (who === 'agent') direction = 'out';
+      return {
+        message: String((r && (r.text || r.message || r.msg)) || '').trim(),
+        user_name: String((r && (r.name || r.user_name || r.role)) || '').trim(),
+        time: String((r && (r.time || r.create_date || r.date)) || '').trim(),
+        direction: direction,
+        who: who,
+        type: type,
+        file_url: String((r && (r.file_url || r.file || r.image)) || '').trim(),
+        user_id: r && r.user_id,
+        raw: r
+      };
+    });
+    return {
+      rows: rows,
+      count: Number(raw && raw.count != null ? raw.count : rows.length),
+      ticket_id: raw && (raw.ticket_id || id),
+      raw: raw
+    };
+  }
+
+  /**
+   * Ticket.Reply — staff chat Send / Add chat.
+   * data_type: public|normal (customer-visible) or only_member|internal.
+   */
+  async function replyTicketMessage(params) {
+    var p = params || {};
+    var id = requireId(p.ticket_id || p.id, 'ticket_id');
+    var msg = String(p.message || p.msg || p.messages || '').trim();
+    if (!msg) {
+      var e = new Error('Missing required parameter: message');
+      e.route = 'Ticket.Reply';
+      throw e;
+    }
+    var dataType = String(p.data_type || p.visibility || p.msg_type || 'public').trim() || 'public';
+    var client = getClient();
+    var payload = {
+      ticket_id: id,
+      id: id,
+      message: msg,
+      messages: msg,
+      data_type: dataType
+    };
+    var raw = await client.request('Ticket.Reply', payload);
+    if (!(raw && (Number(raw.success) === 1 || raw.success === true || raw.output))) {
+      var err = new Error((raw && (raw.message || raw.error)) || 'Ticket.Reply failed');
+      err.route = 'Ticket.Reply';
+      err.raw = raw;
+      throw err;
+    }
+    return raw;
+  }
+
+  /** Ticket.Settings / Ticket.SettingsGet — org ticket settings. */
+  async function getTicketSettings(extra) {
+    var client = getClient();
+    var raw = await client.request('Ticket.Settings', extra || {});
+    var data = (raw && (raw.data || raw.output)) || {};
+    if (typeof data !== 'object' || Array.isArray(data)) data = {};
+    return {
+      ticket_email_settings: Number(data.ticket_email_settings) === 1 ? 1 : 0,
+      ticket_completion_reason_settings: Number(data.ticket_completion_reason_settings) === 1 ? 1 : 0,
+      raw: raw,
+      data: data
+    };
+  }
+
+  /** Ticket.CompletionReasonList — completion reason dropdown options. */
+  async function listTicketCompletionReasons(extra) {
+    var client = getClient();
+    var raw = await client.request('Ticket.CompletionReasonList', extra || {});
+    var data = (raw && (raw.data || raw.output || raw.rows)) || [];
+    if (!Array.isArray(data)) data = [];
+    var he = false;
+    try { he = String(document.documentElement.lang || '') === 'he'; } catch (e) { /* ignore */ }
+    var rows = data.map(function (r) {
+      var id = String((r && (r.id != null ? r.id : r.value)) || '').trim();
+      var en = String((r && (r.name_en || r.en || r.label || r.name)) || '').trim();
+      var heLab = String((r && (r.name_he || r.he || r.label || r.name)) || '').trim();
+      return {
+        id: id,
+        label: he ? (heLab || en || id) : (en || heLab || id),
+        labelEn: en || heLab || id,
+        labelHe: heLab || en || id,
+        color: (r && r.color) || '',
+        raw: r
+      };
+    }).filter(function (r) { return r.id; });
+    return { rows: rows, count: Number(raw && raw.count != null ? raw.count : rows.length), raw: raw };
+  }
+
+  /**
+   * Ticket.Status — change status. Close = status 2.
+   * When completion reasons ON: completion_reason_id OR completion_reason (manual, id 0).
+   */
+  async function setTicketStatus(params) {
+    var p = params || {};
+    var id = requireId(p.ticket_id || p.id, 'ticket_id');
+    var status = p.status != null ? p.status : p.value;
+    if (status == null || status === '') {
+      var e = new Error('Missing required parameter: status');
+      e.route = 'Ticket.Status';
+      throw e;
+    }
+    var client = getClient();
+    var payload = {
+      ticket_id: id,
+      id: id,
+      status: status,
+      value: status
+    };
+    if (p.completion_reason_id != null && String(p.completion_reason_id) !== '') {
+      payload.completion_reason_id = p.completion_reason_id;
+    }
+    if (p.completion_reason != null && String(p.completion_reason).trim() !== '') {
+      payload.completion_reason = String(p.completion_reason).trim();
+    }
+    var raw = await client.request('Ticket.Status', payload);
+    if (!(raw && (Number(raw.success) === 1 || raw.success === true))) {
+      var err = new Error((raw && (raw.message || raw.error)) || 'Ticket.Status failed');
+      err.route = 'Ticket.Status';
+      err.code = raw && raw.error;
+      err.raw = raw;
+      throw err;
+    }
+    return raw;
+  }
+
   function extractTicketCount(res) {
     if (res == null) return 0;
     if (typeof res === 'number') return isFinite(res) && res >= 0 ? res : 0;
@@ -1509,7 +1653,77 @@
     else if (Array.isArray(raw && raw.rows)) rows = raw.rows;
     else if (Array.isArray(raw && raw.products)) rows = raw.products;
     else if (Array.isArray(raw && raw.output)) rows = raw.output;
+    else if (raw && raw.output && Array.isArray(raw.output.data)) rows = raw.output.data;
     return { raw: raw, rows: rows };
+  }
+
+  /**
+   * Products.List max 25/call — page until all active products are loaded.
+   * Returns { rows, total } with deduped catalog sorted by name.
+   */
+  async function listAllProducts(extra) {
+    extra = extra || {};
+    var client = getClient();
+    var pageSize = Number(extra.length || extra.limit) || 25;
+    if (pageSize > 25) pageSize = 25;
+    var all = [];
+    var seen = {};
+    var totalHint = 0;
+    var base = Object.assign({ active: 1 }, extra);
+    delete base.start;
+    delete base.offset;
+    delete base.limit;
+    delete base.length;
+    delete base.draw;
+
+    try {
+      var countRes = await client.request('Products.Count', { active: base.active != null ? base.active : 1 });
+      totalHint = Number(
+        (countRes && (countRes.count != null ? countRes.count
+          : (countRes.total != null ? countRes.total
+            : (countRes.recordsTotal != null ? countRes.recordsTotal : 0)))) || 0
+      );
+      if (!isFinite(totalHint) || totalHint < 0) totalHint = 0;
+    } catch (eCount) {
+      totalHint = 0;
+    }
+
+    var maxPages = totalHint > 0 ? Math.ceil(totalHint / pageSize) + 2 : 80;
+    for (var page = 0; page < maxPages; page++) {
+      var start = page * pageSize;
+      var pageRes = await listProducts(Object.assign({}, base, {
+        limit: pageSize,
+        length: pageSize,
+        per_page: pageSize,
+        start: start,
+        offset: start,
+        draw: page + 1
+      }));
+      var raw = pageRes.raw;
+      if (raw && (raw.recordsTotal != null || raw.recordsFiltered != null) && !totalHint) {
+        totalHint = Number(raw.recordsFiltered != null ? raw.recordsFiltered : raw.recordsTotal) || 0;
+        if (totalHint > 0) maxPages = Math.ceil(totalHint / pageSize) + 2;
+      }
+      var rows = pageRes.rows || [];
+      if (!rows.length) break;
+      for (var i = 0; i < rows.length; i++) {
+        var p = rows[i];
+        if (!p) continue;
+        var id = String(p.id || p.product_id || p.ID || '').trim();
+        if (!id || id === '0' || seen[id]) continue;
+        seen[id] = true;
+        all.push(p);
+      }
+      if (rows.length < pageSize) break;
+      if (totalHint > 0 && all.length >= totalHint) break;
+    }
+
+    all.sort(function (a, b) {
+      var an = String(a.product_name || a.name || a.title || '');
+      var bn = String(b.product_name || b.name || b.title || '');
+      return an.localeCompare(bn, undefined, { sensitivity: 'base' });
+    });
+    return { rows: all, total: all.length };
   }
 
   function dataUrlToFile(dataUrl, fileName) {
@@ -2148,7 +2362,8 @@
     warranty_months: { aliases: ['warranty_months', 'warrantymonths', 'warranty months'], fallback: 'a-1787203262', legacy: ['a-1787143998'] },
     installer_name: { aliases: ['installer_name', 'installername', 'technician_name', 'installer'], fallback: 'a-1787203260', legacy: ['a-1787143967'] },
     closing_reason: { aliases: ['closing_reason', 'close_reason', 'closing reason'], fallback: 'a-1787204474', legacy: ['a-1787203994', 'a-1787203269', 'a-1787144050'] },
-    followup_reason: { aliases: ['followup_reason', 'follow_up_reason', 'follow-up reason'], fallback: 'a-1787204476' }
+    followup_reason: { aliases: ['followup_reason', 'follow_up_reason', 'follow-up reason'], fallback: 'a-1787204476' },
+    department: { aliases: ['department', 'ticket_department', 'choose_department', 'מחלקה'] }
   };
 
   function isDashboardTicketFieldId(name) {
@@ -2762,6 +2977,11 @@
     getCustomer: getCustomer,
     getTicket: getTicket,
     countTickets: countTickets,
+    listTicketMessages: listTicketMessages,
+    replyTicketMessage: replyTicketMessage,
+    getTicketSettings: getTicketSettings,
+    listTicketCompletionReasons: listTicketCompletionReasons,
+    setTicketStatus: setTicketStatus,
     listTicketCustomFields: listTicketCustomFields,
     getTicketCustomField: getTicketCustomField,
     collectTicketFieldOptions: collectTicketFieldOptions,
@@ -2779,6 +2999,7 @@
     sanitizeTicketCustomFields: sanitizeTicketCustomFields,
     listDocuments: listDocuments,
     listProducts: listProducts,
+    listAllProducts: listAllProducts,
     dataUrlToFile: dataUrlToFile,
     uploadCustomerFile: uploadCustomerFile,
     saveTicketWithMedia: saveTicketWithMedia,
@@ -2884,9 +3105,12 @@
       all_tickets: 'All tickets',
       open_tickets: 'Open tickets',
       closed_tickets: 'Closed tickets',
+      my_tickets: 'My tickets',
+      assigned_tickets: 'Assigned tickets',
       dash_total: 'Total tickets',
       dash_open: 'Open tickets',
       dash_closed: 'Closed tickets',
+      dash_mine: 'My tickets',
       pager_prev: 'Previous',
       pager_next: 'Next',
       mark_all: 'Mark all',
@@ -2902,6 +3126,7 @@
       ticket_details: 'Ticket details',
       filter_open_ticket: 'Open ticket',
       filter_close_ticket: 'Close ticket',
+      filter_my_tickets: 'My tickets',
       call_customer: 'Call customer',
       nav_home: 'Home',
       nav_service: 'Service',
@@ -2985,12 +3210,23 @@
       photos: 'Photos',
       required: '*',
       page_ticket_details_title: 'Ticket details',
-      page_ticket_close_title: 'Close ticket',
-      close_call: 'Close Call',
+      page_ticket_close_title: 'Close Ticket',
+      close_call: 'Close Ticket',
+      close_ticket_title: 'Close Ticket',
+      close_ticket_btn: 'Close ticket',
+      completion_reason: 'Completion reason',
+      add_manual: 'Add manual',
+      manual_reason: 'Manual reason',
+      manual_reason_ph: 'Write the completion reason…',
+      err_completion_reason: 'Please select a completion reason.',
+      err_manual_reason: 'Please write the completion reason.',
+      ticket_closed: 'Ticket closed successfully.',
+      back_to_tickets: 'Back to tickets',
+      chat_needs_ticket: 'Ticket is missing — cannot chat',
       view_ticket: 'View ticket',
       source_label: 'Source',
-      priority: 'priority',
-      waiting_time_short: 'waiting time',
+      priority: 'Priority',
+      waiting_time_short: 'Waiting time',
       wait_today_short: 'Today',
       prio_urgent: 'Urgent',
       prio_normal: 'Regular',
@@ -3006,17 +3242,33 @@
       closing_details: 'Closing details',
       closing_status: 'Closing status',
       closing_status_required: 'Please select a closing status',
+      closing_status_ph: 'Type or choose closing status…',
       followup_reason: 'Follow-up reason',
       followup_reason_required: 'Please select a reason',
+      followup_reason_ph: 'Type or choose a reason…',
       select_reason: 'Select a reason',
       reason_other: 'Specify the reason',
       reason_other_ph: 'Describe the follow-up',
       reason_saturday: 'Saturday unit',
       reason_wrong_model: 'Wrong model',
       reason_extra_sale: 'Additional sale',
+      closing_reason_label: 'Reason',
+      closing_reason_ph: 'Enter the reason…',
+      closing_reason_required: 'Please enter a reason',
       warranty_months: 'Warranty (months)',
       linked_product: 'Linked product',
       no_linked_product: 'No product linked to this ticket',
+      add_product: 'Add product',
+      add: 'Add',
+      product_added: 'Product added to ticket',
+      err_select_product: 'Please select a product',
+      ticket_chat: 'Chat',
+      no_chat_messages: 'No messages yet',
+      chat_needs_customer: 'Customer is missing — cannot chat',
+      chat_placeholder: 'Write a message…',
+      send_message: 'Send',
+      chat_sending: 'Sending…',
+      chat_send_failed: 'Message could not be sent',
       problem_description: 'Description of the problem',
       pictures_attached: 'Pictures attached',
       no_pictures: 'No pictures were attached to the call',
@@ -3072,16 +3324,38 @@
       chip_install: 'Installation performed',
       chip_pressure: 'Pressure test performed',
       chip_cleaned: 'System cleaned',
-      new_ticket: 'new ticket',
-      page_ticket_add_title: 'New ticket',
-      add_ticket_title: 'New ticket',
+      new_ticket: 'Add Ticket',
+      page_ticket_add_title: 'Add Ticket',
+      add_ticket_title: 'Add Ticket',
+      add_ticket_sub: 'New service call',
       select_customer: 'Select customer',
       search_customers: 'Search by name, phone or address',
       no_customers: 'No customers found',
+      section_customer: 'CUSTOMER',
+      section_ticket: 'TICKET',
+      section_problem: 'PROBLEM',
+      customer_name: 'Customer Name',
+      customer_name_ph: 'Type a customer name',
+      ticket_name: 'Ticket Name',
+      ticket_name_ph: 'Ticket Name',
+      customer_email: 'Customer email',
+      mobile_label: 'Mobile',
+      urgency: 'URGENCY',
+      team_member: 'Team member',
+      product_label: 'Product',
+      choose_department: 'CHOOSE DEPARTMENT',
+      choose_option: 'Choose',
+      add_btn: 'Add',
+      files_image: 'Files (image)',
+      files_image_hint: 'Drop or choose an image - accept image/* - one file',
+      problem_note_ph: 'Enter Note. You can paste an image.',
+      reset: 'Reset',
+      cancel: 'Cancel',
+      submit: 'Submit',
       reading_type: 'Call type',
       related_product: 'Related product',
       due_date: 'Due date',
-      priority: 'priority',
+      priority: 'Priority',
       prio_high: 'Urgent',
       from_time: 'From',
       to_time: 'To',
@@ -3091,18 +3365,27 @@
       street: 'Street',
       building: 'Building number',
       city: 'City',
+      entrance: 'Entrance',
+      floor: 'Floor',
+      apartment: 'Apartment',
       delivery_address: 'Address',
       photo_optional: 'Optional',
       photo_attach: 'Attach a photo',
       assign_tech: 'Assign technician',
+      clear_selection: 'Clear',
       take_cash: 'Collect service fee?',
       cash_amount_label: 'Service fee amount',
       create_ticket: 'Open ticket',
       ticket_created: 'Ticket created successfully.',
       err_select_customer: 'Please select a customer.',
       err_select_type: 'Select a call type.',
+      err_topic_required: 'Topic is required.',
+      err_department_required: 'Please choose a department.',
       err_problem_required: 'Problem description is required.',
       err_address_required: 'Address is required.',
+      topic_label: 'Topic',
+      topic_ph: 'Enter topic…',
+      no_ticket_types: 'No ticket types found',
       type_tech: 'Technical service',
       type_center: 'Installing a water softener',
       type_bidet: 'Electric bidet installation',
@@ -3177,9 +3460,12 @@
       all_tickets: 'כל הקריאות',
       open_tickets: 'קריאות פתוחות',
       closed_tickets: 'קריאות סגורות',
+      my_tickets: 'הקריאות שלי',
+      assigned_tickets: 'קריאות משובצות',
       dash_total: 'סה״כ קריאות',
       dash_open: 'קריאות פתוחות',
       dash_closed: 'קריאות סגורות',
+      dash_mine: 'שלי',
       pager_prev: 'הקודם',
       pager_next: 'הבא',
       mark_all: 'סמן הכל',
@@ -3195,6 +3481,7 @@
       ticket_details: 'פרטי קריאה',
       filter_open_ticket: 'קריאה פתוחה',
       filter_close_ticket: 'קריאה סגורה',
+      filter_my_tickets: 'הקריאות שלי',
       call_customer: 'חייג ללקוח',
       nav_home: 'בית',
       nav_service: 'שירות',
@@ -3278,8 +3565,9 @@
       photos: 'תמונות',
       required: '*',
       page_ticket_details_title: 'פרטי קריאה',
-      page_ticket_close_title: 'סגירת קריאה',
-      close_call: 'סגירת קריאה',
+      page_ticket_close_title: 'סגירת טיקט',
+      close_call: 'סגירת טיקט',
+      close_ticket_title: 'סגירת טיקט',
       view_ticket: 'צפייה בטיקט',
       source_label: 'מקור',
       priority: 'עדיפות',
@@ -3299,17 +3587,42 @@
       closing_details: 'פרטי סגירה',
       closing_status: 'סטטוס סיום',
       closing_status_required: 'נא לבחור סטטוס סיום',
+      closing_status_ph: 'הקלד או בחר סטטוס סיום…',
       followup_reason: 'סיבת המשך הטיפול',
       followup_reason_required: 'נא לבחור סיבה',
+      followup_reason_ph: 'הקלד או בחר סיבה…',
       select_reason: 'בחר סיבה',
       reason_other: 'פרט את הסיבה',
       reason_other_ph: 'תאר את המשך הטיפול',
       reason_saturday: 'יחידת שבת',
       reason_wrong_model: 'דגם שגוי',
       reason_extra_sale: 'מכירה נוספת',
+      closing_reason_label: 'סיבה',
+      closing_reason_ph: 'הזן את הסיבה…',
+      closing_reason_required: 'נא להזין סיבה',
+      completion_reason: 'סיבת סיום',
+      add_manual: 'הוסף ידנית',
+      manual_reason: 'סיבה ידנית',
+      manual_reason_ph: 'כתוב את סיבת הסיום…',
+      err_completion_reason: 'נא לבחור סיבת סיום.',
+      err_manual_reason: 'נא לכתוב את סיבת הסיום.',
+      ticket_closed: 'הטיקט נסגר בהצלחה.',
+      back_to_tickets: 'חזרה לקריאות',
+      chat_needs_ticket: 'חסר טיקט — לא ניתן לשלוח הודעה',
       warranty_months: 'אחריות (חודשים)',
       linked_product: 'מוצר משויך',
       no_linked_product: 'לא משויך מוצר לטיקט זה',
+      add_product: 'הוסף מוצר',
+      add: 'הוסף',
+      product_added: 'המוצר נוסף לטיקט',
+      err_select_product: 'נא לבחור מוצר',
+      ticket_chat: 'צ׳אט',
+      no_chat_messages: 'אין הודעות עדיין',
+      chat_needs_customer: 'חסר לקוח — לא ניתן לשלוח הודעה',
+      chat_placeholder: 'כתוב הודעה…',
+      send_message: 'שלח',
+      chat_sending: 'שולח…',
+      chat_send_failed: 'שליחת ההודעה נכשלה',
       problem_description: 'תיאור הבעיה',
       pictures_attached: 'תמונות מצורפות',
       no_pictures: 'לא צורפו תמונות לקריאה',
@@ -3365,36 +3678,68 @@
       chip_install: 'בוצעה התקנה',
       chip_pressure: 'בוצעה בדיקת לחץ',
       chip_cleaned: 'נוקתה המערכת',
-      new_ticket: 'קריאה חדשה',
-      page_ticket_add_title: 'קריאה חדשה',
-      add_ticket_title: 'קריאה חדשה',
+      new_ticket: 'הוסף כרטיס',
+      page_ticket_add_title: 'הוסף כרטיס',
+      add_ticket_title: 'הוסף כרטיס',
+      add_ticket_sub: 'קריאת שירות חדשה',
       select_customer: 'בחר לקוח',
       search_customers: 'חיפוש לפי שם, טלפון או כתובת',
       no_customers: 'לא נמצאו לקוחות',
+      section_customer: 'לקוח',
+      section_ticket: 'כרטיס',
+      section_problem: 'בעיה',
+      customer_name: 'שם לקוח',
+      customer_name_ph: 'הקלד שם לקוח',
+      ticket_name: 'שם כרטיס',
+      ticket_name_ph: 'שם כרטיס',
+      customer_email: 'דוא״ל לקוח',
+      mobile_label: 'נייד',
+      urgency: 'דחיפות',
+      team_member: 'חבר צוות',
+      product_label: 'מוצר',
+      choose_department: 'בחר מחלקה',
+      choose_option: 'בחר',
+      add_btn: 'הוסף',
+      files_image: 'קבצים (תמונה)',
+      files_image_hint: 'גרור או בחר תמונה - image/* - קובץ אחד',
+      problem_note_ph: 'הזן הערה. ניתן להדביק תמונה.',
+      reset: 'אפס',
+      cancel: 'ביטול',
+      submit: 'שלח',
       reading_type: 'סוג קריאה',
       related_product: 'מוצר משויך',
       due_date: 'תאריך יעד',
+      priority: 'עדיפות',
       prio_high: 'דחוף',
-      from_time: 'משעה',
-      to_time: 'עד שעה',
+      from_time: 'מ-',
+      to_time: 'עד',
       problem_label: 'בעיה',
       problem_ph: 'תאר את הבעיה…',
       address_photo: 'כתובת ותמונה',
       street: 'רחוב',
       building: 'מספר בניין',
       city: 'עיר',
+      entrance: 'כניסה',
+      floor: 'קומה',
+      apartment: 'דירה',
       delivery_address: 'כתובת',
       photo_optional: 'אופציונלי',
       photo_attach: 'צרף תמונה',
       assign_tech: 'שיבוץ טכנאי',
+      clear_selection: 'נקה',
       take_cash: 'לגבות דמי שירות?',
       cash_amount_label: 'סכום דמי שירות',
       create_ticket: 'פתח קריאה',
       ticket_created: 'הקריאה נוצרה בהצלחה.',
       err_select_customer: 'נא לבחור לקוח.',
       err_select_type: 'נא לבחור סוג קריאה.',
+      err_topic_required: 'יש למלא נושא.',
+      err_department_required: 'נא לבחור מחלקה.',
       err_problem_required: 'יש למלא תיאור בעיה.',
       err_address_required: 'יש למלא כתובת.',
+      topic_label: 'נושא',
+      topic_ph: 'הזן נושא…',
+      no_ticket_types: 'לא נמצאו סוגי קריאות',
       type_tech: 'שירות טכני',
       type_center: 'התקנת מרכך מים',
       type_bidet: 'התקנת בידה חשמלי',
@@ -3548,7 +3893,6 @@
         global.localStorage.getItem('mineralbar_theme');
       if (saved === 'dark' || saved === 'light') return saved;
     } catch (e) { /* ignore */ }
-    if (global.matchMedia && global.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
     return 'light';
   }
 
@@ -3637,7 +3981,7 @@
   var LIST_PAGE_SIZE = 25;
   var listNextStart = 0;
   var listHasMore = false;
-  var ticketCounts = { total: 0, opened: 0, closed: 0 };
+  var ticketCounts = { total: 0, opened: 0, closed: 0, assigned: 0, mine: 0 };
   var ticketCountsLoaded = false;
 
   /* Clear legacy demo store once */
@@ -3960,7 +4304,7 @@
 
   function normalizeStatus(s) {
     var num = Number(s);
-    if (!Number.isNaN(num)) {
+    if (!Number.isNaN(num) && String(s).trim() !== '') {
       // Biz1 ticket.status: 1=Opened, 2=Closed, 3=Assigned
       if (num === 2) return STATUS.closed;
       if (num === 3) return STATUS.assigned;
@@ -3968,12 +4312,37 @@
       return STATUS.opened;
     }
     var v = String(s == null ? '' : s).toLowerCase().trim();
-    if (/closed|close|סגור|done|complet|finish/.test(v)) return STATUS.closed;
-    if (/assign/.test(v)) return STATUS.assigned;
-    if (/open|opened|pending|ממתין|חדש|new|wait|progress|route|active|working/.test(v)) {
+    if (/closed|close|סגור|סגורה|done|complet|finish|הושלם|בוצע/.test(v)) return STATUS.closed;
+    if (/assign|משובץ|שויך|שובץ|en[_\s-]?route/.test(v)) return STATUS.assigned;
+    if (/open|opened|pending|ממתין|חדש|new|wait|progress|route|active|working|פתוח|פתוחה/.test(v)) {
       return STATUS.opened;
     }
     return STATUS.opened;
+  }
+
+  function resolveStatusRaw(r) {
+    if (!r || typeof r !== 'object') return 'Opened';
+    // Prefer numeric status_id — Biz1 often keeps a display string in `status`.
+    if (r.status_id != null && r.status_id !== '' && isFinite(Number(r.status_id))) {
+      return r.status_id;
+    }
+    var name = r.status_name || r.status_label || r.ticket_status;
+    if (name != null && String(name).trim()) return name;
+    if (r.status != null && r.status !== '') return r.status;
+    return pick(r, ['state'], 'Opened') || 'Opened';
+  }
+
+  /** Assigned = status assigned, or has a technician and is not closed. */
+  function ticketIsAssigned(ticketOrRaw) {
+    if (!ticketOrRaw) return false;
+    var status = migrateStatus(
+      ticketOrRaw.status != null
+        ? ticketOrRaw.status
+        : resolveStatusRaw(ticketOrRaw.raw || ticketOrRaw)
+    );
+    if (status === STATUS.closed) return false;
+    if (status === STATUS.assigned) return true;
+    return ticketAssigneeIds(ticketOrRaw).length > 0;
   }
 
   function migrateStatus(s) {
@@ -4123,10 +4492,55 @@
     try {
       var user = global.MineralBarApp && MineralBarApp.getUser && MineralBarApp.getUser();
       if (!user) return null;
-      return user.id || user.user_id || user.member_id || null;
+      return user.id || user.user_id || user.member_id || user.technician_id || null;
     } catch (e) {
       return null;
     }
+  }
+
+  function normalizeAssigneeIds(value) {
+    if (value == null || value === '') return [];
+    var src = value;
+    if (typeof src === 'string') {
+      var trimmed = src.trim();
+      if (!trimmed || trimmed === '0') return [];
+      if (trimmed.charAt(0) === '[') {
+        try { src = JSON.parse(trimmed); } catch (e) { src = trimmed; }
+      } else if (trimmed.indexOf(',') !== -1) {
+        src = trimmed.split(',');
+      }
+    }
+    if (!Array.isArray(src)) src = [src];
+    return src.map(function (id) {
+      return String(id == null ? '' : id).trim();
+    }).filter(function (id) {
+      return id && id !== '0';
+    });
+  }
+
+  function ticketAssigneeIds(ticketOrRaw) {
+    var raw = ticketOrRaw;
+    if (ticketOrRaw && ticketOrRaw.raw && typeof ticketOrRaw.raw === 'object') {
+      raw = ticketOrRaw.raw;
+    }
+    if (!raw || typeof raw !== 'object') return [];
+    var ids = normalizeAssigneeIds(raw.assign_member_id);
+    if (ids.length) return ids;
+    [
+      raw.assigned_to, raw.member_id, raw.tech_id, raw.technician_id,
+      raw.user_id, raw.assigned_user_id, raw.assignee_id, raw.worker_id
+    ].forEach(function (v) {
+      normalizeAssigneeIds(v).forEach(function (id) {
+        if (ids.indexOf(id) === -1) ids.push(id);
+      });
+    });
+    var nested = raw.technician || raw.assigned_user || raw.member || raw.tech;
+    if (nested) {
+      normalizeAssigneeIds(nested.id || nested.user_id || nested.member_id).forEach(function (id) {
+        if (ids.indexOf(id) === -1) ids.push(id);
+      });
+    }
+    return ids;
   }
 
   function clearCacheIfUserChanged() {
@@ -4157,37 +4571,59 @@
     } catch (e) { /* ignore */ }
   }
 
-  function isAssignedToCurrentUser(raw, userId, email) {
-    if (!raw || typeof raw !== 'object') return false;
-    var uid = userId != null ? String(userId) : '';
+  function isAssignedToCurrentUser(ticketOrRaw, userId, email) {
+    if (!ticketOrRaw) return false;
+    var uid = userId != null ? String(userId) : String(getCurrentUserId() || '');
     var mail = email ? String(email).toLowerCase() : '';
-    var idFields = [
-      raw.assigned_to, raw.member_id, raw.tech_id, raw.technician_id,
-      raw.user_id, raw.assigned_user_id, raw.assignee_id, raw.worker_id
-    ];
-    for (var i = 0; i < idFields.length; i++) {
-      if (idFields[i] != null && idFields[i] !== '' && uid && String(idFields[i]) === uid) {
-        return true;
-      }
+    if (!mail) {
+      try {
+        mail = String((global.MineralBarApp && MineralBarApp.getEmail && MineralBarApp.getEmail()) || '').toLowerCase();
+      } catch (e) { /* ignore */ }
     }
-    var nested = raw.technician || raw.assigned_user || raw.member || raw.tech;
-    if (nested && uid) {
-      var nid = nested.id || nested.user_id || nested.member_id;
-      if (nid != null && String(nid) === uid) return true;
-    }
-    var mailFields = [raw.tech_email, raw.assigned_email, raw.member_email].filter(Boolean);
+    var ids = ticketAssigneeIds(ticketOrRaw);
+    if (uid && ids.indexOf(uid) !== -1) return true;
+
+    var raw = (ticketOrRaw && ticketOrRaw.raw && typeof ticketOrRaw.raw === 'object')
+      ? ticketOrRaw.raw
+      : ticketOrRaw;
+    if (!raw || typeof raw !== 'object') return false;
+
+    var mailFields = [
+      raw.tech_email, raw.assigned_email, raw.member_email,
+      raw.assign_member_email, raw.joined_assign_member_email
+    ].filter(Boolean);
     for (var j = 0; j < mailFields.length; j++) {
       if (mail && String(mailFields[j]).toLowerCase() === mail) return true;
+    }
+
+    if (mail) {
+      var nameFields = [
+        raw.joined_assign_member_name, raw.assign_member_name, raw.technician_name
+      ].filter(Boolean);
+      try {
+        var team = (global.MineralBarApp && MineralBarApp.getTeamMembers && MineralBarApp.getTeamMembers()) || [];
+        for (var t = 0; t < team.length; t++) {
+          var member = team[t];
+          var memberMail = String(member.email || '').toLowerCase();
+          if (!memberMail || memberMail !== mail) continue;
+          var memberId = String(member.id || member.user_id || member.member_id || '');
+          if (memberId && ids.indexOf(memberId) !== -1) return true;
+          var memberName = String(member.name || member.full_name || '').toLowerCase();
+          for (var n = 0; n < nameFields.length; n++) {
+            if (memberName && String(nameFields[n]).toLowerCase() === memberName) return true;
+          }
+        }
+      } catch (e2) { /* ignore */ }
     }
     return false;
   }
 
   function rawHasAssignment(raw) {
     if (!raw) return false;
+    if (ticketAssigneeIds(raw).length) return true;
     return !!(
-      raw.assigned_to != null || raw.member_id != null || raw.tech_id != null ||
-      raw.technician_id != null || raw.assigned_user_id != null ||
-      raw.technician || raw.assigned_user || raw.member || raw.tech
+      raw.technician || raw.assigned_user || raw.member || raw.tech ||
+      raw.joined_assign_member_name || raw.assign_member_name
     );
   }
 
@@ -4315,15 +4751,27 @@
   function mapProductIds(raw) {
     if (!raw || typeof raw !== 'object') return [];
     var src = raw.product_id || raw.product_ids || raw.products_ids || raw.assign_product_id;
-    if (typeof src === 'string') {
-      return src.split(',').map(function (x) { return String(x).trim(); }).filter(Boolean);
+    var parts = [];
+    function pushId(val) {
+      String(val == null ? '' : val).split(',').forEach(function (x) {
+        var id = String(x).trim();
+        if (id && id !== '0' && parts.indexOf(id) === -1) parts.push(id);
+      });
     }
-    if (!Array.isArray(src)) return [];
-    return src.map(function (p) {
-      if (p == null) return '';
-      if (typeof p === 'object') return String(p.id || p.product_id || '');
-      return String(p);
-    }).filter(Boolean);
+    if (typeof src === 'string') {
+      pushId(src);
+      return parts;
+    }
+    if (Array.isArray(src)) {
+      src.forEach(function (p) {
+        if (p == null) return;
+        if (typeof p === 'object') pushId(p.id || p.product_id || '');
+        else pushId(p);
+      });
+      return parts;
+    }
+    if (src != null && src !== '') pushId(src);
+    return parts;
   }
 
   function mapSpareParts(raw) {
@@ -4596,7 +5044,7 @@
     if (!id) id = String(idx + 1);
     var customer = r.customer || r.client_obj || {};
     var clientFields = resolveClientFields(r);
-    var statusRaw = String(pick(r, ['status', 'status_id', 'state', 'ticket_status', 'status_name'], 'Opened') || 'Opened');
+    var statusRaw = String(resolveStatusRaw(r) || 'Opened');
     var apiMedia = mergeTicketMedia(id, normalizeTicketPhotos(r.photos), ticketMediaFiles(r, id));
     var mapped = {
       id: id,
@@ -4616,7 +5064,11 @@
       time: String(pick(r, ['time', 'scheduled_time', 'hour', 'start_time'], '') || ''),
       dur: String(pick(r, ['duration', 'dur', 'eta'], '') || ''),
       dateAt: ticketDateAt(r),
-      status: statusFromApi(statusRaw),
+      status: (function () {
+        var st = statusFromApi(statusRaw);
+        if (st !== STATUS.closed && ticketAssigneeIds(r).length) return STATUS.assigned;
+        return st;
+      })(),
       statusApi: statusRaw,
       history: mapHistory(r),
       checklist: mapChecklist(r),
@@ -4625,6 +5077,11 @@
       photos: apiMedia.photos,
       summary: String(pick(r, ['summary', 'description', 'note', 'work_done'], '') || ''),
       signature: apiMedia.signature || normalizeTicketSignature(r),
+      completionReasonId: String(pick(r, ['completion_reason_id', 'completionReasonId'], '') || ''),
+      completionReason: String(pick(r, [
+        'completion_reason', 'completionReason', 'completion_reason_text',
+        'completion_reason_name', 'completion_reason_label'
+      ], '') || ''),
       live: true,
       raw: r
     };
@@ -5078,6 +5535,110 @@
     };
   }
 
+  function buildListFilterParams(filterKey) {
+    filterKey = String(filterKey || 'all');
+    if (filterKey === 'closed') return { status_filter_val: 2 };
+    if (filterKey === 'assigned') return { status_filter_val: 3 };
+    if (filterKey === 'opened') return { status_filter_val: 1 };
+    if (filterKey === 'mine') {
+      var uid = getCurrentUserId();
+      var params = { type: 'my_tickets' };
+      if (uid != null && uid !== '') {
+        var id = String(uid);
+        params.assign_member_id = id;
+        params.team_member = id;
+        params.team_member_id = id;
+      }
+      return params;
+    }
+    return {};
+  }
+
+  function isApiBackedScheduleFilter(filterKey) {
+    return filterKey === 'closed' || filterKey === 'assigned' || filterKey === 'mine';
+  }
+
+  function refineTicketsForFilter(tickets, filterKey) {
+    tickets = Array.isArray(tickets) ? tickets : [];
+    if (filterKey === 'mine') {
+      return tickets.filter(function (t) { return isAssignedToCurrentUser(t); });
+    }
+    if (filterKey === 'assigned') {
+      return tickets.filter(function (t) { return ticketIsAssigned(t); });
+    }
+    if (filterKey === 'closed') {
+      return tickets.filter(function (t) {
+        return migrateStatus(t && t.status) === STATUS.closed;
+      });
+    }
+    if (filterKey === 'opened') {
+      return tickets.filter(function (t) {
+        var status = migrateStatus(t && t.status);
+        return status === STATUS.opened || status === STATUS.assigned;
+      });
+    }
+    return tickets;
+  }
+
+  /**
+   * Fetch one Ticket.List page for a schedule filter (closed / assigned / mine).
+   * Merges into the live cache so ticket details still open, but callers should
+   * treat the returned page as the filtered result set for paging.
+   */
+  async function fetchTicketsPageForFilter(filterKey, opts) {
+    opts = opts || {};
+    if (!global.MineralBarApp || !MineralBarApp.getClient) {
+      return { tickets: [], total: 0, fetched: 0, hasMore: false };
+    }
+    var client = MineralBarApp.getClient();
+    if (!client || !client.getToken || !client.getToken()) {
+      return { tickets: [], total: 0, fetched: 0, hasMore: false };
+    }
+    var start = opts.start != null ? Number(opts.start) : 0;
+    var length = opts.length != null ? Number(opts.length) : LIST_PAGE_SIZE;
+    if (!isFinite(start) || start < 0) start = 0;
+    if (!isFinite(length) || length < 1) length = LIST_PAGE_SIZE;
+
+    var useAssignedScan = filterKey === 'assigned' && !!opts.assignedScan;
+    var params;
+    if (useAssignedScan) {
+      // Scan non-closed tickets and keep ones with a technician / assigned status.
+      params = { start: start, length: length, status_filter_val: 1 };
+    } else {
+      params = Object.assign(
+        { start: start, length: length },
+        buildListFilterParams(filterKey)
+      );
+    }
+
+    var page = await fetchTicketListPage(params);
+    var mapped = await mapListRows(page.rows);
+    var refined = refineTicketsForFilter(mapped, filterKey);
+
+    // If status=3 returns nothing on first page, fall back to scanning open tickets.
+    if (filterKey === 'assigned' && !useAssignedScan && start === 0 && !refined.length) {
+      useAssignedScan = true;
+      page = await fetchTicketListPage({ start: 0, length: length, status_filter_val: 1 });
+      mapped = await mapListRows(page.rows);
+      refined = refineTicketsForFilter(mapped, 'assigned');
+    }
+
+    if (refined.length) {
+      mergeTicketsFromList(refined, { append: true, silent: true });
+    }
+    var total = Number(page.total) || 0;
+    var fetched = (page.rows && page.rows.length) || 0;
+    var hasMore = fetched >= length && (!total || (start + fetched) < total);
+    return {
+      tickets: refined,
+      total: total,
+      fetched: fetched,
+      hasMore: hasMore,
+      nextStart: start + fetched,
+      assignedScan: useAssignedScan
+    };
+  }
+
   async function mapListRows(rows) {
     var mapped = (rows || []).map(mapTicket).filter(Boolean);
     var filtered = filterTicketsForUser(mapped, { includeClosed: true });
@@ -5137,16 +5698,23 @@
     if (!client || !client.getToken || !client.getToken()) return ticketCounts;
     if (!MineralBarApp.countTickets) return ticketCounts;
     countsPromise = (async function () {
+      var mineParams = buildListFilterParams('mine');
       var results = await Promise.all([
         MineralBarApp.countTickets({}).catch(function () { return { count: 0 }; }),
-        MineralBarApp.countTickets({ status_filter_val: 2 }).catch(function () { return { count: 0 }; })
+        MineralBarApp.countTickets({ status_filter_val: 2 }).catch(function () { return { count: 0 }; }),
+        MineralBarApp.countTickets({ status_filter_val: 3 }).catch(function () { return { count: 0 }; }),
+        MineralBarApp.countTickets(mineParams).catch(function () { return { count: 0 }; })
       ]);
       var total = Number(results[0] && results[0].count) || 0;
       var closed = Number(results[1] && results[1].count) || 0;
+      var assigned = Number(results[2] && results[2].count) || 0;
+      var mine = Number(results[3] && results[3].count) || 0;
       ticketCounts = {
         total: total,
         closed: closed,
-        opened: Math.max(0, total - closed)
+        opened: Math.max(0, total - closed),
+        assigned: assigned,
+        mine: mine
       };
       ticketCountsLoaded = true;
       updateListHasMore(ticketCounts.total, 0);
@@ -5558,7 +6126,7 @@
     lastError = null;
     listNextStart = 0;
     listHasMore = false;
-    ticketCounts = { total: 0, opened: 0, closed: 0 };
+    ticketCounts = { total: 0, opened: 0, closed: 0, assigned: 0, mine: 0 };
     ticketCountsLoaded = false;
     try {
       global.localStorage.removeItem(CACHE_KEY);
@@ -5650,6 +6218,9 @@
     hasMoreTickets: hasMoreTickets,
     refreshTicketCounts: refreshTicketCounts,
     getTicketCounts: getTicketCounts,
+    buildListFilterParams: buildListFilterParams,
+    isApiBackedScheduleFilter: isApiBackedScheduleFilter,
+    fetchTicketsPageForFilter: fetchTicketsPageForFilter,
     clearTicketCache: clearTicketCache,
     saveStore: saveCache,
     getLastError: getLastError,
@@ -5664,6 +6235,10 @@
     resolveMediaUrl: resolveMediaUrl,
     ticketCustomerId: ticketCustomerId,
     normalizeTicketSignature: normalizeTicketSignature,
+    ticketAssigneeIds: ticketAssigneeIds,
+    isAssignedToCurrentUser: isAssignedToCurrentUser,
+    ticketIsAssigned: ticketIsAssigned,
+    getCurrentUserId: getCurrentUserId,
     t: t
   };
 })(window);
@@ -5759,6 +6334,26 @@
     return { page: page, params: params };
   }
 
+  function ticketsPageUrl(filter) {
+    filter = String(filter == null ? 'opened' : filter).trim() || 'opened';
+    if (filter === 'mine') return 'tickets.html?filter=mine';
+    if (filter === 'opened') return 'tickets.html?filter=opened';
+    if (filter === 'closed') return 'tickets.html?filter=closed';
+    if (filter === 'assigned') return 'tickets.html?filter=assigned';
+    if (filter === 'all') return 'tickets.html?filter=all';
+    return 'tickets.html?filter=' + encodeURIComponent(filter);
+  }
+
+  function syncTicketsFilterUrl(filter) {
+    if (pageKind() !== 'tickets') return;
+    var next = ticketsPageUrl(filter);
+    try {
+      var cur = (global.location.pathname.split('/').pop() || '') + (global.location.search || '');
+      if (cur === next || cur.endsWith('/' + next)) return;
+      global.history.replaceState(null, '', next);
+    } catch (e) { /* ignore */ }
+  }
+
   function navigate(page, params) {
     params = params || {};
     if (page === 'ticket' && params.id) {
@@ -5767,6 +6362,14 @@
     }
     if (page === 'complete' && params.id) {
       global.location.href = ticketCloseUrl(params.id);
+      return;
+    }
+    if (page === 'schedule') {
+      global.location.href = ticketsPageUrl(params.filter);
+      return;
+    }
+    if (page === 'login') {
+      global.location.href = loginPath();
       return;
     }
     var hash = page;
@@ -6120,8 +6723,109 @@
   }
 
   /* ── Schedule / all tickets ── */
-  var scheduleState = { filter: 'all', period: 'all', search: '', searchOpen: false, page: 1, pageSize: 25 };
+  var scheduleState = { filter: 'opened', period: 'all', search: '', searchOpen: false, page: 1, pageSize: 25 };
+  var scheduleFiltered = {
+    key: '',
+    tickets: [],
+    nextStart: 0,
+    hasMore: false,
+    total: 0,
+    loading: false,
+    requestId: 0,
+    assignedScan: false
+  };
   var markedTicketIds = {};
+
+  function isApiBackedFilter(filterKey) {
+    return !!(global.FieldApp && FieldApp.isApiBackedScheduleFilter &&
+      FieldApp.isApiBackedScheduleFilter(filterKey));
+  }
+
+  function resetScheduleFiltered() {
+    scheduleFiltered.key = '';
+    scheduleFiltered.tickets = [];
+    scheduleFiltered.nextStart = 0;
+    scheduleFiltered.hasMore = false;
+    scheduleFiltered.total = 0;
+    scheduleFiltered.assignedScan = false;
+  }
+
+  function dedupeTicketsById(list) {
+    var seen = {};
+    var out = [];
+    (list || []).forEach(function (t) {
+      var id = String((t && (t.id || t.number)) || '');
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      out.push(t);
+    });
+    return out;
+  }
+
+  async function loadScheduleFilteredPage(reset) {
+    if (!global.FieldApp || !FieldApp.fetchTicketsPageForFilter) return;
+    var filterKey = scheduleState.filter;
+    if (!isApiBackedFilter(filterKey)) {
+      resetScheduleFiltered();
+      return;
+    }
+    if (reset || scheduleFiltered.key !== filterKey) {
+      scheduleFiltered.key = filterKey;
+      scheduleFiltered.tickets = [];
+      scheduleFiltered.nextStart = 0;
+      scheduleFiltered.hasMore = true;
+      scheduleFiltered.total = 0;
+      scheduleFiltered.assignedScan = false;
+    }
+    if (!scheduleFiltered.hasMore && !reset) return;
+
+    var requestId = ++scheduleFiltered.requestId;
+    scheduleFiltered.loading = true;
+    try {
+      var page = await FieldApp.fetchTicketsPageForFilter(filterKey, {
+        start: scheduleFiltered.nextStart,
+        length: scheduleState.pageSize || 25,
+        assignedScan: !!scheduleFiltered.assignedScan
+      });
+      if (requestId !== scheduleFiltered.requestId || scheduleState.filter !== filterKey) return;
+      if (page.assignedScan) scheduleFiltered.assignedScan = true;
+      scheduleFiltered.tickets = dedupeTicketsById(
+        (reset ? [] : scheduleFiltered.tickets).concat(page.tickets || [])
+      );
+      scheduleFiltered.nextStart = page.nextStart != null
+        ? page.nextStart
+        : (scheduleFiltered.nextStart + (page.fetched || 0));
+      scheduleFiltered.hasMore = !!page.hasMore;
+      var apiTotal = Number(page.total) || 0;
+      // For assigned scan, API total is "open tickets", not "assigned" — prefer Count.
+      if (filterKey === 'assigned' && scheduleFiltered.assignedScan) {
+        var c = (FieldApp.getTicketCounts && FieldApp.getTicketCounts()) || {};
+        if (Number(c.assigned) > 0) scheduleFiltered.total = Number(c.assigned);
+        else scheduleFiltered.total = Math.max(scheduleFiltered.total, scheduleFiltered.tickets.length);
+      } else if (apiTotal > 0) {
+        scheduleFiltered.total = apiTotal;
+      } else {
+        scheduleFiltered.total = Math.max(scheduleFiltered.total, scheduleFiltered.tickets.length);
+      }
+
+      // Prefer list totals when Count endpoint didn't return a useful value.
+      if (apiTotal > 0 && FieldApp.getTicketCounts && !scheduleFiltered.assignedScan) {
+        var counts = FieldApp.getTicketCounts() || {};
+        if (filterKey === 'mine' && !(Number(counts.mine) > 0)) counts.mine = apiTotal;
+        if (filterKey === 'assigned' && !(Number(counts.assigned) > 0)) counts.assigned = apiTotal;
+        if (filterKey === 'closed' && !(Number(counts.closed) > 0)) counts.closed = apiTotal;
+      }
+    } catch (e) {
+      console.warn('[schedule] filtered list failed', e);
+      if (requestId === scheduleFiltered.requestId) {
+        scheduleFiltered.hasMore = false;
+      }
+    } finally {
+      if (requestId === scheduleFiltered.requestId) {
+        scheduleFiltered.loading = false;
+      }
+    }
+  }
 
   function startOfLocalDay(ms) {
     var d = new Date(ms == null ? Date.now() : ms);
@@ -6163,8 +6867,15 @@
   function ticketMatchesScheduleFilter(ticket, filterKey) {
     var status = FieldApp.migrateStatus(ticket && ticket.status);
     if (filterKey === 'opened') return status === FieldApp.STATUS.opened || status === FieldApp.STATUS.assigned;
-    if (filterKey === 'assigned') return status === FieldApp.STATUS.assigned;
+    if (filterKey === 'assigned') {
+      return !!(FieldApp.ticketIsAssigned
+        ? FieldApp.ticketIsAssigned(ticket)
+        : status === FieldApp.STATUS.assigned);
+    }
     if (filterKey === 'closed') return status === FieldApp.STATUS.closed;
+    if (filterKey === 'mine') {
+      return !!(FieldApp.isAssignedToCurrentUser && FieldApp.isAssignedToCurrentUser(ticket));
+    }
     return true;
   }
 
@@ -6182,6 +6893,11 @@
   }
 
   function ticketVisibleOnSchedule(ticket) {
+    // API-backed filters already constrain status/assignee; only apply search + period.
+    if (isApiBackedFilter(scheduleState.filter)) {
+      return ticketMatchesPeriodFilter(ticket, scheduleState.period) &&
+        ticketMatchesScheduleSearch(ticket, scheduleState.search);
+    }
     return ticketMatchesPeriodFilter(ticket, scheduleState.period) &&
       ticketMatchesScheduleFilter(ticket, scheduleState.filter) &&
       ticketMatchesScheduleSearch(ticket, scheduleState.search);
@@ -6212,7 +6928,13 @@
 
   function visibleScheduleTickets() {
     if (!global.FieldApp) return [];
-    return FieldApp.getTickets().filter(ticketVisibleOnSchedule);
+    var source;
+    if (isApiBackedFilter(scheduleState.filter) && scheduleFiltered.key === scheduleState.filter) {
+      source = scheduleFiltered.tickets;
+    } else {
+      source = FieldApp.getTickets();
+    }
+    return source.filter(ticketVisibleOnSchedule);
   }
 
   function isTicketMarked(ticket) {
@@ -6271,9 +6993,12 @@
     var totalEl = global.document.getElementById('countTotal');
     var openEl = global.document.getElementById('countOpen');
     var closedEl = global.document.getElementById('countClosed');
+    var mineEl = global.document.getElementById('countMine');
     if (totalEl) totalEl.textContent = String(c.total || 0);
     if (openEl) openEl.textContent = String(c.opened || 0);
     if (closedEl) closedEl.textContent = String(c.closed || 0);
+    // Stable API count — never grow from loaded pages.
+    if (mineEl) mineEl.textContent = String(c.mine || 0);
     global.document.querySelectorAll('[data-dash-filter]').forEach(function (card) {
       var key = card.getAttribute('data-dash-filter') || 'all';
       card.classList.toggle('is-active', key === scheduleState.filter);
@@ -6283,6 +7008,8 @@
       var key = 'all_tickets';
       if (scheduleState.filter === 'opened') key = 'open_tickets';
       else if (scheduleState.filter === 'closed') key = 'closed_tickets';
+      else if (scheduleState.filter === 'assigned') key = 'assigned_tickets';
+      else if (scheduleState.filter === 'mine') key = 'my_tickets';
       label.textContent = tr(key);
     }
     paintMarkAllButton();
@@ -6403,14 +7130,29 @@
 
   function schedulePagerTotal(localCount) {
     localCount = Number(localCount) || 0;
-    var hasMore = !!(global.FieldApp && FieldApp.hasMoreTickets && FieldApp.hasMoreTickets());
+    var c = (global.FieldApp && FieldApp.getTicketCounts && FieldApp.getTicketCounts()) || {};
+
     if (scheduleState.search || (scheduleState.period && scheduleState.period !== 'all')) {
       return localCount;
     }
-    var c = (global.FieldApp && FieldApp.getTicketCounts && FieldApp.getTicketCounts()) || {};
+
+    if (isApiBackedFilter(scheduleState.filter)) {
+      var filteredTotal = Number(scheduleFiltered.total) || 0;
+      if (scheduleState.filter === 'closed' && Number(c.closed) > 0) {
+        return Number(c.closed);
+      }
+      if (scheduleState.filter === 'assigned' && Number(c.assigned) > 0) {
+        return Number(c.assigned);
+      }
+      if (scheduleState.filter === 'mine' && Number(c.mine) > 0) {
+        return Number(c.mine);
+      }
+      return Math.max(localCount, filteredTotal);
+    }
+
+    var hasMore = !!(global.FieldApp && FieldApp.hasMoreTickets && FieldApp.hasMoreTickets());
     var api = 0;
     if (scheduleState.filter === 'opened') api = Number(c.opened) || 0;
-    else if (scheduleState.filter === 'closed') api = Number(c.closed) || 0;
     else api = Number(c.total) || 0;
     if (!hasMore && localCount) return localCount;
     return Math.max(localCount, api);
@@ -6421,6 +7163,13 @@
     return Math.max(1, Math.ceil(schedulePagerTotal(localCount) / size));
   }
 
+  function scheduleHasMorePages(localCount) {
+    if (isApiBackedFilter(scheduleState.filter)) {
+      return !!scheduleFiltered.hasMore;
+    }
+    return !!(global.FieldApp && FieldApp.hasMoreTickets && FieldApp.hasMoreTickets());
+  }
+
   function paintTicketsPager(localCount) {
     var pager = global.document.getElementById('ticketsPager');
     var label = global.document.getElementById('ticketsPagerLabel');
@@ -6428,7 +7177,7 @@
     var next = global.document.getElementById('ticketsNextPage');
     var totalCount = schedulePagerTotal(localCount);
     var pages = schedulePagerPages(localCount);
-    var hasMore = !!(global.FieldApp && FieldApp.hasMoreTickets && FieldApp.hasMoreTickets());
+    var hasMore = scheduleHasMorePages(localCount);
     if (scheduleState.page > pages) scheduleState.page = pages;
     if (scheduleState.page < 1) scheduleState.page = 1;
     if (pager) pager.classList.toggle('hidden', !totalCount && !localCount);
@@ -6453,19 +7202,54 @@
     if (schedulePagerBusy) return;
     var size = scheduleState.pageSize || 25;
     var need = nextPage * size;
+    var apiFilter = isApiBackedFilter(scheduleState.filter);
 
     function finish() {
       var tickets = visibleScheduleTickets();
       var localPages = Math.max(1, Math.ceil(tickets.length / size));
       var pages = schedulePagerPages(tickets.length);
-      if (nextPage > localPages) nextPage = localPages;
-      if (nextPage > pages) nextPage = pages;
+      if (nextPage > localPages && !scheduleHasMorePages(tickets.length)) nextPage = localPages;
+      if (nextPage > pages && !scheduleHasMorePages(tickets.length)) nextPage = pages;
       if (nextPage < 1) nextPage = 1;
       scheduleState.page = nextPage;
       renderSchedule();
     }
 
-    if (nextPage <= scheduleState.page || visibleScheduleTickets().length >= need || !FieldApp.fetchMoreTickets) {
+    if (nextPage <= scheduleState.page || visibleScheduleTickets().length >= need) {
+      finish();
+      return;
+    }
+
+    if (apiFilter) {
+      if (!scheduleFiltered.hasMore || !FieldApp.fetchTicketsPageForFilter) {
+        finish();
+        return;
+      }
+      schedulePagerBusy = true;
+      var nextBtnFiltered = global.document.getElementById('ticketsNextPage');
+      if (nextBtnFiltered) nextBtnFiltered.disabled = true;
+      (async function () {
+        try {
+          var emptyStreak = 0;
+          while (visibleScheduleTickets().length < need && scheduleFiltered.hasMore) {
+            var before = visibleScheduleTickets().length;
+            await loadScheduleFilteredPage(false);
+            if (visibleScheduleTickets().length > before) {
+              emptyStreak = 0;
+              continue;
+            }
+            emptyStreak += 1;
+            if (!scheduleFiltered.hasMore || emptyStreak > 8) break;
+          }
+        } finally {
+          schedulePagerBusy = false;
+          finish();
+        }
+      })();
+      return;
+    }
+
+    if (!FieldApp.fetchMoreTickets) {
       finish();
       return;
     }
@@ -6498,7 +7282,21 @@
   function setScheduleFilter(next) {
     scheduleState.filter = next || 'all';
     scheduleState.page = 1;
-    renderSchedule();
+    syncTicketsFilterUrl(scheduleState.filter);
+    if (!isApiBackedFilter(scheduleState.filter)) {
+      resetScheduleFiltered();
+      renderSchedule();
+      return;
+    }
+    scheduleFiltered.requestId += 1;
+    setScheduleLoading(true);
+    loadScheduleFilteredPage(true).then(function () {
+      setScheduleLoading(false);
+      renderSchedule();
+    }).catch(function () {
+      setScheduleLoading(false);
+      renderSchedule();
+    });
   }
 
   function removeScheduleCard() {
@@ -6512,10 +7310,7 @@
 
   function renderSchedule() {
     if (!global.FieldApp) return;
-    var allTickets = FieldApp.getTickets();
-    var tickets = allTickets.filter(function (t) {
-      return ticketVisibleOnSchedule(t);
-    });
+    var tickets = visibleScheduleTickets();
     paintScheduleFilters();
     paintScheduleCounts();
     paintTicketsPager(tickets.length);
@@ -6549,6 +7344,67 @@
     }
   }
 
+  function bindDraggablePills(wrap) {
+    if (!wrap || wrap.__dragBound) return;
+    wrap.__dragBound = true;
+    var drag = {
+      tracking: false,
+      moved: false,
+      startX: 0,
+      startScroll: 0,
+      pointerId: null
+    };
+    var DRAG_THRESHOLD = 10;
+
+    function clearDrag() {
+      drag.tracking = false;
+      drag.moved = false;
+      drag.pointerId = null;
+      wrap.classList.remove('is-dragging');
+    }
+
+    wrap.addEventListener('pointerdown', function (e) {
+      // Touch/pen: native horizontal scroll + tap select.
+      // Mouse: custom drag-to-scroll after a small move threshold.
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag.tracking = true;
+      drag.moved = false;
+      drag.startX = e.clientX;
+      drag.startScroll = wrap.scrollLeft;
+      drag.pointerId = e.pointerId;
+      wrap.classList.remove('is-dragging');
+    });
+
+    wrap.addEventListener('pointermove', function (e) {
+      if (!drag.tracking || e.pointerId !== drag.pointerId) return;
+      var dx = e.clientX - drag.startX;
+      if (!drag.moved) {
+        if (Math.abs(dx) < DRAG_THRESHOLD) return;
+        drag.moved = true;
+        wrap.classList.add('is-dragging');
+        try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+      wrap.scrollLeft = drag.startScroll - dx;
+      e.preventDefault();
+    });
+
+    function endPointer(e) {
+      if (!drag.tracking || (e && e.pointerId !== drag.pointerId)) return;
+      var wasDragging = drag.moved;
+      if (wasDragging) {
+        wrap.__suppressClick = true;
+        setTimeout(function () { wrap.__suppressClick = false; }, 0);
+      }
+      try {
+        if (wasDragging && drag.pointerId != null) wrap.releasePointerCapture(drag.pointerId);
+      } catch (err) { /* ignore */ }
+      clearDrag();
+    }
+
+    wrap.addEventListener('pointerup', endPointer);
+    wrap.addEventListener('pointercancel', endPointer);
+  }
+
   function initSchedule() {
     var homeNav = global.document.getElementById('schedHomeNav');
     if (homeNav && !homeNav.__bound) {
@@ -6561,9 +7417,11 @@
     var filterWrap = global.document.getElementById('scheduleFilters');
     if (filterWrap && !filterWrap.__bound) {
       filterWrap.__bound = true;
+      bindDraggablePills(filterWrap);
       filterWrap.addEventListener('click', function (e) {
+        if (filterWrap.__suppressClick) return;
         var btn = e.target.closest('[data-filter]');
-        if (!btn) return;
+        if (!btn || !filterWrap.contains(btn)) return;
         var next = btn.getAttribute('data-filter') || 'all';
         setScheduleFilter((scheduleState.filter === next) ? 'all' : next);
       });
@@ -6572,9 +7430,7 @@
     if (filterReset && !filterReset.__bound) {
       filterReset.__bound = true;
       filterReset.addEventListener('click', function () {
-        scheduleState.filter = 'all';
-        scheduleState.page = 1;
-        renderSchedule();
+        setScheduleFilter('all');
       });
     }
     var searchToggle = global.document.getElementById('ticketsSearchToggle');
@@ -6736,8 +7592,32 @@
       FieldApp.ensureTickets(),
       FieldApp.refreshTicketCounts ? FieldApp.refreshTicketCounts() : Promise.resolve()
     ]);
+    if (pageKind() === 'tickets' && global.FieldApp && FieldApp.qs) {
+      var fromQuery = String(FieldApp.qs('filter') || '').trim();
+      scheduleState.filter = fromQuery || 'opened';
+      scheduleState.page = 1;
+      syncTicketsFilterUrl(scheduleState.filter);
+    }
+    if (isApiBackedFilter(scheduleState.filter)) {
+      await loadScheduleFilteredPage(true);
+    } else {
+      resetScheduleFiltered();
+    }
     setScheduleLoading(false);
     renderSchedule();
+  }
+
+  async function bootTicketsPage() {
+    currentPage = 'schedule';
+    var ok = await bootAuthenticated();
+    if (!ok) {
+      discardOpenTicketDraftSession();
+      global.location.replace(loginPath());
+      return false;
+    }
+    if (global.MineralBarI18n && MineralBarI18n.apply) MineralBarI18n.apply();
+    await activateSchedule();
+    return true;
   }
 
   /* ── Ticket / Complete ── */
@@ -7806,15 +8686,36 @@
     initEvents();
     initProfile();
     paintProfile();
+
+    if (pageKind() === 'tickets') {
+      bootTicketsPage();
+      return;
+    }
+
     if (pageKind() !== 'spa') return;
+
     initLogin();
-    initSchedule();
-    if (!global.location.hash) {
-      if (global.MineralBarApp && MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) {
-        global.location.hash = 'schedule';
-      } else {
-        global.location.hash = 'login';
-      }
+
+    // Legacy #schedule hash → dedicated tickets page (avoids reload redirect loops).
+    var hash = (global.location.hash || '').replace(/^#/, '');
+    if (hash.indexOf('schedule') === 0) {
+      var filter = '';
+      try {
+        var q = hash.indexOf('?');
+        if (q !== -1) filter = new URLSearchParams(hash.slice(q + 1)).get('filter') || '';
+      } catch (e) { /* ignore */ }
+      global.location.replace(ticketsPageUrl(filter));
+      return;
+    }
+
+    if (global.MineralBarApp && MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) {
+      global.location.replace(ticketsPageUrl());
+      return;
+    }
+
+    if (!global.location.hash || hash === 'login') {
+      global.location.hash = 'login';
+      onRoute();
     } else {
       onRoute();
     }

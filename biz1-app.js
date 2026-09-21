@@ -980,7 +980,10 @@
     payload.notify_client = p.notify_client ? 1 : 0;
     payload.email_me_employee = p.email_me_employee ? 1 : 0;
     payload.whatsApp_reminder = (p.whatsApp_reminder || p.whatsapp_reminder) ? 1 : 0;
-    payload.use_as_template = p.use_as_template ? 1 : 0;
+    // Dashboard stores template flag as client_create; App docs use use_as_template.
+    var asTemplate = !!(p.use_as_template || p.client_create);
+    payload.use_as_template = asTemplate ? 1 : 0;
+    payload.client_create = asTemplate ? 1 : 0;
     payload.private_mission = (p.private_mission || p.private) ? 1 : 0;
 
     if (p.image != null && p.image !== '') payload.image = p.image;
@@ -1110,8 +1113,8 @@
     customer_id: 'lead_id',
     mission_color: 'color',
     assigned_to: 'member_id',
-    description: 'note',
-    use_as_template: 'client_create'
+    description: 'note'
+    // use_as_template / client_create kept as-is (both are valid Mission.Update filed names)
   };
 
   var MISSION_UPDATE_ALLOWED = {
@@ -1328,8 +1331,17 @@
         if (!value) continue;
       }
       if (typeof value === 'object') value = JSON.stringify(value);
-      if (filed === 'private_mission') value = (value === true || value === 1 || value === '1') ? 1 : 0;
-      if (Object.prototype.hasOwnProperty.call(current, filed) &&
+      if (filed === 'private_mission' || filed === 'use_as_template' || filed === 'client_create' ||
+          filed === 'notify_client' || filed === 'email_me_employee' || filed === 'whatsApp_reminder') {
+        value = (value === true || value === 1 || value === '1') ? 1 : 0;
+      }
+      // Treat use_as_template / client_create as the same flag when comparing current state.
+      if (filed === 'use_as_template' || filed === 'client_create') {
+        var curOn = comparableMissionValue('client_create', current.use_as_template) === '1' ||
+          comparableMissionValue('client_create', current.client_create) === '1';
+        var nextOn = comparableMissionValue(filed, value) === '1';
+        if (curOn === nextOn) continue;
+      } else if (Object.prototype.hasOwnProperty.call(current, filed) &&
           comparableMissionValue(filed, current[filed]) === comparableMissionValue(filed, value)) {
         continue;
       }

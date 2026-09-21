@@ -147,7 +147,7 @@ mbCss('./common.css');
 </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">T.Z. the cardholder <span style="color:#c0392b;">*</span></label>
-<input class="gv-input" value="{{ cardTz }}" oninput="{{ onCardTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#eaf7ef;"/>
+<input id="mb-card-tz" class="gv-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12" placeholder="ID number (digits)" value="{{ cardTz }}" oninput="{{ onCardTz }}" onchange="{{ onCardTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#fff;"/>
 </div>
 <div style="margin-bottom:6px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">number of payments <span style="color:#c0392b;">*</span></label>
@@ -197,7 +197,7 @@ mbCss('./common.css');
 </div>
 <div style="margin-bottom:15px;">
 <label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">T.Z. the account holder <span style="color:#c0392b;">*</span></label>
-<input class="gv-input" oninput="{{ onStandingTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#eaf7ef;" value="{{ standingTz }}"/>
+<input id="mb-standing-tz" class="gv-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12" placeholder="ID number (digits)" oninput="{{ onStandingTz }}" onchange="{{ onStandingTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ standingTz }}"/>
 </div>
 <div style="display:flex; gap:12px; margin-bottom:16px;">
 <div style="flex:1;">
@@ -533,6 +533,9 @@ class Component extends DCLogic {
     customerEmail: '',
     customerAddress: '',
     companyId: '',
+    customerCorporation: '',
+    invoiceSettingId: '',
+    paymentDetailId: '',
     amount: 0,
     currentDate: '',
     statusMsg: '',
@@ -615,7 +618,8 @@ class Component extends DCLogic {
     return rows.map(function (b) {
       var code = String((b && b.code) || '').trim();
       var id = String((b && b.id) || '').trim();
-      var value = code || id;
+      // Documents.Add masav expects Banks.List id (dashboard dropdown value).
+      var value = id || code;
       var label = '';
       if (window.MineralBarApp && typeof MineralBarApp.bankDisplayLabel === 'function') {
         label = MineralBarApp.bankDisplayLabel(b, preferHe);
@@ -626,6 +630,20 @@ class Component extends DCLogic {
       }
       return { value: value, id: id, code: code, label: label };
     }).filter(function (o) { return !!o.value; });
+  }
+
+  /** Resolve selected bank value to Banks.List id (accepts id or clearing code). */
+  resolveBankId(selected) {
+    var s = String(selected || '').trim();
+    if (!s) return '';
+    var rows = Array.isArray(this.state.banks) ? this.state.banks : [];
+    for (var i = 0; i < rows.length; i++) {
+      var b = rows[i] || {};
+      var id = String(b.id || '').trim();
+      var code = String(b.code || '').trim();
+      if (s === id || s === code) return id || code || s;
+    }
+    return s;
   }
 
   async loadBanks() {
@@ -639,29 +657,72 @@ class Component extends DCLogic {
     }
   }
 
+  async loadInvoiceSettingId() {
+    if (this.state.invoiceSettingId) return this.state.invoiceSettingId;
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return '';
+    try {
+      var client = MineralBarApp.getClient();
+      var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
+      var coData = coRes && (coRes.data || coRes.output || coRes);
+      var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+      var co = null;
+      if (coRows && coRows.length) {
+        co = coRows.find(function (r) {
+          return r && (r.is_default || Number(r.default_settings) === 1 || Number(r.is_default) === 1);
+        }) || coRows[0];
+      }
+      var id = co ? String(co.id || co.invoice_setting_id || co.invoice_settings_id || '').trim() : '';
+      if (id) this.setState({ invoiceSettingId: id });
+      return id;
+    } catch (e) {
+      console.warn('[collection] InvoiceSettings.List failed', e);
+      return '';
+    }
+  }
+
   attachStandingPaymentFields(payload) {
-    var bank = String(this.state.standingBank || '').trim();
+    var bank = this.resolveBankId(this.state.standingBank);
     var branch = String(this.state.standingBranch || '').trim();
     var accNo = String(this.state.standingAccNo || '').trim();
     var accName = String(this.state.standingAccName || '').trim();
-    var tz = String(this.state.standingTz || '').replace(/\D/g, '');
+    var tzEl = typeof document !== 'undefined' ? document.getElementById('mb-standing-tz') : null;
+    var tzDom = tzEl && tzEl.value != null ? String(tzEl.value) : '';
+    var tz = String(this.state.standingTz || tzDom || '').replace(/\D/g, '');
+    var billingDay = String(this.state.standingBillingDay || '1').trim() || '1';
+    var amount = Number(payload.final_amount || this.state.amount || 0);
+    if (tz && tz !== String(this.state.standingTz || '')) {
+      this.setState({ standingTz: tz });
+    }
     if (!bank) throw new Error('Bank is required');
     if (!branch) throw new Error('Branch is required');
     if (!accNo) throw new Error('Account number is required');
     if (!accName) throw new Error('Account holder name is required');
     if (!tz) throw new Error('Account holder ID (TZ) is required');
-    // Documents.Add standing (הוראת קבע): payment_method=masav + bank fields (not cc).
+    // Documents.Add standing (הוראת קבע) = payment_method=masav.
+    // Nest masav fields in multiple_receipt_detail — top-level bank/branch_no/acc_no/
+    // acc_name/tz are rejected as unknown_parameter on this API.
+    // Do not send c_type_pay=standing_order (that is credit-card standing).
+    // Do not send billing_day (unknown); use one_day_month.
     payload.payment_method = 'masav';
-    payload.bank = bank;
-    payload.branch_no = branch;
-    payload.acc_no = accNo;
-    payload.acc_name = accName;
-    payload.tz = tz;
-    // Do not send c_type_pay=standing_order — that is credit-card standing order.
+    payload.call_multi_receipt_fun = 1;
     payload.c_type_pay = 'regular';
-    if (this.state.standingBillingDay) {
-      payload.billing_day = String(this.state.standingBillingDay);
-    }
+    payload.multiple_receipt_detail = JSON.stringify([{
+      payment_method: 'masav',
+      pay_amount: amount,
+      payment_date: payload.payment_date || '',
+      masav_id: 0,
+      bank: bank,
+      branch_no: branch,
+      acc_no: accNo,
+      acc_name: accName,
+      tz: tz,
+      no_of_payment: 1,
+      unlimited: 0,
+      bi_monthly: 0,
+      one_day_month: billingDay
+    }]);
+    // Documents.Add: "Company id is required" → corporation (customer tax/TZ).
+    this.attachDocumentCompanyFields(payload, tz);
     return payload;
   }
 
@@ -681,40 +742,58 @@ class Component extends DCLogic {
   }
 
   attachCheckPaymentFields(payload, amount) {
+    var self = this;
     var checks = Array.isArray(this.state.checks) ? this.state.checks : [];
-    var chk = checks[0] || {};
-    var bank = String(chk.bank || '').trim();
-    var branch = String(chk.branch || '').trim();
-    var account = String(chk.account || '').trim();
-    var number = String(chk.number || '').trim();
-    var date = this.normalizeCheckDate(chk.date);
-    var sum = String(chk.amount != null ? chk.amount : '').replace(/[^0-9.]/g, '');
-    if (!sum && amount > 0) sum = String(amount);
-    if (!bank) throw new Error('Check bank is required');
-    if (!branch) throw new Error('Check branch is required');
-    if (!account) throw new Error('Check account number is required');
-    if (!number) throw new Error('Check number is required');
-    if (!date) throw new Error('Check date is required');
-    if (!(Number(sum) > 0)) throw new Error('Check amount is required');
-    payload.payment_method = 'check';
-    payload.check_bank_details = bank;
-    payload.check_bank = bank;
-    payload.check_branch_no = branch;
-    payload.check_acc_number = account;
-    payload.check_number = number;
-    payload.check_date = date;
-    payload.check_sumamount = sum;
-    if (checks.length > 1) {
-      var extra = checks.slice(1).map(function (c, i) {
-        return 'Check ' + (i + 2) + ': bank=' + (c.bank || '') +
-          ' branch=' + (c.branch || '') +
-          ' acc=' + (c.account || '') +
-          ' no=' + (c.number || '') +
-          ' date=' + (c.date || '') +
-          ' amount=' + (c.amount || '');
-      }).join('\n');
-      payload.note = [payload.note || '', extra].filter(Boolean).join('\n');
-    }
+    if (!checks.length) throw new Error('At least one check is required');
+    // Documents.Add rejects top-level check_* (unknown_parameter). Put method fields
+    // inside multiple_receipt_detail. Prefer parallel arrays (dashboard/PHP form shape);
+    // indexed "0" rows were accepted but validated against pay_amount=0.
+    var numbers = [];
+    var dates = [];
+    var sums = [];
+    var banks = [];
+    var accounts = [];
+    var branches = [];
+    var payTotal = 0;
+    checks.forEach(function (chk) {
+      var bank = self.resolveBankId(chk && chk.bank);
+      var branch = String((chk && chk.branch) || '').trim();
+      var account = String((chk && chk.account) || '').trim();
+      var number = String((chk && chk.number) || '').trim();
+      var date = self.normalizeCheckDate(chk && chk.date);
+      var sum = String((chk && chk.amount) != null ? chk.amount : '').replace(/[^0-9.]/g, '');
+      if (!sum && checks.length === 1 && amount > 0) sum = String(amount);
+      if (!bank) throw new Error('Check bank is required');
+      if (!branch) throw new Error('Check branch is required');
+      if (!account) throw new Error('Check account number is required');
+      if (!number) throw new Error('Check number is required');
+      if (!date) throw new Error('Check date is required');
+      if (!(Number(sum) > 0)) throw new Error('Check amount is required');
+      payTotal += Number(sum) || 0;
+      numbers.push(number);
+      dates.push(date);
+      sums.push(sum);
+      banks.push(bank);
+      accounts.push(account);
+      branches.push(branch);
+    });
+    if (!(payTotal > 0)) throw new Error('Check amount is required');
+    var block = {
+      payment_method: 'check',
+      pay_amount: payTotal,
+      check_number: numbers.length === 1 ? numbers[0] : numbers,
+      check_date: dates.length === 1 ? dates[0] : dates,
+      check_sumamount: sums.length === 1 ? sums[0] : sums,
+      check_bank_details: banks.length === 1 ? banks[0] : banks,
+      check_acc_number: accounts.length === 1 ? accounts[0] : accounts,
+      check_branch_no: branches.length === 1 ? branches[0] : branches
+    };
+    // Omit top-level payment_method when multiple_receipt_detail carries the loop.
+    // Do not send payment_amount (unknown_parameter on Documents.Add).
+    delete payload.payment_method;
+    payload.call_multi_receipt_fun = 1;
+    payload.final_amount = payTotal;
+    payload.multiple_receipt_detail = JSON.stringify([block]);
     return payload;
   }
 
@@ -735,6 +814,71 @@ class Component extends DCLogic {
     payload.cvc = cvc;
     if (tz) payload.corporation = tz;
     return payload;
+  }
+
+  /** Customer tax / Company id for Documents.Add (Invoice Israel / company settings). */
+  resolveCorporation(preferred) {
+    var fromPref = String(preferred || '').replace(/\D/g, '');
+    if (fromPref) return fromPref;
+    var fromState = String(this.state.customerCorporation || '').replace(/\D/g, '');
+    if (fromState) return fromState;
+    var display = String(this.state.companyId || '').replace(/^#/, '').replace(/\D/g, '');
+    return display || '';
+  }
+
+  attachDocumentCompanyFields(payload, preferredCorp) {
+    var corp = this.resolveCorporation(preferredCorp);
+    if (corp) payload.corporation = corp;
+    var inv = String(this.state.invoiceSettingId || '').trim();
+    if (inv) payload.invoice_setting_id = inv;
+    var payId = String(this.state.paymentDetailId || '').trim();
+    if (payId) payload.payment_detail_id = payId;
+    return payload;
+  }
+
+  isKesherGateway(row) {
+    if (!row) return false;
+    var blob = [
+      row.payment_method, row.payment, row.method, row.provider, row.name, row.label
+    ].map(function (x) { return String(x == null ? '' : x).toLowerCase(); }).join(' ');
+    return /kesher|keser|קשר/.test(blob);
+  }
+
+  pickPaymentGatewayRow(rows) {
+    rows = Array.isArray(rows) ? rows : [];
+    if (!rows.length) return null;
+    // Account often requires Kesher (keser) for document payments.
+    var kesher = rows.find(function (r) { return this.isKesherGateway(r); }.bind(this));
+    if (kesher) return kesher;
+    var def = rows.find(function (r) {
+      return r && (r.is_default || Number(r.default_payment) === 1);
+    });
+    return def || rows[0];
+  }
+
+  async loadPaymentDetailId(forceReload) {
+    if (!forceReload && this.state.paymentDetailId) return this.state.paymentDetailId;
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return '';
+    try {
+      var client = MineralBarApp.getClient();
+      var res = await client.request('PaymentGateways.List', { limit: 25 }).catch(function () { return null; });
+      var data = res && (res.data || res.output || res);
+      var rows = Array.isArray(data) ? data : ((data && (data.rows || data.list || data.data)) || []);
+      if (!rows.length) {
+        res = await client.request('PaymentGateways.List', { limit: 25, default_only: 1 }).catch(function () { return null; });
+        data = res && (res.data || res.output || res);
+        rows = Array.isArray(data) ? data : ((data && (data.rows || data.list || data.data)) || []);
+      }
+      var pick = this.pickPaymentGatewayRow(rows);
+      var id = pick
+        ? String(pick.id || pick.payment_detail_id || pick.payment_gatway || pick.payment_gateway_id || '').trim()
+        : '';
+      if (id) this.setState({ paymentDetailId: id });
+      return id;
+    } catch (e) {
+      console.warn('[collection] PaymentGateways.List failed', e);
+      return '';
+    }
   }
 
   getQueryAmount() {
@@ -815,6 +959,8 @@ class Component extends DCLogic {
     });
     if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) return;
     this.loadBanks();
+    this.loadInvoiceSettingId();
+    this.loadPaymentDetailId();
     var cid = this.getCustomerId();
     var queryAmount = this.getQueryAmount();
     if (queryAmount > 0) {
@@ -843,6 +989,7 @@ class Component extends DCLogic {
       var customerEmail = '';
       var customerAddress = '';
       var companyId = '';
+      var customerCorporation = '';
       if (typeof MineralBarApp.getCustomer === 'function') {
         var cRes = await MineralBarApp.getCustomer(cid).catch(() => null);
         var c = cRes && cRes.customer;
@@ -853,7 +1000,10 @@ class Component extends DCLogic {
         var street = (c && (c.exact_address || c.street || c.address || c.full_address || '')) || '';
         var city = (c && (c.city || c.city_name || '')) || '';
         customerAddress = [street, city].filter(Boolean).join(', ').trim() || customerAddress;
-        companyId = (c && (c.company_id || c.id_number || c.vat_number || c.corporation || c.id || '')) ? ('#' + (c.company_id || c.id_number || c.vat_number || c.corporation || c.id)) : companyId;
+        customerCorporation = String(
+          (c && (c.corporation || c.company_id || c.id_number || c.vat_number || c.tz || c.identity || '')) || ''
+        ).trim();
+        companyId = customerCorporation ? ('#' + customerCorporation.replace(/^#/, '')) : companyId;
         if (c && (c.tz || c.id_number || c.identity) && !this.state.cardTz) {
           this.setState({ cardTz: String(c.tz || c.id_number || c.identity || '') });
         }
@@ -898,7 +1048,7 @@ class Component extends DCLogic {
       var amount = queryAmount > 0 ? queryAmount : (docs[0] ? docs[0].amount : 0);
       var cashReceived = this.state.cashReceived;
       if ((!cashReceived || cashReceived === '0') && amount > 0) cashReceived = String(Math.round(amount));
-      this.setState({ docs, selectedDocId, amount, cashReceived, customerName, customerPhone, customerEmail, customerAddress, companyId });
+      this.setState({ docs, selectedDocId, amount, cashReceived, customerName, customerPhone, customerEmail, customerAddress, companyId, customerCorporation });
     } catch (e) {
       this.setState({ statusMsg: 'Unable to load customer payment data' });
     }
@@ -1059,6 +1209,36 @@ class Component extends DCLogic {
     if (e.target && e.target.value != null) return String(e.target.value);
     if (e.value != null) return String(e.value);
     return '';
+  }
+
+  tzDigitsFromEvent(e) {
+    var raw = '';
+    try {
+      if (e && e.currentTarget && e.currentTarget.value != null) raw = String(e.currentTarget.value);
+      else if (e && e.target && e.target.value != null) raw = String(e.target.value);
+      else raw = this.noteValue(e);
+    } catch (err) {
+      raw = this.noteValue(e);
+    }
+    // ASCII + common Unicode digits (Hebrew/Arabic keyboards sometimes emit these)
+    return String(raw || '')
+      .replace(/[\u0660-\u0669]/g, function (ch) { return String(ch.charCodeAt(0) - 0x0660); })
+      .replace(/[\u06F0-\u06F9]/g, function (ch) { return String(ch.charCodeAt(0) - 0x06F0); })
+      .replace(/[\uFF10-\uFF19]/g, function (ch) { return String(ch.charCodeAt(0) - 0xFF10); })
+      .replace(/\D/g, '')
+      .slice(0, 12);
+  }
+
+  onStandingTzInput(e) {
+    var digits = this.tzDigitsFromEvent(e);
+    if (digits === String(this.state.standingTz || '')) return;
+    this.setState({ standingTz: digits });
+  }
+
+  onCardTzInput(e) {
+    var digits = this.tzDigitsFromEvent(e);
+    if (digits === String(this.state.cardTz || '')) return;
+    this.setState({ cardTz: digits });
   }
 
   findPdfUrl(value, depth) {
@@ -1310,6 +1490,8 @@ class Component extends DCLogic {
             number_of_payments: installments,
             // Standing (masav) must not use c_type_pay=standing_order (that is CC standing).
             c_type_pay: installments > 1 ? 'installments' : 'regular',
+            // Required for receipt payment blocks (Documents.Add).
+            call_multi_receipt_fun: 1,
             items: '[]',
             note: [noteInternal, noteFooter].filter(Boolean).join('\n'),
             note_header: noteHeader,
@@ -1328,6 +1510,25 @@ class Component extends DCLogic {
             this.attachStandingPaymentFields(payload);
           } else if (uiMethod === 'check') {
             this.attachCheckPaymentFields(payload, amount);
+          }
+          // Company id = customer corporation (tax/TZ). Invoice company = invoice_setting_id.
+          if (!payload.corporation) {
+            this.attachDocumentCompanyFields(payload, this.state.standingTz || this.state.cardTz || '');
+          } else if (!payload.invoice_setting_id) {
+            this.attachDocumentCompanyFields(payload, payload.corporation);
+          }
+          if (!payload.invoice_setting_id) {
+            var invId = await this.loadInvoiceSettingId();
+            if (invId) payload.invoice_setting_id = invId;
+          }
+          // Prefer Kesher gateway when account requires "payment method keser".
+          var payId = await this.loadPaymentDetailId(true);
+          if (payId) payload.payment_detail_id = payId;
+          if ((uiMethod === 'standing' || uiMethod === 'masav') && !payload.corporation) {
+            throw new Error('Company id (TZ / corporation) is required');
+          }
+          if ((uiMethod === 'standing' || uiMethod === 'masav') && !payload.payment_detail_id) {
+            throw new Error('Please add/configure Kesher (keser) in Biz1 Settings → Payments, mark it Default, then try again');
           }
           var created = await MineralBarApp.getClient().request('Documents.Add', payload);
           var pdfUrl = this.findPdfUrl(created, 0) || '';
@@ -1388,7 +1589,11 @@ class Component extends DCLogic {
           var nextBase = fromOrder ? this.buildOrderDocumentUrl(customerId, amount, paymentSnap) : 'document-issuance.html';
           setTimeout(() => { window.location.href = nextBase; }, 350);
         } catch (err) {
-          this.setState({ statusMsg: 'Failed to save collection: ' + ((err && err.message) || 'unknown error') });
+          var msg = String((err && err.message) || 'unknown error');
+          if (/keser|kesher|קשר/i.test(msg) || /select payment method/i.test(msg)) {
+            msg = 'Please configure Kesher (keser) in Biz1 Settings → Payments and set it as Default Payment, then try again';
+          }
+          this.setState({ statusMsg: 'Failed to save collection: ' + msg });
         } finally {
           this.setState({ busy: false });
         }
@@ -1429,7 +1634,7 @@ class Component extends DCLogic {
       onCardExpiry: (e) => this.setState({ cardExpiry: this.noteValue(e) }),
       onCardCvv: (e) => this.setState({ cardCvv: this.noteValue(e).replace(/\D/g, '').slice(0, 4) }),
       onCardHolder: (e) => this.setState({ cardHolder: this.noteValue(e) }),
-      onCardTz: (e) => this.setState({ cardTz: this.noteValue(e) }),
+      onCardTz: (e) => this.onCardTzInput(e),
       documentOptions: (this.state.docs && this.state.docs.length ? this.state.docs : [{ id: '', label: 'No documents found' }]).map(d => ({ value: d.id, label: d.label })),
       selectedDocId: this.state.selectedDocId,
       customerName: this.state.customerName,
@@ -1482,7 +1687,7 @@ class Component extends DCLogic {
       onStandingBranch: (e) => this.setState({ standingBranch: this.noteValue(e) }),
       onStandingAccNo: (e) => this.setState({ standingAccNo: this.noteValue(e) }),
       onStandingAccName: (e) => this.setState({ standingAccName: this.noteValue(e) }),
-      onStandingTz: (e) => this.setState({ standingTz: this.noteValue(e).replace(/\D/g, '') }),
+      onStandingTz: (e) => this.onStandingTzInput(e),
       onStandingBillingDay: (e) => this.setState({ standingBillingDay: this.noteValue(e) || '1' }),
       cashReceived: this.state.cashReceived,
       cashPaymentDate: this.state.cashPaymentDate || this.todayInputValue(),

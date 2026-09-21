@@ -5,30 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CloudPlus — Close ticket</title>
 <script>
-(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
 (function(){try{var l=localStorage.getItem('cloudplus_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/app.css?v=20260907m">
-<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260907k">
-<script src="./assets/config.js?v=20260908a"></script>
+<link rel="stylesheet" href="./assets/css/app.css?v=20260917a">
+<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260917a">
+<script src="./assets/config.js?v=20260917a"></script>
 <script>
 (function () {
   var user = (window.Biz1Config && Biz1Config.user) || 'demo';
   user = String(user).trim().toLowerCase()
     .replace(/^https?:\/\//, '')
-    .replace(/\.bull36\.com.*$/i, '')
+    .replace(/\.biz1\.co\.il.*$/i, '')
     .replace(/[^a-z0-9-]/g, '');
   if (user) {
-    document.write('<script src="https://' + user + '.bull36.com/app/sdk/biz1-sdk.js"><\/script>');
+    document.write('<script src="https://' + user + '.biz1.co.il/app/sdk/biz1-sdk.js"><\/script>');
   }
 })();
 </script>
-<script src="./assets/js/app.js?v=20260908dsdf2"></script>
-<script src="./assets/js/page-boot.js?v=20260907p"></script>
-<script src="./assets/js/ticket-close.js?v=20260907q"></script>
+<script src="./assets/js/app.js?v=20260917a"></script>
+<script src="./assets/js/page-boot.js?v=20260917a"></script>
+<script src="./assets/js/ticket-close.js?v=20260917a"></script>
 </head>
 <body>
 <div id="appRoot" dir="ltr" class="page-wrap">
@@ -54,13 +54,10 @@
             <svg class="page-back-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
           </a>
           <div class="ticket-header-mid">
-            <div id="tcPageTitle" class="ticket-header-title" data-i18n="close_call">Close Call</div>
+            <div id="tcPageTitle" class="ticket-header-title" data-i18n="close_ticket_title">Close Ticket</div>
             <div id="tcHeaderSub" class="ticket-header-sub">#—</div>
           </div>
           <div class="ticket-header-round ticket-header-round--spacer"></div>
-        </div>
-        <div id="tcProgress" class="close-progress">
-          <span id="tcP1"></span><span id="tcP2"></span><span id="tcP3"></span><span id="tcP4"></span>
         </div>
       </div>
 
@@ -72,225 +69,44 @@
       </div>
 
       <div id="tcForm" class="dc-scroll ticket-body hidden">
-        <div class="td-section-title"><span data-i18n="closing_status">Closing status</span> <span style="color:#c0392b;">*</span></div>
-        <div id="tcStatusList" class="close-status-list"></div>
-        <div id="tcStatusError" class="hidden field-error" data-i18n="closing_status_required">Please select a closing status</div>
-
-        <div id="tcReasonWrap" class="hidden" style="margin-bottom:20px;">
-          <label class="wd-label"><span data-i18n="followup_reason">Follow-up reason</span> <span style="color:#c0392b;">*</span></label>
-          <select id="tcReasonSelect" class="ds-input input" style="width:100%;padding:12px 13px;border-radius:11px;">
-            <option value="" data-i18n="select_reason">Select a reason</option>
-          </select>
-          <div id="tcReasonError" class="hidden field-error" style="margin-top:6px;" data-i18n="followup_reason_required">Please select a reason</div>
-          <div id="tcReasonOtherWrap" class="hidden">
-            <label class="wd-label" style="margin-top:9px;"><span data-i18n="reason_other">Specify the reason</span> <span style="color:#c0392b;">*</span></label>
-            <input id="tcReasonOther" class="ds-input input" type="text" autocomplete="off" data-i18n-placeholder="reason_other_ph" placeholder="Describe the follow-up" style="width:100%;padding:11px 13px;border-radius:11px;">
+        <div class="td-card td-customer" style="margin-bottom:14px;">
+          <div id="tcCustInitials" class="td-avatar">?</div>
+          <div style="flex:1;min-width:0;">
+            <div id="tcCustName" class="td-customer-name">—</div>
+            <div id="tcCustMeta" class="td-customer-addr">—</div>
           </div>
         </div>
 
-        <div id="tcWorkMedia">
-          <div class="td-section-title"><span data-i18n="work_summary">Work summary</span> <span style="color:#c0392b;">*</span></div>
-          <textarea id="tcSummary" class="ds-input input" rows="4" data-i18n-placeholder="work_summary_ph" placeholder="Describe work performed…" style="width:100%;min-height:96px;padding:13px;border-radius:13px;resize:none;margin-bottom:6px;"></textarea>
-          <div id="tcSummaryError" class="hidden field-error" data-i18n="work_summary_required">Please describe the work</div>
-          <div id="tcChips" class="close-chips"></div>
-
-          <div class="td-section-title" data-i18n="photos">Photos</div>
-          <div style="display:flex;gap:11px;margin-bottom:12px;">
-            <label id="tcBeforeLabel" class="photo-slot">
-              <span data-i18n="before_photo">Before photo</span>
-              <input id="tcBeforeInput" type="file" accept="image/*">
-              <img id="tcBeforePreview" alt="Before" style="display:none;">
-            </label>
-            <label id="tcAfterLabel" class="photo-slot">
-              <span data-i18n="after_photo">After photo</span>
-              <input id="tcAfterInput" type="file" accept="image/*">
-              <img id="tcAfterPreview" alt="After" style="display:none;">
-            </label>
-          </div>
-          <div class="extra-photos">
-            <div id="tcExtraList" style="display:contents;"></div>
-            <label class="photo-slot" for="tcExtraInput">
-              <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="22"><path d="M12 5v14M5 12h14"></path></svg>
-              <span data-i18n="extra_photo">Another picture</span>
-              <input id="tcExtraInput" type="file" accept="image/*">
-            </label>
-          </div>
-        </div>
-
-        <div class="td-section-title"><span data-i18n="digital_form">Digital service form</span> <span style="color:#c0392b;">*</span></div>
-        <div class="td-card" style="padding:15px;">
-          <div class="close-kv">
-            <span class="close-kv-label" data-i18n="client">Client</span>
-            <span id="tcCustName" class="close-kv-value">—</span>
-          </div>
-          <div class="close-kv">
-            <span class="close-kv-label" data-i18n="address">Address</span>
-            <span id="tcCustAddress" class="close-kv-value">—</span>
-          </div>
-          <div class="close-kv">
-            <span class="close-kv-label" data-i18n="phone_label">Phone</span>
-            <span id="tcCustPhone" class="close-kv-value">—</span>
-          </div>
-          <div class="close-kv">
-            <span class="close-kv-label" data-i18n="subject">Subject</span>
-            <span id="tcSubject" class="close-kv-value">—</span>
-          </div>
-          <div style="padding-top:13px;">
-            <label class="wd-label"><span data-i18n="customer_id">Customer ID</span> <span style="color:#c0392b;">*</span></label>
-            <input id="tcCustomerId" class="ds-input input" readonly style="width:100%;padding:11px 13px;border-radius:11px;background:var(--bg-muted);">
-          </div>
-          <div style="display:flex;gap:11px;padding-top:11px;">
-            <div style="flex:1;min-width:0;">
-              <label class="wd-label" data-i18n="warranty_months">Warranty (months)</label>
-              <select id="tcWarranty" class="ds-input input" style="width:100%;padding:11px 13px;border-radius:11px;">
-                <option value="0">0</option>
-                <option value="12">12</option>
-                <option value="24">24</option>
-                <option value="36">36</option>
-              </select>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <label class="wd-label" data-i18n="installer">Installer</label>
-              <input id="tcInstaller" class="ds-input input" style="width:100%;padding:11px 13px;border-radius:11px;background:var(--bg-muted);">
-            </div>
-          </div>
-        </div>
-
-        <div id="tcWorkDetails" class="td-card" style="padding:15px;overflow:hidden;">
-          <div class="td-section-title" style="margin-top:0;" data-i18n="spare_parts">Spare parts</div>
-          <div class="wd-row">
-            <div>
-              <label class="wd-label" data-i18n="product_installed">Product installed</label>
-              <select id="tcInstalledSelect" class="ds-input input wd-product-select" style="width:100%;padding:11px 13px;border-radius:11px;">
-                <option value="" data-i18n="select_product">Select product…</option>
-              </select>
-            </div>
-            <div>
-              <label class="wd-label" data-i18n="value_label">Value</label>
-              <div class="wd-value-wrap">
-                <input id="tcInstalledValue" class="ds-input input wd-value-input" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border-radius:11px;">
-                <span>₪</span>
-              </div>
-            </div>
-          </div>
-          <div class="wd-row">
-            <div>
-              <label class="wd-label" data-i18n="filters_replaced">Filters replaced</label>
-              <select id="tcFiltersSelect" class="ds-input input wd-product-select" style="width:100%;padding:11px 13px;border-radius:11px;">
-                <option value="" data-i18n="select_product">Select product…</option>
-              </select>
-            </div>
-            <div>
-              <label class="wd-label" data-i18n="value_label">Value</label>
-              <div class="wd-value-wrap">
-                <input id="tcFiltersValue" class="ds-input input wd-value-input" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border-radius:11px;">
-                <span>₪</span>
-              </div>
-            </div>
-          </div>
-          <div id="tcExtraProducts"></div>
-          <button type="button" id="tcAddProduct" class="td-quick" style="margin:0;border-style:dashed;">
-            <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="17"><path d="M12 5v14M5 12h14"></path></svg>
-            <span data-i18n="add_another_product">Add another product</span>
-          </button>
-          <div class="cash-toggle">
-            <span style="font-size:13.5px;color:var(--text-secondary);font-weight:600;" data-i18n="cash_collected_q">Cash collected?</span>
-            <div class="cash-switch">
-              <button type="button" id="tcCashYes" data-i18n="yes">Yes</button>
-              <button type="button" id="tcCashNo" class="is-on" data-i18n="no">No</button>
-            </div>
-          </div>
-          <div id="tcCashAmountWrap" class="hidden" style="margin-top:11px;">
-            <label class="wd-label"><span data-i18n="cash_amount">Amount collected</span> <span style="color:#c0392b;">*</span></label>
-            <div class="wd-value-wrap">
-              <input id="tcCashAmount" class="ds-input input" type="text" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 40px 11px 14px;border-radius:11px;font-weight:700;color:#2e8a63;background:#eaf7ef;direction:ltr;text-align:left;">
-              <span style="right:14px;left:auto;">₪</span>
-            </div>
-          </div>
-        </div>
-
-        <button type="button" id="tcTermsBtn" class="check-row">
-          <div class="check-box">
-            <svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewBox="0 0 24 24" width="13"><path d="M20 6 9 17l-5-5"></path></svg>
-          </div>
-          <div>
-            <div class="check-row-title"><span data-i18n="terms_label">Customer approved terms</span> <span style="color:#c0392b;">*</span></div>
-            <div class="check-row-sub" data-i18n="terms_sub">The customer confirms the work described above.</div>
-          </div>
-        </button>
-        <div id="tcTermsError" class="hidden field-error" data-i18n="terms_required">Please confirm the terms</div>
-
-        <div id="tcSignatureCard" class="td-card" style="padding:15px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="font-size:14px;font-weight:800;color:var(--text);"><span data-i18n="digital_signature">Digital Signature</span> <span style="color:#c0392b;">*</span></div>
-            <button type="button" id="tcClearSig" class="btn-ghost" style="padding:6px 10px;font-size:12px;" data-i18n="clear_sig">Clear</button>
-          </div>
-          <div class="sig-wrap">
-            <canvas id="tcSigCanvas" width="700" height="320"></canvas>
-          </div>
-          <div id="tcSigError" class="hidden field-error" style="margin-top:6px;" data-i18n="signature_required">Please sign</div>
-          <div style="font-size:11.5px;color:var(--text-muted);font-weight:600;text-align:center;margin-top:6px;" data-i18n="tap_sign">Sign here</div>
-        </div>
-
-        <div class="close-hotline">
-          <svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewBox="0 0 24 24" width="18" style="flex:none;margin-top:1px;"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"></path></svg>
-          <div data-i18n="hotline_text">For any issue after the visit, the customer can call the service hotline.</div>
-        </div>
-
-        <button type="button" id="tcSendCopyBtn" class="check-row" style="margin-bottom:12px;">
-          <div class="check-box">
-            <svg fill="none" height="13" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" viewBox="0 0 24 24" width="13"><path d="M20 6 9 17l-5-5"></path></svg>
-          </div>
-          <div style="flex:1;">
-            <div class="check-row-title" data-i18n="send_copy">Send a copy to the customer</div>
-            <div class="check-row-sub" data-i18n="send_copy_sub">WhatsApp copy of the closed ticket</div>
-          </div>
-          <svg fill="#25b35e" height="22" viewBox="0 0 24 24" width="22" style="flex:none;"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg>
-        </button>
-      </div>
-
-      <div id="tcView" class="dc-scroll ticket-body hidden">
-        <div class="close-success">
-          <div class="close-success-icon">
-            <svg fill="none" height="20" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="20"><path d="M20 6 9 17l-5-5"></path></svg>
-          </div>
-          <div>
-            <div style="font-size:14px;font-weight:800;color:#1f7a45;" data-i18n="success_title">Ticket completed</div>
-            <div style="font-size:12.5px;color:#4f9b6f;margin-top:2px;" data-i18n="success_body">Work signed off and saved to the ticket.</div>
-          </div>
-        </div>
-        <div class="td-card" style="padding:15px;">
-          <div class="td-section-title" style="margin-top:0;" data-i18n="completed_work">Completed work</div>
+        <div class="td-card" style="padding:14px;margin-bottom:14px;">
           <div class="wd-label" data-i18n="subject">Subject</div>
-          <div id="tvSubject" class="td-row-value" style="margin-bottom:14px;"></div>
-          <div class="wd-label" data-i18n="closing_status">Closing status</div>
-          <div id="tvStatus" class="td-row-value" style="margin-bottom:14px;"></div>
-          <div id="tvReasonWrap" class="hidden">
-            <div class="wd-label" data-i18n="followup_reason">Follow-up reason</div>
-            <div id="tvReason" class="td-row-value" style="margin-bottom:14px;"></div>
-          </div>
-          <div class="wd-label" data-i18n="work_summary">Work summary</div>
-          <div id="tvSummary" class="td-row-value" style="margin-bottom:14px;white-space:pre-wrap;"></div>
-          <div id="tvPhotos" class="hidden" style="display:flex;flex-wrap:wrap;gap:11px;margin-bottom:14px;"></div>
-          <div id="tvSigWrap" class="hidden">
-            <div class="wd-label" data-i18n="digital_signature">Digital Signature</div>
-            <img id="tvSignature" alt="Signature" style="width:100%;height:120px;object-fit:contain;background:#fff;border:1.5px solid var(--border);border-radius:12px;">
+          <div id="tcSubject" class="td-row-value" style="font-size:15px;font-weight:700;color:var(--text);">—</div>
+          <div id="tcReasonDetailWrap" class="hidden" style="padding-top:12px;border-top:1px solid var(--border-row);margin-top:12px;">
+            <div class="wd-label" data-i18n="completion_reason">Completion reason</div>
+            <div id="tcReasonDetail" class="td-row-value" style="font-size:15px;font-weight:700;color:var(--text);">—</div>
           </div>
         </div>
+
+        <div id="tcReasonModule" class="hidden">
+          <label class="wd-label"><span data-i18n="completion_reason">Completion reason</span> <span class="req">*</span></label>
+          <select id="tcCompletionReason" class="ds-input input" style="width:100%;padding:12px 13px;border-radius:12px;margin-bottom:12px;">
+            <option value="" data-i18n="choose_option">Choose</option>
+            <option value="manual" data-i18n="add_manual">Add manual</option>
+          </select>
+          <div id="tcManualWrap" class="hidden" style="margin-bottom:12px;">
+            <label class="wd-label"><span data-i18n="manual_reason">Manual reason</span> <span class="req">*</span></label>
+            <textarea id="tcManualReason" class="ds-input input" rows="4" data-i18n-placeholder="manual_reason_ph" placeholder="Write the completion reason…" style="width:100%;min-height:110px;padding:13px;border-radius:12px;resize:vertical;"></textarea>
+          </div>
+        </div>
+
+        <div id="tcError" class="hidden field-error" style="background:#fbeeed;border:1.5px solid #f1c9c4;border-radius:12px;padding:11px 13px;margin-bottom:10px;"></div>
+        <div id="tcSuccess" class="hidden" style="background:#eafaf0;border:1px solid #cdeeda;border-radius:12px;padding:11px 13px;margin-bottom:10px;color:#1f7a45;font-size:13px;font-weight:700;"></div>
       </div>
 
       <div id="tcActions" class="ticket-page-actions hidden">
-        <div id="tcFormError" class="hidden field-error" style="background:#fbeeed;border:1.5px solid #f1c9c4;border-radius:12px;padding:11px 13px;margin-bottom:10px;"></div>
-        <button type="button" id="tcSubmitBtn" class="td-bottom-btn td-bottom-btn--close">
-          <span id="tcSubmitLabel" data-i18n="complete_send">Complete Ticket &amp; Sign Off</span>
+        <button type="button" id="tcSubmitBtn" class="td-bottom-btn" style="background:#1f9d57;color:#fff;box-shadow:0 6px 16px rgba(31,157,87,.26);">
+          <span id="tcSubmitLabel" data-i18n="close_ticket_btn">Close ticket</span>
         </button>
-        <button type="button" id="tcBackListBtn" class="td-bottom-btn td-bottom-btn--close hidden" data-i18n="back_schedule">Back to schedule</button>
-      </div>
-
-      <div id="tcLightbox" class="photo-lightbox hidden">
-        <button type="button" class="photo-lightbox-close" id="tcLightboxClose" aria-label="Close">&times;</button>
-        <img id="tcLightboxImg" alt="">
-        <div id="tcLightboxCap" class="photo-lightbox-caption"></div>
+        <button type="button" id="tcBackListBtn" class="btn-ghost hidden" style="width:100%;margin-top:8px;" data-i18n="back_to_tickets">Back to tickets</button>
       </div>
     </div>
 

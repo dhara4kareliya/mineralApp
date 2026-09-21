@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-page="ticket-close" data-i18n-title="page_ticket_close_title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudPlus — Close ticket</title>
+<script>
+(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var l=localStorage.getItem('cloudplus_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/app.css?v=20260918b">
+<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260918b">
+<script src="./assets/config-biz1.js?v=20260918b"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.biz1\.co\.il.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  if (user) {
+    document.write('<script src="https://' + user + '.biz1.co.il/app/sdk/biz1-sdk.js"><\/script>');
+  }
+})();
+</script>
+<script src="./assets/js/app-biz1.v18b.js?v=20260918b"></script>
+<script src="./assets/js/page-boot.v18b.js?v=20260918b"></script>
+<script src="./assets/js/ticket-close.js?v=20260918b"></script>
+</head>
+<body>
+<div id="appRoot" dir="ltr" class="page-wrap">
+  <div class="phone-outer">
+    <div class="phone-inner" style="position:relative;">
+      <div class="status-bar status-bar-dark">
+        <span class="status-clock">--:--</span>
+        <div class="status-bar-actions">
+          <button type="button" class="lang-translator-btn lang-translator-btn--dark" data-lang-toggle>🌐 EN</button>
+          <button type="button" class="status-icon-btn status-icon-btn--dark" data-theme-toggle data-i18n-title="toggle_theme" title="Light / Dark mode">
+            <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+          </button>
+          <button type="button" class="status-icon-btn status-icon-btn--dark btn-profile" data-profile-open data-i18n-title="profile" title="Profile" aria-label="Profile">
+            <span class="btn-profile-avatar" data-profile-initials>?</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ticket-header">
+        <div class="ticket-header-row">
+          <a href="#" id="tcBackBtn" class="ticket-header-round">
+            <svg class="page-back-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          </a>
+          <div class="ticket-header-mid">
+            <div id="tcPageTitle" class="ticket-header-title" data-i18n="close_ticket_title">Close Ticket</div>
+            <div id="tcHeaderSub" class="ticket-header-sub">#—</div>
+          </div>
+          <div class="ticket-header-round ticket-header-round--spacer"></div>
+        </div>
+      </div>
+
+      <div id="tcLoading" class="dc-scroll ticket-body">
+        <div class="mb-inline-loader">
+          <div class="mb-page-loader__spin" aria-hidden="true"></div>
+          <div class="mb-page-loader__label" data-i18n="loading">Loading…</div>
+        </div>
+      </div>
+
+      <div id="tcForm" class="dc-scroll ticket-body hidden">
+        <div class="td-card td-customer" style="margin-bottom:14px;">
+          <div id="tcCustInitials" class="td-avatar">?</div>
+          <div style="flex:1;min-width:0;">
+            <div id="tcCustName" class="td-customer-name">—</div>
+            <div id="tcCustMeta" class="td-customer-addr">—</div>
+          </div>
+        </div>
+
+        <div class="td-card" style="padding:14px;margin-bottom:14px;">
+          <div class="wd-label" data-i18n="subject">Subject</div>
+          <div id="tcSubject" class="td-row-value" style="font-size:15px;font-weight:700;color:var(--text);">—</div>
+          <div id="tcReasonDetailWrap" class="hidden" style="padding-top:12px;border-top:1px solid var(--border-row);margin-top:12px;">
+            <div class="wd-label" data-i18n="completion_reason">Completion reason</div>
+            <div id="tcReasonDetail" class="td-row-value" style="font-size:15px;font-weight:700;color:var(--text);">—</div>
+          </div>
+        </div>
+
+        <div id="tcReasonModule" class="hidden">
+          <label class="wd-label"><span data-i18n="completion_reason">Completion reason</span> <span class="req">*</span></label>
+          <select id="tcCompletionReason" class="ds-input input" style="width:100%;padding:12px 13px;border-radius:12px;margin-bottom:12px;">
+            <option value="" data-i18n="choose_option">Choose</option>
+            <option value="manual" data-i18n="add_manual">Add manual</option>
+          </select>
+          <div id="tcManualWrap" class="hidden" style="margin-bottom:12px;">
+            <label class="wd-label"><span data-i18n="manual_reason">Manual reason</span> <span class="req">*</span></label>
+            <textarea id="tcManualReason" class="ds-input input" rows="4" data-i18n-placeholder="manual_reason_ph" placeholder="Write the completion reason…" style="width:100%;min-height:110px;padding:13px;border-radius:12px;resize:vertical;"></textarea>
+          </div>
+        </div>
+
+        <div id="tcError" class="hidden field-error" style="background:#fbeeed;border:1.5px solid #f1c9c4;border-radius:12px;padding:11px 13px;margin-bottom:10px;"></div>
+        <div id="tcSuccess" class="hidden" style="background:#eafaf0;border:1px solid #cdeeda;border-radius:12px;padding:11px 13px;margin-bottom:10px;color:#1f7a45;font-size:13px;font-weight:700;"></div>
+      </div>
+
+      <div id="tcActions" class="ticket-page-actions hidden">
+        <button type="button" id="tcSubmitBtn" class="td-bottom-btn" style="background:#1f9d57;color:#fff;box-shadow:0 6px 16px rgba(31,157,87,.26);">
+          <span id="tcSubmitLabel" data-i18n="close_ticket_btn">Close ticket</span>
+        </button>
+        <button type="button" id="tcBackListBtn" class="btn-ghost hidden" style="width:100%;margin-top:8px;" data-i18n="back_to_tickets">Back to tickets</button>
+      </div>
+    </div>
+
+    <div id="profileOverlay" class="profile-overlay hidden" aria-hidden="true">
+      <button type="button" class="profile-backdrop" data-profile-close aria-label="Close"></button>
+      <div class="profile-sheet" role="dialog" aria-labelledby="profileTitle">
+        <div class="profile-sheet-top">
+          <div id="profileTitle" class="profile-sheet-title" data-i18n="profile">Profile</div>
+          <button type="button" class="profile-close" data-profile-close aria-label="Close">×</button>
+        </div>
+        <div class="profile-identity">
+          <div class="profile-avatar-lg" data-profile-initials>?</div>
+          <div id="profileName" class="profile-name">—</div>
+        </div>
+        <div class="profile-rows">
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="email_label">Email / Username</div>
+            <div id="profileEmail" class="profile-row-value">—</div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="profile_role">Role</div>
+            <div id="profileRole" class="profile-row-value">—</div>
+          </div>
+        </div>
+        <button type="button" id="logoutBtn" class="btn-primary profile-logout-btn" data-i18n="logout">Log out</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -209,6 +209,14 @@ mbCss('./common.css');
 </div>
 </button>
 </sc-for>
+<!-- pagination -->
+<sc-if hint-placeholder-val="{{ false }}" value="{{ showPager }}">
+<div class="mb-list-pager" style="display:flex;">
+<button type="button" class="mb-list-pager-btn" disabled="{{ pagerPrevDisabled }}" onclick="{{ goPrevPage }}" aria-label="Previous">‹</button>
+<div class="mb-list-pager-label">{{ pagerLabel }}</div>
+<button type="button" class="mb-list-pager-btn" disabled="{{ pagerNextDisabled }}" onclick="{{ goNextPage }}" aria-label="Next">›</button>
+</div>
+</sc-if>
 <!-- empty state -->
 <sc-if hint-placeholder-val="{{ false }}" value="{{ isEmpty }}">
 <div style="text-align:center; padding:30px 20px;">
@@ -252,7 +260,12 @@ class Component extends DCLogic {
     nName: '', nPhone: '', nCity: '',
     nStreet: '', nHouse: '', nFloor: '', nApt: '', nEntrance: '',
     langTick: 0,
+    page: 1,
+    total: 0,
+    loadingList: false,
   };
+
+  PAGE_SIZE = 25;
 
   isEn() {
     return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
@@ -312,33 +325,66 @@ class Component extends DCLogic {
     this._rtCustTimer = setTimeout(() => this.loadCustomers(), 350);
   }
 
-  async loadCustomers() {
+  async loadCustomers(opts) {
+    opts = opts || {};
     try {
       if (!window.MineralBarApp) return;
-      const res = await window.MineralBarApp.listCustomers({ length: 100 });
-      if (res && res.data) {
-        this.CUSTOMERS = res.data.map((c, i) => {
-          var phone = String(c.mobile || c.phone || c.cellular || '').trim();
-          // Never fall back to address — that put "Rothschild Blvd 45" into City/Area
-          var city = String(c.city || c.city_name || '').trim();
-          // Prefer personal/client name (matches Biz1 CRM "Client Name"), then company
-          var name = String(
-            c.name || c.customer_name || c.full_name || c.username || c.company || c.company_name || ''
-          ).trim();
-          return {
-            id: String(c.customer_id || c.id || ''),
-            name: name || '--',
-            phone: phone || '--',
-            email: c.email || c.e_mail || '',
-            city: city || '',
-            address: c.address || '',
-            open: 0 // Optional: Could be matched with tickets if needed
-          };
-        });
-        this.forceUpdate();
+      var page = Math.max(1, Number(opts.page != null ? opts.page : this.state.page) || 1);
+      var q = String(opts.query != null ? opts.query : (this.state.query || '')).trim();
+      var pageSize = this.PAGE_SIZE;
+      var start = (page - 1) * pageSize;
+      var folderId = (MineralBarApp.FOLDERS && MineralBarApp.FOLDERS.CUSTOMERS) || 2;
+      var params = {
+        folder_id: folderId,
+        length: pageSize,
+        limit: pageSize,
+        per_page: pageSize,
+        start: start,
+        draw: page
+      };
+      if (q) {
+        params.search = q;
+        params.filter_data = q;
+        params['search[value]'] = q;
       }
+      this.setState({ loadingList: true, page: page });
+      const res = await window.MineralBarApp.listCustomers(params);
+      var rows = (res && (res.data || res.rows)) || [];
+      if (!Array.isArray(rows)) rows = [];
+      var total = Number(
+        (res && (res.recordsFiltered != null ? res.recordsFiltered
+          : res.recordsTotal != null ? res.recordsTotal
+          : res.total != null ? res.total
+          : res.count != null ? res.count
+          : rows.length)) || rows.length
+      ) || rows.length;
+      this.CUSTOMERS = rows.map((c, i) => {
+        var phone = String(c.mobile || c.phone || c.cellular || '').trim();
+        var city = String(c.city || c.city_name || '').trim();
+        var name = String(
+          c.name || c.customer_name || c.full_name || c.username || c.company || c.company_name || ''
+        ).trim();
+        return {
+          id: String(c.customer_id || c.id || ''),
+          name: name || '--',
+          phone: phone || '--',
+          email: c.email || c.e_mail || '',
+          city: city || '',
+          address: c.address || '',
+          open: 0
+        };
+      });
+      // Keep selection if still on this page; otherwise clear.
+      var selId = this.state.selectedId;
+      if (selId && !this.CUSTOMERS.some(function (c) { return String(c.id) === String(selId); })) {
+        // Keep selectedId so footer can still show if we stored sel — but list won't highlight.
+        // Prefer keep selection across pages for UX.
+      }
+      this.setState({ total: total, page: page, loadingList: false });
+      this.forceUpdate();
     } catch (e) {
       console.error('Failed to load customers', e);
+      this.setState({ loadingList: false });
     }
   }
 
@@ -348,8 +394,32 @@ class Component extends DCLogic {
     return parts[0][0] + parts[1][0];
   }
 
-  onSearch(e) { this.setState({ query: e.target.value }); }
-  clearSearch() { this.setState({ query: '' }); }
+  onSearch(e) {
+    var value = e && e.target ? e.target.value : (e || '');
+    this.setState({ query: value });
+    clearTimeout(this._searchTimer);
+    var self = this;
+    this._searchTimer = setTimeout(function () {
+      self.loadCustomers({ page: 1, query: value });
+    }, 320);
+  }
+  clearSearch() {
+    this.setState({ query: '' });
+    clearTimeout(this._searchTimer);
+    this.loadCustomers({ page: 1, query: '' });
+  }
+
+  goPrevPage() {
+    if (this.state.page <= 1 || this.state.loadingList) return;
+    this.loadCustomers({ page: this.state.page - 1 });
+  }
+
+  goNextPage() {
+    var totalPages = Math.max(1, Math.ceil((Number(this.state.total) || 0) / this.PAGE_SIZE) || 1);
+    if (this.state.page >= totalPages || this.state.loadingList) return;
+    this.loadCustomers({ page: this.state.page + 1 });
+  }
+
   toggleNew() {
     this.setState(s => ({
       newOpen: !s.newOpen,
@@ -357,16 +427,20 @@ class Component extends DCLogic {
       saveError: ''
     }));
   }
-  pick(id) { this.setState({ selectedId: id == null ? null : String(id), newOpen: false }); }
+  pick(id) {
+    var sid = id == null ? null : String(id);
+    if (sid) {
+      var row = this.CUSTOMERS.find(function (c) { return String(c.id) === sid; });
+      if (row) this._selectedCache = row;
+    } else {
+      this._selectedCache = null;
+    }
+    this.setState({ selectedId: sid, newOpen: false });
+  }
 
   filtered() {
-    const q = this.state.query.trim().toLowerCase();
-    if (!q) return this.CUSTOMERS;
-    return this.CUSTOMERS.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      c.phone.replace(/[-\s]/g, '').includes(q.replace(/[-\s]/g, '')) ||
-      c.city.toLowerCase().includes(q)
-    );
+    // API already applies search + page; keep list as loaded.
+    return this.CUSTOMERS;
   }
 
   proceed(name) {
@@ -426,7 +500,8 @@ class Component extends DCLogic {
   }
 
   goNext() {
-    const c = this.CUSTOMERS.find(x => String(x.id) === String(this.state.selectedId));
+    const c = this.CUSTOMERS.find(x => String(x.id) === String(this.state.selectedId)) ||
+      (this._selectedCache && String(this._selectedCache.id) === String(this.state.selectedId) ? this._selectedCache : null);
     if (!c) return;
     this.proceed({
       name: c.name,
@@ -451,7 +526,11 @@ class Component extends DCLogic {
     const st = this.state;
     void st.langTick;
     const list = this.filtered();
-    const sel = this.CUSTOMERS.find(c => String(c.id) === String(st.selectedId));
+    // Selection may be from another page — keep a lightweight cache for footer.
+    if (!this._selectedCache) this._selectedCache = null;
+    const onPage = this.CUSTOMERS.find(c => String(c.id) === String(st.selectedId));
+    if (onPage) this._selectedCache = onPage;
+    const sel = onPage || (this._selectedCache && String(this._selectedCache.id) === String(st.selectedId) ? this._selectedCache : null);
 
     const results = list.map((c, i) => {
       const on = String(c.id) === String(st.selectedId);
@@ -471,6 +550,16 @@ class Component extends DCLogic {
 
     const newReady = st.nName.trim() && st.nPhone.trim() && st.nCity.trim() && st.nStreet.trim() && !st.savingNew;
     const hasSel = !!sel;
+    const total = Number(st.total) || 0;
+    const pageSize = this.PAGE_SIZE;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+    const page = Math.min(Math.max(1, Number(st.page) || 1), totalPages);
+    const rangeStart = total ? ((page - 1) * pageSize) + 1 : 0;
+    const rangeEnd = total ? Math.min(page * pageSize, total) : 0;
+    const showPager = total > pageSize;
+    const pagerLabel = !total
+      ? this.t('No results', 'אין תוצאות')
+      : (this.t('Showing ', 'מציג ') + rangeStart + '–' + rangeEnd + this.t(' of ', ' מתוך ') + total);
 
     return {
       query: st.query,
@@ -517,12 +606,20 @@ class Component extends DCLogic {
         : this.t('Save and continue', 'שמירה והמשך'),
 
       listLabel: st.query.trim()
-        ? (this.t('Search results', 'תוצאות חיפוש') + ' (' + list.length + ')')
-        : (this.t('Customers', 'לקוחות') + ' ' + list.length),
-      listSubLabel: st.query.trim() ? '' : this.t('Recent customers', 'לקוחות אחרונים'),
+        ? (this.t('Search results', 'תוצאות חיפוש') + ' (' + total + ')')
+        : (this.t('Customers', 'לקוחות') + ' ' + total),
+      listSubLabel: st.loadingList
+        ? this.t('Loading…', 'טוען…')
+        : (st.query.trim() ? '' : this.t('Recent customers', 'לקוחות אחרונים')),
       resultCount: list.length,
       results,
-      isEmpty: list.length === 0,
+      isEmpty: !st.loadingList && list.length === 0,
+      showPager: showPager,
+      pagerLabel: pagerLabel,
+      pagerPrevDisabled: page <= 1 || !!st.loadingList,
+      pagerNextDisabled: page >= totalPages || !!st.loadingList || total === 0,
+      goPrevPage: () => this.goPrevPage(),
+      goNextPage: () => this.goNextPage(),
 
       hasSelection: hasSel,
       selName: sel ? sel.name : '',

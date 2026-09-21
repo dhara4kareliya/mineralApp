@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-page="ticket-edit" data-i18n-title="page_ticket_edit_title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudPlus — Edit ticket</title>
+<script>
+(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var l=localStorage.getItem('cloudplus_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/app.css?v=20260918b">
+<link rel="stylesheet" href="./assets/css/ticket-pages.css?v=20260918b">
+<script src="./assets/config-biz1.js?v=20260918b"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.biz1\.co\.il.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  if (user) {
+    document.write('<script src="https://' + user + '.biz1.co.il/app/sdk/biz1-sdk.js"><\/script>');
+  }
+})();
+</script>
+<script src="./assets/js/app-biz1.v18b.js?v=20260918b"></script>
+<script src="./assets/js/page-boot.v18b.js?v=20260918b"></script>
+<script src="./assets/js/ticket-edit.js?v=20260918b"></script>
+</head>
+<body>
+<div id="appRoot" dir="ltr" class="page-wrap">
+  <div class="phone-outer">
+    <div class="phone-inner" style="position:relative;">
+      <div class="status-bar status-bar-dark">
+        <span class="status-clock">--:--</span>
+        <div class="status-bar-actions">
+          <button type="button" class="lang-translator-btn lang-translator-btn--dark" data-lang-toggle>🌐 EN</button>
+          <button type="button" class="status-icon-btn status-icon-btn--dark" data-theme-toggle data-i18n-title="toggle_theme" title="Light / Dark mode">
+            <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+          </button>
+          <button type="button" class="status-icon-btn status-icon-btn--dark btn-profile" data-profile-open data-i18n-title="profile" title="Profile" aria-label="Profile">
+            <span class="btn-profile-avatar" data-profile-initials>?</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="teLoading" class="mb-inline-loader" style="flex:1;display:flex;align-items:center;justify-content:center;">
+        <div>
+          <div class="mb-page-loader__spin" aria-hidden="true"></div>
+          <div class="mb-page-loader__label" data-i18n="loading">Loading…</div>
+        </div>
+      </div>
+
+      <div id="teMissing" class="hidden" style="flex:1;padding:24px 18px;">
+        <div class="td-card" style="color:#8a93a3;font-weight:700;" data-i18n="data_not_found">Data not found</div>
+      </div>
+
+      <div id="teContent" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+        <div class="ticket-header">
+          <div class="ticket-header-row">
+            <a href="#" id="teBackBtn" class="ticket-header-round">
+              <svg class="page-back-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div class="ticket-header-mid">
+              <div class="ticket-header-title" data-i18n="edit_ticket">Edit ticket</div>
+              <div class="ticket-header-sub"><span id="teCallId">#—</span></div>
+            </div>
+            <div class="ticket-header-round ticket-header-round--spacer"></div>
+          </div>
+        </div>
+
+        <div class="dc-scroll ticket-body soc-page-bg">
+          <div class="td-card td-customer" style="margin-bottom:16px;">
+            <div id="teCustInitials" class="td-avatar">?</div>
+            <div style="flex:1;min-width:0;">
+              <div id="teCustName" class="td-customer-name">—</div>
+              <div id="teCustMeta" class="td-customer-addr">—</div>
+            </div>
+          </div>
+
+          <label class="wd-label"><span class="req" style="color:#c0392b;">*</span> <span data-i18n="ticket_details">Ticket details</span></label>
+          <input id="teTopic" class="ds-input input" style="width:100%;padding:12px 14px;border-radius:14px;margin-bottom:14px;">
+
+          <label class="wd-label"><span class="req" style="color:#c0392b;">*</span> <span data-i18n="problem_label">Problem</span></label>
+          <textarea id="teProblem" class="ds-input input" rows="4" data-i18n-placeholder="problem_ph" placeholder="Describe the problem…" style="width:100%;min-height:110px;padding:13px;border-radius:14px;resize:vertical;margin-bottom:16px;"></textarea>
+
+          <label class="wd-label"><span data-i18n="priority">priority</span></label>
+          <div id="tePrio" class="soc-prio"></div>
+
+          <label class="wd-label" data-i18n="due_date">Due date</label>
+          <input id="teDueDate" class="ds-input input" type="date" style="width:100%;padding:12px 14px;border-radius:14px;margin-bottom:14px;">
+
+          <div style="display:flex;gap:11px;margin-bottom:18px;">
+            <div style="flex:1;min-width:0;">
+              <label class="wd-label" data-i18n="from_time">From</label>
+              <input id="teFromTime" class="ds-input input" type="time" style="width:100%;padding:12px 14px;border-radius:14px;">
+            </div>
+            <div style="flex:1;min-width:0;">
+              <label class="wd-label" data-i18n="to_time">To</label>
+              <input id="teToTime" class="ds-input input" type="time" style="width:100%;padding:12px 14px;border-radius:14px;">
+            </div>
+          </div>
+
+          <label class="wd-label"><span class="req" style="color:#c0392b;">*</span> <span data-i18n="delivery_address">Address</span></label>
+          <input id="teAddress" class="ds-input input" style="width:100%;padding:12px 14px;border-radius:14px;margin-bottom:16px;">
+
+          <div class="td-section-title" data-i18n="assign_tech">Assign technician</div>
+          <select id="teTech" class="ds-input input" style="width:100%;padding:12px 14px;border-radius:14px;margin-bottom:16px;">
+            <option value="">—</option>
+          </select>
+
+          <div class="td-section-title" data-i18n="take_cash">Collect service fee?</div>
+          <div class="cash-toggle" style="margin:0 0 12px;">
+            <span style="font-size:13.5px;color:var(--text-secondary);font-weight:600;" data-i18n="take_cash">Collect service fee?</span>
+            <div class="cash-switch">
+              <button type="button" id="teCashYes" data-i18n="yes">Yes</button>
+              <button type="button" id="teCashNo" class="is-on" data-i18n="no">No</button>
+            </div>
+          </div>
+          <div id="teCashWrap" class="hidden" style="margin-bottom:12px;">
+            <label class="wd-label"><span data-i18n="cash_amount_label">Service fee amount</span></label>
+            <input id="teCashAmount" class="ds-input input" inputmode="numeric" placeholder="0" style="width:100%;padding:12px 14px;border-radius:14px;">
+          </div>
+        </div>
+
+        <div class="ticket-page-actions">
+          <div id="teError" class="hidden field-error" style="background:#fbeeed;border:1.5px solid #f1c9c4;border-radius:12px;padding:11px 13px;margin-bottom:10px;"></div>
+          <div id="teSuccess" class="hidden" style="background:#eafaf0;border:1px solid #cdeeda;border-radius:12px;padding:11px 13px;margin-bottom:10px;color:#1f7a45;font-size:13px;font-weight:700;"></div>
+          <button type="button" id="teSubmit" class="td-bottom-btn" style="background:#1d60a2;color:#fff;box-shadow:0 6px 16px rgba(29,96,162,.26);">
+            <svg fill="none" height="16" stroke="#fff" stroke-width="2.4" viewBox="0 0 24 24" width="16"><path d="M20 6 9 17l-5-5"></path></svg>
+            <span data-i18n="save_ticket">Save changes</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="profileOverlay" class="profile-overlay hidden" aria-hidden="true">
+      <button type="button" class="profile-backdrop" data-profile-close aria-label="Close"></button>
+      <div class="profile-sheet" role="dialog" aria-labelledby="profileTitle">
+        <div class="profile-sheet-top">
+          <div id="profileTitle" class="profile-sheet-title" data-i18n="profile">Profile</div>
+          <button type="button" class="profile-close" data-profile-close aria-label="Close">×</button>
+        </div>
+        <div class="profile-identity">
+          <div class="profile-avatar-lg" data-profile-initials>?</div>
+          <div id="profileName" class="profile-name">—</div>
+        </div>
+        <div class="profile-rows">
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="email_label">Email / Username</div>
+            <div id="profileEmail" class="profile-row-value">—</div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="profile_role">Role</div>
+            <div id="profileRole" class="profile-row-value">—</div>
+          </div>
+        </div>
+        <button type="button" id="logoutBtn" class="btn-primary profile-logout-btn" data-i18n="logout">Log out</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

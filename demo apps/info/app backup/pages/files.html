@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.files">Files — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div id="folders" class="mb-2"></div>
+    <div id="list"><div class="spinner"></div></div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    Layout.render({ active: 'files', titleKey: 'nav.files' });
+
+    (async function load() {
+      const el = document.getElementById('list');
+      try {
+        const data = await API.filesList({ limit: 25 });
+        const folders = data.folders || [];
+        const rows = UI.listRows(data);
+
+        const foldersEl = document.getElementById('folders');
+        if (folders.length) {
+          foldersEl.innerHTML = `<div class="card"><div class="card-title mb-2">${I18n.t('files.folders')}</div>
+            <div class="flex wrap gap-1">${folders
+              .map((f) => `<span class="badge badge-info">${Layout.escapeHtml(f.name || f.title || I18n.t('files.folder'))}</span>`)
+              .join('')}</div></div>`;
+        }
+
+        if (!rows.length) {
+          Layout.empty(el, I18n.t('files.none'), I18n.t('files.noneHint'));
+          return;
+        }
+
+        el.innerHTML = `<div class="grid grid-2">${rows
+          .map((f) => {
+            const path = f.file_url || f.file || f.filename || f.path || '';
+            const href = UI.assetUrl(path);
+            const name = f.notes || f.name || path.split('/').pop() || I18n.t('files.file');
+            return `<div class="card file-row">
+              <div class="file-icon">📎</div>
+              <div style="min-width:0;flex:1">
+                <div class="card-title" style="font-size:.95rem">${Layout.escapeHtml(name)}</div>
+                <div class="card-meta">${I18n.t('table.id')} #${f.id}</div>
+              </div>
+              <a class="btn btn-sm btn-secondary" href="${Layout.escapeHtml(href)}" target="_blank" rel="noopener">${I18n.t('open')}</a>
+            </div>`;
+          })
+          .join('')}</div>`;
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -985,7 +985,7 @@
     if (phone) metaBits.push(esc(phone));
     var badges = '';
     if (isVip) {
-      badges += '<span class="mb-cust-vip-badge" style="font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:7px;background:#f6eee4;color:#8a6540;flex:none;">VIP</span>';
+      badges += '<span class="mb-cust-vip-badge" style="font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:7px;background:#f6eee4;color:#8a6540;flex:none;">' + esc(t('VIP', 'תותח')) + '</span>';
     }
     if (isRenew) {
       badges += '<span style="font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#f0eefb;color:#50439d;flex:none;">' + esc(t('Renew', 'חידוש')) + '</span>';
@@ -2373,7 +2373,7 @@
       { id: 'all', label: t('All', 'הכל'), color: '#1d60a2', bg: '#eaf2fb', border: '#6ea6d8' },
       { id: 'renew', label: t('To renew', 'לחידוש'), color: '#50439d', bg: '#f0eefb', border: '#a89fd4' },
       { id: 'warranty-ended', label: t('Warranty ended', 'אחריות שהסתיימה'), color: '#a3302e', bg: '#fbeeed', border: '#e8a9a4' },
-      { id: 'vip', label: t('VIP', 'VIP'), color: '#8a6540', bg: '#f6eee4', border: '#c9a882' },
+      { id: 'vip', label: t('VIP', 'תותח'), color: '#8a6540', bg: '#f6eee4', border: '#c9a882' },
       { id: 'new-lead', label: t('New lead', 'ליד חדש'), color: '#1d60a2', bg: '#eaf2fb', border: '#aecbe9' },
       { id: 'website', label: t('Website', 'אתר'), color: '#0f766e', bg: '#e6f7f4', border: '#8fd0c6' },
       { id: 'new-or-website', label: t('New / Website', 'חדש / אתר'), color: '#50439d', bg: '#f0eefb', border: '#a89fd4' }
@@ -2867,7 +2867,7 @@
           if (makeVip && !existing) {
             var badge = document.createElement('span');
             badge.className = 'mb-cust-vip-badge';
-            badge.textContent = 'VIP';
+            badge.textContent = t('VIP', 'תותח');
             var nameEl = nameRow.querySelector('.mb-cust-name');
             if (nameEl && nameEl.nextSibling) nameRow.insertBefore(badge, nameEl.nextSibling);
             else nameRow.appendChild(badge);

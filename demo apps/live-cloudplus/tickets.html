@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-page="tickets" data-i18n-title="tickets_page_title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudPlus — Service tickets</title>
+<script>
+(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var l=localStorage.getItem('cloudplus_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/app.css?v=20260918b">
+<script src="./assets/config-biz1.js?v=20260918b"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.biz1\.co\.il.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  if (user) {
+    document.write('<script src="https://' + user + '.biz1.co.il/app/sdk/biz1-sdk.js"><\/script>');
+  }
+})();
+</script>
+<script src="./assets/js/app-biz1.v18b.js?v=20260918b"></script>
+<script src="./assets/js/page-boot.v18b.js?v=20260918b"></script>
+</head>
+<body>
+<div id="appRoot" dir="ltr" class="page-wrap">
+  <div class="phone-outer">
+    <div class="phone-inner app-view" data-view="schedule">
+      <div class="status-bar status-bar-light">
+        <span class="status-clock">--:--</span>
+        <div class="status-bar-actions">
+          <button type="button" class="lang-translator-btn" data-lang-toggle>🌐 EN</button>
+          <button type="button" class="status-icon-btn" data-theme-toggle data-i18n-title="toggle_theme" title="Light / Dark mode">
+            <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+          </button>
+          <button type="button" class="status-icon-btn btn-profile" data-profile-open data-i18n-title="profile" title="Profile" aria-label="Profile">
+            <span class="btn-profile-avatar" data-profile-initials>?</span>
+          </button>
+        </div>
+      </div>
+      <div class="tickets-top">
+        <div id="ticketsSearchOpen" class="tickets-search-open hidden">
+          <input id="scheduleSearchInput" class="ds-input tickets-search-input" type="search" data-i18n-placeholder="search_tickets" placeholder="Search tickets by client, address, or #">
+          <button type="button" id="ticketsSearchCancel" class="tickets-search-cancel" data-i18n="cancel_search">Cancel</button>
+        </div>
+        <div id="ticketsTitleRow" class="tickets-title-row">
+          <button type="button" id="ticketsSearchToggle" class="tickets-icon-btn" data-i18n-title="search_tickets" title="Search">
+            <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          </button>
+          <div class="tickets-page-title" data-i18n="tickets_page_title">Service tickets</div>
+          <div class="tickets-title-spacer" aria-hidden="true"></div>
+        </div>
+        <div id="scheduleFilters" class="tickets-pills">
+          <button type="button" class="tickets-pill active" data-filter="opened">
+            <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            <span data-i18n="filter_open_ticket">Open ticket</span>
+          </button>
+          <button type="button" class="tickets-pill" data-filter="assigned">
+            <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span data-i18n="filter_assigned">Assigned</span>
+          </button>
+          <button type="button" class="tickets-pill" data-filter="mine">
+            <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span data-i18n="filter_my_tickets">My tickets</span>
+          </button>
+          <button type="button" class="tickets-pill" data-filter="closed">
+            <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><rect height="14" rx="2" ry="2" width="20" x="2" y="5"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>
+            <span data-i18n="filter_close_ticket">Close ticket</span>
+          </button>
+        </div>
+        <div class="tickets-dash">
+          <button type="button" class="tickets-dash-card tickets-dash-card--total" data-dash-filter="all">
+            <div id="countTotal" class="tickets-dash-num">0</div>
+            <div class="tickets-dash-label" data-i18n="dash_total">Total tickets</div>
+          </button>
+          <button type="button" class="tickets-dash-card tickets-dash-card--open is-active" data-dash-filter="opened">
+            <div id="countOpen" class="tickets-dash-num">0</div>
+            <div class="tickets-dash-label" data-i18n="dash_open">Open tickets</div>
+          </button>
+          <button type="button" class="tickets-dash-card tickets-dash-card--mine" data-dash-filter="mine">
+            <div id="countMine" class="tickets-dash-num">0</div>
+            <div class="tickets-dash-label" data-i18n="dash_mine">My tickets</div>
+          </button>
+          <button type="button" class="tickets-dash-card tickets-dash-card--closed" data-dash-filter="closed">
+            <div id="countClosed" class="tickets-dash-num">0</div>
+            <div class="tickets-dash-label" data-i18n="dash_closed">Closed tickets</div>
+          </button>
+        </div>
+        <div class="tickets-wait-legend">
+          <span class="tickets-wait-label" data-i18n="waiting_time">Waiting time:</span>
+          <span class="tickets-wait-item"><span class="tickets-dot tickets-dot--late"></span><span data-i18n="wait_over_3">over 3 days</span></span>
+          <span class="tickets-wait-item"><span class="tickets-dot tickets-dot--mid"></span><span data-i18n="wait_1_3">1–3 days</span></span>
+          <span class="tickets-wait-item"><span class="tickets-dot tickets-dot--ok"></span><span data-i18n="wait_today">until today</span></span>
+        </div>
+      </div>
+      <div class="tickets-section-row tickets-section-row--bar">
+        <div id="ticketsSectionLabel" class="tickets-section-label" data-i18n="open_tickets">Open tickets</div>
+        <a href="ticket-add.html" id="ticketsNewBtn" class="tickets-new-btn">
+          <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="15"><path d="M12 5v14M5 12h14"></path></svg>
+          <span data-i18n="new_ticket">new ticket</span>
+        </a>
+      </div>
+      <div class="schedule-ticket-scroll dc-scroll">
+        <div id="schedTicketList" class="schedule-ticket-list"></div>
+        <div id="schedEmptyState" class="hidden schedule-empty">
+          <div class="svc-calls-empty" data-i18n="data_not_found">Data not found</div>
+        </div>
+        <div id="schedLoadingState" class="hidden schedule-empty">
+          <div class="mb-inline-loader">
+            <div class="mb-page-loader__spin" aria-hidden="true"></div>
+            <div class="mb-page-loader__label" data-i18n="loading">Loading…</div>
+          </div>
+        </div>
+        <div id="ticketsPager" class="tickets-pager hidden">
+          <button type="button" id="ticketsPrevPage" class="tickets-pager-btn" data-i18n-title="pager_prev" title="Previous" aria-label="Previous">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div id="ticketsPagerLabel" class="tickets-pager-label">1 / 1</div>
+          <button type="button" id="ticketsNextPage" class="tickets-pager-btn" data-i18n-title="pager_next" title="Next" aria-label="Next">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="profileOverlay" class="profile-overlay hidden" aria-hidden="true">
+      <button type="button" class="profile-backdrop" data-profile-close aria-label="Close"></button>
+      <div class="profile-sheet" role="dialog" aria-labelledby="profileTitle">
+        <div class="profile-sheet-top">
+          <div id="profileTitle" class="profile-sheet-title" data-i18n="profile">Profile</div>
+          <button type="button" class="profile-close" data-profile-close aria-label="Close">×</button>
+        </div>
+        <div class="profile-identity">
+          <div class="profile-avatar-lg" data-profile-initials>?</div>
+          <div id="profileName" class="profile-name">—</div>
+        </div>
+        <div class="profile-rows">
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="email_label">Email / Username</div>
+            <div id="profileEmail" class="profile-row-value">—</div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-row-label" data-i18n="profile_role">Role</div>
+            <div id="profileRole" class="profile-row-value">—</div>
+          </div>
+        </div>
+        <button type="button" id="logoutBtn" class="btn-primary profile-logout-btn" data-i18n="logout">Log out</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

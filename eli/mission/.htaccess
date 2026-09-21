@@ -1,0 +1,9 @@
+Options -Indexes
+RemoveHandler .php .phtml .php5 .php7 .phar .cgi .pl .py .rb .sh .asp .aspx .jsp
+RemoveType .php .phtml .php5 .php7 .phar .cgi .pl .py .rb .sh .asp .aspx .jsp
+<FilesMatch '\.(php|phtml|php5|php7|phar|cgi|pl|py|rb|sh|asp|aspx|jsp)$'>
+  Require all denied
+</FilesMatch>
+Header set X-Content-Type-Options nosniff
+Header set Referrer-Policy no-referrer
+Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.biz1.co.il https://*.bull36.com https://*.mastrocrm.com wss://*.biz1.co.il wss://*.bull36.com wss://*.mastrocrm.com; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self' https://*.biz1.co.il https://*.bull36.com https://*.mastrocrm.com"

@@ -67,7 +67,32 @@
       'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
+  function syncDatetimePartsFromHidden() {
+    var hidden = document.getElementById('mb-mission-datetime');
+    var dateIn = document.getElementById('mb-mission-date');
+    var timeIn = document.getElementById('mb-mission-time');
+    if (!hidden || !dateIn || !timeIn) return;
+    var raw = String(hidden.value || '').trim();
+    var m = raw.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    if (!m) return;
+    dateIn.value = m[1];
+    timeIn.value = m[2];
+  }
+
+  function syncHiddenFromDatetimeParts() {
+    var hidden = document.getElementById('mb-mission-datetime');
+    var dateIn = document.getElementById('mb-mission-date');
+    var timeIn = document.getElementById('mb-mission-time');
+    if (!hidden) return '';
+    var d = dateIn && dateIn.value ? String(dateIn.value).trim() : '';
+    var t = timeIn && timeIn.value ? String(timeIn.value).trim() : '';
+    if (t && t.length === 5) t += ':00';
+    hidden.value = (d && t) ? (d + 'T' + t.slice(0, 5)) : '';
+    return hidden.value;
+  }
+
   function readDatetimeLocal() {
+    syncHiddenFromDatetimeParts();
     var input = document.getElementById('mb-mission-datetime');
     var raw = input && input.value ? String(input.value).trim() : '';
     if (!raw) return null;
@@ -92,7 +117,7 @@
       return;
     }
     preview.textContent = uiT('Local: ', 'מקומי: ') + formatDisplayDate(due) +
-      ' · UTC: ' + formatUtcDateToDo(due);
+      ' · ' + uiT('UTC: ', 'זמן עולמי: ') + formatUtcDateToDo(due);
   }
 
   function buildDateToDoPayload() {
@@ -285,12 +310,28 @@
     }
 
     var dateIn = document.getElementById('mb-mission-datetime');
+    var datePart = document.getElementById('mb-mission-date');
+    var timePart = document.getElementById('mb-mission-time');
     if (dateIn && !dateIn.dataset.wired) {
       dateIn.dataset.wired = 'true';
+      if (!dateIn.value) dateIn.value = toDatetimeLocalValue(defaultDueDate());
+      syncDatetimePartsFromHidden();
+      var onPartChange = function () {
+        syncHiddenFromDatetimeParts();
+        updateDatePreview();
+      };
+      if (datePart) {
+        datePart.addEventListener('change', onPartChange);
+        datePart.addEventListener('input', onPartChange);
+      }
+      if (timePart) {
+        timePart.addEventListener('change', onPartChange);
+        timePart.addEventListener('input', onPartChange);
+      }
       dateIn.addEventListener('change', updateDatePreview);
       dateIn.addEventListener('input', updateDatePreview);
-      if (!dateIn.value) dateIn.value = toDatetimeLocalValue(defaultDueDate());
     }
+    syncHiddenFromDatetimeParts();
     updateDatePreview();
   }
 
@@ -321,6 +362,7 @@
     if (!due || Number.isNaN(due.getTime())) due = defaultDueDate();
     due.setSeconds(0, 0);
     dateIn.value = toDatetimeLocalValue(due);
+    syncDatetimePartsFromHidden();
 
     if (m.repeat_days) selectRepeatMode(String(m.repeat_days).toLowerCase());
     updateDatePreview();
@@ -827,13 +869,13 @@
     if (!editingMissionId) return;
 
     var headerTitle = document.getElementById('mb-form-header-title');
-    if (headerTitle) headerTitle.textContent = 'Edit task';
+    if (headerTitle) headerTitle.textContent = uiT('Edit task', 'עריכת משימה');
     setDoneHeaderState(false);
 
     var submitBtn = document.getElementById('mb-create-mission');
-    if (submitBtn) submitBtn.textContent = 'Update task';
+    if (submitBtn) submitBtn.textContent = uiT('Update task', 'עדכן משימה');
 
-    showStatus('loading', 'Loading task details…');
+    showStatus('loading', uiT('Loading task details…', 'טוען פרטי משימה…'));
 
     try {
       var res = await MineralBarApp.getMission(editingMissionId);
@@ -960,8 +1002,10 @@
 
       var templateCb = document.getElementById('mb-use-template');
       if (templateCb) {
-        var templateValue = m.use_as_template != null ? m.use_as_template : m.client_create;
-        templateCb.checked = Number(templateValue) === 1 || templateValue === true || templateValue === '1';
+        // API may return either use_as_template or client_create (dashboard alias).
+        var templateOn = Number(m.use_as_template) === 1 || m.use_as_template === true || m.use_as_template === '1' ||
+          Number(m.client_create) === 1 || m.client_create === true || m.client_create === '1';
+        templateCb.checked = templateOn;
       }
 
       // 10. Recording link is stored in mission.meta.
@@ -1179,7 +1223,7 @@
     submitBtn.dataset.wired = 'true';
 
     if (editingMissionId) {
-      submitBtn.textContent = 'Update task';
+      submitBtn.textContent = uiT('Update task', 'עדכן משימה');
     }
 
     submitBtn.addEventListener('click', async function() {
@@ -1276,7 +1320,8 @@
             notify_client: payload.notify_client,
             email_me_employee: payload.email_me_employee,
             whatsApp_reminder: payload.whatsApp_reminder,
-            use_as_template: payload.use_as_template
+            use_as_template: payload.use_as_template,
+            client_create: payload.use_as_template
           };
           if (customerId) fields.lead_id = customerId;
           if (memberId) fields.member_id = '[' + memberId + ']';
@@ -1331,7 +1376,9 @@
         } else {
           window.__mbMissionSaveInProgress = false;
           submitBtn.disabled = false;
-          submitBtn.textContent = editingMissionId ? 'Update task' : 'Add a task';
+          submitBtn.textContent = editingMissionId
+            ? uiT('Update task', 'עדכן משימה')
+            : uiT('Add a task', 'הוסף משימה');
         }
       }
     });
@@ -1381,6 +1428,19 @@
       localizeMissionTypeOptions();
       syncMissionTitleFromType();
       loadProjectColumns(document.getElementById('mb-project-column') && document.getElementById('mb-project-column').value);
+      var headerTitle = document.getElementById('mb-form-header-title');
+      if (headerTitle) {
+        headerTitle.textContent = editingMissionId
+          ? uiT('Edit task', 'עריכת משימה')
+          : uiT('Add a task', 'הוסף משימה');
+      }
+      var submitBtn = document.getElementById('mb-create-mission');
+      if (submitBtn && !submitBtn.disabled) {
+        submitBtn.textContent = editingMissionId
+          ? uiT('Update task', 'עדכן משימה')
+          : uiT('Add a task', 'הוסף משימה');
+      }
+      updateDatePreview();
     });
   }
 

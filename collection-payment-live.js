@@ -47,7 +47,8 @@
     (banks || []).forEach(function (b) {
       var code = String((b && b.code) || '').trim();
       var id = String((b && b.id) || '').trim();
-      var value = code || id;
+      // Documents.Add masav expects Banks.List id.
+      var value = id || code;
       if (!value) return;
       var label = (window.MineralBarApp && typeof MineralBarApp.bankDisplayLabel === 'function')
         ? MineralBarApp.bankDisplayLabel(b, false)
@@ -237,7 +238,7 @@
     return y + '-' + pad(mo) + '-' + pad(d) + ' ' + pad(hh) + ':' + pad(mm) + ':' + pad(ss);
   }
 
-  function gatherPayload(state) {
+  async function gatherPayload(state) {
     var amountEl = document.getElementById('mb-amount');
     var amount = num(amountEl && amountEl.value);
     var noteInternal = (document.getElementById('mb-note-internal') || {}).value || '';
@@ -264,6 +265,7 @@
       number_of_payments: installments,
       // masav standing must not use c_type_pay=standing_order (that is CC standing).
       c_type_pay: installments > 1 ? 'installments' : 'regular',
+      call_multi_receipt_fun: 1,
       items: '[]',
       note: note,
       note_header: noteHeader,
@@ -293,19 +295,38 @@
       var checkNumber = String((document.getElementById('mb-check-number') || {}).value || '').trim();
       var checkDate = String((document.getElementById('mb-check-date') || {}).value || '').trim();
       var checkAmount = String((document.getElementById('mb-check-amount') || {}).value || '').replace(/[^0-9.]/g, '') || String(amount);
+      var banks = state.banks || [];
+      for (var cbi = 0; cbi < banks.length; cbi++) {
+        var cb = banks[cbi] || {};
+        var cbid = String(cb.id || '').trim();
+        var cbcode = String(cb.code || '').trim();
+        if (checkBank && (checkBank === cbid || checkBank === cbcode)) {
+          checkBank = cbid || cbcode || checkBank;
+          break;
+        }
+      }
       if (!checkBank) throw new Error('Check bank is required');
       if (!checkBranch) throw new Error('Check branch is required');
       if (!checkAcc) throw new Error('Check account number is required');
       if (!checkNumber) throw new Error('Check number is required');
       if (!checkDate) throw new Error('Check date is required');
-      payload.payment_method = 'check';
-      payload.check_bank_details = checkBank;
-      payload.check_bank = checkBank;
-      payload.check_branch_no = checkBranch;
-      payload.check_acc_number = checkAcc;
-      payload.check_number = checkNumber;
-      payload.check_date = checkDate;
-      payload.check_sumamount = checkAmount;
+      if (!(Number(checkAmount) > 0)) throw new Error('Check amount is required');
+      var checkPay = Number(checkAmount) || 0;
+      // Flat check fields inside multiple_receipt_detail only (omit top-level payment_method).
+      // Do not send payment_amount (unknown_parameter on Documents.Add).
+      delete payload.payment_method;
+      payload.call_multi_receipt_fun = 1;
+      payload.final_amount = checkPay;
+      payload.multiple_receipt_detail = JSON.stringify([{
+        payment_method: 'check',
+        pay_amount: checkPay,
+        check_number: checkNumber,
+        check_date: checkDate,
+        check_sumamount: checkAmount,
+        check_bank_details: checkBank,
+        check_acc_number: checkAcc,
+        check_branch_no: checkBranch
+      }]);
     }
     if (state.method === 'standing' || state.method === 'masav') {
       var sBank = String((document.getElementById('mb-standing-bank') || {}).value || '').trim();
@@ -313,18 +334,73 @@
       var sAcc = String((document.getElementById('mb-standing-account') || {}).value || '').trim();
       var sName = String((document.getElementById('mb-standing-acc-name') || {}).value || '').trim();
       var sTz = String((document.getElementById('mb-standing-tz') || {}).value || '').replace(/\D/g, '');
+      var banks = state.banks || [];
+      for (var bi = 0; bi < banks.length; bi++) {
+        var bb = banks[bi] || {};
+        var bid = String(bb.id || '').trim();
+        var bcode = String(bb.code || '').trim();
+        if (sBank && (sBank === bid || sBank === bcode)) {
+          sBank = bid || bcode || sBank;
+          break;
+        }
+      }
       if (!sBank) throw new Error('Bank is required');
       if (!sBranch) throw new Error('Branch is required');
       if (!sAcc) throw new Error('Account number is required');
       if (!sName) throw new Error('Account holder name is required');
       if (!sTz) throw new Error('Account holder ID (TZ) is required');
+      // Nest masav fields — top-level bank/branch_no/acc_no/acc_name/tz are unknown_parameter.
       payload.payment_method = 'masav';
-      payload.bank = sBank;
-      payload.branch_no = sBranch;
-      payload.acc_no = sAcc;
-      payload.acc_name = sName;
-      payload.tz = sTz;
+      payload.call_multi_receipt_fun = 1;
       payload.c_type_pay = 'regular';
+      payload.corporation = sTz;
+      payload.multiple_receipt_detail = JSON.stringify([{
+        payment_method: 'masav',
+        pay_amount: amount,
+        payment_date: payload.payment_date || '',
+        masav_id: 0,
+        bank: sBank,
+        branch_no: sBranch,
+        acc_no: sAcc,
+        acc_name: sName,
+        tz: sTz,
+        no_of_payment: 1,
+        unlimited: 0,
+        bi_monthly: 0,
+        one_day_month: '1'
+      }]);
+      try {
+        if (!payload.invoice_setting_id && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+          var coRes = await MineralBarApp.getClient().request('InvoiceSettings.List', { limit: 25 });
+          var coData = coRes && (coRes.data || coRes.output || coRes);
+          var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+          var co = coRows && coRows.length
+            ? (coRows.find(function (r) { return r && (r.is_default || Number(r.default_settings) === 1); }) || coRows[0])
+            : null;
+          var inv = co ? String(co.id || co.invoice_setting_id || co.invoice_settings_id || '').trim() : '';
+          if (inv) payload.invoice_setting_id = inv;
+        }
+      } catch (invErr) { /* optional */ }
+      try {
+        if (!payload.payment_detail_id && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+          var pgRes = await MineralBarApp.getClient().request('PaymentGateways.List', { limit: 25, default_only: 1 }).catch(function () { return null; });
+          var pgData = pgRes && (pgRes.data || pgRes.output || pgRes);
+          var pgRows = Array.isArray(pgData) ? pgData : ((pgData && (pgData.rows || pgData.list || pgData.data)) || []);
+          if (!pgRows.length) {
+            pgRes = await MineralBarApp.getClient().request('PaymentGateways.List', { limit: 25 });
+            pgData = pgRes && (pgRes.data || pgRes.output || pgRes);
+            pgRows = Array.isArray(pgData) ? pgData : ((pgData && (pgData.rows || pgData.list || pgData.data)) || []);
+          }
+          var pg = pgRows && pgRows.length
+            ? (pgRows.find(function (r) { return r && (r.is_default || Number(r.default_payment) === 1); }) || pgRows[0])
+            : null;
+          var payId = pg ? String(pg.id || pg.payment_detail_id || pg.payment_gatway || '').trim() : '';
+          if (payId) payload.payment_detail_id = payId;
+        }
+      } catch (pgErr) { /* optional */ }
+      if (!payload.payment_detail_id) {
+        throw new Error('Please set a Default Payment Method in Biz1 Settings → Payments, then try again');
+      }
     }
     if (state.method === 'transfer') {
       payload.transfer_bank = (document.getElementById('mb-transfer-bank') || {}).value || '';
@@ -379,7 +455,7 @@
         var msg = document.getElementById('mb-payment-msg');
         if (msg) msg.textContent = 'Submitting...';
         try {
-          var payload = gatherPayload(state);
+          var payload = await gatherPayload(state);
           if (!(Number(payload.final_amount) > 0)) throw new Error('Amount is required');
           if (!payload.customer_id) throw new Error('Customer is required');
           var res = await MineralBarApp.getClient().request('Documents.Add', payload);

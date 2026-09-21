@@ -1,0 +1,5 @@
+/* Documents page */
+#documentsList .list-item.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}

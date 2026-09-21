@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Member Profile — Loyalty</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/css/loyalty.css?v=20260730" />
+    <script src="./assets/config.js?v=20260730"></script>
+    <script>
+      (function () {
+        try {
+          var l = localStorage.getItem('biz1_booking_lang');
+          if (l !== 'he' && l !== 'en') l = 'en';
+          document.documentElement.lang = l;
+          document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-theme="light">
+    <div class="loyalty-shell">
+      <div class="loyalty-topbar">
+        <a href="./dashboard.html" class="loyalty-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          <span data-i18n="backToCalendar">Back to Calendar</span>
+        </a>
+        <div class="loyalty-topbar-right">
+          <div class="lang-switch" id="langSwitch" aria-label="Language switch">
+            <button type="button" data-lang="en" class="active">EN</button>
+            <button type="button" data-lang="he">עב</button>
+          </div>
+          <button type="button" class="icon-btn-loyalty" id="themeToggleLoyalty" aria-label="Toggle theme">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-strip">
+        <div class="hero-eyebrow" data-i18n="heroEyebrow">Digital Loyalty Card</div>
+        <h1 class="hero-title" data-i18n="heroTitle">Member rewards</h1>
+        <p class="hero-sub" data-i18n="heroSub">10th visit free · punch tracker · visit history</p>
+      </div>
+
+      <div class="loyalty-card member-header">
+        <div class="member-avatar" id="memberAvatar">C</div>
+        <div>
+          <div class="member-name" id="memberName">—</div>
+          <div class="member-mobile" id="memberMobile">—</div>
+        </div>
+        <div class="member-badge" id="memberTier" data-i18n="tierMember">Member</div>
+      </div>
+
+      <div class="loyalty-card punch-card">
+        <div class="punch-card-title" data-i18n="punchCardTitle">Punch card · 10th visit free</div>
+        <div class="punch-grid" id="punchGrid"></div>
+        <div class="punch-progress-track">
+          <div class="punch-progress-fill" id="punchProgressFill" style="width: 0%"></div>
+        </div>
+        <div class="punch-progress-text" id="punchProgressText">—</div>
+        <button type="button" class="mark-visit-btn" id="markVisitBtn" data-i18n="markVisit">Mark Visit Complete</button>
+      </div>
+
+      <div class="loyalty-card reward-balance-card" id="rewardBalanceCard">
+        <div id="rewardBalanceLabel">—</div>
+        <button type="button" class="redeem-btn" id="redeemBtn" data-i18n="redeemFree">Redeem free visit</button>
+      </div>
+
+      <div class="loyalty-card">
+        <div class="visit-logs-title" data-i18n="visitLogs">Visit logs</div>
+        <div class="table-wrap">
+          <table class="visit-logs-table">
+            <thead>
+              <tr>
+                <th data-i18n="colDate">Date</th>
+                <th data-i18n="colService">Service</th>
+                <th data-i18n="colStaff">Staff</th>
+                <th data-i18n="colStatus">Status</th>
+              </tr>
+            </thead>
+            <tbody id="visitLogsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStackLoyalty"></div>
+    <script src="./assets/js/loyalty.js?v=20260730"></script>
+  </body>
+</html>

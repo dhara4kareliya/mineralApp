@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="nav.rooms">Rooms — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="page-body" hidden>
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input class="form-control" id="search" data-i18n-placeholder="rooms.search" placeholder="Search rooms…" />
+      </div>
+      <a class="btn btn-secondary" href="bookings.html" data-i18n="rooms.myBookings">My bookings</a>
+    </div>
+    <div id="list"><div class="spinner"></div></div>
+
+    <!-- Book modal-ish panel -->
+    <div class="card mt-2" id="book-panel" hidden style="max-width:560px">
+      <div class="card-title mb-2" data-i18n="rooms.bookRoom">Book room</div>
+      <div id="book-alert" hidden></div>
+      <form id="book-form">
+        <input type="hidden" id="room_id" />
+        <div class="form-group">
+          <label class="form-label" data-i18n="rooms.selected">Selected</label>
+          <div id="room-label" style="font-weight:700"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="start_date" data-i18n="rooms.startDate">Start date *</label>
+            <input class="form-control" type="date" id="start_date" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="end_date" data-i18n="rooms.endDate">End date *</label>
+            <input class="form-control" type="date" id="end_date" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="invoice_note" data-i18n="rooms.notes">Notes</label>
+          <input class="form-control" id="invoice_note" data-i18n-placeholder="rooms.notesPh" placeholder="Optional notes" />
+        </div>
+        <div class="flex gap-1">
+          <button type="submit" class="btn btn-primary" data-i18n="rooms.confirm">Confirm booking</button>
+          <button type="button" class="btn btn-ghost" id="btn-cancel-book" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script src="../js/realtime.js?v=202608151306"></script>
+  <script src="../js/ui.js?v=202608151306"></script>
+  <script src="../js/layout.js?v=202608151306"></script>
+  <script>
+    Layout.render({ active: 'rooms', titleKey: 'nav.rooms' });
+    let search = '';
+    let timer;
+    let roomsCache = [];
+    const startInput = document.getElementById('start_date');
+    const endInput = document.getElementById('end_date');
+
+    function todayISO() {
+      const d = new Date();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${d.getFullYear()}-${m}-${day}`;
+    }
+
+    function lockPastDates() {
+      const today = todayISO();
+      startInput.min = today;
+      endInput.min = startInput.value && startInput.value > today ? startInput.value : today;
+      if (startInput.value && startInput.value < today) startInput.value = '';
+      if (endInput.value && endInput.value < endInput.min) endInput.value = '';
+    }
+
+    startInput.addEventListener('change', () => {
+      lockPastDates();
+      if (endInput.value && endInput.value < startInput.value) endInput.value = startInput.value;
+    });
+    endInput.addEventListener('change', lockPastDates);
+    lockPastDates();
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        search = e.target.value.trim();
+        load();
+      }, 350);
+    });
+
+    document.getElementById('btn-cancel-book').addEventListener('click', () => {
+      document.getElementById('book-panel').hidden = true;
+    });
+
+    async function load() {
+      const el = document.getElementById('list');
+      Layout.loading(el);
+      try {
+        const data = await API.roomsList({ search, limit: 25 });
+        roomsCache = UI.listRows(data).filter((r) => {
+          const t = r.rooms_type ?? r.room_id ?? r.type;
+          return t !== null && t !== undefined && t !== '' && Number(t) !== 0;
+        });
+        if (!roomsCache.length) {
+          Layout.empty(el, I18n.t('rooms.none'), I18n.t('rooms.noneHint'));
+          return;
+        }
+        el.innerHTML = `<div class="grid grid-2">${roomsCache
+          .map((r) => {
+            const desc = r.overview || r.description || '';
+            const roomsType = r.rooms_type ?? r.room_id ?? r.type;
+            return `<div class="card room-card">
+            <div class="room-icon">🏨</div>
+            <div style="flex:1;min-width:0">
+              <div class="card-title">${Layout.escapeHtml(r.name || I18n.t('rooms.room'))}</div>
+              <div class="card-meta">${UI.formatMoney(r.price)}${r.max_guest ? ` · ${I18n.t('rooms.guests', { n: r.max_guest })}` : ''}</div>
+              ${desc ? `<p class="text-sm mt-1 muted">${Layout.escapeHtml(desc)}</p>` : ''}
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" data-book="${roomsType}" data-name="${Layout.escapeHtml(r.name || I18n.t('rooms.room'))}">${I18n.t('rooms.book')}</button>
+          </div>`;
+          })
+          .join('')}</div>`;
+
+        el.querySelectorAll('[data-book]').forEach((btn) => {
+          btn.addEventListener('click', () => openBook(btn));
+        });
+      } catch (err) {
+        Layout.error(el, err.message);
+      }
+    }
+
+    function openBook(btn) {
+      const roomsType = btn.dataset.book;
+      document.getElementById('room_id').value = roomsType;
+      document.getElementById('room-label').textContent = btn.dataset.name || I18n.t('rooms.roomType', { id: roomsType });
+      lockPastDates();
+      document.getElementById('book-panel').hidden = false;
+      document.getElementById('book-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.getElementById('book-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const alert = document.getElementById('book-alert');
+      alert.hidden = true;
+      const start = startInput.value;
+      const end = endInput.value;
+      const today = todayISO();
+      if (start < today || end < today) {
+        alert.hidden = false;
+        alert.className = 'alert alert-error';
+        alert.textContent = I18n.t('rooms.pastDates');
+        return;
+      }
+      if (end < start) {
+        alert.hidden = false;
+        alert.className = 'alert alert-error';
+        alert.textContent = I18n.t('rooms.endBeforeStart');
+        return;
+      }
+      const days = UI.daysBetween(start, end);
+      const body = {
+        room_id: document.getElementById('room_id').value,
+        start_date: UI.toDisplayDate(start),
+        end_date: UI.toDisplayDate(end),
+        days,
+        payment: 0,
+        invoice_note: document.getElementById('invoice_note').value.trim(),
+      };
+      try {
+        const res = await API.roomsBook(body);
+        if (String(res.success) === '0' || res.success === 0) {
+          throw new Error(res.message || I18n.t('rooms.failed'));
+        }
+        Toast.success(res.message || I18n.t('rooms.bookedTotal', { amount: UI.formatMoney(res.total_price) }));
+        Realtime.handleEvent({ type: 'task', message: I18n.t('rooms.booked') });
+        location.href = 'bookings.html';
+      } catch (err) {
+        alert.hidden = false;
+        alert.className = 'alert alert-error';
+        alert.textContent = err.message;
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>

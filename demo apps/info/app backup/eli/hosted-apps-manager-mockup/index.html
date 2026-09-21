@@ -1,0 +1,704 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hosted Apps Manager Mockup</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --line: #d8e0ea;
+      --text: #182234;
+      --muted: #637083;
+      --blue: #1769aa;
+      --green: #147d55;
+      --red: #b73535;
+      --amber: #9a6500;
+      --soft-blue: #e8f2fb;
+      --soft-green: #e9f7f1;
+      --soft-red: #fdecec;
+      --soft-amber: #fff4dc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 58px 1fr;
+    }
+
+    .topbar {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+    }
+
+    .title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .title span {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 3px;
+      background: #fbfcfe;
+    }
+
+    .lang-switch button {
+      border: 0;
+      border-radius: 5px;
+      min-height: 28px;
+      padding: 0 8px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .lang-switch button.active {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 6px;
+      min-height: 36px;
+      padding: 0 12px;
+      cursor: default;
+    }
+
+    .btn.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .btn.danger {
+      border-color: #e5b9b9;
+      color: var(--red);
+      background: #fff;
+    }
+
+    .page {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 14px;
+      padding: 14px;
+      min-height: 0;
+    }
+
+    .main,
+    .side {
+      min-width: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 12px 12px 0;
+      background: #fbfcfe;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      border-bottom-color: transparent;
+      border-radius: 6px 6px 0 0;
+      min-height: 36px;
+      padding: 0 12px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .tab.active {
+      color: var(--blue);
+      background: var(--soft-blue);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fbfcfe;
+      display: grid;
+      gap: 4px;
+    }
+
+    .metric strong {
+      font-size: 18px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) 180px 180px auto;
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      min-height: 36px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      text-align: left;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      background: #fbfcfe;
+    }
+
+    tr.selected td {
+      background: var(--soft-blue);
+    }
+
+    .name-cell {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .name-cell strong,
+    .name-cell span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .name-cell span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      min-height: 24px;
+      padding: 0 9px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .badge.active {
+      color: var(--green);
+      background: var(--soft-green);
+    }
+
+    .badge.failed {
+      color: var(--red);
+      background: var(--soft-red);
+    }
+
+    .badge.disabled {
+      color: #4b5563;
+      background: #eef1f5;
+    }
+
+    .badge.pending {
+      color: var(--amber);
+      background: var(--soft-amber);
+    }
+
+    .icon-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 6px;
+      color: var(--text);
+    }
+
+    .side {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .card-head {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-head h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .upload-box {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .dropzone {
+      min-height: 132px;
+      border: 1px dashed #aebbc9;
+      border-radius: 8px;
+      background: #fbfcfe;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 16px;
+      color: var(--muted);
+    }
+
+    .dropzone strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
+    .rule-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .rule-list li {
+      display: flex;
+      gap: 7px;
+    }
+
+    .rule-list li::before {
+      content: "✓";
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .detail-body {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .detail-row {
+      display: grid;
+      gap: 4px;
+    }
+
+    .detail-row span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .url-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .url {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: #fbfcfe;
+      color: var(--blue);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .scan-log {
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--soft-red);
+      color: var(--red);
+      line-height: 1.4;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 10px 12px;
+    }
+
+    html[dir="rtl"] th,
+    html[dir="rtl"] td {
+      text-align: right;
+    }
+
+    html[dir="rtl"] .icon-buttons {
+      justify-content: flex-start;
+    }
+
+    @media (max-width: 960px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .title {
+        display: grid;
+        gap: 2px;
+      }
+
+      .title span {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="title">
+        <h1 data-i18n="title">Hosted Apps</h1>
+        <span data-i18n="subtitle">apps.biz1.co.il deployments</span>
+      </div>
+      <div class="toolbar">
+        <div class="lang-switch" aria-label="Language">
+          <button type="button" class="active" data-lang="en">EN</button>
+          <button type="button" data-lang="he">HE</button>
+          <button type="button" data-lang="ar">AR</button>
+        </div>
+        <button class="btn" title="Refresh">↻</button>
+        <button class="btn primary" data-i18n="upload_app">＋ Upload App</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="main panel">
+        <div class="tabs" role="tablist">
+          <button class="tab active" type="button" data-i18n="my_apps">My Apps</button>
+          <button class="tab" type="button" data-i18n="admin_all_apps">Admin: All Apps</button>
+        </div>
+        <div class="metric-grid">
+          <div class="metric">
+            <strong>128</strong>
+            <span data-i18n="metric_total">Total hosted apps</span>
+          </div>
+          <div class="metric">
+            <strong>116</strong>
+            <span data-i18n="metric_active">Active apps</span>
+          </div>
+          <div class="metric">
+            <strong>4</strong>
+            <span data-i18n="metric_failed">Failed scans</span>
+          </div>
+        </div>
+        <div class="filters">
+          <div class="field">
+            <label for="search" data-i18n="search">Search</label>
+            <input id="search" value="customer portal" data-i18n-placeholder="admin_search_placeholder">
+          </div>
+          <div class="field">
+            <label for="status" data-i18n="status">Status</label>
+            <select id="status">
+              <option data-i18n="all_statuses">All statuses</option>
+              <option selected data-i18n="active">Active</option>
+              <option data-i18n="pending_scan">Pending scan</option>
+              <option data-i18n="failed_scan">Failed scan</option>
+              <option data-i18n="removed">Removed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="owner_filter" data-i18n="owner_user">Owner / user</label>
+            <select id="owner_filter">
+              <option data-i18n="all_users">All users</option>
+              <option>eli</option>
+              <option>mineral</option>
+              <option>demo</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn" data-i18n="filter">Filter</button>
+          </div>
+        </div>
+
+        <table aria-label="Hosted apps">
+          <thead>
+            <tr>
+              <th style="width:34%" data-i18n="app">App</th>
+              <th style="width:15%" data-i18n="owner_user">Owner / user</th>
+              <th style="width:12%" data-i18n="status">Status</th>
+              <th style="width:9%" data-i18n="version">Version</th>
+              <th style="width:12%" data-i18n="size">Size</th>
+              <th style="width:12%" data-i18n="updated">Updated</th>
+              <th style="width:16%; text-align:right" data-i18n="actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="selected">
+              <td>
+                <div class="name-cell">
+                  <strong>Customer Portal Lite</strong>
+                  <span>eli/customer-portal-lite</span>
+                </div>
+              </td>
+              <td>eli</td>
+              <td><span class="badge active" data-i18n="active">Active</span></td>
+              <td>v4</td>
+              <td>3.8MB</td>
+              <td>2026-09-07 09:20</td>
+              <td>
+                <div class="icon-buttons">
+                  <button class="icon-btn" title="Open" data-i18n-title="open">↗</button>
+                  <button class="icon-btn" title="Copy URL" data-i18n-title="copy_url">⧉</button>
+                  <button class="icon-btn" title="Disable" data-i18n-title="disable">||</button>
+                  <button class="icon-btn" title="Replace ZIP" data-i18n-title="replace_zip">⇧</button>
+                  <button class="icon-btn" title="Remove" data-i18n-title="remove">×</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="name-cell">
+                  <strong>Lead Intake Board</strong>
+                  <span>eli/lead-intake-board</span>
+                </div>
+              </td>
+              <td>mineral</td>
+              <td><span class="badge pending" data-i18n="pending">Pending</span></td>
+              <td>v1</td>
+              <td>11.2MB</td>
+              <td>2026-09-07 08:55</td>
+              <td>
+                <div class="icon-buttons">
+                  <button class="icon-btn" title="Refresh" data-i18n-title="refresh">↻</button>
+                  <button class="icon-btn" title="Review" data-i18n-title="review">?</button>
+                  <button class="icon-btn" title="Copy URL" data-i18n-title="copy_url">⧉</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="name-cell">
+                  <strong>Old Quote Widget</strong>
+                  <span>eli/quote-widget</span>
+                </div>
+              </td>
+              <td>demo</td>
+              <td><span class="badge failed" data-i18n="failed">Failed</span></td>
+              <td>v2</td>
+              <td>820KB</td>
+              <td>2026-09-06 17:10</td>
+              <td>
+                <div class="icon-buttons">
+                  <button class="icon-btn" title="View Error" data-i18n-title="view_error">!</button>
+                  <button class="icon-btn" title="Replace ZIP" data-i18n-title="replace_zip">⇧</button>
+                  <button class="icon-btn" title="Remove" data-i18n-title="remove">×</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="name-cell">
+                  <strong>Campaign Microsite</strong>
+                  <span>demo/campaign-microsite</span>
+                </div>
+              </td>
+              <td>demo</td>
+              <td><span class="badge disabled" data-i18n="disabled">Disabled</span></td>
+              <td>v7</td>
+              <td>5.4MB</td>
+              <td>2026-09-05 13:32</td>
+              <td>
+                <div class="icon-buttons">
+                  <button class="icon-btn" title="Enable" data-i18n-title="enable">▶</button>
+                  <button class="icon-btn" title="Open" data-i18n-title="open">↗</button>
+                  <button class="icon-btn" title="Remove" data-i18n-title="remove">×</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="footer-note" data-i18n="footer_note">Showing 4 of 128 apps. Admin API page size stays capped at 25 for stable list performance.</div>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <div class="card-head">
+            <h2 data-i18n="upload_app_plain">Upload App</h2>
+            <span class="badge active" data-i18n="owner">Owner</span>
+          </div>
+          <div class="upload-box">
+            <div class="field">
+              <label for="app_name" data-i18n="app_name">App name</label>
+              <input id="app_name" value="Customer Portal Lite">
+            </div>
+            <div class="field">
+              <label for="app_slug" data-i18n="folder_slug">Folder slug</label>
+              <input id="app_slug" value="customer-portal-lite">
+            </div>
+            <div class="dropzone">
+              <div>
+                <strong data-i18n="drop_zip">Drop ZIP here</strong>
+                <span data-i18n="choose_file">or choose a file from your computer</span>
+              </div>
+            </div>
+            <ul class="rule-list">
+              <li data-i18n="rule_index">ZIP must include index.html at root</li>
+              <li data-i18n="rule_static">Static files only, max 25MB ZIP</li>
+              <li data-i18n="rule_permission">Owner or member-admin only</li>
+            </ul>
+            <button class="btn primary" data-i18n="upload_scan">Upload and Scan</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="card-head">
+            <h2 data-i18n="selected_app">Selected App</h2>
+            <button class="btn" data-i18n="refresh">Refresh</button>
+          </div>
+          <div class="detail-body">
+            <div class="detail-row">
+              <span data-i18n="owner_user">Owner / user</span>
+              <strong>eli / owner_id 47</strong>
+            </div>
+            <div class="detail-row">
+              <span data-i18n="public_url">Public URL</span>
+              <div class="url-row">
+                <div class="url">https://apps.biz1.co.il/eli/customer-portal-lite/</div>
+                <button class="btn" data-i18n="copy">Copy</button>
+              </div>
+            </div>
+            <div class="detail-row">
+              <span data-i18n="scan_status">Scan status</span>
+              <strong data-i18n="scan_passed">Passed, static assets only</strong>
+            </div>
+            <div class="detail-row">
+              <span data-i18n="failed_example">Failed upload example</span>
+              <div class="scan-log" data-i18n="scan_error">ZIP rejected: JavaScript dynamic execution is blocked. File: app.js</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn" data-i18n="disable">Disable</button>
+              <button class="btn" data-i18n="replace_zip">Replace ZIP</button>
+              <button class="btn danger" data-i18n="remove">Remove</button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
+

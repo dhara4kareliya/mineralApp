@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title data-i18n="login.title">Sign in — Customer Portal</title>
+  <link rel="stylesheet" href="../css/styles.css?v=202608151306" />
+  <script>
+    (function () {
+      var lang = localStorage.getItem('cp_lang') === 'he' ? 'he' : 'en';
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('cp_theme') || 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div class="auth-page">
+    <section class="auth-visual">
+      <div class="auth-brand">
+        <div class="logo">CP</div>
+        <span data-i18n="login.brand">Customer Portal</span>
+      </div>
+      <div>
+        <h2 data-i18n="login.hero">Your projects, tickets, invoices & bookings — in one place.</h2>
+        <p data-i18n="login.heroSub">Sign in with your customer credentials. We’ll email a one-time code to keep your account secure.</p>
+      </div>
+      <p class="text-sm" style="opacity:.8" data-i18n="login.powered">Powered by Bull36 Customer APIs</p>
+    </section>
+
+    <section class="auth-panel">
+      <button type="button" class="btn btn-ghost lang-toggle auth-lang-toggle" data-lang-toggle>עברית</button>
+      <button type="button" class="btn btn-ghost btn-icon auth-theme-toggle" data-theme-toggle data-i18n-title="theme">🌙</button>
+
+      <div class="auth-card">
+        <!-- Step 1: credentials -->
+        <div class="auth-step active" id="step-credentials">
+          <h1 data-i18n="login.welcome">Welcome back</h1>
+          <p class="lead" data-i18n="login.lead">Enter your customer ID or email and password to continue.</p>
+          <div id="cred-alert" hidden></div>
+          <form id="form-credentials" autocomplete="on">
+            <div class="form-group">
+              <label class="form-label" for="client_id" data-i18n="login.clientId">Customer ID or email</label>
+              <input class="form-control" id="client_id" name="client_id" required data-i18n-placeholder="login.clientPlaceholder" placeholder="e.g. 12614595 or you@email.com" autocomplete="username" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="password" data-i18n="login.password">Password</label>
+              <div class="password-field">
+                <input class="form-control" id="password" name="password" type="password" required placeholder="••••••••" autocomplete="current-password" />
+                <button type="button" class="password-toggle" id="toggle-password" data-i18n-aria="login.showPassword" data-i18n-title="login.showPassword" aria-label="Show password" title="Show password">
+                  <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="btn-send-otp" data-i18n="login.continue">Continue</button>
+          </form>
+        </div>
+
+        <!-- Step 2: OTP -->
+        <div class="auth-step" id="step-otp">
+          <h1 data-i18n="login.checkEmail">Check your email</h1>
+          <p class="lead" data-i18n="login.otpLead">Enter the 6-digit code we sent. It expires in about 10 minutes.</p>
+          <div id="otp-alert" hidden></div>
+          <form id="form-otp">
+            <div class="form-group">
+              <label class="form-label" data-i18n="login.otp">One-time password</label>
+              <div class="otp-inputs" id="otp-inputs">
+                <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+                <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
+                <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
+                <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
+                <input inputmode="numeric" maxlength="1" aria-label="Digit 5" />
+                <input inputmode="numeric" maxlength="1" aria-label="Digit 6" />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="btn-verify-otp" data-i18n="login.verify">Verify &amp; sign in</button>
+            <button type="button" class="btn btn-ghost btn-block mt-1" id="btn-back">← <span data-i18n="back">Back</span></button>
+            <p class="text-sm muted mt-2" style="text-align:center" data-i18n="login.noCode">
+              Didn’t get a code? Check spam, or go back and request again.
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="../js/config.js?v=202608151306"></script>
+  <script src="../js/theme.js?v=202608151306"></script>
+  <script src="../js/i18n.js?v=202608151306"></script>
+  <script src="../js/toast.js?v=202608151306"></script>
+  <script src="../js/auth.js?v=202608151306"></script>
+  <script src="../js/api.js?v=202608151306"></script>
+  <script>
+    Theme.init();
+    I18n.init();
+    if (Auth.isLoggedIn()) location.replace('dashboard.html');
+
+    const stepCred = document.getElementById('step-credentials');
+    const stepOtp = document.getElementById('step-otp');
+    const credAlert = document.getElementById('cred-alert');
+    const otpAlert = document.getElementById('otp-alert');
+    const otpInputs = [...document.querySelectorAll('#otp-inputs input')];
+
+    otpInputs.forEach((input, i) => {
+      input.setAttribute('aria-label', I18n.t('login.digit', { n: i + 1 }));
+    });
+
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('toggle-password');
+    togglePassword.addEventListener('click', () => {
+      const show = passwordInput.type === 'password';
+      passwordInput.type = show ? 'text' : 'password';
+      togglePassword.classList.toggle('is-visible', show);
+      const label = show ? I18n.t('login.hidePassword') : I18n.t('login.showPassword');
+      togglePassword.setAttribute('aria-label', label);
+      togglePassword.title = label;
+    });
+
+    function showAlert(el, msg, type = 'error') {
+      el.hidden = false;
+      el.className = `alert alert-${type}`;
+      el.textContent = msg;
+    }
+
+    function hideAlert(el) {
+      el.hidden = true;
+      el.textContent = '';
+    }
+
+    function showStep(step) {
+      stepCred.classList.toggle('active', step === 'cred');
+      stepOtp.classList.toggle('active', step === 'otp');
+    }
+
+    otpInputs.forEach((input, i) => {
+      input.addEventListener('input', () => {
+        input.value = input.value.replace(/\D/g, '').slice(0, 1);
+        if (input.value && i < otpInputs.length - 1) otpInputs[i + 1].focus();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !input.value && i > 0) otpInputs[i - 1].focus();
+      });
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+        text.split('').forEach((ch, idx) => {
+          if (otpInputs[idx]) otpInputs[idx].value = ch;
+        });
+        otpInputs[Math.min(text.length, 5)]?.focus();
+      });
+    });
+
+    function getOtp() {
+      return otpInputs.map((i) => i.value).join('');
+    }
+
+    document.getElementById('form-credentials').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert(credAlert);
+      const btn = document.getElementById('btn-send-otp');
+      const draft = {
+        client_id: document.getElementById('client_id').value.trim(),
+        password: document.getElementById('password').value,
+      };
+      Auth.setLoginDraft(draft);
+
+      btn.disabled = true;
+      btn.textContent = I18n.t('login.sendingOtp');
+      try {
+        const data = await API.login(draft);
+        if (data.otp_required || String(data.success) === '3') {
+          showStep('otp');
+          Toast.success(data.message || I18n.t('login.otpSent'));
+          otpInputs[0].focus();
+        } else if (data.token) {
+          await finishLogin(data);
+        } else if (String(data.success) === '0' || data.success === 0) {
+          showAlert(credAlert, data.message || I18n.t('login.failed'));
+        } else {
+          showAlert(credAlert, data.message || I18n.t('login.unexpected'));
+        }
+      } catch (err) {
+        showAlert(credAlert, err.message || I18n.t('login.failed'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = I18n.t('login.continue');
+      }
+    });
+
+    document.getElementById('form-otp').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert(otpAlert);
+      const otp = getOtp();
+      if (otp.length !== 6) {
+        showAlert(otpAlert, I18n.t('login.enterOtp'));
+        return;
+      }
+      const draft = Auth.getLoginDraft();
+      const btn = document.getElementById('btn-verify-otp');
+      btn.disabled = true;
+      btn.textContent = I18n.t('login.verifying');
+      try {
+        const data = await API.login({ ...draft, otp });
+        if (data.token) {
+          await finishLogin(data);
+        } else if (data.otp_required) {
+          showAlert(otpAlert, data.message || I18n.t('login.otpStillRequired'));
+        } else {
+          showAlert(otpAlert, data.message || I18n.t('login.invalidOtp'));
+        }
+      } catch (err) {
+        showAlert(otpAlert, err.message || I18n.t('login.verificationFailed'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = I18n.t('login.verify');
+      }
+    });
+
+    document.getElementById('btn-back').addEventListener('click', () => {
+      showStep('cred');
+      hideAlert(otpAlert);
+      otpInputs.forEach((i) => (i.value = ''));
+    });
+
+    async function finishLogin(data) {
+      Auth.setSession({
+        token: data.token,
+        customer: data.customer || { name: 'Customer', id: data.c_id },
+      });
+      Auth.clearLoginDraft();
+      try {
+        const welcome = await API.welcome();
+        Auth.setSession({
+          welcome,
+          modules: welcome.modules || {},
+          customer: {
+            ...(Auth.getCustomer() || {}),
+            id: welcome.c_id,
+            name: welcome.name || Auth.getCustomer()?.name || 'Customer',
+            owner_id: welcome.owner_id,
+          },
+        });
+      } catch (err) {
+        console.warn('Customer.Welcome failed', err);
+        Auth.setSession({ modules: {} });
+      }
+      Toast.success(I18n.t('login.signedIn'));
+      location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+</html>

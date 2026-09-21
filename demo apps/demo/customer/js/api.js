@@ -1,6 +1,6 @@
 /**
  * API client for Customer Portal routes
- * https://eli.bull36.com/app/help/category/Customer-Portal
+ * https://eli.biz1.co.il/app/help/category/Customer-Portal
  */
 const API = (() => {
   function base() {
@@ -112,6 +112,105 @@ const API = (() => {
     });
   }
 
+  function projectsGet(project_id) {
+    return request('Customer.Projects.Get', { body: { project_id, id: project_id } });
+  }
+
+  /**
+   * Create project on the server.
+   * Prefer Customer.Projects.Add when available; staff Projects.Add is blocked for client tokens.
+   */
+  async function projectsAdd(fields) {
+    const allowed = [
+      'project_name',
+      'name',
+      'credentials',
+      'note',
+      'organizations_user',
+      'default_user',
+      'member',
+      'member_ids',
+      'tags',
+      'private_project',
+      'use_as_template',
+      'allow_add_mission',
+      'show_hide_tag',
+      'mission_dependency',
+      'done',
+      'projects_template_id',
+      'template_project_id',
+      'custom_fields',
+    ];
+    const body = {};
+    allowed.forEach((key) => {
+      if (fields[key] !== undefined && fields[key] !== null && fields[key] !== '') {
+        body[key] = fields[key];
+      }
+    });
+    if (!body.project_name && fields.name) body.project_name = fields.name;
+
+    // API expects JSON string for member arrays (see Projects.Add help).
+    ['organizations_user', 'default_user', 'member_ids', 'tags'].forEach((key) => {
+      if (Array.isArray(body[key])) {
+        body[key] = JSON.stringify(body[key].map(String));
+      }
+    });
+
+    // Never send project_id on Add — Customer.Projects.Add rejects it as unknown.
+    delete body.project_id;
+    delete body.id;
+
+    const routes = ['Customer.Projects.Add', 'Customer.Projects.Save'];
+    let lastErr = null;
+    for (const route of routes) {
+      try {
+        const res = await request(route, { body });
+        if (String(res.success) === '0' || res.success === 0) {
+          const code = res.error || '';
+          if (code === 'client_token_not_allowed' || /route not found/i.test(String(res.message || ''))) {
+            lastErr = new Error(res.message || res.error || `Failed: ${route}`);
+            lastErr.code = code || 'route_unavailable';
+            lastErr.response = res;
+            continue;
+          }
+          const err = new Error(res.message || res.error || trFail(route));
+          err.code = code;
+          err.response = res;
+          throw err;
+        }
+        return { ...res, _route: route };
+      } catch (err) {
+        lastErr = err;
+        const msg = String(err.message || '');
+        if (/route not found|not found|404/i.test(msg) || err.code === 'client_token_not_allowed') {
+          continue;
+        }
+        throw err;
+      }
+    }
+    const err = lastErr || new Error('Project create is not available for customer portal login');
+    err.code = err.code || 'customer_projects_add_unavailable';
+    throw err;
+  }
+
+  function trFail(route) {
+    return `Could not create project (${route})`;
+  }
+
+  function missionsList(opts = {}) {
+    return request('Customer.Missions.List', {
+      body: { limit: window.CP_CONFIG.PAGE_SIZE, ...opts },
+    });
+  }
+
+  function missionAdd(fields) {
+    return request('Customer.Missions.Add', { body: fields });
+  }
+
+  function missionUpdate(fields) {
+    return request('Customer.Missions.Update', { body: fields });
+  }
+
   function invoicesList(opts = {}) {
     return request('Customer.Invoices.List', {
       body: { limit: window.CP_CONFIG.PAGE_SIZE, ...opts },
@@ -154,6 +253,57 @@ const API = (() => {
 
   function appointmentsTypes() {
     return request('Customer.Appointments.Types');
+  }
+
+  /** Customer portal — https://eli.biz1.co.il/app/help/Customer.Appointments.Branches */
+  function appointmentBranchesList(opts = {}) {
+    return request('Customer.Appointments.Branches', {
+      body: { ...opts },
+    });
+  }
+
+  /** Customer portal — insurance dropdown. Docs: Customer.Appointments.InsuranceCompanies */
+  function appointmentInsuranceCompaniesList(opts = {}) {
+    return request('Customer.Appointments.InsuranceCompanies', {
+      body: { ...opts },
+    });
+  }
+
+  /** Customer portal — Apply Coupon modal list. Docs: Customer.Appointments.Coupons */
+  function appointmentsCoupons(opts = {}) {
+    return request('Customer.Appointments.Coupons', {
+      body: { limit: 25, ...opts },
+    });
+  }
+
+  /** Apply selected coupon ids. Docs: Customer.Appointments.ApplyCoupon */
+  function appointmentsApplyCoupon(couponIds) {
+    const ids = Array.isArray(couponIds) ? couponIds.filter(Boolean).join(',') : String(couponIds || '');
+    return request('Customer.Appointments.ApplyCoupon', {
+      body: { coupon_ids: ids, coupon_id: ids },
+    });
+  }
+
+  /** Insurance price for type + company. Docs: Customer.Appointments.InsuranceAmount */
+  function appointmentsInsuranceAmount(fields) {
+    return request('Customer.Appointments.InsuranceAmount', { body: fields });
+  }
+
+  /** Staff coupon CRUD (Reports) — used by ADD COUPONS / Edit / Delete when allowed */
+  function appointmentCouponGet(id) {
+    return request('AppointmentCoupon.Get', { body: { id, coupon_id: id } });
+  }
+
+  function appointmentCouponAdd(fields) {
+    return request('AppointmentCoupon.Add', { body: fields });
+  }
+
+  function appointmentCouponEdit(fields) {
+    return request('AppointmentCoupon.Edit', { body: fields });
+  }
+
+  function appointmentCouponDelete(id) {
+    return request('AppointmentCoupon.Delete', { body: { id, coupon_id: id } });
   }
 
   function appointmentAdd(fields) {
@@ -208,6 +358,11 @@ const API = (() => {
     ticketReply,
     ticketStatus,
     projectsList,
+    projectsGet,
+    projectsAdd,
+    missionsList,
+    missionAdd,
+    missionUpdate,
     invoicesList,
     dynamicContentList,
     productsList,
@@ -217,6 +372,15 @@ const API = (() => {
     appointmentGet,
     appointmentsDoctors,
     appointmentsTypes,
+    appointmentBranchesList,
+    appointmentInsuranceCompaniesList,
+    appointmentsCoupons,
+    appointmentsApplyCoupon,
+    appointmentsInsuranceAmount,
+    appointmentCouponGet,
+    appointmentCouponAdd,
+    appointmentCouponEdit,
+    appointmentCouponDelete,
     appointmentAdd,
     appointmentEdit,
     appointmentDelete,
