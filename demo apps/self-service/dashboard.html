@@ -60,15 +60,15 @@
         </div>
       </header>
 
-      <!-- ── HERO ── -->
-      <div class="dash-hero">
-        <div class="dash-hello" data-i18n="hello">Hello</div>
-        <div id="custName" class="dash-name">—</div>
-        <div id="custMeta" class="dash-meta"></div>
-      </div>
-
       <!-- ── SCROLLABLE CONTENT ── -->
       <div class="dc-scroll dash-scroll">
+
+        <!-- ── HERO ── -->
+        <div class="dash-hero">
+          <div class="dash-hello" data-i18n="hello">Hello</div>
+          <div id="custName" class="dash-name">—</div>
+          <div id="custMeta" class="dash-meta"></div>
+        </div>
 
         <!-- Service Status -->
         <div style="padding: 16px 14px 8px;">
@@ -113,15 +113,16 @@
                 </svg>
               </div>
               <span data-i18n="actionsTitle">Pending actions</span>
+              <div id="pendingBadge" class="dash-badge pending-badge" style="display:none;">0</div>
             </div>
-            <div id="pendingBadge" class="dash-badge pending-badge" style="display:none;">0</div>
-          </div>
-
-          <!-- Filters -->
-          <div id="actionFilters" class="action-filters" role="group" aria-label="Filters" style="margin-bottom: 8px;">
-            <button type="button" class="action-filter is-active" data-filter="all" data-i18n="filterAll">All</button>
-            <button type="button" class="action-filter" data-filter="invoice" data-i18n="filterInvoice">Invoice</button>
-            <button type="button" class="action-filter" data-filter="sign" data-i18n="filterSign">Sign</button>
+            <div class="dash-filter-wrap">
+              <select id="pendingFilterSelect" class="dash-filter-select" aria-label="Filter pending actions">
+                <option value="all" data-i18n="filterAll">All</option>
+                <option value="invoice" data-i18n="filterInvoice">Invoice</option>
+                <option value="sign" data-i18n="filterSign">Sign</option>
+              </select>
+              <svg class="dash-filter-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
           </div>
 
           <!-- Pending list -->
@@ -141,6 +142,14 @@
                 </svg>
               </div>
               <span data-i18n="doneTitle">Completed</span>
+            </div>
+            <div class="dash-filter-wrap">
+              <select id="doneFilterSelect" class="dash-filter-select" aria-label="Filter completed items">
+                <option value="all" data-i18n="filterAll">All</option>
+                <option value="invoice" data-i18n="filterInvoice">Invoice</option>
+                <option value="sign" data-i18n="filterSign">Sign</option>
+              </select>
+              <svg class="dash-filter-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
 
@@ -264,12 +273,12 @@
           <option value="en">English</option>
         </select>
       </div>
-      <div style="display:flex;align-items:flex-end;padding-bottom:10px;">
+      <!-- <div style="display:flex;align-items:flex-end;padding-bottom:10px;">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;">
           <input type="checkbox" id="createSaveDraft" style="width:16px;height:16px;">
           Save as draft
         </label>
-      </div>
+      </div> -->
     </div>
 
     <div id="createError" class="error-box hidden" style="margin-bottom:16px;"></div>

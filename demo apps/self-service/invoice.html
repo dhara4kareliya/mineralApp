@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 — Invoice & Payment</title>
 <script src="assets/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/style.css?v=ss-30">
+<link rel="stylesheet" href="assets/style.css?v=ss-31">
 <script src="assets/config.js?v=ss-30"></script>
 <script src="assets/biz1-sdk.js?v=ss-30"></script>
 <script src="assets/biz1-app.js?v=ss-30"></script>
@@ -106,6 +106,7 @@
     <div class="workspace">
 
       <!-- Document Preview -->
+      <div class="invoice-document-column">
       <section class="document-card" aria-labelledby="documentTitle">
         <div class="section-head">
           <div class="section-title" id="documentTitle">
@@ -128,6 +129,16 @@
           </div>
         </div>
       </section>
+
+      <div class="invoice-delete-zone">
+        <div class="invoice-delete-icon" aria-hidden="true">!</div>
+        <div class="invoice-delete-copy">
+          <div class="invoice-delete-title" data-i18n="deleteInvoiceTitle">Delete this invoice?</div>
+          <div class="invoice-delete-text" data-i18n="deleteInvoiceWarning">This action is permanent and cannot be undone. The invoice will be removed from the document list.</div>
+        </div>
+        <button id="btnDeleteInvoice" type="button" class="invoice-delete-button" data-i18n="deleteInvoiceButton">Delete invoice</button>
+      </div>
+      </div>
 
       <!-- Payment Form -->
       <section class="payment-card" aria-labelledby="paymentTitle">
@@ -365,6 +376,6 @@
   </footer>
 
 </div>
-<script src="assets/app.js?v=ss-30"></script>
+<script src="assets/app.js?v=ss-31"></script>
 </body>
 

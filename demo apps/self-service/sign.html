@@ -161,13 +161,16 @@
     box-shadow: var(--glass-shadow);
   }
   .agree-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 18px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 14px 18px !important;
     cursor: pointer;
     transition: background 0.2s ease;
     border-bottom: 1px solid var(--border-row);
+    margin-bottom: 0 !important;
+    user-select: none;
   }
   .agree-row:last-child { border-bottom: none; }
   .agree-row:hover { background: var(--brand-soft); }
@@ -182,6 +185,7 @@
     -webkit-appearance: none;
     cursor: pointer;
     flex-shrink: 0;
+    margin: 0 !important;
     transition: all 0.2s ease;
     display: grid;
     place-items: center;
@@ -204,6 +208,12 @@
     font-size: 13px;
     font-weight: 500;
     color: var(--text);
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  [dir="rtl"] .agree-row span {
+    text-align: right;
   }
 
   /* Right column: signature pad */

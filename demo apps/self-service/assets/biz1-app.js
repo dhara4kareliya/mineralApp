@@ -1316,6 +1316,14 @@
     return { raw: raw, html: raw.files_html || '', customer_id: id };
   }
 
+  /** Delete one document from the CRM. */
+  async function deleteDocument(documentId, customerId) {
+    var id = requireId(documentId, 'document_id');
+    var body = { document_id: id, id: id };
+    if (customerId != null && customerId !== '') body.customer_id = customerId;
+    return getClient().request('Documents.Delete', body);
+  }
+
   function parseEmailsHtml(html) {
     var rows = [];
     if (!html || typeof html !== 'string') return rows;
@@ -2699,6 +2707,7 @@
     getCustomer: getCustomer,
     getTicket: getTicket,
     listDocuments: listDocuments,
+    deleteDocument: deleteDocument,
     listEmails: listEmails,
     listChatConversations: listChatConversations,
     listCustomerMessages: listCustomerMessages,

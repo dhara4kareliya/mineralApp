@@ -88,6 +88,12 @@
       badgePay: 'לתשלום',
       badgeSign: 'לחתימה',
       badgeDone: 'בוצע',
+      deleteDocument: 'מחיקה',
+      confirmDeleteDocument: 'למחוק את המסמך?',
+      deleteDocumentFailed: 'לא ניתן למחוק את המסמך',
+      deleteInvoiceTitle: 'מחיקת החשבונית?',
+      deleteInvoiceWarning: 'פעולה זו אינה הפיכה. החשבונית תוסר מרשימת המסמכים.',
+      deleteInvoiceButton: 'מחיקת חשבונית',
       actionPaySub: 'חשבונית ממתינה לתשלום',
       actionSignSub: 'מסמך ממתין לחתימה דיגיטלית',
       actionDonePaySub: 'לחץ לצפייה ב־PDF',
@@ -168,7 +174,7 @@
       trustLine: 'Encrypted · Biz1 · Card not stored on device',
       footerNote: 'Biz1 Showcase · Customer portal',
       demoCredentials: 'Demo Credentials',
-      loginAsDemoUser: 'Login As Domo User',
+      loginAsDemoUser: 'Login As Demo User',
       hello: 'Hello',
       logout: 'Log out',
       refresh: 'Refresh',
@@ -206,6 +212,12 @@
       badgePay: 'Pay',
       badgeSign: 'Sign',
       badgeDone: 'Done',
+      deleteDocument: 'Delete',
+      confirmDeleteDocument: 'Delete this document?',
+      deleteDocumentFailed: 'Could not delete the document',
+      deleteInvoiceTitle: 'Delete this invoice?',
+      deleteInvoiceWarning: 'This action is permanent and cannot be undone. The invoice will be removed from the document list.',
+      deleteInvoiceButton: 'Delete invoice',
       actionPaySub: 'Invoice awaiting payment',
       actionSignSub: 'Document awaiting digital signature',
       actionDonePaySub: 'Tap to view PDF',
@@ -439,15 +451,38 @@
   }
 
   function updateActionFilterUi() {
-    var filter = state.actionFilter || 'all';
+    var pFilter = state.pendingFilter || state.actionFilter || 'all';
+    var dFilter = state.doneFilter || 'all';
+    var pSelect = document.getElementById('pendingFilterSelect');
+    if (pSelect && pSelect.value !== pFilter) pSelect.value = pFilter;
+    var dSelect = document.getElementById('doneFilterSelect');
+    if (dSelect && dSelect.value !== dFilter) dSelect.value = dFilter;
     document.querySelectorAll('#actionFilters .action-filter').forEach(function (btn) {
-      btn.classList.toggle('is-active', btn.getAttribute('data-filter') === filter);
+      btn.classList.toggle('is-active', btn.getAttribute('data-filter') === pFilter);
     });
+  }
+
+  function setPendingFilter(filter) {
+    var next = filter === 'invoice' || filter === 'sign' ? filter : 'all';
+    state.pendingFilter = next;
+    state.pendingPage = 1;
+    updateActionFilterUi();
+    if (state.actionGroups) renderActions(filterActionGroups(state.actionGroups));
+  }
+
+  function setDoneFilter(filter) {
+    var next = filter === 'invoice' || filter === 'sign' ? filter : 'all';
+    state.doneFilter = next;
+    state.donePage = 1;
+    updateActionFilterUi();
+    if (state.actionGroups) renderActions(filterActionGroups(state.actionGroups));
   }
 
   function setActionFilter(filter) {
     var next = filter === 'invoice' || filter === 'sign' ? filter : 'all';
     state.actionFilter = next;
+    state.pendingFilter = next;
+    state.doneFilter = next;
     state.pendingPage = 1;
     state.donePage = 1;
     updateActionFilterUi();
@@ -579,18 +614,25 @@
   function filterActionGroups(groups) {
     var pending = ((groups && groups.pending) || []).slice();
     var done = ((groups && groups.done) || []).slice();
-    var filter = state.actionFilter || 'all';
-    if (filter === 'invoice') {
+    var pFilter = state.pendingFilter || state.actionFilter || 'all';
+    var dFilter = state.doneFilter || 'all';
+
+    if (pFilter === 'invoice') {
       pending = pending.filter(function (a) { return a.doc && a.doc.type === 'invoice'; });
-      done = done.filter(function (a) { return a.doc && a.doc.type === 'invoice'; });
-    } else if (filter === 'sign') {
+    } else if (pFilter === 'sign') {
       pending = pending.filter(function (a) {
         return a.doc && (a.doc.type === 'quote' || a.doc.type === 'contract');
       });
+    }
+
+    if (dFilter === 'invoice') {
+      done = done.filter(function (a) { return a.doc && a.doc.type === 'invoice'; });
+    } else if (dFilter === 'sign') {
       done = done.filter(function (a) {
         return a.doc && (a.doc.type === 'quote' || a.doc.type === 'contract');
       });
     }
+
     return {
       pending: pending,
       done: done,
@@ -1072,8 +1114,9 @@
   function renderActionCard(a) {
     var isDone = a.kind === 'done-pay' || a.kind === 'done-sign';
     var isPay = a.kind === 'pay' || a.kind === 'done-pay';
-    var el = document.createElement('button');
-    el.type = 'button';
+    var el = document.createElement('div');
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
     el.className = 'action-card' + (isDone ? ' action-card--done' : '');
     var iconClass = isPay ? 'action-icon--pay' : 'action-icon--sign';
     if (isDone) iconClass = 'action-icon--done';
@@ -1112,6 +1155,12 @@
       else if (a.kind === 'sign') openSign(a.doc);
       else openDocumentPdf(a.doc);
     });
+    el.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        el.click();
+      }
+    });
     return el;
   }
 
@@ -1138,7 +1187,7 @@
     if (!pending.length) {
       var empty = document.createElement('div');
       empty.className = 'empty-actions';
-      empty.textContent = (state.actionFilter && state.actionFilter !== 'all')
+      empty.textContent = ((state.pendingFilter || state.actionFilter) && (state.pendingFilter || state.actionFilter) !== 'all')
         ? t('emptyFilter')
         : t('emptyActions');
       list.appendChild(empty);
@@ -1156,7 +1205,7 @@
       if (!done.length) {
         var emptyDone = document.createElement('div');
         emptyDone.className = 'empty-actions';
-        emptyDone.textContent = (state.actionFilter && state.actionFilter !== 'all')
+        emptyDone.textContent = (state.doneFilter && state.doneFilter !== 'all')
           ? t('emptyFilter')
           : t('emptyDone');
         doneList.appendChild(emptyDone);
@@ -1455,6 +1504,32 @@
       return;
     }
     goPage('invoice');
+  }
+
+  async function deleteCurrentInvoice() {
+    var doc = state.currentDoc || loadCurrentDoc();
+    var documentId = doc && (doc.id || doc.document_id || doc.documents_id);
+    if (!documentId || !window.confirm(t('confirmDeleteDocument'))) return;
+
+    var button = $('btnDeleteInvoice');
+    if (button) {
+      button.disabled = true;
+      button.textContent = '…';
+    }
+    try {
+      await app().deleteDocument(documentId, portalCustomerId());
+      try {
+        sessionStorage.removeItem(DOC_KEY);
+        sessionStorage.removeItem(VIEW_ONLY_KEY);
+      } catch (e) { /* ignore storage errors */ }
+      goPage('dashboard');
+    } catch (err) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = t('deleteInvoiceButton');
+      }
+      window.alert((err && err.message) || t('deleteDocumentFailed'));
+    }
   }
 
   function openDocumentPdf(doc) {
@@ -2097,6 +2172,7 @@
     if (page === 'invoice') {
       if (!requireAuthOrLogin()) return;
       on('btnInvBack', 'click', function () { goPage('dashboard'); });
+      on('btnDeleteInvoice', 'click', deleteCurrentInvoice);
       on('btnPay', 'click', submitPayment);
       setPayMethod('cc');
       loadBankOptions();
@@ -2306,6 +2382,20 @@
             btn.innerHTML = origHtml;
             btn.disabled = false;
           }
+        });
+      }
+
+      var pendingSelect = document.getElementById('pendingFilterSelect');
+      if (pendingSelect) {
+        pendingSelect.addEventListener('change', function () {
+          setPendingFilter(this.value);
+        });
+      }
+
+      var doneSelect = document.getElementById('doneFilterSelect');
+      if (doneSelect) {
+        doneSelect.addEventListener('change', function () {
+          setDoneFilter(this.value);
         });
       }
 
