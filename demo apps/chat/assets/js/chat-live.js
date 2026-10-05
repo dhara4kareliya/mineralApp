@@ -195,19 +195,33 @@
   function timeOnly(time) {
     var s = String(time || '').trim();
     if (!s) return '';
+    
+    // If it's a MySQL datetime from the API (UTC), parse it properly
+    var isApiDate = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?Z?$/.test(s);
+    if (isApiDate) {
+      // Ensure it's treated as UTC if it doesn't already have a timezone indicator
+      var toParse = s.indexOf('Z') === -1 && s.indexOf('+') === -1 ? s.replace(' ', 'T') + 'Z' : s;
+      var d = Date.parse(toParse);
+      if (!Number.isNaN(d)) {
+        var dt = new Date(d);
+        return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+      }
+    }
+
     // Already time-only (e.g. 06:11 or 06:11:57)
     if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s.length === 4 ? '0' + s : s;
-    // "27.07.2026 06:11:57" / "27/07/2026 06:11"
+    
+    // Try native Date parsing first (handles formats like "10/05/2026, 3:38:00 PM")
+    var d2 = Date.parse(s);
+    if (!Number.isNaN(d2)) {
+      var dt2 = new Date(d2);
+      return String(dt2.getHours()).padStart(2, '0') + ':' + String(dt2.getMinutes()).padStart(2, '0');
+    }
+
+    // Legacy fallback for other formats (like "27.07.2026 15:38:00")
     var m = s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
     if (m) {
-      var hh = m[1].padStart(2, '0');
-      var mm = m[2];
-      return hh + ':' + mm;
-    }
-    var d = Date.parse(s);
-    if (!Number.isNaN(d)) {
-      var dt = new Date(d);
-      return String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+      return m[1].padStart(2, '0') + ':' + m[2];
     }
     return s;
   }
@@ -332,11 +346,15 @@
       if (!audio) return;
       if (activeAudioEl && activeAudioEl !== audio) stopActiveAudio();
       if (audio.paused) {
-        audio.play().then(function () {
-          activeAudioEl = audio;
-          wrap.classList.add('is-playing');
-          btn.innerHTML = audioPauseIcon();
-        }).catch(function () {
+        activeAudioEl = audio;
+        wrap.classList.add('is-playing');
+        btn.innerHTML = audioPauseIcon();
+        audio.play().catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          wrap.classList.remove('is-playing');
+          btn.innerHTML = audioPlayIcon();
+          if (activeAudioEl === audio) activeAudioEl = null;
+          console.error('Audio play failed:', err);
           showToast(tt('audio_play_failed'));
         });
       } else {
@@ -395,7 +413,7 @@
     var raw = String(text == null ? '' : text);
     if (!raw) return '';
     var App = window.Biz1App || window.MineralBarApp;
-    var urlRe = /(https?:\/\/[^\s<>"']+|biz1upload\/[^\s<>"']+)/gi;
+    var urlRe = /(https?:\/\/[^\s<>"']+|biz1upload\/[^\s<>"']+|[a-zA-Z0-9_.-]+\.(?:jpg|jpeg|png|gif|webp|bmp|heic|mp4|webm|mov|m4v|mp3|wav|m4a|aac|ogg|flac)(?:\?[^\s<>"']*)?)/gi;
     var parts = [];
     var last = 0;
     var m;
@@ -410,6 +428,9 @@
     var hasAudioUrl = parts.some(function (p) {
       if (p.type !== 'url') return false;
       var href = p.value;
+      if (!/^https?:\/\//i.test(href) && !/^biz1upload\//i.test(href)) {
+        href = 'biz1upload/' + href;
+      }
       if (/^biz1upload\//i.test(href) && App && typeof App.resolveFileUrl === 'function') {
         href = App.resolveFileUrl(href);
       }
@@ -432,6 +453,9 @@
         return esc(t);
       }
       var href = part.value;
+      if (!/^https?:\/\//i.test(href) && !/^biz1upload\//i.test(href)) {
+        href = 'biz1upload/' + href;
+      }
       if (/^biz1upload\//i.test(href) && App && typeof App.resolveFileUrl === 'function') {
         href = App.resolveFileUrl(href);
       }
@@ -598,7 +622,8 @@
     row = document.createElement('div');
     row.id = 'mb-send-via';
     row.className = 'send-via-row';
-    composer.parentNode.insertBefore(row, composer);
+    var attachMenu = document.getElementById('mb-chat-attach-menu');
+    composer.insertBefore(row, attachMenu);
     return row;
   }
 
@@ -661,11 +686,11 @@
     }
     if (sendBtn) sendBtn.disabled = !ok;
     if (statusEl) {
-      statusEl.style.display = 'block';
       if (ok) {
-        statusEl.style.color = 'var(--text-muted)';
-        statusEl.textContent = tt('send_ready_channel');
+        statusEl.style.display = 'none';
+        statusEl.textContent = '';
       } else {
+        statusEl.style.display = 'block';
         statusEl.style.color = 'var(--warn)';
         statusEl.textContent = reason || tt('send_not_allowed_here');
       }
@@ -740,7 +765,8 @@
         }
         var out = isOutgoing(row);
         var who = row.user_name || '';
-        if (who && who.indexOf('@') !== -1) who = '';
+        if (out) who = window.t ? window.t('me') : 'Me';
+        else if (who && who.indexOf('@') !== -1) who = '';
         var label = channelHeader(row, out);
         var clock = timeOnly(row.time);
         if (out) html += bubbleOut(text, clock, false, who, label);
@@ -1206,8 +1232,9 @@
     return '';
   }
 
+  var isPromptingRecord = false;
   async function startRecording() {
-    if (isRecording || isSending) return;
+    if (isRecording || isSending || isPromptingRecord) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       showToast(tt('record_unsupported'));
       return;
@@ -1216,11 +1243,13 @@
       showToast(tt('record_unsupported'));
       return;
     }
+    isPromptingRecord = true;
     try {
       clearPendingAttachment();
       lastAttachToken = '';
       setAttachMenuOpen(false);
       recordStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      isPromptingRecord = false;
       recordChunks = [];
       var mime = pickRecorderMime();
       mediaRecorder = mime
@@ -1263,9 +1292,14 @@
         hint.textContent = fmtAudioClock((Date.now() - recordStartedAt) / 1000);
       }, 250);
     } catch (err) {
+      isPromptingRecord = false;
       console.error('[Biz1Showcase] mic record failed', err);
       cancelRecording(true);
-      showToast(tt('record_permission'));
+      
+      // Force display the exact error name and message for debugging
+      var msg = 'Mic error: ' + (err ? err.name : 'Unknown') + ' - ' + (err ? err.message : 'No message');
+      
+      showToast(msg);
     }
   }
 

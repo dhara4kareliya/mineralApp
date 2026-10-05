@@ -68,7 +68,7 @@
     async function loadCRMData() {
       var App = window.Biz1App || window.MineralBarApp;
       if (!App || !App.isAuthenticated()) {
-        contentArea.innerHTML = '<div style="text-align:center; padding: 20px; color:#c0392b;">' + tt('crm_login_required') + '</div>';
+        contentArea.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--danger, #c0392b);">' + tt('crm_login_required') + '</div>';
         return;
       }
 
@@ -80,11 +80,11 @@
       }
 
       if (!customerId) {
-        contentArea.innerHTML = '<div style="text-align:center; padding: 20px; color:#7b8595;">' + tt('crm_no_customer') + '</div>';
+        contentArea.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--text-muted, #7b8595);">' + tt('crm_no_customer') + '</div>';
         return;
       }
 
-      contentArea.innerHTML = '<div style="text-align:center; padding: 20px;"><span style="font-size:14px; color:#7b8595;">' + tt('loading_data') + '</span></div>';
+      contentArea.innerHTML = '<div style="text-align:center; padding: 20px;"><span style="font-size:14px; color:var(--text-muted, #7b8595);">' + tt('loading_data') + '</span></div>';
       pageState = { tasks: 1, invoices: 1, orders: 1 };
 
       try {
@@ -149,7 +149,7 @@
         renderCRMData(profile, orders, invoices, tasks);
       } catch (err) {
         console.error('Error loading CRM data:', err);
-        contentArea.innerHTML = '<div style="text-align:center; padding: 20px; color:#c0392b;">' + tt('crm_load_failed') + '</div>';
+        contentArea.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--danger, #c0392b);">' + tt('crm_load_failed') + '</div>';
       }
     }
 
@@ -158,26 +158,26 @@
       var phone = profile.phone || profile.mobile || '';
 
       html += '<div style="margin-bottom:20px;">';
-      html += '<div style="font-size:16px; font-weight:800; color:#1f2a3a;">' + esc(profile.name || 'Unknown Customer') + '</div>';
-      if (profile.email) html += '<div style="font-size:14px; color:#5a6473; margin-top:2px;">' + esc(profile.email) + '</div>';
-      if (phone) html += '<div style="font-size:14px; color:#5a6473; margin-top:2px;">' + esc(phone) + '</div>';
+      html += '<div style="font-size:16px; font-weight:800; color:var(--text, #1f2a3a);">' + esc(profile.name || 'Unknown Customer') + '</div>';
+      if (profile.email) html += '<div style="font-size:14px; color:var(--text-secondary, #5a6473); margin-top:2px;">' + esc(profile.email) + '</div>';
+      if (phone) html += '<div style="font-size:14px; color:var(--text-secondary, #5a6473); margin-top:2px;">' + esc(phone) + '</div>';
       html += '</div>';
 
       html += renderSection('tasks', tt('open_tasks'), tasks, function (t) {
         var title = t.mission || t.title || t.subject || ('Task #' + (t.mission_id || t.id || ''));
         var status = t.is_done || Number(t.done) === 1 ? 'Done' : (t.status || 'Open');
-        return '<div style="font-size:14px; color:#1f2a3a; font-weight:600;">' + esc(title) + '</div>' +
-               '<div style="font-size:12px; color:#7b8595;">' + esc(tt('status')) + ': ' + esc(status) + '</div>';
+        return '<div style="font-size:14px; color:var(--text, #1f2a3a); font-weight:600;">' + esc(title) + '</div>' +
+               '<div style="font-size:12px; color:var(--text-muted, #7b8595);">' + esc(tt('status')) + ': ' + esc(status) + '</div>';
       });
 
       html += renderSection('invoices', tt('pending_invoices'), invoices, function (inv) {
         var total = docTotal(inv);
         return '<div style="display:flex; justify-content:space-between; align-items:center;">' +
                '<div>' +
-                 '<div style="font-size:14px; color:#1f2a3a; font-weight:600;">' + esc(tt('invoice')) + ' #' + esc(docId(inv)) + '</div>' +
-                 '<div style="font-size:12px; color:#7b8595;">' + esc(formatDocDate(docDate(inv))) + '</div>' +
+                 '<div style="font-size:14px; color:var(--text, #1f2a3a); font-weight:600;">' + esc(tt('invoice')) + ' #' + esc(docId(inv)) + '</div>' +
+                 '<div style="font-size:12px; color:var(--text-muted, #7b8595);">' + esc(formatDocDate(docDate(inv))) + '</div>' +
                '</div>' +
-               (total !== '' ? '<div style="font-size:14px; font-weight:700; color:#c0392b;">' + esc(total) + ' ₪</div>' : '') +
+               (total !== '' ? '<div style="font-size:14px; font-weight:700; color:var(--danger, #c0392b);">' + esc(total) + ' ₪</div>' : '') +
                '</div>';
       });
 
@@ -185,10 +185,10 @@
         var total = docTotal(order);
         return '<div style="display:flex; justify-content:space-between; align-items:center;">' +
                '<div>' +
-                 '<div style="font-size:14px; color:#1f2a3a; font-weight:600;">' + esc(tt('order')) + ' #' + esc(docId(order)) + '</div>' +
-                 '<div style="font-size:12px; color:#7b8595;">' + esc(formatDocDate(docDate(order))) + '</div>' +
+                 '<div style="font-size:14px; color:var(--text, #1f2a3a); font-weight:600;">' + esc(tt('order')) + ' #' + esc(docId(order)) + '</div>' +
+                 '<div style="font-size:12px; color:var(--text-muted, #7b8595);">' + esc(formatDocDate(docDate(order))) + '</div>' +
                '</div>' +
-               (total !== '' ? '<div style="font-size:14px; font-weight:700; color:#2e8a63;">' + esc(total) + ' ₪</div>' : '') +
+               (total !== '' ? '<div style="font-size:14px; font-weight:700; color:var(--success, #2e8a63);">' + esc(total) + ' ₪</div>' : '') +
                '</div>';
       });
 
@@ -235,17 +235,17 @@
       var from = (page - 1) * PAGE_SIZE + 1;
       var to = Math.min(page * PAGE_SIZE, total);
       var btnBase =
-        'border:1px solid #d7dde6; background:#fff; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; color:#1f2a3a; cursor:pointer;';
+        'border:1px solid var(--border, #d7dde6); background:var(--bg-card, #fff); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; color:var(--text, #1f2a3a); cursor:pointer;';
       var btnDisabled =
-        'border:1px solid #e7eaef; background:#f3f5f7; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; color:#9aa3b0; cursor:not-allowed;';
+        'border:1px solid var(--border-soft, #e7eaef); background:var(--bg-muted, #f3f5f7); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; color:var(--text-muted, #9aa3b0); cursor:not-allowed;';
       var prevDis = page <= 1;
       var nextDis = page >= pages;
       return (
-        '<div class="crm-pager" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid #eef0f3;">' +
+        '<div class="crm-pager" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid var(--border-soft, #eef0f3);">' +
           '<button type="button" class="crm-pager-btn" data-crm-section="' + esc(sectionKey) + '" data-crm-page="' + (page - 1) + '"' +
             (prevDis ? ' disabled' : '') +
             ' style="' + (prevDis ? btnDisabled : btnBase) + '">' + esc(tt('crm_prev')) + '</button>' +
-          '<span style="font-size:12px; color:#7b8595; font-weight:600;">' +
+          '<span style="font-size:12px; color:var(--text-muted, #7b8595); font-weight:600;">' +
             esc(from + '–' + to + ' / ' + total) +
           '</span>' +
           '<button type="button" class="crm-pager-btn" data-crm-section="' + esc(sectionKey) + '" data-crm-page="' + (page + 1) + '"' +
@@ -257,9 +257,9 @@
 
     function renderSection(sectionKey, title, items, renderItem) {
       var html = '<div style="margin-bottom:18px;" data-crm-block="' + esc(sectionKey) + '">';
-      html += '<div style="font-size:15px; font-weight:800; color:#1d60a2; margin-bottom:8px; border-bottom:1px solid #eef0f3; padding-bottom:4px;">' + esc(title) + '</div>';
+      html += '<div style="font-size:15px; font-weight:800; color:var(--brand, #1d60a2); margin-bottom:8px; border-bottom:1px solid var(--border-soft, #eef0f3); padding-bottom:4px;">' + esc(title) + '</div>';
       if (!items || !items.length) {
-        html += '<div style="font-size:13px; color:#9aa3b0; font-style:italic;">' + esc(tt('no_data')) + '</div>';
+        html += '<div style="font-size:13px; color:var(--text-muted, #9aa3b0); font-style:italic;">' + esc(tt('no_data')) + '</div>';
       } else {
         var total = items.length;
         var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -270,7 +270,7 @@
 
         html += '<div style="display:flex; flex-direction:column; gap:8px;">';
         slice.forEach(function (item) {
-          html += '<div style="background:#f9fafb; border:1px solid #e7eaef; border-radius:8px; padding:10px;">';
+          html += '<div style="background:var(--bg-muted, #f9fafb); border:1px solid var(--border-soft, #e7eaef); border-radius:8px; padding:10px;">';
           html += renderItem(item);
           html += '</div>';
         });

@@ -1197,7 +1197,7 @@
   function resolveFileUrl(pathOrUrl) {
     var value = String(pathOrUrl || '').trim();
     if (!value) return '';
-    if (/^https?:\/\//i.test(value) || /^data:/i.test(value)) return value;
+    if (/^https?:\/\//i.test(value) || /^data:/i.test(value) || /^blob:/i.test(value)) return value;
     return FILES_CDN + value.replace(/^\/+/, '');
   }
 
@@ -1583,7 +1583,12 @@
     var locale = (window.getLanguage && window.getLanguage() === 'en') ? 'en-US' : 'he-IL';
     if (v == null) return '';
     if (typeof v === 'string' || typeof v === 'number') {
-      var d0 = new Date(v);
+      var s = String(v).trim();
+      var isApiDate = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?Z?$/.test(s);
+      if (isApiDate && s.indexOf('Z') === -1 && s.indexOf('+') === -1) {
+        s = s.replace(' ', 'T') + 'Z';
+      }
+      var d0 = new Date(s);
       return Number.isNaN(d0.getTime()) ? String(v) : d0.toLocaleString(locale);
     }
     if (typeof v === 'object') {
@@ -2076,7 +2081,7 @@
       var text = chatSnippet(r) || String(r.message || r.msg || r.note || '').trim();
       var type = String(r.type || r.channel || r.msg_type || 'whatsapp').toLowerCase();
       if (type === 'mision' || type === 'mission') type = 'biz1';
-      var displayTime = r.time || chatWhen(r) || mongoDate(r.inserted_date) || mongoDate(r.create_date);
+      var displayTime = chatWhen(r) || mongoDate(r.inserted_date) || mongoDate(r.create_date) || r.time;
       var row = {
         id: (r.id && (r.id.$oid || r.id)) || r.message_id || '',
         message: text,

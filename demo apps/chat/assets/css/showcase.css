@@ -73,6 +73,11 @@
 
 * { box-sizing: border-box; }
 
+::selection {
+  background-color: var(--brand);
+  color: #ffffff;
+}
+
 html, body {
   margin: 0;
   min-height: 100%;
@@ -474,7 +479,8 @@ html[lang="he"] .mb-toast {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 var(--page-pad) 10px;
+  margin-top: 10px;
+  padding-inline-start: 14px;
 }
 .channel-filter-btn {
   border: 1px solid var(--border-soft);
@@ -769,8 +775,7 @@ html[lang="he"] .mb-toast {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 8px 14px 0;
-  border-top: 1px solid var(--border, rgba(0,0,0,.08));
+  padding: 0 0 12px 0;
 }
 .send-via-label {
   font: 600 12px/1 var(--font-sans);
@@ -834,8 +839,7 @@ html[lang="he"] .mb-toast {
 
 .chat-status {
   display: none;
-  background: var(--bg-card);
-  padding: 6px var(--page-pad) 0;
+  padding: 0 0 8px 0;
   font-size: 12px;
   font-weight: 700;
   color: var(--brand);
@@ -1534,17 +1538,6 @@ html[lang="en"] .msg-bubble-out-inner { border-radius: 16px 4px 16px 16px; }
   .inbox-layout {
     flex-direction: row;
     display: flex;
-    direction: ltr; /* list LEFT · chat RIGHT (WhatsApp / Teams) */
-  }
-
-  .inbox-sidebar,
-  .inbox-chat {
-    direction: rtl;
-  }
-
-  html[lang="en"] .inbox-sidebar,
-  html[lang="en"] .inbox-chat {
-    direction: ltr;
   }
 
   .inbox-sidebar {

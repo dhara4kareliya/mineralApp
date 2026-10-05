@@ -280,6 +280,19 @@
   function parseWhenDate(value) {
     var s = String(value || '').trim();
     if (!s) return null;
+    
+    // If it's a MySQL datetime from the API (UTC), parse it properly
+    var toParse = s;
+    var isApiDate = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?Z?$/.test(s);
+    if (isApiDate && s.indexOf('Z') === -1 && s.indexOf('+') === -1) {
+      toParse = s.replace(' ', 'T') + 'Z';
+    }
+    
+    // Try native Date parsing first (handles formats like "10/05/2026, 3:38:00 PM")
+    var n = Date.parse(toParse);
+    if (!Number.isNaN(n)) return new Date(n);
+
+    // Legacy fallback for non-standard DD.MM.YYYY formats
     var m = s.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:\D+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
     if (m) {
       var lang = (window.getLanguage && window.getLanguage()) || '';
@@ -310,9 +323,8 @@
         Number(m[6] || 0)
       );
     }
-    var n = Date.parse(s);
-    if (Number.isNaN(n)) return null;
-    return new Date(n);
+    
+    return null;
   }
 
   function formatConversationWhen(value) {

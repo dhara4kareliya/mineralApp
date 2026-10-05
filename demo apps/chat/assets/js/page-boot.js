@@ -84,12 +84,15 @@
       '</span>' +
       '<button type="button" id="mb-logout-btn" class="mb-sdk-logout">' + tt('exit') + '</button>';
 
-    document.body.appendChild(chip);
-    updateChipRealtime(chip, App.getRealtimeState() || { status: 'off', connected: false });
-    document.getElementById('mb-logout-btn').addEventListener('click', function () {
-      App.clearSession();
-      location.href = 'login.html';
-    });
+    // document.body.appendChild(chip);
+    // updateChipRealtime(chip, App.getRealtimeState() || { status: 'off', connected: false });
+    var logoutBtn = document.getElementById('mb-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function () {
+        App.clearSession();
+        location.href = 'login.html';
+      });
+    }
 
     function refreshChip() {
       updateChipRealtime(chip, App.getRealtimeState() || { status: 'off', connected: false });
