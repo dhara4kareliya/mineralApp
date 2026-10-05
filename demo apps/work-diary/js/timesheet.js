@@ -114,36 +114,11 @@ const Timesheet = (function () {
     updateLiveClock();
   }
 
-  async function refreshStatus() {
-    const res = await Api.teamHoursGet();
-    const data = res.data || {};
-    const running = res.running === true || data.status === 1 || data.running === true;
-
-    if (running) {
-      data.status = 1; // force status for duration calculation
-      teamHoursId = res.team_hours_id || data.id || 0;
-      elapsedBaseSeconds = Utils.sessionDurationSeconds(data);
-      sessionStartUtc = Date.now();
-      setShiftUI(SHIFT.ACTIVE, I18n.t('startedAt', { time: Utils.toTimeStr(data.start_time) }));
-      startClockTick();
-    } else {
-      teamHoursId = 0;
-      sessionStartUtc = null;
-      elapsedBaseSeconds = 0;
-      setShiftUI(SHIFT.OFF);
-      stopClockTick();
-    }
-
-    return res;
-  }
-
-  async function startShift() {
+  async function checkSpecialToday() {
     try {
       const wdRes = await Api.workdiaryGet(Utils.toMonthKey());
       const todayIso = Utils.todayISO();
 
-      const user = typeof Auth !== 'undefined' ? Auth.getUser() : null;
-      const userId = user?.data?.user?.id;
       let isSpecial = false;
       let specialReason = '';
 
@@ -193,6 +168,46 @@ const Timesheet = (function () {
           else if (st === 0 || st === 2 || String(todayCal.state).toLowerCase() === 'day_off') { isSpecial = true; specialReason = 'day off'; }
         }
       }
+
+      return { isSpecial, specialReason };
+    } catch (e) {
+      console.warn('Could not validate today state', e);
+      return { isSpecial: false, specialReason: '' };
+    }
+  }
+
+  async function refreshStatus() {
+    const res = await Api.teamHoursGet();
+    const data = res.data || {};
+    const running = res.running === true || data.status === 1 || data.running === true;
+
+    if (running) {
+      data.status = 1; // force status for duration calculation
+      teamHoursId = res.team_hours_id || data.id || 0;
+      elapsedBaseSeconds = Utils.sessionDurationSeconds(data);
+      sessionStartUtc = Date.now();
+      setShiftUI(SHIFT.ACTIVE, I18n.t('startedAt', { time: Utils.toTimeStr(data.start_time) }));
+      startClockTick();
+    } else {
+      teamHoursId = 0;
+      sessionStartUtc = null;
+      elapsedBaseSeconds = 0;
+      setShiftUI(SHIFT.OFF);
+      stopClockTick();
+
+      const { isSpecial } = await checkSpecialToday();
+      if (isSpecial) {
+        const btnStart = document.getElementById('btn-start');
+        if (btnStart) btnStart.disabled = true;
+      }
+    }
+
+    return res;
+  }
+
+  async function startShift() {
+    try {
+      const { isSpecial, specialReason } = await checkSpecialToday();
 
       if (isSpecial) {
         throw new Error(`You cannot start a timer on a ${specialReason}.`);

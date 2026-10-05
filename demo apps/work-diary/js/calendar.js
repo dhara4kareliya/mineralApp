@@ -821,13 +821,18 @@ const CalendarPage = (function () {
     const hasExistingEntryForDay = selectedIso && dayStateMap[selectedIso] && !['missing', 'future', 'today'].includes(dayStateMap[selectedIso].state);
     
     const isLockedAddMode = !isEdit && hasExistingEntryForDay;
+    const isTypeLocked = hasExistingEntryForDay || isEdit;
+
     const noteField = document.getElementById('day-note-field');
     const formActions = document.querySelector('.day-form-actions');
     if (noteField) noteField.classList.toggle('hidden', isLockedAddMode);
     if (formActions) formActions.classList.toggle('hidden', isLockedAddMode);
 
     if (typeSelect) {
-       typeSelect.disabled = isLockedAddMode;
+       typeSelect.disabled = isTypeLocked;
+    }
+    if (lockHint) {
+       lockHint.classList.toggle('hidden', !isTypeLocked);
     }
     const typeField = document.getElementById('day-type-field');
     if (typeField) {
