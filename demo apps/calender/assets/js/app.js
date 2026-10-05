@@ -574,7 +574,7 @@
       path: options.path || '/realtime/socket.io',
       deviceId: options.deviceId,
       fcmToken: options.fcmToken || '',
-      token: options.token
+      token: options.token || client.getToken()
     });
     realtimeState.socket = socket;
 

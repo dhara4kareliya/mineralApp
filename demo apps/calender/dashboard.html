@@ -106,56 +106,62 @@
       <div class="modal-card modal-card--wide">
         <div class="modal-title" data-i18n="quickBookingTitle">Quick Booking</div>
 
-        <div class="modal-field">
-          <label for="qbTitle" data-i18n="title">Title</label>
-          <input type="text" id="qbTitle" autocomplete="off" />
-        </div>
-        <div class="modal-field">
-          <label for="qbClient" data-i18n="client">Client</label>
-          <select id="qbClient"></select>
-        </div>
-        <div class="modal-field">
-          <label for="qbStaff" data-i18n="staff">Staff</label>
-          <div class="staff-select-wrap">
-            <span class="color-dot" id="qbStaffDot"></span>
-            <select id="qbStaff"></select>
+        <div class="modal-form-grid">
+          <div class="modal-field">
+            <label for="qbTitle" data-i18n="title">Title</label>
+            <input type="text" id="qbTitle" autocomplete="off" />
           </div>
-        </div>
-        <div class="modal-field">
-          <label for="qbDate" data-i18n="date">Date</label>
-          <input type="date" id="qbDate" />
-        </div>
-        <div class="modal-field">
-          <label data-i18n="availableSlots">Available time slots</label>
-          <div class="slot-grid" id="qbSlots">
-            <div class="slot-empty" data-i18n="selectServiceStaff">Select staff to load slots</div>
+          <div class="modal-field">
+            <label for="qbClient" data-i18n="client">Client</label>
+            <select id="qbClient"></select>
           </div>
-        </div>
-        <div class="modal-field">
-          <label for="qbDuration" data-i18n="duration">Duration (minutes)</label>
-          <input type="number" id="qbDuration" min="5" step="5" value="30" />
-        </div>
-        <div class="modal-field">
-          <label for="qbAddress" data-i18n="address">Location</label>
-          <input type="text" id="qbAddress" autocomplete="off" data-i18n-placeholder="addressPlaceholder" placeholder="Office" />
-        </div>
-        <div class="modal-field">
-          <label for="qbDetails" data-i18n="details">Details / notes</label>
-          <textarea id="qbDetails" rows="2" data-i18n-placeholder="detailsPlaceholder" placeholder="Details note"></textarea>
-        </div>
-        <div class="modal-field qb-notify-row">
-          <label class="check-label">
-            <input type="checkbox" id="qbNotify" checked />
-            <span data-i18n="notifyFlow">Notify (server notification)</span>
-          </label>
-          <label class="check-label">
-            <input type="checkbox" id="qbWhatsApp" checked />
-            <span data-i18n="waFlow">Send WhatsApp to client's saved mobile + .ics / Google Calendar link</span>
-          </label>
-          <label class="check-label">
-            <input type="checkbox" id="qbGoogleSync" checked />
-            <span data-i18n="googleFlow">Sync to Google Calendar (2-way)</span>
-          </label>
+          <div class="modal-field">
+            <label for="qbStaff" data-i18n="staff">Staff</label>
+            <div class="staff-select-wrap">
+              <span class="color-dot" id="qbStaffDot"></span>
+              <select id="qbStaff"></select>
+            </div>
+          </div>
+          <div class="modal-field">
+            <label for="qbDate" data-i18n="date">Date</label>
+            <input type="date" id="qbDate" />
+          </div>
+          <div class="modal-field">
+            <label for="qbDuration" data-i18n="duration">Duration (minutes)</label>
+            <input type="number" id="qbDuration" min="5" step="5" value="30" />
+          </div>
+          <div class="modal-field">
+            <label for="qbAddress" data-i18n="address">Location</label>
+            <input type="text" id="qbAddress" autocomplete="off" data-i18n-placeholder="addressPlaceholder" placeholder="Office" />
+          </div>
+          <div class="modal-field full-width">
+            <label data-i18n="availableSlots">Available time slots</label>
+            <div class="custom-select" id="qbSlotsWrap">
+              <div class="custom-select-trigger" id="qbSlotsTrigger" onclick="document.getElementById('qbSlotsWrap').classList.toggle('open')">
+                <span id="qbSlotsLabel">Select a time slot</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+              <div class="custom-select-panel" id="qbSlotsPanel"></div>
+            </div>
+          </div>
+          <div class="modal-field full-width">
+            <label for="qbDetails" data-i18n="details">Details / notes</label>
+            <textarea id="qbDetails" rows="2" data-i18n-placeholder="detailsPlaceholder" placeholder="Details note"></textarea>
+          </div>
+          <div class="modal-field qb-notify-row full-width">
+            <label class="check-label">
+              <input type="checkbox" id="qbNotify" checked />
+              <span data-i18n="notifyFlow">Notify (server notification)</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="qbWhatsApp" checked />
+              <span data-i18n="waFlow">Send WhatsApp to client's saved mobile + .ics / Google Calendar link</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="qbGoogleSync" checked />
+              <span data-i18n="googleFlow">Sync to Google Calendar (2-way)</span>
+            </label>
+          </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-ghost" id="qbCancel" data-i18n="cancel">Cancel</button>

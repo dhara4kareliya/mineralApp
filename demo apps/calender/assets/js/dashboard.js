@@ -346,10 +346,6 @@
     updateColorDot(document.getElementById('qbStaffDot'), staffId);
     const modal = document.getElementById('bookingModal');
     if (modal) modal.style.setProperty('--qb-staff-color', color);
-    document.querySelectorAll('#qbSlots .slot-btn.selected').forEach((btn) => {
-      btn.style.background = color;
-      btn.style.borderColor = color;
-    });
     const submitBtn = document.getElementById('qbSubmit');
     if (submitBtn) {
       submitBtn.style.background = color;
@@ -1388,36 +1384,37 @@
   }
 
   function renderSlots(slots) {
-    const box = document.getElementById('qbSlots');
+    const panel = document.getElementById('qbSlotsPanel');
+    const label = document.getElementById('qbSlotsLabel');
     selectedSlot = null;
     const available = (slots || []).filter((s) => s.available === 1 || s.available === true || s.available === undefined);
     if (!available.length) {
-      box.innerHTML = '<div class="slot-empty">No free slots — try another date or staff</div>';
+      panel.innerHTML = '<div class="custom-option" style="cursor:default;color:var(--text-muted)">No free slots</div>';
+      label.textContent = 'No free slots — try another date';
       highlightQbSteps();
       return;
     }
-    box.innerHTML = available
+    label.textContent = 'Select a time slot';
+    panel.innerHTML = available
       .map(
         (s) =>
-          '<button type="button" class="slot-btn" data-time="' +
+          '<div class="custom-option" data-time="' +
           s.time +
           '" data-end="' +
           (s.end || '') +
           '">' +
           s.time +
           (s.end ? '–' + s.end : '') +
-          '</button>'
+          '</div>'
       )
       .join('');
-    box.querySelectorAll('.slot-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        box.querySelectorAll('.slot-btn').forEach((b) => {
-          b.classList.remove('selected');
-          b.style.background = '';
-          b.style.borderColor = '';
-        });
-        btn.classList.add('selected');
-        selectedSlot = { time: btn.dataset.time, end: btn.dataset.end };
+    panel.querySelectorAll('.custom-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        panel.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        label.textContent = opt.textContent;
+        selectedSlot = { time: opt.dataset.time, end: opt.dataset.end };
+        document.getElementById('qbSlotsWrap').classList.remove('open');
         applyBookingStaffColor(document.getElementById('qbStaff').value);
         syncDurationFromSlot();
         highlightQbSteps();
@@ -1425,6 +1422,14 @@
     });
     highlightQbSteps();
   }
+
+  // Close custom dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('qbSlotsWrap');
+    if (wrap && !wrap.contains(e.target)) {
+      wrap.classList.remove('open');
+    }
+  });
 
   function fallbackSlots(dateStr, staffId, duration) {
     const booked = (dayViewWeekAppointments[dateStr] || []).filter(
@@ -1454,7 +1459,10 @@
     const typeId = svc.id;
     const duration = svc.duration;
 
-    document.getElementById('qbSlots').innerHTML = '<div class="slot-empty">Loading slots…</div>';
+    const label = document.getElementById('qbSlotsLabel');
+    if(label) label.textContent = 'Loading slots…';
+    const panel = document.getElementById('qbSlotsPanel');
+    if(panel) panel.innerHTML = '';
     const meta = await fetchBuilderMeta(dateStr, staffId, typeId);
     let slots = [];
     if (meta && Array.isArray(meta.slots) && meta.slots.length) {
@@ -1528,25 +1536,32 @@
 
     if (bookingLock.fixed) {
       const prefer = bookingLock.time;
-      const btn = document.querySelector('#qbSlots .slot-btn[data-time="' + prefer + '"]');
-      if (btn) {
-        btn.click();
-        btn.disabled = true;
-        btn.classList.add('selected');
+      const panel = document.getElementById('qbSlotsPanel');
+      const label = document.getElementById('qbSlotsLabel');
+      
+      const opt = Array.from(panel.querySelectorAll('.custom-option')).find(o => o.dataset.time === prefer);
+      if (opt) {
+        opt.click();
       } else {
-        const box = document.getElementById('qbSlots');
         selectedSlot = { time: prefer, end: '' };
-        box.innerHTML =
-          '<button type="button" class="slot-btn selected" data-time="' +
-          prefer +
-          '" disabled>' +
-          prefer +
-          '</button>';
+        panel.innerHTML += '<div class="custom-option selected" data-time="' + prefer + '">' + prefer + '</div>';
+        label.textContent = prefer;
         syncDurationFromSlot();
+        
+        const newOpt = panel.querySelector('.custom-option[data-time="' + prefer + '"]');
+        if(newOpt) {
+          newOpt.addEventListener('click', () => {
+            panel.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
+            newOpt.classList.add('selected');
+            label.textContent = newOpt.textContent;
+            selectedSlot = { time: newOpt.dataset.time, end: newOpt.dataset.end };
+            document.getElementById('qbSlotsWrap').classList.remove('open');
+            applyBookingStaffColor(document.getElementById('qbStaff').value);
+            syncDurationFromSlot();
+            highlightQbSteps();
+          });
+        }
       }
-      document.querySelectorAll('#qbSlots .slot-btn').forEach((slotBtn) => {
-        if (slotBtn.dataset.time !== prefer) slotBtn.remove();
-      });
       applyBookingStaffColor(qbStaff.value);
       highlightQbSteps();
     }
