@@ -168,7 +168,7 @@
   <!-- Coupon Add/Edit Modal -->
   <div id="coupon-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
     <div class="modal-backdrop" id="coupon-modal-backdrop"></div>
-    <div class="modal-card card">
+    <div class="modal-card card modal-card-lg">
       <div class="modal-head">
         <h3 id="coupon-modal-title" data-i18n="add_coupon">Add Coupon</h3>
         <button type="button" class="icon-btn" id="coupon-modal-close" aria-label="Close">&times;</button>
@@ -177,53 +177,54 @@
         <input type="hidden" id="form-coupon-id" />
         <p id="coupon-form-error" class="form-error hidden" role="alert"></p>
 
-        <label class="field">
-          <span data-i18n="customer">Customer <em>*</em></span>
-          <input type="search" id="form-customer-search" autocomplete="off" data-i18n-placeholder="search_customer" placeholder="Search customer…" />
-          <input type="hidden" id="form-customer-id" required />
-          <div id="form-customer-results" class="search-results hidden"></div>
-          <p class="field-hint" id="form-customer-selected"></p>
-        </label>
+        <div class="modal-form-grid">
+          <label class="field field-relative">
+            <span><span data-i18n="customer">Customer</span> <em>*</em></span>
+            <input type="search" id="form-customer-search" autocomplete="off" data-i18n-placeholder="search_customer" placeholder="Search customer…" />
+            <input type="hidden" id="form-customer-id" required />
+            <div id="form-customer-results" class="search-results hidden"></div>
+            <p class="field-hint" id="form-customer-selected"></p>
+          </label>
 
-        <label class="field">
-          <span data-i18n="coupon_code">Coupon Code <em>*</em></span>
-          <input type="text" id="form-coupon-code" required maxlength="64" />
-        </label>
+          <label class="field">
+            <span><span data-i18n="coupon_code">Coupon Code</span> <em>*</em></span>
+            <input type="text" id="form-coupon-code" required maxlength="64" />
+          </label>
 
-        <label class="field">
-          <span data-i18n="appointment_type">Treatment Type <em>*</em></span>
-          <select id="form-appointment-type" required>
-            <option value="" data-i18n="select_option">Select…</option>
-          </select>
-        </label>
+          <label class="field">
+            <span><span data-i18n="appointment_type">Treatment Type</span> <em>*</em></span>
+            <select id="form-appointment-type" required>
+              <option value="" data-i18n="select_option">Select…</option>
+            </select>
+          </label>
 
-        <label class="field">
-          <span data-i18n="insurance">Insurance</span>
-          <select id="form-insurance">
-            <option value="" data-i18n="select_option">Select…</option>
-          </select>
-        </label>
+          <label class="field">
+            <span data-i18n="insurance">Insurance</span>
+            <select id="form-insurance">
+              <option value="" data-i18n="select_option">Select…</option>
+            </select>
+          </label>
 
-        <div class="form-row">
           <label class="field">
             <span data-i18n="amount">Amount</span>
             <input type="number" id="form-amount" min="0" step="0.01" />
           </label>
+
           <label class="field">
             <span data-i18n="left_amount">Left Amount</span>
             <input type="number" id="form-left-amount" min="0" step="0.01" />
           </label>
+
+          <label class="field">
+            <span data-i18n="coupon_date">Coupon Date</span>
+            <input type="text" id="form-coupon-date" class="clinic-date-input" autocomplete="off" placeholder="dd/mm/yyyy" data-i18n-placeholder="date_placeholder" />
+          </label>
+
+          <label class="field">
+            <span data-i18n="notes">Notes</span>
+            <input type="text" id="form-notes" />
+          </label>
         </div>
-
-        <label class="field">
-          <span data-i18n="coupon_date">Coupon Date</span>
-          <input type="date" id="form-coupon-date" />
-        </label>
-
-        <label class="field">
-          <span data-i18n="notes">Notes</span>
-          <textarea id="form-notes" rows="3"></textarea>
-        </label>
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="coupon-form-cancel" data-i18n="cancel">Cancel</button>
@@ -256,6 +257,7 @@
 
   <script src="js/i18n.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/datepicker.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

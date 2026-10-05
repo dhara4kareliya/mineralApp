@@ -40,6 +40,9 @@ const I18N = {
     filter_branch: "Branch: {branch}",
     filter_doctors_count: "{count} doctors selected",
     export_csv: "Export CSV",
+    clear: "Clear",
+    today: "Today",
+    date_placeholder: "dd/mm/yyyy",
     add_coupon: "Add Coupon",
     edit_coupon: "Edit Coupon",
     delete_coupon: "Delete Coupon",
@@ -112,7 +115,7 @@ const I18N = {
     name: "Name",
   },
   he: {
-    brand: "ClinicPulse",
+    brand: "קליניק פולס",
     login_tagline: "ניהול קליני ואנליטיקת בריאות",
     username: "שם משתמש / אימייל",
     password: "סיסמה",
@@ -148,7 +151,10 @@ const I18N = {
     filter_dates: "תאריכים: {from} → {to}",
     filter_branch: "סניף: {branch}",
     filter_doctors_count: "{count} רופאים נבחרו",
-    export_csv: "ייצוא CSV",
+    export_csv: "ייצוא לקובץ",
+    clear: "נקה",
+    today: "היום",
+    date_placeholder: "יום/חודש/שנה",
     add_coupon: "הוסף קופון",
     edit_coupon: "ערוך קופון",
     delete_coupon: "מחק קופון",
@@ -251,7 +257,13 @@ const I18n = {
 
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
-      el.textContent = this.t(key);
+      const em = el.querySelector("em");
+      if (em) {
+        el.textContent = this.t(key) + " ";
+        el.appendChild(em);
+      } else {
+        el.textContent = this.t(key);
+      }
     });
 
     document.querySelectorAll("[data-i18n-title]").forEach((el) => {
@@ -268,6 +280,10 @@ const I18n = {
 
     const demo = document.getElementById("demo-users");
     if (demo) demo.setAttribute("dir", this.lang === "he" ? "rtl" : "ltr");
+
+    if (window.ClinicDatePicker && typeof window.ClinicDatePicker.updateAll === "function") {
+      window.ClinicDatePicker.updateAll();
+    }
   },
 };
 

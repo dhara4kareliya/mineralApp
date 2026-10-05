@@ -46,6 +46,9 @@ const App = {
     this.loadTheme();
     this.loadColumnPrefs();
     I18n.apply();
+    if (window.ClinicDatePicker && typeof window.ClinicDatePicker.init === "function") {
+      window.ClinicDatePicker.init();
+    }
     this.bindUI();
 
     if (this.page === "login") {
@@ -553,6 +556,22 @@ const App = {
     }
   },
 
+  onLangChange() {
+    this.updateViewTitles();
+    if (this.view === "coupons") {
+      this.renderCoupons();
+    } else if (this.view === "doctors") {
+      this.loadBranches(true);
+      if (this.doctorData) {
+        this.renderDoctorReport(this.doctorData);
+        this.updateDoctorFilterLabel(this.doctorData);
+      }
+    } else if (this.view === "customers") {
+      this.renderColumnPicker();
+      this.renderCustomers();
+    }
+  },
+
   toggleSidebar(open) {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("sidebar-overlay");
@@ -681,9 +700,11 @@ const App = {
     tbody.innerHTML = this.couponRows
       .map((row) => {
         const id = row.id || row.coupon_id;
-        const status = String(row.status_label || row.coupon_status || "").toLowerCase();
-        const unused = status.includes("unused") || status === "0";
+        const statusRaw = String(row.status_label || row.coupon_status || "").toLowerCase();
+        const unused = statusRaw.includes("unused") || statusRaw === "0";
+        const used = statusRaw.includes("used") || statusRaw === "1";
         const badgeClass = unused ? "badge-unused" : "badge-used";
+        const statusText = unused ? I18n.t("unused") : used ? I18n.t("used") : (row.status_label || statusRaw || "—");
         const canEdit = row.can_edit !== false && unused;
         const canDelete = row.can_delete !== false && unused;
         const actions = `
@@ -693,41 +714,104 @@ const App = {
             ${!canEdit && !canDelete ? `<span class="text-muted">—</span>` : ""}
           </td>`;
         return `<tr>
-          <td><strong>${escapeHtml(row.coupon_code || "—")}</strong></td>
+          <td class="col-code"><strong>${escapeHtml(row.coupon_code || "—")}</strong></td>
           <td>${escapeHtml(row.customer_name || "—")}</td>
           <td>${escapeHtml(row.appointment_type_name || "—")}</td>
           <td>${escapeHtml(row.insurance_name || row.coupon_insurance || "—")}</td>
           <td>${escapeHtml(formatMoney(row.amount))}</td>
           <td>${escapeHtml(formatMoney(row.left_amount))}</td>
-          <td><span class="badge ${badgeClass}">${escapeHtml(row.status_label || status || "—")}</span></td>
+          <td><span class="badge ${badgeClass}">${escapeHtml(statusText)}</span></td>
           ${actions}
         </tr>`;
       })
       .join("");
   },
 
-  exportCoupons() {
-    if (!this.couponRows.length) return;
-    const headers = [
-      I18n.t("coupon_code"),
-      I18n.t("customer_name"),
-      I18n.t("appointment_type"),
-      I18n.t("insurance"),
-      I18n.t("amount"),
-      I18n.t("left_amount"),
-      I18n.t("status"),
-    ];
-    const rows = this.couponRows.map((r) => [
-      r.coupon_code,
-      r.customer_name,
-      r.appointment_type_name,
-      r.insurance_name || r.coupon_insurance,
-      r.amount,
-      r.left_amount,
-      r.status_label,
-    ]);
-    downloadCsv("coupons.csv", headers, rows);
-    this.toast(I18n.t("exported"), "success");
+  async fetchAllCoupons() {
+    const filters = this.couponFilters();
+    delete filters.page_id;
+
+    if (this.couponTotal && this.couponRows.length >= this.couponTotal && this.couponPage === 1) {
+      return this.couponRows;
+    }
+
+    try {
+      const targetLimit = Math.max(1000, Number(this.couponTotal) || 1000);
+      const res = await Api.listCoupons({ ...filters, limit: targetLimit, page_id: 1 });
+      const rows = res.data || res.rows || [];
+      const total = Number(res.recordsTotal ?? res.count ?? this.couponTotal ?? rows.length) || rows.length;
+
+      if (rows.length >= total || rows.length === 0) {
+        return rows;
+      }
+
+      const allRows = [...rows];
+      const pageSize = rows.length;
+      const maxPages = Math.ceil(total / pageSize) + 2;
+      let page = 2;
+      while (allRows.length < total && page <= maxPages && page <= 50) {
+        const nextRes = await Api.listCoupons({ ...filters, limit: pageSize, page_id: page });
+        const nextRows = nextRes.data || nextRes.rows || [];
+        if (!nextRows.length) break;
+        allRows.push(...nextRows);
+        page++;
+      }
+      return allRows;
+    } catch (err) {
+      console.warn("Failed to fetch all coupons for export, falling back to current page:", err);
+      return this.couponRows;
+    }
+  },
+
+  async exportCoupons() {
+    const btn = document.getElementById("coupon-export-btn");
+    if (btn) btn.disabled = true;
+
+    try {
+      this.toast(I18n.t("loading"), "info");
+      const rowsData = await this.fetchAllCoupons();
+      if (!rowsData.length) {
+        this.toast(I18n.t("no_data"), "info");
+        return;
+      }
+
+      const headers = [
+        I18n.t("coupon_code"),
+        I18n.t("customer_name"),
+        I18n.t("appointment_type"),
+        I18n.t("insurance"),
+        I18n.t("amount"),
+        I18n.t("left_amount"),
+        I18n.t("status"),
+      ];
+
+      const rows = rowsData.map((r) => {
+        const s = String(r.status_label || r.coupon_status || "").toLowerCase();
+        const isUnused = s.includes("unused") || s === "0";
+        const isUsed = s.includes("used") || s === "1";
+        const statusText = isUnused ? I18n.t("unused") : isUsed ? I18n.t("used") : (r.status_label || "—");
+
+        const rawCode = r.coupon_code == null ? "" : String(r.coupon_code);
+        const alignedCode = rawCode ? "\u200E" + rawCode : "—";
+
+        return [
+          alignedCode,
+          r.customer_name || "—",
+          r.appointment_type_name || "—",
+          r.insurance_name || r.coupon_insurance || "—",
+          r.amount,
+          r.left_amount,
+          statusText,
+        ];
+      });
+
+      downloadCsv("coupons.csv", headers, rows);
+      this.toast(I18n.t("exported"), "success");
+    } catch (err) {
+      this.handleApiError(err);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   },
 
   async ensureCouponLookups() {
@@ -1343,13 +1427,75 @@ const App = {
       .join("");
   },
 
-  exportCustomers() {
-    if (!this.custRows.length) return;
-    const cols = this.customerColumns.filter((c) => this.visibleColumns.includes(c.key));
-    const headers = cols.map((c) => I18n.t(c.labelKey));
-    const rows = this.custRows.map((r) => cols.map((c) => r[c.key]));
-    downloadCsv("patients.csv", headers, rows);
-    this.toast(I18n.t("exported"), "success");
+  async fetchAllCustomers() {
+    const filters = this.custFilters();
+    delete filters.page_id;
+
+    if (this.custTotal && this.custRows.length >= this.custTotal && this.custPage === 1) {
+      return this.custRows;
+    }
+
+    try {
+      const targetLimit = Math.max(1000, Number(this.custTotal) || 1000);
+      const res = await Api.listCustomers({ ...filters, limit: targetLimit, page_id: 1 });
+      const rows = res.data || res.rows || [];
+      const total = Number(res.recordsTotal ?? res.count ?? this.custTotal ?? rows.length) || rows.length;
+
+      if (rows.length >= total || rows.length === 0) {
+        return rows;
+      }
+
+      const allRows = [...rows];
+      const pageSize = rows.length;
+      const maxPages = Math.ceil(total / pageSize) + 2;
+      let page = 2;
+      while (allRows.length < total && page <= maxPages && page <= 50) {
+        const nextRes = await Api.listCustomers({ ...filters, limit: pageSize, page_id: page });
+        const nextRows = nextRes.data || nextRes.rows || [];
+        if (!nextRows.length) break;
+        allRows.push(...nextRows);
+        page++;
+      }
+      return allRows;
+    } catch (err) {
+      console.warn("Failed to fetch all customers for export, falling back to current page:", err);
+      return this.custRows;
+    }
+  },
+
+  async exportCustomers() {
+    const btn = document.getElementById("cust-export-btn");
+    if (btn) btn.disabled = true;
+
+    try {
+      this.toast(I18n.t("loading"), "info");
+      const rowsData = await this.fetchAllCustomers();
+      if (!rowsData.length) {
+        this.toast(I18n.t("no_data"), "info");
+        return;
+      }
+
+      const cols = this.customerColumns.filter((c) => this.visibleColumns.includes(c.key));
+      const headers = cols.map((c) => I18n.t(c.labelKey));
+      const rows = rowsData.map((r) =>
+        cols.map((c) => {
+          let val = r[c.key];
+          if (val == null || val === "") return "—";
+          if (c.key === "mobile") {
+            const rawMobile = String(val);
+            return rawMobile ? "\u200E" + rawMobile : "—";
+          }
+          return val;
+        })
+      );
+
+      downloadCsv("patients.csv", headers, rows);
+      this.toast(I18n.t("exported"), "success");
+    } catch (err) {
+      this.handleApiError(err);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   },
 
   // ——— Helpers ———

@@ -466,7 +466,16 @@ function toUtcDateTime(date) {
 
 /** Local date input (Y-m-d) → keep as Y-m-d for date-only API filters */
 function dateInputValue(el) {
-  return el && el.value ? el.value : "";
+  if (!el || !el.value) return "";
+  const v = String(el.value).trim();
+  const m = v.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (m) {
+    const day = m[1].padStart(2, "0");
+    const month = m[2].padStart(2, "0");
+    const year = m[3];
+    return `${year}-${month}-${day}`;
+  }
+  return v;
 }
 
 window.Api = Api;

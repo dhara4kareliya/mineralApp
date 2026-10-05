@@ -91,11 +91,11 @@
             <div class="filters-grid doctors-filters">
               <label class="field">
                 <span data-i18n="from_date">From Date</span>
-                <input type="date" id="doctor-from" />
+                <input type="text" id="doctor-from" class="clinic-date-input" autocomplete="off" placeholder="dd/mm/yyyy" data-i18n-placeholder="date_placeholder" />
               </label>
               <label class="field">
                 <span data-i18n="to_date">To Date</span>
-                <input type="date" id="doctor-to" />
+                <input type="text" id="doctor-to" class="clinic-date-input" autocomplete="off" placeholder="dd/mm/yyyy" data-i18n-placeholder="date_placeholder" />
               </label>
               <label class="field">
                 <span data-i18n="branch">Branch</span>
@@ -196,6 +196,7 @@
 
   <script src="js/i18n.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/datepicker.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
