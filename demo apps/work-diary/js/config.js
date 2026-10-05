@@ -1,15 +1,36 @@
 function _getPathUser() {
+  const RESERVED_NAMES = new Set([
+    'archive8', 'archive9', 'archive10',
+    'demo apps', 'demo-apps', 'demoapps', 'demo_apps',
+    'work-diary', 'workdiary', 'work_diary',
+    'specific app', 'specific-app', 'specificapp', 'specific_app',
+    'minerals', 'downloads', 'pages', 'js', 'css', 'assets'
+  ]);
+
+  try {
+    const q = new URLSearchParams(window.location.search || '');
+    const param = q.get('tenant') || q.get('user') || q.get('account');
+    if (param && /^[a-z0-9][a-z0-9._-]{0,40}$/i.test(param.trim()) && !RESERVED_NAMES.has(param.toLowerCase())) {
+      return param.trim().toLowerCase();
+    }
+  } catch (e) {}
+
   const path = window.location.pathname || '';
   const parts = path.split('/').filter(Boolean);
-  const exclusions = ['archive8', 'archive9', 'archive10'];
 
   for (let i = 0; i < parts.length; i++) {
     const p = parts[i].toLowerCase();
-    if (p === 'time' || p === 'timetracking' || p === 'calendar') {
+    if (p === 'time' || p === 'timetracking') {
       if (i > 0) {
-        const tenant = decodeURIComponent(parts[i - 1]).toLowerCase();
-        if (!exclusions.includes(tenant.replace(/\s+/g, ''))) {
-          return parts[i - 1];
+        const tenant = decodeURIComponent(parts[i - 1]).toLowerCase().trim();
+        const tenantClean = tenant.replace(/\s+/g, '');
+        if (
+          /^[a-z0-9][a-z0-9._-]{0,40}$/i.test(tenant) &&
+          !tenant.includes(' ') &&
+          !RESERVED_NAMES.has(tenant) &&
+          !RESERVED_NAMES.has(tenantClean)
+        ) {
+          return tenant;
         }
       }
     }

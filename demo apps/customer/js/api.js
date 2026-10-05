@@ -38,8 +38,9 @@ const API = (() => {
         body: params,
       });
     } catch (err) {
+      console.error(`API fetch error for ${url(route)}:`, err);
       const error = new Error(
-        'Network error — check API_BASE in js/config.js and CORS settings on the API host.'
+        `Network error calling ${url(route)} — check API_BASE in js/config.js and CORS settings on the API host.`
       );
       error.cause = err;
       throw error;
