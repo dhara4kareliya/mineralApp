@@ -1,0 +1,5 @@
+/* Customer page — Fields button is on the left; open panel to the right */
+.field-picker {
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+}

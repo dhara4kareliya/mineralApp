@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biz1 Showcase — Payment received</title>
+<script src="assets/theme-boot.js"></script>
+<link rel="stylesheet" href="assets/style.css?v=ss-30">
+<script src="assets/config.js?v=ss-30"></script>
+<script src="assets/biz1-sdk.js?v=ss-30"></script>
+<script src="assets/biz1-app.js?v=ss-30"></script>
+</head>
+<body data-page="paid-ok">
+<div class="page-wrap" id="appShell">
+  <div class="app-frame">
+
+    <div id="screenPaidOk" class="screen screen--enter">
+      <div class="success-panel success-panel--pay">
+        <div class="success-orb">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="success-title" data-i18n="paidOkTitle">Payment received</div>
+        <div id="paidOkSub" class="success-sub"></div>
+        <button type="button" id="btnPaidToDash" class="btn btn-primary" data-i18n="backDash">Back to dashboard</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script src="assets/app.js?v=ss-30"></script>
+</body>
+</html>

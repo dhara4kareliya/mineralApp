@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <script src="js/theme-boot.js"></script>
+  <script src="js/guard.js"></script>
+  <script src="js/guard-login.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Sign in — Time Tracking</title>
+<link rel="stylesheet" href="css/app.css?v=wd-1" />
+</head>
+<body>
+  <div id="app">
+    <section class="view login-view">
+      <div class="prefs-bar prefs-bar-login">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" class="lang-btn" data-lang-btn="en">EN</button>
+          <button type="button" class="lang-btn" data-lang-btn="he">עב</button>
+        </div>
+        <button type="button" id="theme-toggle-login" class="icon-btn" data-i18n-aria="toggleTheme">
+          <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg class="icon-moon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="login-stack">
+        <div class="login-card card">
+          <div class="brand">
+            <div class="brand-icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <h1 data-i18n="appName">Time Tracking</h1>
+            <p class="subtitle" data-i18n="loginSubtitle">Sign in to manage shifts and timesheets</p>
+          </div>
+
+          <form id="login-form" autocomplete="off" novalidate>
+            <div class="field">
+              <label for="username" data-i18n="username">Email, username, or ID</label>
+              <input id="username" name="tt-user" type="text" data-i18n-placeholder="usernamePlaceholder" placeholder="Email, username, or user ID" required autocomplete="off" autocapitalize="off" spellcheck="false" value="" />
+            </div>
+            <div class="field">
+              <label for="password" data-i18n="password">Password</label>
+              <input id="password" name="tt-pass" type="password" data-i18n-placeholder="passwordPlaceholder" placeholder="••••••••" required autocomplete="new-password" value="" />
+            </div>
+            <div id="otp-field" class="field hidden">
+              <label for="otp" data-i18n="otp">Verification code</label>
+              <input id="otp" name="otp" type="text" inputmode="numeric" maxlength="6" data-i18n-placeholder="otpPlaceholder" placeholder="6-digit code" autocomplete="one-time-code" />
+              <p id="otp-hint" class="hint"></p>
+            </div>
+            <p id="login-error" class="error-msg hidden" role="alert"></p>
+            <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+              <span class="btn-label" data-i18n="signIn">Sign in</span>
+              <span class="spinner hidden" aria-hidden="true"></span>
+            </button>
+          </form>
+        </div>
+
+        <div class="demo-users" id="demo-users">
+          <div class="demo-users-title" data-i18n="demoCredentials">Demo Credentials</div>
+          <div class="demo-users-list">
+            <div class="demo-user-row">
+              <span class="demo-user-creds" dir="ltr">demo@jlaw.co.il / pass0364</span>
+              <button
+                type="button"
+                class="demo-user-btn"
+                data-user="demo@jlaw.co.il"
+                data-pass="pass0364"
+                data-i18n="loginAsDemoUser"
+              >Login As Demo User</button>
+            </div>
+          </div>
+        </div>
+        <p class="login-footer">Biz1 Showcase · <span data-i18n="appName">Time Tracking</span></p>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/config.js?v=wd-1"></script>
+  <script src="js/biz1-sdk.js?v=wd-1"></script>
+  <script src="js/i18n.js?v=wd-1"></script>
+  <script src="js/utils.js?v=wd-1"></script>
+  <script src="js/api.js?v=wd-1"></script>
+  <script src="js/auth.js?v=wd-1"></script>
+  <script src="js/ui.js?v=wd-1"></script>
+  <script src="js/login.js?v=wd-1"></script>
+</body>
+</html>

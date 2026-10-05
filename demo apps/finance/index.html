@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Biz1 Finance — Executive Analytics</title>
+  <script src="./assets/js/theme-boot.js?v=20260930a"></script>
+  <script src="./assets/config.js?v=20260930a"></script>
+  <script src="./assets/vendor/socket.io.min.js?v=20260930a"></script>
+  <script src="./assets/vendor/biz1-sdk.js?v=20260930a"></script>
+  <link rel="stylesheet" href="./assets/css/app.css?v=20260930a">
+  <script defer src="./assets/js/app.js?v=20260930a"></script>
+</head>
+<body>
+
+  <!-- ============ LOGIN ============ -->
+  <div id="loginView" class="login-screen">
+    <section class="login-art" aria-hidden="true">
+      <div class="login-art-inner">
+        <div class="brand-mark">
+          <span class="brand-logo">B1</span>
+          <span class="brand-name" data-i18n="brandName">Biz1 Finance</span>
+        </div>
+        <h1 class="login-headline" data-i18n="loginHeadline">Real-time financial intelligence</h1>
+        <p class="login-lead" data-i18n="loginLead">Live revenue, receivables and product analytics — aggregated straight from the Biz1 REST API.</p>
+        <ul class="login-features">
+          <li><span class="feat-dot"></span><span data-i18n="feat1">Aggregated KPIs in milliseconds</span></li>
+          <li><span class="feat-dot"></span><span data-i18n="feat2">30 / 60 / 90-day receivables aging</span></li>
+          <li><span class="feat-dot"></span><span data-i18n="feat3">One-click WhatsApp collection reminders</span></li>
+        </ul>
+        <div class="art-card">
+          <div class="art-card-head">
+            <span data-i18n="revenue">Revenue</span>
+            <span class="art-chip">+18.2%</span>
+          </div>
+          <svg viewBox="0 0 320 110" class="art-chart">
+            <defs>
+              <linearGradient id="artFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#34d399" stop-opacity=".55"/>
+                <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0 88 C30 80 45 62 75 66 S120 44 150 50 S205 22 235 30 S290 10 320 14 L320 110 L0 110 Z" fill="url(#artFill)"/>
+            <path d="M0 88 C30 80 45 62 75 66 S120 44 150 50 S205 22 235 30 S290 10 320 14" fill="none" stroke="#34d399" stroke-width="3"/>
+            <path d="M0 98 C35 94 60 88 90 90 S150 78 180 80 S250 70 320 66" fill="none" stroke="#fb7185" stroke-width="2" stroke-dasharray="5 5"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <div class="login-toolbar">
+        <button id="themeToggleBtn" type="button" class="icon-btn" aria-label="Toggle theme">☾</button>
+        <button id="langToggleBtn" type="button" class="icon-btn lang-btn" aria-label="Toggle language">EN</button>
+      </div>
+
+      <div class="login-box">
+        <div class="brand-mark brand-mark--mobile">
+          <span class="brand-logo">B1</span>
+          <span class="brand-name" data-i18n="brandName">Biz1 Finance</span>
+        </div>
+        <h2 class="login-title" data-i18n="accountLogin">Welcome back</h2>
+        <p class="login-sub" data-i18n="signInSub">Sign in to your Biz1 workspace</p>
+
+        <form id="loginForm" class="login-form" autocomplete="off" novalidate>
+          <div id="usernameWrap" class="field">
+            <label for="username" data-i18n="emailUsername">Email / Username / Phone / ID</label>
+            <input id="username" type="text" name="username" autocomplete="off" required>
+          </div>
+          <div id="passwordWrap" class="field">
+            <label for="password" data-i18n="password">Password</label>
+            <div class="password-wrap">
+              <input id="password" type="password" name="password" autocomplete="new-password" required>
+              <button id="togglePasswordBtn" type="button" class="password-toggle" aria-label="Show password">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div id="otpWrap" class="field hidden">
+            <label for="otp" data-i18n="otp">One-time code</label>
+            <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" data-i18n-placeholder="otpPlaceholder" placeholder="Enter code">
+            <button id="resendOtpBtn" type="button" class="link-btn">Resend OTP</button>
+          </div>
+          <label id="rememberWrap" class="check-row">
+            <input id="rememberMe" type="checkbox">
+            <span data-i18n="rememberMe">Remember me</span>
+          </label>
+          <button id="loginBtn" type="submit" class="btn btn-primary btn-block">Sign in</button>
+          <p id="loginError" class="form-error hidden" role="alert"></p>
+        </form>
+
+        <aside class="demo-box" id="demoUsers">
+          <div class="demo-box-title" data-i18n="demoCredentials">Demo credentials</div>
+          <div class="demo-row">
+            <code class="demo-creds">demo@jlaw.co.il · pass0364</code>
+            <button type="button" class="btn btn-soft btn-sm demo-user-btn" data-user="demo@jlaw.co.il" data-pass="pass0364" data-i18n="useDemo">Use demo user</button>
+          </div>
+        </aside>
+      </div>
+      <p class="login-foot" data-i18n="loginFoot">Powered by the Biz1 App API</p>
+    </section>
+  </div>
+
+  <!-- ============ APP ============ -->
+  <div id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand-mark sidebar-brand">
+        <span class="brand-logo">B1</span>
+        <span class="brand-name" data-i18n="brandName">Biz1 Finance</span>
+      </div>
+
+      <nav class="nav" aria-label="Main">
+        <button type="button" class="nav-item active" data-tab="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span data-i18n="navOverview">Executive Dashboard</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="cashflow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span data-i18n="navCashflow">Cash Flow &amp; Receivables</span>
+          <span id="navOverdueBadge" class="nav-badge hidden">0</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="products">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>
+          <span data-i18n="navProducts">Product Analytics</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="status-card">
+          <div class="status-row">
+            <span id="liveDot" class="live-dot"></span>
+            <span id="liveText" class="status-text">Live: Off</span>
+          </div>
+          <div class="status-row status-row--muted">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span id="apiSpeedText">—</span>
+          </div>
+        </div>
+        <div class="user-card">
+          <span id="userAvatar" class="avatar">D</span>
+          <div class="user-meta">
+            <div id="userName" class="user-name">—</div>
+            <div id="userDomain" class="user-domain">—</div>
+          </div>
+          <button id="logoutBtn" type="button" class="icon-btn" data-i18n-aria="logout" aria-label="Logout">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1 id="pageTitle">Executive Dashboard</h1>
+          <p id="pageSub" class="muted">Revenue, growth and client health at a glance</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="syncText" class="sync-text"></span>
+          <button id="refreshBtn" type="button" class="btn btn-ghost btn-sm">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>
+            <span data-i18n="refresh">Refresh</span>
+          </button>
+          <button id="dashboardThemeToggleBtn" type="button" class="icon-btn" aria-label="Toggle theme">☾</button>
+          <button id="dashboardLangToggleBtn" type="button" class="icon-btn lang-btn" aria-label="Toggle language">EN</button>
+        </div>
+      </header>
+
+      <div id="globalNotice" class="notice hidden"></div>
+
+      <main class="content">
+
+        <!-- ===== Overview ===== -->
+        <section data-page="overview" class="page">
+          <div class="kpi-grid">
+            <article class="kpi kpi--revenue">
+              <div class="kpi-head">
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
+                <span class="kpi-label" data-i18n="kpiRevenue">Total Revenue</span>
+              </div>
+              <div id="kpiRevenue" class="kpi-value">—</div>
+              <div class="kpi-foot"><span id="kpiRevenueSub" class="kpi-sub"></span></div>
+              <svg id="kpiRevenueSpark" class="kpi-spark" preserveAspectRatio="none"></svg>
+            </article>
+            <article class="kpi kpi--growth">
+              <div class="kpi-head">
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+                <span class="kpi-label" data-i18n="kpiGrowth">MoM Growth</span>
+              </div>
+              <div id="kpiGrowth" class="kpi-value">—</div>
+              <div class="kpi-foot"><span id="kpiGrowthSub" class="kpi-sub"></span></div>
+              <svg id="kpiGrowthSpark" class="kpi-spark" preserveAspectRatio="none"></svg>
+            </article>
+            <article class="kpi kpi--outstanding">
+              <div class="kpi-head">
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 12v4M12 19h.01"/></svg></span>
+                <span class="kpi-label" data-i18n="kpiOutstanding">Outstanding Invoices</span>
+              </div>
+              <div id="kpiOutstanding" class="kpi-value">—</div>
+              <div class="kpi-foot"><span id="kpiOutstandingSub" class="kpi-sub"></span></div>
+              <div id="kpiOutstandingBar" class="kpi-stack"></div>
+            </article>
+            <article class="kpi kpi--clients">
+              <div class="kpi-head">
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <span class="kpi-label" data-i18n="kpiClients">Active Clients</span>
+              </div>
+              <div id="kpiClients" class="kpi-value">—</div>
+              <div class="kpi-foot"><span id="kpiClientsSub" class="kpi-sub"></span></div>
+              <div id="kpiClientsRing" class="kpi-ring"></div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h2 data-i18n="revVsExp">Revenue vs. Expenses</h2>
+                <p class="muted" data-i18n="revVsExpSub">Monthly net revenue against recorded expenses</p>
+              </div>
+              <div class="panel-tools">
+                <div class="seg" id="rangeSeg" role="group">
+                  <button type="button" class="seg-btn" data-range="6" data-i18n="range6">6M</button>
+                  <button type="button" class="seg-btn active" data-range="12" data-i18n="range12">12M</button>
+                </div>
+                <div class="seg" id="chartTypeSeg" role="group">
+                  <button type="button" class="seg-btn active" data-type="area" data-i18n="chartArea">Area</button>
+                  <button type="button" class="seg-btn" data-type="bar" data-i18n="chartBar">Bar</button>
+                </div>
+              </div>
+            </header>
+            <div id="trendLegend" class="legend"></div>
+            <div id="trendChart" class="chart chart--lg"></div>
+            <div class="mini-stats">
+              <div class="mini-stat"><span class="mini-label" data-i18n="netProfit">Net profit</span><strong id="statNet">—</strong></div>
+              <div class="mini-stat"><span class="mini-label" data-i18n="margin">Profit margin</span><strong id="statMargin">—</strong></div>
+              <div class="mini-stat"><span class="mini-label" data-i18n="avgInvoice">Avg. invoice value</span><strong id="statAvgInvoice">—</strong></div>
+              <div class="mini-stat"><span class="mini-label" data-i18n="bestMonth">Best month</span><strong id="statBestMonth">—</strong></div>
+            </div>
+          </article>
+
+          <div class="grid-2">
+            <article class="panel">
+              <header class="panel-head">
+                <div>
+                  <h2 data-i18n="recentDocs">Recent documents</h2>
+                  <p id="recentDocsSub" class="muted"></p>
+                </div>
+              </header>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="colDoc">Document</th>
+                      <th data-i18n="colClient">Client</th>
+                      <th data-i18n="colDate">Date</th>
+                      <th class="num" data-i18n="colAmount">Amount</th>
+                      <th data-i18n="colStatus">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentDocsBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel">
+              <header class="panel-head">
+                <div>
+                  <h2 data-i18n="apiPerf">API performance</h2>
+                  <p id="apiPerfSub" class="muted"></p>
+                </div>
+                <span id="apiPerfBadge" class="speed-badge">—</span>
+              </header>
+              <ul id="apiPerfList" class="perf-list"></ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- ===== Cash flow ===== -->
+        <section data-page="cashflow" class="page hidden">
+          <div class="stat-strip">
+            <div class="stat"><span class="stat-label" data-i18n="outstandingTotal">Total outstanding</span><strong id="cfOutstanding">—</strong><span id="cfOutstandingSub" class="stat-sub"></span></div>
+            <div class="stat stat--danger"><span class="stat-label" data-i18n="overdueTotal">Overdue</span><strong id="cfOverdue">—</strong><span id="cfOverdueSub" class="stat-sub"></span></div>
+            <div class="stat"><span class="stat-label" data-i18n="avgDaysOverdue">Avg. days overdue</span><strong id="cfAvgDays">—</strong><span class="stat-sub" data-i18n="weightedByAmount">weighted by amount</span></div>
+            <div class="stat stat--success"><span class="stat-label" data-i18n="collectedMonth">Collected this month</span><strong id="cfCollected">—</strong><span id="cfCollectedSub" class="stat-sub"></span></div>
+          </div>
+
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h2 data-i18n="agingTitle">Receivables aging</h2>
+                <p class="muted" data-i18n="agingSub">Open invoices by days past due date — click a bucket to filter</p>
+              </div>
+            </header>
+            <div id="agingBar" class="aging-bar"></div>
+            <div id="agingBuckets" class="aging-buckets"></div>
+          </article>
+
+          <div class="grid-cash">
+            <article class="panel">
+              <header class="panel-head">
+                <div>
+                  <h2 data-i18n="overdueClients">Overdue clients</h2>
+                  <p id="overdueClientsSub" class="muted"></p>
+                </div>
+                <button id="clearBucketBtn" type="button" class="chip-btn hidden"></button>
+              </header>
+              <div class="table-wrap">
+                <table class="table table--select">
+                  <thead>
+                    <tr>
+                      <th class="col-check"><input id="selectAllClients" type="checkbox" aria-label="Select all"></th>
+                      <th data-i18n="colClient">Client</th>
+                      <th class="num" data-i18n="colInvoices">Invoices</th>
+                      <th class="num" data-i18n="colOldest">Oldest</th>
+                      <th data-i18n="colBucket">Aging</th>
+                      <th class="num" data-i18n="colAmount">Amount</th>
+                      <th data-i18n="colReminder">Reminder</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overdueBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <aside class="panel wa-panel">
+              <div class="wa-head">
+                <span class="wa-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.4-.2z"/></svg>
+                </span>
+                <div>
+                  <h2 data-i18n="waTitle">WhatsApp reminders</h2>
+                  <p id="waSelectedText" class="muted"></p>
+                </div>
+              </div>
+              <label class="field">
+                <span class="field-label" data-i18n="waTemplate">Message template</span>
+                <textarea id="waTemplate" rows="6"></textarea>
+                <span class="field-hint" data-i18n="waPlaceholders">Placeholders: {name} {count} {amount} {days} {invoices}</span>
+              </label>
+              <div class="wa-preview">
+                <span class="field-label" data-i18n="waPreview">Preview</span>
+                <div id="waPreview" class="wa-bubble"></div>
+              </div>
+              <button id="waReminderBtn" type="button" class="btn btn-wa btn-block" data-i18n="waBtn">Send Automated WhatsApp Reminders to Overdue Clients</button>
+              <div id="waProgress" class="wa-progress hidden"><span id="waProgressFill"></span></div>
+              <p id="waStatus" class="wa-status"></p>
+            </aside>
+          </div>
+
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h2 data-i18n="cashInOut">Cash in vs. cash out</h2>
+                <p class="muted" data-i18n="cashInOutSub">Receipts collected against expenses, last 6 months</p>
+              </div>
+            </header>
+            <div id="cashLegend" class="legend"></div>
+            <div id="cashChart" class="chart chart--md"></div>
+          </article>
+        </section>
+
+        <!-- ===== Products ===== -->
+        <section data-page="products" class="page hidden">
+          <div class="toolbar">
+            <div class="seg" id="metricSeg" role="group">
+              <button type="button" class="seg-btn active" data-metric="revenue" data-i18n="metricRevenue">Revenue</button>
+              <button type="button" class="seg-btn" data-metric="qty" data-i18n="metricQty">Quantity</button>
+            </div>
+            <div class="seg" id="sourceSeg" role="group">
+              <button type="button" class="seg-btn active" data-source="all" data-i18n="srcAll">All documents</button>
+              <button type="button" class="seg-btn" data-source="invoiced" data-i18n="srcInvoiced">Invoiced</button>
+              <button type="button" class="seg-btn" data-source="quotes" data-i18n="srcQuotes">Quotes &amp; orders</button>
+            </div>
+            <div class="search">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input id="productSearch" type="search" data-i18n-placeholder="searchProducts" placeholder="Search products…">
+            </div>
+          </div>
+
+          <div id="podium" class="podium"></div>
+
+          <div class="grid-products">
+            <article class="panel">
+              <header class="panel-head"><h2 id="shareTitle" data-i18n="shareTitle">Revenue share</h2></header>
+              <div id="shareDonut" class="donut-wrap"></div>
+            </article>
+            <article class="panel">
+              <header class="panel-head"><h2 data-i18n="coverageTitle">Catalog coverage</h2></header>
+              <div id="coverage" class="coverage"></div>
+              <h3 id="unsoldTitle" class="sub-head" data-i18n="unsoldTitle">Catalog items with no sales</h3>
+              <ul id="unsoldList" class="tag-list"></ul>
+            </article>
+          </div>
+
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h2 data-i18n="rankTitle">Product leaderboard</h2>
+                <p id="rankSub" class="muted"></p>
+              </div>
+            </header>
+            <div class="table-wrap">
+              <table id="rankTable" class="table">
+                <thead>
+                  <tr>
+                    <th class="col-rank" data-i18n="colRank">#</th>
+                    <th data-i18n="colProduct">Product</th>
+                    <th class="num" data-i18n="colQty">Qty sold</th>
+                    <th class="num" data-i18n="colRevenue">Revenue</th>
+                    <th class="col-share" data-i18n="colShare">Share</th>
+                    <th class="num" data-i18n="colDocs">Docs</th>
+                    <th class="num" data-i18n="colAvgPrice">Avg. price</th>
+                    <th class="num col-catalog" data-i18n="colCatalog">Catalog price</th>
+                  </tr>
+                </thead>
+                <tbody id="rankBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Confirm modal -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <h3 id="modalTitle"></h3>
+      <p id="modalBody"></p>
+      <div class="modal-actions">
+        <button id="modalCancel" type="button" class="btn btn-ghost" data-i18n="cancel">Cancel</button>
+        <button id="modalConfirm" type="button" class="btn btn-wa" data-i18n="confirmSend">Send now</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+</body>
+</html>

@@ -1,0 +1,265 @@
+/* CloudPlus — Order Proposal form (standalone) */
+.prop-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg, #f3f5f8);
+}
+
+.prop-body {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 14px 28px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prop-card {
+  background: var(--bg-card, #fff);
+  border: 1.4px solid var(--border, #e4e8ef);
+  border-radius: 16px;
+  padding: 16px 15px 18px;
+  margin-bottom: 12px;
+}
+
+.prop-card-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #8a93a3);
+  margin-bottom: 14px;
+}
+
+.prop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+}
+
+.prop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.prop-field--full {
+  grid-column: 1 / -1;
+}
+
+.prop-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted, #6b7585);
+}
+
+.prop-label .req {
+  color: #c0392b;
+}
+
+.prop-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.prop-search-wrap {
+  position: relative;
+}
+
+.prop-suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  max-height: 220px;
+  overflow: auto;
+  background: var(--bg-card, #fff);
+  border: 1.4px solid var(--border, #e4e8ef);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(22, 35, 58, 0.12);
+}
+
+.prop-suggest.hidden {
+  display: none;
+}
+
+.prop-suggest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: start;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border, #eef1f5);
+  color: var(--text, #1f2a3a);
+}
+
+.prop-suggest-item:last-child {
+  border-bottom: none;
+}
+
+.prop-suggest-item:hover,
+.prop-suggest-item:focus {
+  background: rgba(29, 96, 162, 0.08);
+  outline: none;
+}
+
+.prop-suggest-name {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.prop-suggest-meta {
+  font-size: 11.5px;
+  color: var(--text-muted, #8a93a3);
+}
+
+.prop-suggest-empty {
+  padding: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted, #8a93a3);
+  font-weight: 600;
+}
+
+.prop-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(29, 96, 162, 0.07);
+  border: 1px solid rgba(29, 96, 162, 0.18);
+}
+
+.prop-selected.hidden {
+  display: none;
+}
+
+.prop-selected-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text, #1f2a3a);
+}
+
+.prop-selected-clear {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.prop-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #eef1f5);
+}
+
+.prop-total-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted, #6b7585);
+}
+
+.prop-total-value {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text, #1f2a3a);
+}
+
+.prop-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.prop-actions .btn {
+  flex: 1;
+}
+
+.prop-msg {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.prop-msg.hidden {
+  display: none;
+}
+
+.prop-msg--error {
+  background: #fdecea;
+  color: #c0392b;
+  border: 1px solid #f5c6c0;
+}
+
+.prop-msg--ok {
+  background: #eafaf0;
+  color: #1e7a4c;
+  border: 1px solid #b7e4c7;
+}
+
+.prop-loader {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 18px;
+}
+
+.prop-cust-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(29, 96, 162, 0.07);
+  border: 1px solid rgba(29, 96, 162, 0.15);
+}
+
+.prop-cust-chip.hidden {
+  display: none;
+}
+
+.prop-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1d60a2;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.prop-cust-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text, #1f2a3a);
+}
+
+.prop-cust-id {
+  font-size: 11.5px;
+  color: var(--text-muted, #8a93a3);
+  margin-top: 2px;
+}
+
+@media (max-width: 420px) {
+  .prop-grid {
+    grid-template-columns: 1fr;
+  }
+}

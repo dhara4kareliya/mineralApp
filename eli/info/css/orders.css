@@ -1,0 +1,5 @@
+/* Orders page — Fields button is near the right; open panel to the left */
+.field-picker {
+  inset-inline-end: 0;
+  inset-inline-start: auto;
+}

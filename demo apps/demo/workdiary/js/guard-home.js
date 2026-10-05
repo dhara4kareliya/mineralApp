@@ -1,1 +1,0 @@
-AuthGuard.redirectIfLoggedOut('login.html');

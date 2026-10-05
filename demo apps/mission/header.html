@@ -1,0 +1,51 @@
+<!-- status bar + greeting (loaded into #app-header) -->
+<div class="app-header-status status-bar status-bar--light">
+  <span id="mb-live-clock" class="status-clock">--:--</span>
+
+  <div class="status-bar-right">
+    <button type="button" id="headerLogoutBtn" class="header-logout-btn" title="Logout" aria-label="Logout" onclick="window.Biz1LogoutConfirm && window.Biz1LogoutConfirm()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+      <span data-i18n="logout">התנתק</span>
+    </button>
+
+    <button type="button" id="themeToggle" class="theme-toggle theme-toggle--light" title="Theme" aria-label="Toggle Theme">
+      <span class="icon-sun" aria-hidden="true">☀️</span>
+      <span class="icon-moon" aria-hidden="true">🌙</span>
+    </button>
+
+    <div id="mb-lang-toggle-pill" class="lang-switch lang-switch--light" role="group" aria-label="Language">
+      <button type="button" class="lang-btn" id="mb-lang-he" data-lang="he">עב</button>
+      <button type="button" class="lang-btn" id="mb-lang-en" data-lang="en">EN</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="app-header-bar">
+  <div style="position:relative;" id="avatar-menu-wrapper">
+    <div class="app-avatar" onclick="event.stopPropagation(); var menu = document.getElementById('avatar-menu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';" style="cursor:pointer;" title="Menu">M</div>
+    
+    <div id="avatar-menu" style="display:none; position:absolute; top:calc(100% + 8px); left:0; background:var(--bg-panel, #fff); border-radius:12px; padding:8px 16px; box-shadow:0 6px 20px rgba(0,0,0,0.1); z-index:9999; border:1px solid var(--border-panel, #e5e7eb); white-space:nowrap;">
+      <div onclick="document.getElementById('avatar-menu').style.display='none'; window.Biz1LogoutConfirm && window.Biz1LogoutConfirm();" style="display:flex; align-items:center; gap:8px; color:#c0392b; font-weight:700; font-size:15px; cursor:pointer; padding:6px 0;">
+        <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+        <span data-i18n="logout"></span>
+      </div>
+    </div>
+  </div>
+  <div id="mb-home-greeting" class="app-greeting" data-i18n="loading"></div>
+</div>
+
+<!-- Logout confirm modal -->
+<div id="logout-modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:10000; align-items:center; justify-content:center;">
+  <div style="background:var(--bg-form, #fff); width:320px; border-radius:24px; padding:24px; box-shadow:0 12px 40px rgba(0,0,0,0.2); text-align:center;">
+    <div style="width:48px; height:48px; border-radius:50%; background:#fbeeed; color:#c0392b; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+    </div>
+    <div style="font-size:18px; font-weight:800; color:var(--text-title); margin-bottom:8px;" data-i18n="logout"></div>
+    <div style="font-size:14px; font-weight:500; color:var(--text-sub); margin-bottom:24px; line-height:1.4;" data-i18n="confirm_logout"></div>
+    <div style="display:flex; gap:12px;">
+      <button type="button" onclick="document.getElementById('logout-modal-overlay').style.display='none'" style="flex:1; padding:12px; border-radius:12px; border:none; background:var(--bg-accent, #eee); color:var(--text-title); font-size:15px; font-weight:700; cursor:pointer;" data-i18n="cancel"></button>
+      <button type="button" onclick="window.Biz1Logout ? window.Biz1Logout() : (localStorage.clear(), location.href='login.html')" style="flex:1; padding:12px; border-radius:12px; border:none; background:#c0392b; color:#fff; font-size:15px; font-weight:700; cursor:pointer;" data-i18n="logout"></button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biz1 Showcase — Create Document</title>
+<script src="assets/theme-boot.js"></script>
+<link rel="stylesheet" href="assets/style.css?v=ss-30">
+<script src="assets/config.js?v=ss-30"></script>
+<script src="assets/biz1-sdk.js?v=ss-30"></script>
+<script src="assets/biz1-app.js?v=ss-30"></script>
+</head>
+<body data-page="create-doc">
+<div class="page-wrap" id="appShell">
+  <div class="app-frame">
+
+    <div id="screenCreateDoc" class="screen screen--enter">
+      <div class="top-nav" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 16px 20px;">
+        <button type="button" class="btn-back" id="btnCreateBack">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          <span data-i18n="back" style="font-weight: 500;">Back</span>
+        </button>
+        <div class="page-title" data-i18n="createDocTitle" style="font-weight: 600; font-size: 1.1rem;">Create Document</div>
+      </div>
+
+      <div class="dc-scroll page-scroll" style="padding: 24px;">
+        <div class="create-doc-header" style="text-align: center; margin-bottom: 32px;">
+          <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--text-main);">Documents.Add</h2>
+          <p style="margin: 8px 0 0; color: var(--text-muted); font-size: 0.95rem;">All supported document types and fields from the API help.</p>
+        </div>
+
+        <form id="createDocForm" class="card" style="max-width: 540px; margin: 0 auto; padding: 32px; border-radius: 16px;">
+          <div id="createDocError" class="error-box hidden" style="margin-bottom: 24px;">
+            <div id="createDocErrorText" class="error-text"></div>
+          </div>
+
+          <div class="field" style="margin-bottom: 20px;">
+            <label for="docType" class="field-label">Document type</label>
+            <select id="docType" class="ds-input input" required style="width: 100%; padding: 12px 16px; border-radius: 8px;">
+              <option value="invoice">Invoice</option>
+              <option value="credit_invoice">Credit invoice</option>
+              <option value="proforma_invoice">Proforma invoice</option>
+              <option value="receipt">Receipt</option>
+              <option value="receipt_partly_paid">Receipt partly paid</option>
+              <option value="receipt_tax_invoice">Receipt tax invoice</option>
+              <option value="gi_ir">GI / IR</option>
+              <option value="order_proposals">Order proposals</option>
+              <option value="purchase_orders">Purchase orders</option>
+              <option value="delivery_invoice">Delivery invoice</option>
+              <option value="organization_receipt">Organization receipt</option>
+            </select>
+          </div>
+
+          <div class="field" style="margin-bottom: 20px;">
+            <label for="docItemName" class="field-label">Item name</label>
+            <input id="docItemName" class="ds-input input" type="text" placeholder="e.g. Web Development Services" style="width: 100%; padding: 12px 16px; border-radius: 8px;">
+          </div>
+
+          <div class="field" style="margin-bottom: 20px;">
+            <label for="docAmount" class="field-label">Amount</label>
+            <input id="docAmount" class="ds-input input input--ltr" type="number" step="0.01" min="0" placeholder="0.00" required style="width: 100%; padding: 12px 16px; border-radius: 8px;">
+          </div>
+
+          <button type="submit" id="btnSubmitDoc" class="btn btn-primary" style="width: 100%; padding: 14px; border-radius: 8px; font-weight: 600;">
+            <span id="btnSubmitDocText" data-i18n="createDocBtn">Create Document</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script src="assets/app.js?v=ss-30"></script>
+</body>
+</html>

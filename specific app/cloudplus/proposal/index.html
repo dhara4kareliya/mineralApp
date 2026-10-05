@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-page="proposal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudPlus — Order Proposal</title>
+<script>
+(function(){try{var t=localStorage.getItem('cloudplus_theme')||localStorage.getItem('biz1fs_theme')||localStorage.getItem('mineralbar_theme');if(t!=='dark'&&t!=='light'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+(function(){try{var l=localStorage.getItem('cloudplus_lang')||localStorage.getItem('biz1fs_lang')||localStorage.getItem('mineralbar_lang');if(l!=='he'&&l!=='en')l='en';document.documentElement.lang=l==='he'?'he':'en';document.documentElement.dir=l==='he'?'rtl':'ltr';}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/app.css?v=20260925e">
+<link rel="stylesheet" href="../assets/css/ticket-pages.css?v=20260925e">
+<link rel="stylesheet" href="./proposal.css?v=20260925e">
+<script src="../assets/config.js?v=20260925e"></script>
+<script>
+(function () {
+  var user = (window.Biz1Config && Biz1Config.user) || 'demo';
+  user = String(user).trim().toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\.biz1\.co\.il.*$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  if (user) {
+    document.write('<script src="https://' + user + '.biz1.co.il/app/sdk/biz1-sdk.js"><\/script>');
+  }
+})();
+</script>
+<script src="../assets/js/app.js?v=20260925e"></script>
+</head>
+<body><div id="appRoot" dir="ltr" class="page-wrap">
+  <div class="phone-outer">
+    <div class="phone-inner prop-page">
+      <div class="status-bar status-bar-dark">
+        <span class="status-clock">--:--</span>
+        <div class="status-bar-actions">
+          <button type="button" class="lang-translator-btn lang-translator-btn--dark" data-lang-toggle>🌐 EN</button>
+          <button type="button" class="status-icon-btn status-icon-btn--dark" data-theme-toggle title="Light / Dark mode">
+            <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="ticket-header">
+        <div class="ticket-header-row">
+          <a href="../tickets.html" class="ticket-header-round" title="Back">
+            <svg class="page-back-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          </a>
+          <div class="ticket-header-mid">
+            <div class="ticket-header-title">Order Proposal</div>
+            <div class="ticket-header-sub">Create proposal for customer</div>
+          </div>
+          <div class="ticket-header-round ticket-header-round--spacer"></div>
+        </div>
+      </div>
+
+      <div id="propLoading" class="prop-loader">
+        <div>
+          <div class="mb-page-loader__spin" aria-hidden="true"></div>
+          <div class="mb-page-loader__label">Loading…</div>
+        </div>
+      </div>
+
+      <div id="propContent" class="prop-body hidden">
+        <div id="propCustChip" class="prop-cust-chip hidden">
+          <div id="propCustAvatar" class="prop-avatar">?</div>
+          <div style="min-width:0;">
+            <div id="propCustName" class="prop-cust-name">—</div>
+            <div id="propCustId" class="prop-cust-id">Customer #—</div>
+          </div>
+        </div>
+
+        <form id="propForm" autocomplete="off">
+          <section class="prop-card">
+            <div class="prop-card-title">CUSTOMER</div>
+            <div class="prop-grid">
+              <div class="prop-field">
+                <label class="prop-label" for="propName">Name <span class="req">*</span></label>
+                <input id="propName" class="ds-input input prop-input" type="text" required placeholder="Customer name">
+              </div>
+              <div class="prop-field">
+                <label class="prop-label" for="propEmail">Email</label>
+                <input id="propEmail" class="ds-input input prop-input" type="email" placeholder="email@example.com">
+              </div>
+              <div class="prop-field">
+                <label class="prop-label" for="propPhone">Phone</label>
+                <input id="propPhone" class="ds-input input prop-input" type="tel" placeholder="Phone">
+              </div>
+              <div class="prop-field">
+                <label class="prop-label" for="propMobile">Mobile</label>
+                <input id="propMobile" class="ds-input input prop-input" type="tel" placeholder="Mobile">
+              </div>
+              <div class="prop-field prop-field--full">
+                <label class="prop-label" for="propCompany">Company ID <span class="req">*</span></label>
+                <input id="propCompany" class="ds-input input prop-input" type="text" inputmode="numeric" placeholder="Company ID / ח.פ" required>
+              </div>
+            </div>
+          </section>
+
+          <section class="prop-card">
+            <div class="prop-card-title">PRODUCT</div>
+            <div class="prop-grid">
+              <div class="prop-field prop-field--full">
+                <label class="prop-label" for="propProductSearch">Product <span class="req">*</span></label>
+                <div class="prop-search-wrap">
+                  <input id="propProductSearch" class="ds-input input prop-input" type="search" placeholder="Type to search products…" autocomplete="off">
+                  <div id="propProductSuggest" class="prop-suggest hidden" role="listbox"></div>
+                </div>
+                <div id="propSelectedProduct" class="prop-selected hidden">
+                  <div id="propSelectedName" class="prop-selected-name">—</div>
+                  <button type="button" id="propClearProduct" class="btn-ghost prop-selected-clear">Clear</button>
+                </div>
+              </div>
+              <div class="prop-field">
+                <label class="prop-label" for="propQty">Qty <span class="req">*</span></label>
+                <input id="propQty" class="ds-input input prop-input" type="number" min="1" step="1" value="1" required>
+              </div>
+              <div class="prop-field">
+                <label class="prop-label" for="propPrice">Product price <span class="req">*</span></label>
+                <input id="propPrice" class="ds-input input prop-input" type="number" min="0" step="0.01" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="prop-total-row">
+              <span class="prop-total-label">Total</span>
+              <span id="propTotal" class="prop-total-value">₪0.00</span>
+            </div>
+          </section>
+
+          <div id="propError" class="prop-msg prop-msg--error hidden"></div>
+          <div id="propSuccess" class="prop-msg prop-msg--ok hidden"></div>
+
+          <div class="prop-actions">
+            <button type="submit" id="propSubmit" class="btn btn-primary">Create proposal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="./proposal.js?v=20260926f"></script>
+<script>
+/* INLINE product-search hotfix — survives stale proposal.js on CDN */
+/** Hotfix: product search — works even if proposal.js on server is stale */
+(function () {
+  'use strict';
+
+  function ready(fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  ready(function () {
+    // Wait for page boot / auth UI to appear
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      var input = document.getElementById('propProductSearch');
+      var content = document.getElementById('propContent');
+      if (!input || !window.MineralBarApp) {
+        if (tries > 80) clearInterval(timer);
+        return;
+      }
+      if (content && content.classList.contains('hidden') && tries < 40) return;
+      clearInterval(timer);
+      install();
+    }, 250);
+  });
+
+  function install() {
+    if (window.__cpSearchFixInstalled) return;
+    window.__cpSearchFixInstalled = true;
+
+    function replace(id) {
+      var el = document.getElementById(id);
+      if (!el || !el.parentNode) return null;
+      var clone = el.cloneNode(true);
+      el.parentNode.replaceChild(clone, el);
+      return document.getElementById(id);
+    }
+
+    var input = replace('propProductSearch');
+    var suggest = replace('propProductSuggest');
+    var clearBtn = replace('propClearProduct');
+    var priceEl = document.getElementById('propPrice');
+    var qtyEl = document.getElementById('propQty');
+    var selectedWrap = document.getElementById('propSelectedProduct');
+    var selectedName = document.getElementById('propSelectedName');
+    var totalEl = document.getElementById('propTotal');
+    if (!input || !suggest) return;
+
+    function money(n) {
+      var x = Math.round(Number(n) * 100) / 100;
+      return (isFinite(x) ? x : 0).toFixed(2);
+    }
+    function nameOf(p) { return String((p && (p.product_name || p.name || p.title)) || '').trim(); }
+    function idOf(p) { return String((p && (p.id || p.product_id)) || '').trim(); }
+    function priceOf(p) {
+      var n = Number(p && (p.product_price != null ? p.product_price : (p.price != null ? p.price : p.main_price)));
+      return isFinite(n) ? n : 0;
+    }
+    function norm(v) {
+      return String(v || '').toLowerCase().replace(/[^\u0590-\u05FFa-z0-9.]+/gi, ' ').replace(/\s+/g, ' ').trim();
+    }
+    function hay(p) {
+      return norm([nameOf(p), p.product_sku, p.sku, p.barcode, idOf(p), p.discription, p.description, priceOf(p)].join(' '));
+    }
+    function score(p, q) {
+      var h = hay(p); q = norm(q);
+      if (!q || !h) return 0;
+      if (h === q) return 100;
+      if (h.indexOf(q) !== -1) return 80;
+      var toks = q.split(' ').filter(Boolean), hit = 0;
+      for (var i = 0; i < toks.length; i++) if (h.indexOf(toks[i]) !== -1) hit++;
+      if (hit === toks.length) return 60;
+      if (hit >= Math.ceil(toks.length * 0.6)) return 30 + hit;
+      return 0;
+    }
+    function filterRows(rows, q) {
+      var scored = [];
+      (rows || []).forEach(function (p) {
+        var s = score(p, q);
+        if (s > 0) scored.push({ p: p, s: s });
+      });
+      scored.sort(function (a, b) { return b.s - a.s; });
+      return scored.map(function (x) { return x.p; }).slice(0, 25);
+    }
+    function dedupe(rows) {
+      var seen = {}, out = [];
+      (rows || []).forEach(function (p) {
+        var id = idOf(p) || nameOf(p);
+        if (!id || seen[id]) return;
+        seen[id] = 1;
+        out.push(p);
+      });
+      return out;
+    }
+
+    var catalog = null;
+    var catalogPromise = null;
+    async function ensureCatalog() {
+      if (window.__cpProductCatalog && window.__cpProductCatalog.length) {
+        catalog = window.__cpProductCatalog;
+        return catalog;
+      }
+      if (window.__cpProductCatalogPromise) {
+        catalog = await window.__cpProductCatalogPromise;
+        return catalog;
+      }
+      if (catalog && catalog.length) return catalog;
+      if (catalogPromise) return catalogPromise;
+      catalogPromise = (async function () {
+        var all = await MineralBarApp.listAllProducts({ active: 1 });
+        catalog = all.rows || [];
+        window.__cpProductCatalog = catalog;
+        return catalog;
+      })();
+      window.__cpProductCatalogPromise = catalogPromise;
+      try {
+        return await catalogPromise;
+      } finally {
+        catalogPromise = null;
+        window.__cpProductCatalogPromise = null;
+      }
+    }
+    function render(rows, q) {
+      if (!q) { suggest.classList.add('hidden'); return; }
+      if (!rows.length) {
+        suggest.innerHTML = '<div class="prop-suggest-empty">No products found</div>';
+        suggest.classList.remove('hidden');
+        return;
+      }
+      suggest._rows = rows;
+      suggest.innerHTML = rows.map(function (p) {
+        var id = idOf(p), name = nameOf(p) || ('#' + id), price = priceOf(p);
+        return '<button type="button" class="prop-suggest-item" data-product-id="' + id + '">' +
+          '<span class="prop-suggest-name">' + name + '</span>' +
+          '<span class="prop-suggest-meta">#' + id + (price || price === 0 ? (' · ₪' + money(price)) : '') + '</span></button>';
+      }).join('');
+      suggest.classList.remove('hidden');
+    }
+
+    var seq = 0, debounce = null;
+    window.__cpPickedProduct = null;
+
+    async function runSearch(q) {
+      var my = ++seq;
+      q = String(q || '').trim();
+      if (!q) { suggest.classList.add('hidden'); return; }
+      suggest.innerHTML = '<div class="prop-suggest-empty">Searching…</div>';
+      suggest.classList.remove('hidden');
+      try {
+        // Local filter only — catalog loaded once (shared), no Products.List per keystroke.
+        var cat = await ensureCatalog();
+        if (my !== seq) return;
+        render(filterRows(cat, q), q);
+      } catch (e) {
+        if (my !== seq) return;
+        render([], q);
+      }
+    }
+
+    function pick(p) {
+      window.__cpPickedProduct = p;
+      input.value = nameOf(p);
+      if (priceEl) priceEl.value = money(priceOf(p));
+      if (qtyEl && !qtyEl.value) qtyEl.value = '1';
+      if (selectedName) selectedName.textContent = nameOf(p) + ' · #' + idOf(p);
+      if (selectedWrap) selectedWrap.classList.remove('hidden');
+      updateTotal();
+      suggest.classList.add('hidden');
+    }
+
+    function clearProduct() {
+      window.__cpPickedProduct = null;
+      input.value = '';
+      if (priceEl) priceEl.value = '';
+      if (selectedWrap) selectedWrap.classList.add('hidden');
+      suggest.classList.add('hidden');
+      updateTotal();
+    }
+
+    function updateTotal() {
+      if (!totalEl) return;
+      var qty = Number(qtyEl && qtyEl.value) || 0;
+      var price = Number(priceEl && priceEl.value) || 0;
+      totalEl.textContent = '₪' + money(qty * price);
+    }
+
+    input.addEventListener('input', function () {
+      window.__cpPickedProduct = null;
+      if (selectedWrap) selectedWrap.classList.add('hidden');
+      clearTimeout(debounce);
+      debounce = setTimeout(function () { runSearch(input.value); }, 200);
+    });
+    input.addEventListener('focus', function () {
+      if (String(input.value || '').trim()) runSearch(input.value);
+    });
+    suggest.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('[data-product-id]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-product-id');
+      var rows = suggest._rows || [];
+      for (var i = 0; i < rows.length; i++) {
+        if (idOf(rows[i]) === String(id)) { pick(rows[i]); break; }
+      }
+    });
+    if (clearBtn) clearBtn.addEventListener('click', clearProduct);
+    if (qtyEl) qtyEl.addEventListener('input', updateTotal);
+    if (priceEl) priceEl.addEventListener('input', updateTotal);
+
+    // Catalog is preloaded once by proposal.js boot (shared cache).
+    // Do not call listAllProducts again here.
+
+    // Fix Create proposal (stale proposal.js sends items as array → invalid jsonish)
+    installSubmitFix();
+  }
+
+  function installSubmitFix() {
+    if (window.__cpSubmitFixInstalled) return;
+    window.__cpSubmitFixInstalled = true;
+
+    function $(id) { return document.getElementById(id); }
+    function val(id) {
+      var el = $(id);
+      return el ? String(el.value || '').trim() : '';
+    }
+    function show(el, on) {
+      if (!el) return;
+      el.classList.toggle('hidden', !on);
+    }
+    function showError(msg) {
+      var err = $('propError');
+      var ok = $('propSuccess');
+      show(ok, false);
+      if (!err) return;
+      if (msg) { err.textContent = msg; show(err, true); }
+      else { err.textContent = ''; show(err, false); }
+    }
+    function showSuccess(msg) {
+      var err = $('propError');
+      var ok = $('propSuccess');
+      show(err, false);
+      if (!ok) return;
+      ok.textContent = msg || 'Order proposal created';
+      show(ok, true);
+    }
+    function nameOf(p) { return String((p && (p.product_name || p.name || p.title)) || '').trim(); }
+    function idOf(p) { return String((p && (p.id || p.product_id)) || '').trim(); }
+    function replace(id) {
+      var el = $(id);
+      if (!el || !el.parentNode) return null;
+      var clone = el.cloneNode(true);
+      el.parentNode.replaceChild(clone, el);
+      return $(id);
+    }
+
+    var submitBtn = replace('propSubmit');
+    var form = $('propForm');
+    var busy = false;
+
+    async function createProposal(e) {
+      if (e) e.preventDefault();
+      if (busy) return;
+      showError('');
+      show($('propSuccess'), false);
+
+      var customerId = '';
+      try {
+        var qs = new URLSearchParams(location.search || '');
+        customerId = qs.get('customer') || qs.get('customer_id') || qs.get('cust_id') || '';
+      } catch (errQ) { customerId = ''; }
+      customerId = String(customerId || '').trim();
+      if (!customerId) {
+        var chip = $('propCustId');
+        var m = chip && String(chip.textContent || '').match(/#(\d+)/);
+        if (m) customerId = m[1];
+      }
+
+      var name = val('propName');
+      var email = val('propEmail');
+      var phone = val('propPhone');
+      var mobile = val('propMobile') || phone;
+      var companyId = String(val('propCompany') || '').replace(/\D/g, '');
+      var productSearch = val('propProductSearch');
+      var qty = Number(val('propQty'));
+      var price = Number(val('propPrice'));
+      var picked = window.__cpPickedProduct || null;
+      var productId = Number(idOf(picked)) || 0;
+      var productName = nameOf(picked) || productSearch || 'Product';
+
+      if (!customerId) { showError('Missing customer id'); return; }
+      if (!name) { showError('Name is required'); return; }
+      if (!companyId) { showError('Company ID is required'); return; }
+      if (!productSearch && !picked) { showError('Please choose a product'); return; }
+      if (!(qty > 0)) { showError('Quantity must be greater than 0'); return; }
+      if (!(price >= 0) || !isFinite(price)) { showError('Enter a valid product price'); return; }
+      if (!window.MineralBarApp || !MineralBarApp.getClient) {
+        showError('Not connected to Biz1');
+        return;
+      }
+
+      var total = Math.round(qty * price * 100) / 100;
+      var items = [{
+        item_name: productName,
+        item_qty: qty,
+        item_price: price,
+        item_total: total,
+        iteeeem_id: productId,
+        item_discount_type: 'price',
+        item_discount: 0
+      }];
+      var note = 'CloudPlus proposal';
+
+      // items must be JSON string. Company tax id → corporation (Documents.Add rejects company_id).
+      var payload = {
+        customer_id: customerId,
+        name: name,
+        email: email,
+        phone: phone,
+        mobile: mobile,
+        document_type: 'order_proposals',
+        final_amount: total,
+        items: JSON.stringify(items),
+        note: note,
+        corporation: companyId
+      };
+
+      busy = true;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating…';
+      }
+      try {
+        var client = MineralBarApp.getClient();
+        try {
+          var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
+          var coData = coRes && (coRes.data || coRes.output || coRes);
+          var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+          var co = null;
+          if (coRows && coRows.length) {
+            co = coRows.find(function (r) {
+              return r && (r.is_default || Number(r.default_settings) === 1 || Number(r.is_default) === 1);
+            }) || coRows[0];
+          }
+          var invId = co ? String(co.id || co.invoice_setting_id || co.invoice_settings_id || '').trim() : '';
+          if (invId) payload.invoice_setting_id = invId;
+        } catch (coErr) {
+          console.warn('[proposal] InvoiceSettings.List failed', coErr);
+        }
+        var created = await client.request('Documents.Add', payload);
+        var ok = created && (
+          Number(created.success) === 1 ||
+          created.success === true ||
+          created.inserted_documents_id ||
+          created.document_id ||
+          created.id
+        );
+        if (!ok) {
+          throw new Error((created && (created.message || created.error)) || 'Documents.Add failed');
+        }
+        var docId = String(created.inserted_documents_id || created.document_id || created.id || '');
+        showSuccess(docId
+          ? ('Order proposal #' + docId + ' created successfully')
+          : 'Order proposal created successfully');
+      } catch (err) {
+        console.warn('[proposal] submit hotfix failed', err);
+        var msg = (err && err.message) || 'Failed to create order proposal';
+        var raw = err && err.raw;
+        if (raw && Array.isArray(raw.invalid) && raw.invalid.length) {
+          msg += ' (' + raw.invalid.map(function (x) {
+            return (x && x.field ? x.field : '') + (x && x.expected ? (':' + x.expected) : '');
+          }).filter(Boolean).join(', ') + ')';
+        } else if (raw && raw.unknown && raw.unknown.length) {
+          msg += ' (' + raw.unknown.join(', ') + ')';
+        }
+        showError(msg);
+      } finally {
+        busy = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create proposal';
+        }
+      }
+    }
+
+    if (submitBtn) submitBtn.addEventListener('click', createProposal);
+    if (form) form.addEventListener('submit', createProposal);
+  }
+})();
+
+</script>
+</body>
+</html>

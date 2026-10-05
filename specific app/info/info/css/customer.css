@@ -1,0 +1,65 @@
+/* Customer page — Fields button is near the right; open panel to the left like orders page */
+.field-picker {
+  inset-inline-end: 0;
+  inset-inline-start: auto;
+}
+
+/* Customer page: Order / Product name sticky column (fixed like order page client name) */
+.data-table td.col-product:nth-child(2),
+.data-table th.col-product:nth-child(2),
+.col-product-fixed {
+  min-width: 140px;
+  max-width: 280px;
+  position: sticky;
+  left: 44px;
+  z-index: 4;
+  background: var(--bg-elev);
+  border-right: 1px solid var(--line);
+  box-shadow: 8px 0 12px -8px rgba(15, 23, 42, 0.45);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[dir="rtl"] .data-table td.col-product:nth-child(2),
+html[dir="rtl"] .data-table th.col-product:nth-child(2),
+html[dir="rtl"] .col-product-fixed {
+  left: auto;
+  right: 44px;
+  border-right: 0;
+  border-left: 1px solid var(--line);
+  box-shadow: -8px 0 12px -8px rgba(15, 23, 42, 0.45);
+}
+
+.data-table th.col-product:nth-child(2),
+.data-table th.col-product-fixed {
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg-muted));
+  z-index: 6;
+}
+
+.data-table tr.is-selected td.col-product:nth-child(2),
+.data-table tr.is-selected td.col-product-fixed {
+  background: color-mix(in srgb, var(--primary) 12%, var(--bg-elev));
+}
+
+.col-product a,
+.col-product .product-link,
+.col-product .customer-link {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.col-product a:hover,
+.col-product .product-link:hover,
+.col-product .customer-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
