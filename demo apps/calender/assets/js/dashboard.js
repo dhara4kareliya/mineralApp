@@ -341,6 +341,18 @@
     dotEl.style.background = getStaffColor(staffId);
   }
 
+  function colorStaffFilterOptions(select) {
+    if (!select) return;
+    Array.from(select.options).forEach((option) => {
+      const color = option.value === 'all' ? '#94a3b8' : getStaffColor(option.value);
+      option.style.color = color;
+      if (!option.dataset.colorLabel) {
+        option.dataset.colorLabel = option.textContent;
+        option.textContent = '● ' + option.textContent;
+      }
+    });
+  }
+
   function applyBookingStaffColor(staffId) {
     const color = getStaffColor(staffId);
     updateColorDot(document.getElementById('qbStaffDot'), staffId);
@@ -896,6 +908,15 @@
     }, 500);
   }
 
+  function isEditableDate(dateStr) {
+    const value = String(dateStr || '').slice(0, 10);
+    return !!value && value >= fmtDate(new Date());
+  }
+
+  function blockPastDateEdit() {
+    showToast('Read-only date', 'Past dates cannot be changed. Today and future dates are editable.');
+  }
+
   function hideCellTooltip() {
     clearTimeout(cellTipTimer);
     cellTipTimer = null;
@@ -916,7 +937,9 @@
     el.style.height = finalHeight + 'px';
     el.style.setProperty('--appt-color', staffInfo ? staffInfo.color : (getStaffColor(appt.staffId) || '#0d9488'));
     el.setAttribute('data-appt-id', appt.id);
+    const apptColor = staffInfo ? staffInfo.color : (getStaffColor(appt.staffId) || '#0d9488');
     el.innerHTML =
+      '<span class="appt-staff-dot" style="background:' + apptColor + '" title="' + (staffInfo ? staffInfo.name : '') + '"></span>' +
       '<div class="appt-time">' +
       appt.start +
       ' – ' +
@@ -928,7 +951,7 @@
       '<div class="appt-service">' +
       (appt.service || '') +
       '</div>';
-    if (draggable) {
+    if (draggable && isEditableDate(appt.dateStr)) {
       el.setAttribute('draggable', 'true');
       el.addEventListener('dragstart', (e) => {
         hideApptHover();
@@ -1004,6 +1027,7 @@
 
   function attachDropHandlers(cell, dateStr, hour, staffId) {
     cell.addEventListener('dragover', (e) => {
+      if (!isEditableDate(dateStr)) return;
       e.preventDefault();
       cell.classList.add('drag-over');
     });
@@ -1011,12 +1035,20 @@
     cell.addEventListener('drop', (e) => {
       e.preventDefault();
       cell.classList.remove('drag-over');
+      if (!isEditableDate(dateStr)) {
+        blockPastDateEdit();
+        return;
+      }
       const apptId = e.dataTransfer.getData('text/plain');
       handleDrop(apptId, dateStr, hour, staffId);
     });
   }
 
   async function handleDrop(apptId, newDateStr, newHour, newStaffId) {
+    if (!isEditableDate(newDateStr)) {
+      blockPastDateEdit();
+      return;
+    }
     const apptKey = String(apptId || '');
     let oldDateStr = null;
     let appt = null;
@@ -1030,6 +1062,10 @@
       }
     });
     if (!appt) return;
+    if (!isEditableDate(oldDateStr)) {
+      blockPastDateEdit();
+      return;
+    }
 
     const duration = timeToMinutes(appt.end) - timeToMinutes(appt.start);
     const newStart = padTime(newHour, 0);
@@ -1216,7 +1252,9 @@
     el.style.height = 'calc(100% - 8px)';
     el.style.setProperty('--appt-color', staffInfo ? staffInfo.color : (getStaffColor(appt.staffId) || '#0d9488'));
     el.setAttribute('data-appt-id', appt.id);
+    const apptColor = staffInfo ? staffInfo.color : (getStaffColor(appt.staffId) || '#0d9488');
     el.innerHTML =
+      '<span class="appt-staff-dot" style="background:' + apptColor + '" title="' + (staffInfo ? staffInfo.name : '') + '"></span>' +
       '<div class="appt-time">' +
       appt.start +
       ' – ' +
@@ -1228,7 +1266,7 @@
       '<div class="appt-service">' +
       (appt.service || '') +
       '</div>';
-    if (draggable) {
+    if (draggable && isEditableDate(appt.dateStr)) {
       el.setAttribute('draggable', 'true');
       el.addEventListener('dragstart', (e) => {
         hideApptHover();
@@ -1373,7 +1411,14 @@
         staffCell.style.background = 'var(--surface)';
         if (dayIndex > 0 && index === 0) staffCell.style.borderTop = '2px solid var(--date-separator)';
         staffCell.style.gridColumn = '2';
-        staffCell.innerHTML = staff.name;
+        staffCell.innerHTML =
+          '<div class="week-staff-person">' +
+          '<div class="week-staff-avatar" style="background:' + (staff.color || getStaffColor(staff.id) || '#94a3b8') + '">' +
+          initials(staff.name || '') +
+          '</div>' +
+          '<div class="week-staff-name">' + (staff.name || '—') + '</div>' +
+          '<div class="week-staff-role">' + (staff.role || 'Team') + '</div>' +
+          '</div>';
         weekGrid.appendChild(staffCell);
 
         const rowContainer = document.createElement('div');
@@ -1611,6 +1656,8 @@
     document.getElementById('adGoogle').textContent = appt.googleEventId
       ? 'Synced · ' + appt.googleEventId
       : 'Pending / local';
+    const deleteBtn = document.getElementById('adDeleteBtn');
+    if (deleteBtn) deleteBtn.disabled = !isEditableDate(appt.dateStr);
 
     const mobile = await resolveCustomerMobile(appt.customerId);
     if (mobile) {
@@ -1885,6 +1932,10 @@
     selectedSlot = null;
     const fixedSlotStart = opts.hour != null ? padTime(opts.hour, 0) : '';
     const fixedDateStr = opts.dateStr || fmtDate(currentDate);
+    if (!isEditableDate(fixedDateStr)) {
+      blockPastDateEdit();
+      return;
+    }
     bookingLock =
       opts.hour != null
         ? {
@@ -1962,6 +2013,10 @@
     const svc = getDefaultService();
     const serviceName = svc.name;
     const dateStr = document.getElementById('qbDate').value;
+    if (!isEditableDate(dateStr)) {
+      blockPastDateEdit();
+      return;
+    }
     const syncGoogle = document.getElementById('qbGoogleSync').checked;
     const sendWa = document.getElementById('qbWhatsApp').checked;
     const notify = document.getElementById('qbNotify')
@@ -2319,6 +2374,8 @@
       '</option>' +
       STAFF.map((s) => '<option value="' + s.id + '">' + s.name + '</option>').join('');
     weekPicker.value = weekSelectedStaffId || 'all';
+    colorStaffFilterOptions(dayPicker);
+    colorStaffFilterOptions(weekPicker);
     
     updateColorDot(document.getElementById('weekStaffDot'), weekSelectedStaffId);
     updateColorDot(document.getElementById('dayStaffDot'), daySelectedStaffId);
@@ -2467,6 +2524,10 @@
 
   document.getElementById('adDeleteBtn').addEventListener('click', async () => {
     if (!currentDetailAppt) return;
+    if (!isEditableDate(currentDetailAppt.dateStr)) {
+      blockPastDateEdit();
+      return;
+    }
     if (!confirm('Delete appointment with ' + currentDetailAppt.client + '?')) return;
     const apptId = String(currentDetailAppt.id || '').trim();
     if (!apptId || apptId === 'undefined' || apptId === 'null') {
