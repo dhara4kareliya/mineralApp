@@ -22,7 +22,7 @@
   var stored = null;
   try {
     stored = localStorage.getItem('biz1_sdk_bearer_token');
-    if (stored && !localStorage.getItem('biz1fs_role')) stored = null;
+    if (stored && !localStorage.getItem('biz1_fin_role')) stored = null;
   } catch (e) { /* ignore */ }
 
   if (hasUrlToken()) {

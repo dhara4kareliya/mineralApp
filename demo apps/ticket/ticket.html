@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 Showcase — Ticket</title>
 <script src="assets/js/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/css/app.css?v=ticket-3">
-<script src="assets/config.js?v=ticket-3"></script>
-<script src="assets/js/app.js?v=ticket-3"></script>
+<link rel="stylesheet" href="assets/css/app.css?v=ticket-15">
+<script src="assets/config.js?v=ticket-15"></script>
+<script src="assets/js/app.js?v=ticket-15"></script>
+
+    <script>
+      (function(){try{var t=localStorage.getItem('biz1_fin_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+    </script>
 </head>
 <body data-page="ticket">
 <div id="appRoot" dir="ltr" class="page-wrap">
@@ -52,16 +56,25 @@
         <div id="ticketMissing" class="hidden card" style="color:#8a93a3;font-weight:700;" data-i18n="data_not_found">Data not found</div>
         <div id="ticketContent" class="hidden ticket-layout">
           <div class="card ticket-panel ticket-panel--client">
-            <div class="ticket-label" data-i18n="client">Client</div>
-            <div id="ticketClientLine" class="ticket-value"></div>
-            <div class="ticket-label" style="margin:12px 0 4px;" data-i18n="address">Address</div>
-            <div id="ticketAddressLine" class="ticket-value--sm"></div>
-            <div class="ticket-label" style="margin:12px 0 6px;" data-i18n="status">Status</div>
-            <select id="ticketStatusSelect" class="ds-input input" style="width:100%;padding:12px;font-weight:700;">
-              <option value="opened">Opened</option>
-              <option value="assigned">Assigned</option>
-              <option value="closed">Closed</option>
-            </select>
+            <div class="ticket-client-heading">
+              <span class="ticket-client-kicker" data-i18n="client">Client</span>
+              <span class="ticket-client-dot"></span>
+            </div>
+            <div id="ticketClientLine" class="ticket-value ticket-client-name"></div>
+            <div class="ticket-client-grid">
+              <div class="ticket-client-field">
+                <div class="ticket-label" data-i18n="address">Address</div>
+                <div id="ticketAddressLine" class="ticket-value--sm"></div>
+              </div>
+              <div class="ticket-client-field">
+                <div class="ticket-label" data-i18n="status">Status</div>
+                <select id="ticketStatusSelect" class="ds-input input ticket-status-select">
+                  <option value="opened">Opened</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="ticket-panel ticket-panel--work">
             <div class="card" style="margin-bottom:12px;">
@@ -102,7 +115,7 @@
             </div>
             <div id="ticketFormError" class="hidden" style="margin-bottom:12px;color:#c0392b;font-size:13px;font-weight:700;text-align:center;"></div>
           </div>
-          <div class="ticket-actions">
+          <div class="ticket-actions ticket-actions--bar">
             <button type="button" id="ticketNavMaps" class="btn-ghost ticket-action-btn" data-i18n="navigate">Navigate</button>
             <a id="ticketWaBtn" class="btn-ghost ticket-action-btn ticket-action-btn--wa" href="#" role="button" rel="noopener">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>

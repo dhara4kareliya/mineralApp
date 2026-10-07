@@ -451,7 +451,14 @@
     var res = await this.fetch(this.domain + this.appPath + '/' + route, {
       method: 'POST',
       headers: headers,
-      body: toBody(data)
+      // Keep browser FormData untouched so image_upload preserves the
+      // original File name, MIME type, and multipart boundary exactly like
+      // the working curl request.
+      body: (typeof Blob !== 'undefined' && data instanceof Blob)
+        ? data
+        : (typeof FormData !== 'undefined' && data instanceof FormData)
+        ? data
+        : toBody(data)
     });
     var text = await res.text();
     var json;
@@ -551,14 +558,14 @@
   }
 
   var DOMAIN = resolveDomain();
-  var USER_KEY = 'biz1fs_user_basic';
-  var ROLE_KEY = 'biz1fs_role';
-  var EMAIL_KEY = 'biz1fs_email';
-  var REMEMBER_KEY = 'biz1fs_remember';
-  var CRED_KEY = 'biz1fs_cred';
-  var SESSION_PASS_KEY = 'biz1fs_session_pass';
-  var EXPIRES_KEY = 'biz1fs_token_expires_at';
-  var URL_TOKEN_SESSION_KEY = 'biz1fs_url_token_login';
+  var USER_KEY = 'biz1_fin_user_basic';
+  var ROLE_KEY = 'biz1_fin_role';
+  var EMAIL_KEY = 'biz1_fin_username';
+  var REMEMBER_KEY = 'biz1_fin_remember';
+  var CRED_KEY = 'biz1_fin_cred';
+  var SESSION_PASS_KEY = 'biz1_fin_session_pass';
+  var EXPIRES_KEY = 'biz1_fin_token_expires_at';
+  var URL_TOKEN_SESSION_KEY = 'biz1_fin_url_token_login';
   /** Biz1 folders (from User.Basic) */
   var FOLDERS = {
     LEADS: 1,       // פניות חדשות / New Leads
@@ -1669,6 +1676,37 @@
     return { raw: raw, rows: rows };
   }
 
+  async function listTicketMessages(ticketId) {
+    var id = requireId(ticketId, 'ticket_id');
+    var raw = await getClient().request('Ticket.MessagesList', { ticket_id: id });
+    return { raw: raw, rows: Array.isArray(raw && raw.data) ? raw.data : [] };
+  }
+
+  async function listTicketCompletionReasons() {
+    var raw = await getClient().request('Ticket.CompletionReasonList', {});
+    return { raw: raw, rows: Array.isArray(raw && raw.data) ? raw.data : [] };
+  }
+
+  async function listTicketProducts(customerId, selected) {
+    var id = requireId(customerId, 'cust_id');
+    var payload = { cust_id: id };
+    if (selected != null && selected !== '') payload.product_id = selected;
+    var raw = await getClient().request('Ticket.ProductsByCustomer', payload);
+    var rows = Array.isArray(raw && raw.data) ? raw.data : [];
+    return { raw: raw, rows: rows.map(function (p) {
+      return {
+        id: String(p.value != null ? p.value : (p.product_id != null ? p.product_id : p.id)),
+        name: String(p.name || p.label || p.value || p.product_id || p.id),
+        selected: !!p.selected
+      };
+    }) };
+  }
+
+  async function listTicketTeamSchedule() {
+    var raw = await getClient().request('Ticket.TeamScheduleList', {});
+    return { raw: raw, rows: Array.isArray(raw && raw.data) ? raw.data : [] };
+  }
+
   function dataUrlToFile(dataUrl, fileName) {
     var parts = String(dataUrl || '').split(',');
     if (parts.length < 2) throw new Error('Invalid image data');
@@ -1758,28 +1796,46 @@
     if (route !== 'Ticket.Add' && route !== 'Ticket.Edit') {
       throw new Error('Ticket.Add or Ticket.Edit route is required');
     }
-    var form = new FormData();
+    var boundary = '----Biz1Boundary' + Math.random().toString(16).slice(2);
+    var parts = [];
+    function addField(key, value) {
+      parts.push('--' + boundary + '\r\n');
+      parts.push('Content-Disposition: form-data; name="' + String(key).replace(/"/g, '') + '"\r\n\r\n');
+      parts.push(String(value) + '\r\n');
+    }
     Object.keys(payload || {}).forEach(function (key) {
       var value = payload[key];
       if (value === undefined || value === null) return;
       if (Array.isArray(value)) {
-        value.forEach(function (item) { form.append(key, String(item)); });
+        value.forEach(function (item) { addField(key, item); });
         return;
       }
       if (typeof value === 'object') {
-        form.append(key, JSON.stringify(value));
+        addField(key, JSON.stringify(value));
         return;
       }
-      form.append(key, String(value));
+      addField(key, value);
     });
+    var files = [];
     (media || []).forEach(function (item) {
       if (!item) return;
       var fileName = String(item.file_name || item.fileName || 'ticket-image.png');
       var file = item.file;
       if (!file && item.dataUrl) file = dataUrlToFile(item.dataUrl, fileName);
-      if (file) form.append('image_upload', file, fileName);
+      if (file) {
+        parts.push('--' + boundary + '\r\n');
+        parts.push('Content-Disposition: form-data; name="image_upload"; filename="' + fileName.replace(/"/g, '') + '"\r\n');
+        parts.push('Content-Type: ' + (file.type || 'application/octet-stream') + '\r\n\r\n');
+        files.push(file);
+        parts.push(file);
+        parts.push('\r\n');
+      }
     });
-    return getClient().request(route, form);
+    parts.push('--' + boundary + '--\r\n');
+    var body = new Blob(parts, { type: 'multipart/form-data; boundary=' + boundary });
+    return getClient().request(route, body, {
+      headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary }
+    });
   }
 
   function parseEmailsHtml(html) {
@@ -2317,6 +2373,10 @@
     getTicket: getTicket,
     listDocuments: listDocuments,
     listProducts: listProducts,
+    listTicketMessages: listTicketMessages,
+    listTicketCompletionReasons: listTicketCompletionReasons,
+    listTicketProducts: listTicketProducts,
+    listTicketTeamSchedule: listTicketTeamSchedule,
     dataUrlToFile: dataUrlToFile,
     uploadCustomerFile: uploadCustomerFile,
     saveTicketWithMedia: saveTicketWithMedia,
@@ -2343,7 +2403,7 @@
 (function (global) {
   'use strict';
 
-  var LANG_KEY = 'biz1fs_lang';
+  var LANG_KEY = 'biz1_fin_lang';
   var DEFAULT_LANG = 'en';
 
   function brandName(lang) {
@@ -2428,6 +2488,8 @@
       filter_daily: 'Daily',
       filter_weekly: 'Weekly',
       filter_period_all: 'All',
+      filter_period_label: 'Period',
+      filter_status_label: 'Status',
       start_route: 'Start Route',
       search_tickets: 'Search tickets by client, address, or #',
       navigate: 'Navigate',
@@ -2469,6 +2531,7 @@
       digital_signature: 'Digital Signature',
       clear_sig: 'Clear',
       complete_send: 'Complete Ticket & Sign Off',
+      reopen_ticket: 'Reopen Ticket',
       success_title: 'Ticket completed',
       success_body: 'Work signed off and saved to the ticket.',
       success_body_pending: 'Ticket completed. Saved locally; server confirmation is pending.',
@@ -2564,6 +2627,8 @@
       filter_daily: 'יומי',
       filter_weekly: 'שבועי',
       filter_period_all: 'הכל',
+      filter_period_label: 'תקופה',
+      filter_status_label: 'סטטוס',
       start_route: 'התחל מסלול',
       search_tickets: 'חיפוש קריאות לפי לקוח, כתובת או #',
       navigate: 'נווט',
@@ -2605,6 +2670,7 @@
       digital_signature: 'חתימה דיגיטלית',
       clear_sig: 'נקה',
       complete_send: 'סגור קריאה וחתום',
+      reopen_ticket: 'פתח קריאה מחדש',
       success_title: 'הקריאה הושלמה',
       success_body: 'העבודה נחתמה ונשמרה בקריאה.',
       success_body_pending: 'הקריאה נסגרה. נשמר מקומית; אין אישור מלא מהשרת.',
@@ -2741,13 +2807,13 @@
     });
   }
 
-  var THEME_KEY = 'biz1fs_theme';
+  var THEME_KEY = 'biz1_fin_theme';
 
   function resolveInitialTheme() {
     try {
       var saved = global.localStorage.getItem(THEME_KEY) ||
-        global.localStorage.getItem('biz1demo_theme') ||
-        global.localStorage.getItem('mineralbar_theme');
+        global.localStorage.getItem('biz1_fin_theme') ||
+        global.localStorage.getItem('biz1_fin_theme');
       if (saved === 'dark' || saved === 'light') return saved;
     } catch (e) { /* ignore */ }
     if (global.matchMedia && global.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
@@ -3554,7 +3620,7 @@
   }
 
   function ticketSignatureFileName(ticketId) {
-    return ticketMediaPrefix(ticketId) + 'signature.png';
+    return ticketMediaPrefix(ticketId) + 'signature.jpg';
   }
 
   function ticketPhotoFileName(ticketId, kind, index) {
@@ -4345,6 +4411,13 @@
     return null;
   }
 
+  function hasTicketDestination(ticket) {
+    if (!ticket) return false;
+    var hasCoordinates = ticket.lat != null && ticket.lng != null &&
+      Number.isFinite(Number(ticket.lat)) && Number.isFinite(Number(ticket.lng));
+    return hasCoordinates || !!String(ticket.address || '').trim();
+  }
+
   function getCurrentPosition() {
     return new Promise(function (resolve, reject) {
       if (!navigator.geolocation) {
@@ -4452,11 +4525,21 @@
   }
 
   async function openInAppMap(ticket) {
-    if (!ticket) return;
+    if (!hasTicketDestination(ticket)) return false;
+
+    // Leaflet is optional in this standalone demo. Use Google Maps as the
+    // reliable fallback instead of showing a native "Data not found" alert.
+    if (!global.L || !global.L.map) {
+      var fallbackUrl = mapsUrl(ticket);
+      if (fallbackUrl && fallbackUrl !== '#') global.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+      return true;
+    }
+
     var dest = await resolveTicketPoint(ticket);
     if (!dest) {
-      alert(t('data_not_found'));
-      return;
+      var addressUrl = mapsUrl(ticket);
+      if (addressUrl && addressUrl !== '#') global.open(addressUrl, '_blank', 'noopener,noreferrer');
+      return false;
     }
     var points = [];
     try {
@@ -4466,6 +4549,7 @@
     }
     points.push(dest);
     await showRouteMap(points, ticket.address || ticket.client || t('navigate'));
+    return true;
   }
 
   async function openInAppRoute(tickets) {
@@ -4594,6 +4678,7 @@
     migrateStatus: migrateStatus,
     mapsUrl: mapsUrl,
     mapsEmbedUrl: mapsEmbedUrl,
+    hasTicketDestination: hasTicketDestination,
     openInAppMap: openInAppMap,
     startRouteEmbedUrl: startRouteEmbedUrl,
     openInAppRoute: openInAppRoute,
@@ -5103,7 +5188,7 @@
   }
 
   /* ── Schedule ── */
-  var scheduleState = { filter: 'all', period: 'daily', search: '' };
+  var scheduleState = { filter: 'all', period: 'all', search: '' };
 
   function startOfLocalDay(ms) {
     var d = new Date(ms == null ? Date.now() : ms);
@@ -5173,6 +5258,10 @@
   function paintActiveFilterButtons(wrapId, attr, activeValue) {
     var wrap = global.document.getElementById(wrapId);
     if (!wrap) return;
+    if (wrap.tagName === 'SELECT') {
+      wrap.value = activeValue;
+      return;
+    }
     wrap.querySelectorAll('button[' + attr + ']').forEach(function (btn) {
       var on = btn.getAttribute(attr) === activeValue;
       btn.classList.toggle('active', on);
@@ -5239,6 +5328,7 @@
     card.setAttribute('data-ticket-id', String(ticket.id));
     card.setAttribute('data-ticket-number', String(ticket.number || ''));
     card.style.cssText = 'border-inline-start:4px solid ' + colors.accent + ';cursor:pointer;';
+    var canNavigate = FieldApp.hasTicketDestination(ticket);
     card.innerHTML =
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
         '<div style="flex:1;min-width:0;">' +
@@ -5255,9 +5345,9 @@
         '</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-top:12px;">' +
-        (ticket.address || (ticket.lat != null)
+        (canNavigate
           ? '<button type="button" class="btn-ghost nav-inapp-btn" style="flex:1;text-align:center;" data-stop>' + tr('navigate') + '</button>'
-          : '<span class="btn-ghost" style="flex:1;text-align:center;opacity:.55;" data-stop>' + tr('data_not_found') + '</span>') +
+          : '<button type="button" class="btn-ghost nav-inapp-btn" style="flex:1;text-align:center;opacity:.55;cursor:not-allowed;" data-stop disabled aria-disabled="true">' + tr('data_not_found') + '</button>') +
         '<button type="button" class="btn-ghost open-ticket-btn sched-open-btn" style="flex:1;text-align:center;" data-stop>' +
           tr('open_ticket') + '</button>' +
       '</div>';
@@ -5268,6 +5358,7 @@
     if (navBtn) {
       navBtn.addEventListener('click', function (e) {
         e.stopPropagation();
+        if (!canNavigate) return;
         FieldApp.openInAppMap(ticket);
       });
     }
@@ -5355,17 +5446,13 @@
       btn.__bound = true;
       btn.addEventListener('click', function () { FieldApp.openInAppRoute(); });
     }
-    var homeNav = global.document.getElementById('schedHomeNav');
-    if (homeNav && !homeNav.__bound) {
-      homeNav.__bound = true;
-      homeNav.addEventListener('click', function (e) {
-        e.preventDefault();
-        navigate('schedule');
-      });
-    }
     var filterWrap = global.document.getElementById('scheduleFilters');
     if (filterWrap && !filterWrap.__bound) {
       filterWrap.__bound = true;
+      filterWrap.addEventListener('change', function (e) {
+        scheduleState.filter = e.target.value || 'all';
+        renderSchedule();
+      });
       filterWrap.addEventListener('click', function (e) {
         var btn = e.target.closest('.schedule-filter-btn');
         if (!btn) return;
@@ -5376,6 +5463,10 @@
     var periodWrap = global.document.getElementById('schedulePeriodFilters');
     if (periodWrap && !periodWrap.__bound) {
       periodWrap.__bound = true;
+      periodWrap.addEventListener('change', function (e) {
+        scheduleState.period = e.target.value || 'all';
+        renderSchedule();
+      });
       periodWrap.addEventListener('click', function (e) {
         var btn = e.target.closest('.schedule-period-btn');
         if (!btn) return;
@@ -5507,7 +5598,9 @@
     drawing: false,
     hasStroke: false,
     history: [],
-    products: []
+    products: [],
+    completionReasons: [],
+    teamSchedule: []
   };
 
   function paintTicketStatusOptions() {
@@ -5541,6 +5634,13 @@
       return;
     }
     root.innerHTML = items.map(function (h) {
+      if (h.text) {
+        return '<div class="history-row history-row--message">' +
+          '<div class="history-title">' + (h.name || h.who || tr('data_not_found')) + '</div>' +
+          '<div class="history-meta">' + (h.time || '') + '</div>' +
+          '<div class="history-message">' + String(h.text).replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; }) + '</div>' +
+        '</div>';
+      }
       var when = h.dateAt ? new Date(h.dateAt).toLocaleDateString() : (h.time || '');
       var status = tr(FieldApp.statusLabelKey(h.status));
       return '<div class="history-row">' +
@@ -5753,7 +5853,8 @@
     var ctx = ticketCtx();
     if (!canvas || !ctx) return;
     var ratio = global.devicePixelRatio || 1;
-    var cssW = canvas.clientWidth || 340;
+    var parent = canvas.parentElement;
+    var cssW = (parent && parent.clientWidth) || canvas.clientWidth || 340;
     var cssH = 160;
     canvas.width = Math.floor(cssW * ratio);
     canvas.height = Math.floor(cssH * ratio);
@@ -5862,7 +5963,12 @@
       ticketState.hasStroke = true;
       return;
     }
-    if (canvas) canvas.classList.remove('hidden');
+    if (canvas) {
+      canvas.classList.remove('hidden');
+      // The complete form starts hidden while data loads. Resize after it is
+      // visible so the canvas fills the entire signature card width.
+      setupTicketCanvas();
+    }
     if (preview) {
       preview.removeAttribute('src');
       preview.classList.add('hidden');
@@ -5893,7 +5999,15 @@
   function updateTicketCompleteBtnVisibility(ticket) {
     var isClosed = !!(ticket && FieldApp.migrateStatus(ticket.status) === FieldApp.STATUS.closed);
     var completeBtn = global.document.getElementById('ticketCompleteBtn');
-    if (completeBtn) completeBtn.style.display = isClosed ? 'none' : 'flex';
+    if (completeBtn) {
+      completeBtn.style.display = 'flex';
+      completeBtn.setAttribute('data-reopen', isClosed ? '1' : '0');
+      var completeLabel = completeBtn.querySelector('span');
+      if (completeLabel) {
+        completeLabel.textContent = tr(isClosed ? 'reopen_ticket' : 'go_complete');
+        completeLabel.setAttribute('data-i18n', isClosed ? 'reopen_ticket' : 'go_complete');
+      }
+    }
 
     var spareBtn = global.document.getElementById('ticketSpareBtn');
     var summaryEl = global.document.getElementById('ticketSummary');
@@ -5957,14 +6071,22 @@
     var wa = global.document.getElementById('ticketWaBtn');
     var customerId = ticket.customerId || FieldApp.ticketCustomerId(ticket.raw) || 0;
     var canSendWa = !!(customerId && String(customerId) !== '0');
+    var waSentKey = 'ticket_wa_on_way_sent_' + String(ticket.id || ticketState.id || '');
+    var waAlreadySent = false;
+    try { waAlreadySent = global.localStorage.getItem(waSentKey) === '1'; } catch (e0) { /* ignore */ }
     wa.removeAttribute('href');
     wa.setAttribute('role', 'button');
     if (canSendWa) {
-      wa.style.opacity = '1';
-      wa.style.pointerEvents = '';
+      wa.style.opacity = waAlreadySent ? '0.72' : '1';
+      wa.style.pointerEvents = waAlreadySent ? 'none' : '';
+      if (waAlreadySent) {
+        wa.setAttribute('data-sent', '1');
+        var sentLabel = wa.querySelector('span');
+        if (sentLabel) sentLabel.textContent = tr('wa_on_way_sent');
+      }
       wa.onclick = async function (e) {
         e.preventDefault();
-        if (wa.getAttribute('data-sending') === '1') return;
+        if (wa.getAttribute('data-sending') === '1' || wa.getAttribute('data-sent') === '1') return;
         wa.setAttribute('data-sending', '1');
         wa.style.opacity = '0.7';
         showFormError('ticketFormError', '');
@@ -5974,17 +6096,18 @@
         try {
           await FieldApp.sendOnTheWayWhatsApp(ticket);
           showFormError('ticketFormError', '');
+          wa.setAttribute('data-sent', '1');
+          try { global.localStorage.setItem(waSentKey, '1'); } catch (e1) { /* ignore */ }
+          wa.style.opacity = '0.72';
+          wa.style.pointerEvents = 'none';
           if (label) label.textContent = tr('wa_on_way_sent');
-          setTimeout(function () {
-            if (label) label.textContent = prevLabel || tr('wa_on_way_btn');
-          }, 2200);
         } catch (err) {
           var msg = (err && err.message) || tr('wa_on_way_failed');
           showFormError('ticketFormError', msg);
           if (label) label.textContent = prevLabel || tr('wa_on_way_btn');
         } finally {
           wa.removeAttribute('data-sending');
-          wa.style.opacity = '1';
+          if (wa.getAttribute('data-sent') !== '1') wa.style.opacity = '1';
         }
       };
     } else {
@@ -6088,6 +6211,30 @@
       completeNavBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (!ticketState.id) return;
+        if (completeNavBtn.getAttribute('data-reopen') === '1') {
+          var previous = ticketState.ticket;
+          var previousStatus = previous && previous.status;
+          var previousStatusApi = previous && previous.statusApi;
+          FieldApp.updateTicket(ticketState.id, {
+            status: FieldApp.STATUS.opened,
+            statusApi: FieldApp.statusToApi(FieldApp.STATUS.opened)
+          });
+          ticketState.ticket = FieldApp.getTicket(ticketState.id);
+          updateTicketCompleteBtnVisibility(ticketState.ticket);
+          var statusSelect = global.document.getElementById('ticketStatusSelect');
+          if (statusSelect) statusSelect.value = FieldApp.STATUS.opened;
+          if (MineralBarApp.getClient) {
+            MineralBarApp.getClient().request('Ticket.Edit', {
+              ticket_id: ticketState.id,
+              status: FieldApp.statusToApi(FieldApp.STATUS.opened)
+            }).catch(function () {
+              FieldApp.updateTicket(ticketState.id, { status: previousStatus, statusApi: previousStatusApi });
+              ticketState.ticket = FieldApp.getTicket(ticketState.id);
+              renderTicket();
+            });
+          }
+          return;
+        }
         navigate('complete', { id: ticketState.id });
       });
     }
@@ -6213,7 +6360,7 @@
         if (submitLabel) submitLabel.textContent = tr('loading');
 
         try {
-          var signatureDataUrl = ticketState.hasStroke ? ticketCanvas().toDataURL('image/png') : null;
+          var signatureDataUrl = ticketState.hasStroke ? ticketCanvas().toDataURL('image/jpeg', 0.9) : null;
           var mediaFiles = [];
           var requestPhotos = (ticketState.ticket.photos || []).map(function (photo, index) {
             var source = photo.dataUrl || photo.url || '';
@@ -6255,7 +6402,6 @@
 
           var payload = {
             ticket_id: ticketState.id,
-            id: ticketState.id,
             status: FieldApp.statusToApi(FieldApp.STATUS.closed),
             subject: summary,
             topic: summary
@@ -6265,11 +6411,46 @@
           // Ticket.Edit documents one image_upload per request. Upload each
           // media item separately so before, after and signature are all kept.
           var returnedFiles = [];
+          var mediaUploadPending = false;
+          function waitForMediaUpload(promise, timeoutMs) {
+            return Promise.race([
+              promise,
+              new Promise(function (_, reject) {
+                setTimeout(function () { reject(new Error('MEDIA_UPLOAD_PENDING')); }, timeoutMs);
+              })
+            ]);
+          }
           for (var mediaIndex = 0; mediaIndex < mediaFiles.length; mediaIndex++) {
-            var mediaResponse = await MineralBarApp.saveTicketWithMedia('Ticket.Edit', {
+            // Temporary browser-upload fallback: keep the generated signature
+            // data URL in the Ticket.Edit message manifest instead of waiting
+            // on the hanging multipart image_upload request.
+            if (mediaFiles[mediaIndex].kind === 'signature') {
+              mediaUploadPending = true;
+              continue;
+            }
+            var mediaPayload = {
               ticket_id: ticketState.id,
-              id: ticketState.id
-            }, [mediaFiles[mediaIndex]]);
+              topic: summary,
+              status: FieldApp.statusToApi(FieldApp.STATUS.closed),
+              messages: mediaFiles[mediaIndex].kind === 'signature'
+                ? 'Client signature attached.'
+                : 'Ticket photo attached.'
+            };
+            var mediaResponse;
+            try {
+              mediaResponse = await waitForMediaUpload(MineralBarApp.saveTicketWithMedia('Ticket.Edit', {
+                ticket_id: mediaPayload.ticket_id,
+                topic: mediaPayload.topic,
+                status: mediaPayload.status,
+                messages: mediaPayload.messages
+              }, [mediaFiles[mediaIndex]]), 15000);
+            } catch (mediaError) {
+              if (mediaError && mediaError.message === 'MEDIA_UPLOAD_PENDING') {
+                mediaUploadPending = true;
+                break;
+              }
+              throw mediaError;
+            }
             var mediaOk = !!(mediaResponse && (
               Number(mediaResponse.success) === 1 || mediaResponse.success === true
             ));
@@ -6304,14 +6485,14 @@
               mediaManifest[kind] = url;
             }
           });
-          if (signatureUrl && !/^data:/i.test(signatureUrl)) {
+          if (signatureUrl) {
             mediaManifest.signature = signatureUrl;
           }
-          if (!mediaManifest.signature) throw new Error(tr('sign_upload_failed'));
-
           // Ticket.List returns messages but not a files array. Persist this
           // map so any device can restore the exact photos and signature.
-          messageLines.push('BIZ1_MEDIA:' + JSON.stringify(mediaManifest));
+          if (Object.keys(mediaManifest).length) {
+            messageLines.push('BIZ1_MEDIA:' + JSON.stringify(mediaManifest));
+          }
           payload.messages = messageLines.join('\n');
           payload.message = payload.messages;
 
@@ -6334,8 +6515,8 @@
 
           var successBodyEl = global.document.querySelector('#successOverlay [data-i18n="success_body"]');
           if (successBodyEl) {
-            successBodyEl.textContent = tr('success_body');
-            successBodyEl.setAttribute('data-i18n', 'success_body');
+            successBodyEl.textContent = tr(mediaUploadPending ? 'success_body_pending' : 'success_body');
+            successBodyEl.setAttribute('data-i18n', mediaUploadPending ? 'success_body_pending' : 'success_body');
           }
           global.document.getElementById('waSuccess').href =
             FieldApp.whatsappSignedReport(ticketState.ticket);
@@ -6391,7 +6572,10 @@
     }
     if (options.loadProducts && global.MineralBarApp && MineralBarApp.listProducts) {
       try {
-        var prod = await MineralBarApp.listProducts({ active: 1, limit: 25 });
+        var customerId = ticketState.ticket && (ticketState.ticket.customerId || FieldApp.ticketCustomerId(ticketState.ticket.raw));
+        var prod = customerId && MineralBarApp.listTicketProducts
+          ? await MineralBarApp.listTicketProducts(customerId, ticketState.ticket.productIds || [])
+          : await MineralBarApp.listProducts({ active: 1, limit: 25 });
         ticketState.products = (prod.rows || []).map(function (p) {
           return {
             id: String(p.id || p.product_id || ''),
@@ -6408,6 +6592,21 @@
   async function activateTicket(params) {
     initTicket();
     await loadTicketContext(params, { loadHistory: true });
+    if (ticketState.ticket && ticketState.id && MineralBarApp.listTicketMessages) {
+      try {
+        var chat = await MineralBarApp.listTicketMessages(ticketState.id);
+        ticketState.history = (chat.rows || []).map(function (row) {
+          return {
+            text: row.text || '',
+            name: row.name || row.who || '',
+            who: row.who || '',
+            time: row.time || ''
+          };
+        });
+      } catch (e) {
+        console.warn('[Ticket] MessagesList failed; keeping ticket history fallback', e);
+      }
+    }
     renderTicket();
   }
 

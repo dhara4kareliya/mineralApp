@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 Showcase — Complete</title>
 <script src="assets/js/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/css/app.css?v=ticket-3">
-<script src="assets/config.js?v=ticket-3"></script>
-<script src="assets/js/app.js?v=ticket-3"></script>
+<link rel="stylesheet" href="assets/css/app.css?v=ticket-14">
+<script src="assets/config.js?v=ticket-5"></script>
+<script src="assets/js/app.js?v=ticket-12"></script>
+
+    <script>
+      (function(){try{var t=localStorage.getItem('biz1_fin_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+    </script>
 </head>
 <body data-page="complete">
 <div id="appRoot" dir="ltr" class="page-wrap">
@@ -83,7 +87,7 @@
           </div>
           <div id="ticketSignatureCard" class="card" style="margin-bottom:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div style="font-size:14px;font-weight:800;color:#16223a;" data-i18n="digital_signature">Digital Signature</div>
+              <div class="signature-title" style="font-size:14px;font-weight:800;color:#16223a;" data-i18n="digital_signature">Digital Signature</div>
               <button type="button" id="clearSig" class="btn-ghost" style="padding:6px 10px;font-size:12px;" data-i18n="clear_sig">Clear</button>
             </div>
             <div class="sig-canvas-wrap" style="margin-bottom:6px;background:#fff;">

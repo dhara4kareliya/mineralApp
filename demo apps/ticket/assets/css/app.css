@@ -468,8 +468,90 @@ button, input, select, textarea { font-family: system-ui, -apple-system, 'Segoe 
   display: block;
   width: 100%;
   height: 160px;
-  background: var(--bg-muted);
+  background: #fff;
   cursor: crosshair;
+}
+.signature-title { color: var(--text) !important; }
+
+/* Compact Complete & Sign-Off header */
+[data-view="complete"] .ticket-header {
+  padding-top: 8px;
+  padding-bottom: 10px;
+}
+[data-view="complete"] .ticket-header > div:first-child {
+  margin-bottom: 4px !important;
+}
+[data-view="complete"] .ticket-header > div:nth-child(2) {
+  min-height: 32px;
+}
+[data-view="complete"] .ticket-body {
+  padding-top: 12px;
+}
+
+[data-view="complete"] .ticket-header {
+  position: relative;
+}
+[data-view="complete"] .ticket-header > div:first-child {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  z-index: 2;
+  width: auto;
+  margin: 0 !important;
+  transform: translateY(-50%);
+}
+[data-view="complete"] .ticket-header > div:first-child .lang-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+[data-view="complete"] .ticket-header > div:nth-child(2) {
+  min-height: 34px;
+}
+[data-view="complete"] .ticket-header > div:nth-child(2) > div:last-child {
+  width: 190px !important;
+}
+
+/* Keep the Service Ticket header consistent with Complete & Sign-Off. */
+[data-view="ticket"] .ticket-header {
+  position: relative;
+  padding-top: 8px;
+  padding-bottom: 10px;
+}
+[data-view="ticket"] .ticket-header > div:first-child {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  z-index: 2;
+  width: auto;
+  margin: 0 !important;
+  transform: translateY(-50%);
+}
+[data-view="ticket"] .ticket-header > div:first-child .lang-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+[data-view="ticket"] .ticket-header > div:nth-child(2) {
+  min-height: 34px;
+}
+[data-view="ticket"] .ticket-header > div:nth-child(2) > div:last-child {
+  width: 190px !important;
+}
+
+@media (max-width: 600px) {
+  [data-view="complete"] .ticket-header > div:first-child {
+    right: 14px;
+  }
+  [data-view="complete"] .ticket-header > div:nth-child(2) > div:last-child {
+    width: 116px !important;
+  }
+  [data-view="ticket"] .ticket-header > div:first-child {
+    right: 14px;
+  }
+  [data-view="ticket"] .ticket-header > div:nth-child(2) > div:last-child {
+    width: 116px !important;
+  }
 }
 
 .photo-slot {
@@ -880,6 +962,9 @@ html[dir="rtl"] .pass-toggle {
 }
 
 /* ── Schedule (mobile/tablet base) ── */
+[data-view="schedule"] {
+  overflow-y: auto;
+}
 .schedule-top {
   padding: 10px 18px 12px;
   flex: none;
@@ -932,19 +1017,65 @@ html[dir="rtl"] .pass-toggle {
   padding: 11px 12px;
 }
 .schedule-route-btn {
-  margin-top: 12px;
   padding: 13px;
+}
+.schedule-actions-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 12px;
+}
+.schedule-filter-groups {
+  display: flex;
+  flex-direction: column;
+  direction: ltr;
+  gap: 8px;
+}
+.schedule-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.schedule-filter-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.schedule-filter-select {
+  min-width: 116px;
+  padding: 9px 30px 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+[dir="rtl"] .schedule-filter-label {
+  text-align: right;
+  letter-spacing: 0;
+}
+[dir="rtl"] .schedule-filter-item {
+  direction: rtl;
+}
+[dir="rtl"] .schedule-filter-select {
+  direction: rtl;
+  text-align: right;
 }
 .schedule-filters {
   display: flex;
   gap: 7px;
-  margin-top: 12px;
   overflow-x: auto;
   padding-bottom: 2px;
 }
 .schedule-ticket-list {
-  flex: 1;
-  overflow-y: auto;
+  flex: none;
+  overflow: visible;
   padding: 2px 16px 16px;
 }
 .schedule-empty {
@@ -1219,13 +1350,17 @@ html[dir="rtl"] .pass-toggle {
     max-width: none;
   }
 
+  [data-view="schedule"] {
+    overflow-y: auto;
+  }
+
   .lang-bar {
     padding: 10px 40px 8px;
   }
 
   /* Schedule — full-width dashboard */
   [data-view="schedule"] .schedule-top {
-    padding: 18px 40px 14px;
+    padding: 14px 40px 12px;
     background: #fff;
     border-bottom: 1px solid #e8ecf2;
   }
@@ -1257,13 +1392,13 @@ html[dir="rtl"] .pass-toggle {
 
   [data-view="schedule"] .schedule-stats {
     width: 100%;
-    margin-top: 18px;
+    margin-top: 12px;
     gap: 16px;
   }
 
   [data-view="schedule"] .schedule-stat-card {
-    min-height: 96px;
-    padding: 20px 22px;
+    min-height: 72px;
+    padding: 14px 18px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1277,28 +1412,51 @@ html[dir="rtl"] .pass-toggle {
 
   [data-view="schedule"] .schedule-filters {
     width: 100%;
-    margin-top: 14px;
     flex-wrap: wrap;
     overflow: visible;
     gap: 10px;
   }
 
   [data-view="schedule"] .schedule-route-btn {
-    position: fixed;
-    z-index: 40;
-    left: auto;
-    right: 40px;
-    bottom: 88px;
-    width: auto;
+    position: static;
+    z-index: auto;
+    display: block;
     margin: 0;
+    width: auto;
     padding: 14px 22px;
     border-radius: 14px;
     box-shadow: 0 10px 28px rgba(46, 138, 99, .35);
   }
 
-  html[dir="rtl"] [data-view="schedule"] .schedule-route-btn {
-    right: auto;
-    left: 40px;
+  [data-view="schedule"] .schedule-actions-row {
+    flex-direction: row;
+    direction: ltr;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  html[dir="rtl"] [data-view="schedule"] .schedule-actions-row {
+    direction: rtl;
+  }
+
+  [data-view="schedule"] .schedule-route-btn {
+    margin: 0;
+  }
+
+  [data-view="schedule"] .schedule-filter-groups {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  [data-view="schedule"] .schedule-filter-select {
+    min-width: 132px;
+  }
+
+  [data-view="schedule"] .schedule-filters {
+    flex: 1;
+    width: auto;
   }
 
   [data-view="schedule"] .schedule-ticket-list {
@@ -1322,11 +1480,6 @@ html[dir="rtl"] .pass-toggle {
 
   [data-view="schedule"] .schedule-empty {
     padding: 40px;
-  }
-
-  [data-view="schedule"] .bottom-nav {
-    padding-left: 40px;
-    padding-right: 40px;
   }
 
   /* Ticket — sticky client + wider work panel (PO pattern) */
@@ -1479,19 +1632,6 @@ html[dir="rtl"] .pass-toggle {
     padding-right: 56px;
   }
 
-  [data-view="schedule"] .schedule-route-btn {
-    right: 56px;
-  }
-
-  html[dir="rtl"] [data-view="schedule"] .schedule-route-btn {
-    left: 56px;
-  }
-
-  [data-view="schedule"] .bottom-nav {
-    padding-left: 56px;
-    padding-right: 56px;
-  }
-
   [data-view="ticket"] .ticket-header,
   [data-view="ticket"] .ticket-body {
     padding-left: 56px;
@@ -1547,6 +1687,102 @@ html[dir="rtl"] .pass-toggle {
 }
 [data-theme="dark"] [data-view="login"].login-screen {
   background: var(--bg-screen);
+}
+
+/* Ticket detail refresh */
+.ticket-client-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.ticket-client-kicker {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.ticket-client-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 4px rgba(46, 138, 99, .14);
+}
+.ticket-client-name {
+  margin-bottom: 18px;
+  font-size: 21px;
+}
+.ticket-client-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(150px, .85fr);
+  gap: 18px;
+  align-items: end;
+}
+.ticket-client-field .ticket-label {
+  margin: 0 0 6px !important;
+}
+.ticket-status-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+.ticket-panel--work .card {
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.ticket-panel--work .ticket-section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  font-size: 15px;
+}
+.ticket-panel--work .ticket-section-title::before {
+  content: '';
+  width: 4px;
+  height: 17px;
+  border-radius: 99px;
+  background: var(--success);
+}
+.ticket-actions--bar .ticket-action-btn {
+  min-height: 52px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+@media (min-width: 1024px) {
+  [data-view="ticket"] .ticket-body {
+    padding-top: 26px;
+  }
+  [data-view="ticket"] .ticket-panel--client {
+    min-height: 0;
+    padding: 24px;
+    border-radius: 18px;
+  }
+  [data-view="ticket"] .ticket-actions--bar {
+    margin-top: 2px;
+  }
+
+  [data-view="ticket"] .ticket-layout {
+    grid-template-columns: minmax(0, 900px);
+    justify-content: center;
+  }
+
+  [data-view="ticket"] .ticket-panel--client {
+    position: static;
+  }
+}
+
+@media (max-width: 600px) {
+  .ticket-client-grid {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+  .ticket-client-name {
+    font-size: 18px;
+  }
 }
 [data-theme="dark"] .ds-input,
 [data-theme="dark"] select.ds-input,
