@@ -1,223 +1,241 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Biz1 Showcase - New Task</title>
-<script src="assets/js/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/css/style.css?v=mission-7">
-<script src="assets/js/lang.js?v=mission-2"></script>
-<script src="assets/js/config.js?v=mission-2"></script>
-<script src="assets/js/biz1-sdk.js?v=mission-2"></script>
-<script src="assets/js/biz1-app.js?v=mission-4"></script>
-<script src="assets/js/page-boot.js?v=mission-6"></script>
-<script src="assets/js/mission-create-live.js?v=mission-6"></script>
-<script src="assets/js/components.js?v=mission-3"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Biz1 Showcase - New Task</title>
+    <script src="assets/js/theme-boot.js"></script>
+    <link rel="stylesheet" href="assets/css/style.css?v=mission-7">
+    <script src="assets/js/lang.js?v=mission-2"></script>
+    <script src="assets/js/config.js?v=mission-2"></script>
+    <script src="assets/js/biz1-sdk.js?v=mission-2"></script>
+    <script src="assets/js/biz1-app.js?v=mission-4"></script>
+    <script src="assets/js/page-boot.js?v=mission-6"></script>
+    <script src="assets/js/mission-create-live.js?v=mission-6"></script>
+    <script src="assets/js/components.js?v=mission-3"></script>
 </head>
+
 <body>
-<div class="app-container">
-  <div class="mobile-frame">
-    <div class="screen-content">
+    <div class="app-container">
+        <div class="mobile-frame">
+            <div class="screen-content">
 
-      <div id="app-header"></div>
+                <div id="app-header"></div>
 
-      <div class="dc-scroll page-body mission-editor" id="mb-mission-form">
-        <div id="mb-mission-status" style="display:none;"></div>
+                <div class="dc-scroll page-body mission-editor" id="mb-mission-form">
+                    <div id="mb-mission-status" style="display:none;"></div>
 
-        <!-- Workspace banner -->
-        <header class="me-banner">
-          <div class="me-banner-bg" aria-hidden="true"></div>
-          <div class="me-banner-row">
-            <a href="tasks.html" id="mb-mission-close" class="me-back" aria-label="Back">
-              <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="18"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
-            </a>
-            <div class="me-banner-copy">
-              <div class="me-eyebrow" id="mb-mission-mode-label" data-i18n="add_task">הוסף משימה</div>
-              <h1 id="mb-mission-page-title" class="me-heading" data-i18n="create_task">צור משימה</h1>
-            </div>
-            <label class="me-private">
+                    <!-- Workspace banner -->
+                    <header class="me-banner">
+                        <div class="me-banner-bg" aria-hidden="true"></div>
+                        <div class="me-banner-row">
+                            <a href="tasks.html" id="mb-mission-close" class="me-back" aria-label="Back">
+                                <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="18"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+                            </a>
+                            <div class="me-banner-copy">
+                                <div class="me-eyebrow" id="mb-mission-mode-label" data-i18n="add_task">הוסף משימה</div>
+                                <h1 id="mb-mission-page-title" class="me-heading" data-i18n="create_task">צור משימה</h1>
+                            </div>
+                            <label class="me-private">
               <input id="mb-task-private" type="checkbox" />
               <span class="me-private-track" aria-hidden="true"></span>
               <span class="me-private-text">🔒 <span data-i18n="private">פרטי</span></span>
             </label>
-          </div>
-        </header>
+                        </div>
+                    </header>
 
-        <div id="mb-linked-customer" class="me-linked" style="display:none;">
-          <span class="me-linked-badge"><span data-i18n="linked">מקושר</span></span>
-          <div class="me-linked-body">
-            <div id="mb-linked-name" class="me-linked-name"></div>
-            <div id="mb-linked-meta" class="me-linked-meta"></div>
-          </div>
-          <div id="mb-linked-av" class="me-linked-av">?</div>
-        </div>
+                    <div id="mb-linked-customer" class="me-linked" style="display:none;">
+                        <span class="me-linked-badge"><span data-i18n="linked">מקושר</span></span>
+                        <div class="me-linked-body">
+                            <div id="mb-linked-name" class="me-linked-name"></div>
+                            <div id="mb-linked-meta" class="me-linked-meta"></div>
+                        </div>
+                        <div id="mb-linked-av" class="me-linked-av">?</div>
+                    </div>
 
-        <div class="me-layout">
-          <!-- Primary column -->
-          <div class="me-main">
-            <section class="me-block" data-step="1">
-              <div class="me-block-head">
-                <span class="me-step">1</span>
-                <div>
-                  <div class="me-block-title" data-i18n="details_section">פרטים</div>
-                  <div class="me-block-sub" data-i18n="mission_desc">תיאור המשימה</div>
-                </div>
-              </div>
-              <div class="me-block-body">
-                <label class="field-label">
+                    <div class="me-layout">
+                        <!-- Primary column -->
+                        <div class="me-main">
+                            <section class="me-block" data-step="1">
+                                <div class="me-block-head">
+                                    <span class="me-step">1</span>
+                                    <div>
+                                        <div class="me-block-title" data-i18n="details_section">פרטים</div>
+                                        <div class="me-block-sub" data-i18n="mission_desc">תיאור המשימה</div>
+                                    </div>
+                                </div>
+                                <div class="me-block-body">
+                                    <label class="field-label">
                   <span data-i18n="mission_desc">תיאור המשימה</span> <span class="req">*</span>
                 </label>
-                <input class="gv-in me-title-input" id="mb-mission-title" placeholder="לדוגמה: לבדוק אם קיבל את ההצעה" data-i18n-placeholder="mission_desc_placeholder" type="text"/>
-                <label class="field-label" style="margin-top:14px;" data-i18n="notes_optional">הערות (אופציונלי)</label>
-                <textarea class="gv-in" id="mb-mission-note" placeholder="הוסף הקשר..." data-i18n-placeholder="notes_placeholder" rows="3" style="resize: vertical; min-height: 80px; max-height: 240px;"></textarea>
-              </div>
-            </section>
+                                    <input class="gv-in me-title-input" id="mb-mission-title" placeholder="לדוגמה: לבדוק אם קיבל את ההצעה" data-i18n-placeholder="mission_desc_placeholder" type="text" />
+                                    <label class="field-label" style="margin-top:14px;" data-i18n="notes_optional">הערות (אופציונלי)</label>
+                                    <textarea class="gv-in" id="mb-mission-note" placeholder="הוסף הקשר..." data-i18n-placeholder="notes_placeholder" rows="3" style="resize: vertical; min-height: 80px; max-height: 240px;"></textarea>
+                                </div>
+                            </section>
 
-            <section class="me-block" data-step="2">
-              <div class="me-block-head">
-                <span class="me-step">2</span>
-                <div>
-                  <div class="me-block-title" data-i18n="association">שיוך ומשאבים</div>
-                  <div class="me-block-sub" data-i18n="customer_name">שם לקוח</div>
-                </div>
-              </div>
-              <div class="me-block-body">
-                <div class="form-grid-2 me-gap">
-                  <div class="form-field form-field--flush">
-                    <label class="field-label" data-i18n="customer_name">שם לקוח</label>
-                    <select class="gv-in" id="mb-customer-name">
+                            <section class="me-block" data-step="2">
+                                <div class="me-block-head">
+                                    <span class="me-step">2</span>
+                                    <div>
+                                        <div class="me-block-title" data-i18n="association">שיוך ומשאבים</div>
+                                        <div class="me-block-sub" data-i18n="customer_name">שם לקוח</div>
+                                    </div>
+                                </div>
+                                <div class="me-block-body">
+                                    <div class="form-grid-2 me-gap">
+                                        <div class="form-field form-field--flush">
+                                            <label class="field-label" data-i18n="customer_name">שם לקוח</label>
+                                            <select class="gv-in" id="mb-customer-name">
                       <option value="" data-i18n="choose_customer">בחר לקוח</option>
                     </select>
-                  </div>
-                  <div class="form-field form-field--flush">
-                    <label class="field-label" data-i18n="assign_staff">איש צוות</label>
-                    <select class="gv-in" id="mb-mission-assignee"></select>
-                  </div>
-                </div>
-                <div class="form-grid-3 me-gap" style="margin-top:12px;">
-                  <div class="form-field form-field--flush">
-                    <label class="field-label" data-i18n="project">פרויקט</label>
-                    <select class="gv-in" id="mb-project-name">
+                                        </div>
+                                        <div class="form-field form-field--flush">
+                                            <label class="field-label" data-i18n="assign_staff">איש צוות</label>
+                                            <select class="gv-in" id="mb-mission-assignee"></select>
+                                        </div>
+                                    </div>
+                                    <div class="form-grid-3 me-gap" style="margin-top:12px;">
+                                        <div class="form-field form-field--flush">
+                                            <label class="field-label" data-i18n="project">פרויקט</label>
+                                            <select class="gv-in" id="mb-project-name">
                       <option value="">—</option>
                     </select>
-                  </div>
-                  <div class="form-field form-field--flush">
-                    <label class="field-label"><span data-i18n="color">צבע</span> <span class="req">*</span></label>
-                    <select class="gv-in" id="mb-choose-color">
+                                        </div>
+                                        <div class="form-field form-field--flush">
+                                            <label class="field-label"><span data-i18n="color">צבע</span> <span class="req">*</span></label>
+                                            <select class="gv-in" id="mb-choose-color">
                       <option value="#2563eb" data-i18n="color_medium">כחול · בינוני</option>
                       <option value="#ef4444" data-i18n="color_urgent">אדום · דחוף</option>
                       <option value="#22c55e" data-i18n="color_low">ירוק · נמוכה</option>
                       <option value="#f59e0b">כתום</option>
                     </select>
-                  </div>
-                  <div class="form-field form-field--flush">
-                    <label class="field-label" data-i18n="step">שלב</label>
-                    <select class="gv-in" id="mb-mission-step">
+                                        </div>
+                                        <div class="form-field form-field--flush">
+                                            <label class="field-label" data-i18n="step">שלב</label>
+                                            <select class="gv-in" id="mb-mission-step">
                       <option value="">—</option>
                       <option value="1" data-i18n="step_1">שלב 1</option>
                       <option value="2" data-i18n="step_2">שלב 2</option>
                       <option value="3" data-i18n="step_3">שלב 3</option>
                     </select>
-                  </div>
-                </div>
-              </div>
-            </section>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
 
-            <section class="me-block" data-step="3">
-              <div class="me-block-head">
-                <span class="me-step">3</span>
-                <div>
-                  <div class="me-block-title"><span data-i18n="execution_date">מועד ביצוע</span> <span class="req">*</span></div>
-                  <div class="me-block-sub" data-i18n="status_column">סטטוס / עמודה</div>
-                </div>
-              </div>
-              <div class="me-block-body">
-                <div class="form-grid-2 me-gap">
-                  <div class="form-field form-field--flush">
-                    <label class="field-label" data-i18n="date_label">תאריך</label>
-                    <input class="gv-in" id="mb-mission-date" type="date"/>
-                  </div>
-                  <div class="form-field form-field--flush">
-                    <label class="field-label" data-i18n="time_label">שעה</label>
-                    <input class="gv-in" id="mb-mission-time" type="time" value="14:00"/>
-                  </div>
-                </div>
-                <div class="form-field form-field--flush" style="margin-top:12px;">
-                  <label class="field-label" data-i18n="status_column">סטטוס / עמודה</label>
-                  <select class="gv-in" id="mb-project-column">
+                            <section class="me-block" data-step="3">
+                                <div class="me-block-head">
+                                    <span class="me-step">3</span>
+                                    <div>
+                                        <div class="me-block-title"><span data-i18n="execution_date">מועד ביצוע</span> <span class="req">*</span></div>
+                                        <div class="me-block-sub" data-i18n="status_column">סטטוס / עמודה</div>
+                                    </div>
+                                </div>
+                                <div class="me-block-body">
+                                    <div class="form-grid-2 me-gap">
+                                        <div class="form-field form-field--flush">
+                                            <label class="field-label" data-i18n="date_label">תאריך</label>
+                                            <input class="gv-in" id="mb-mission-date" type="date" />
+                                        </div>
+                                        <div class="form-field form-field--flush">
+                                            <label class="field-label" data-i18n="time_label">שעה</label>
+                                            <input class="gv-in" id="mb-mission-time" type="time" value="14:00" />
+                                        </div>
+                                    </div>
+                                    <div class="form-field form-field--flush" style="margin-top:12px;">
+                                        <label class="field-label" data-i18n="status_column">סטטוס / עמודה</label>
+                                        <select class="gv-in" id="mb-project-column">
                     <option value="" data-i18n="loading_columns">טוען עמודות...</option>
                   </select>
-                </div>
-              </div>
-            </section>
-          </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
 
-          <!-- Side rail -->
-          <aside class="me-side">
-            <section class="me-side-card">
-              <div class="me-side-title" data-i18n="media_recordings">מדיה והקלטות</div>
-              <div class="mission-media-row">
-                <button id="mb-record-btn" type="button" class="control-btn">
+                        <!-- Side rail -->
+                        <aside class="me-side">
+                            <section class="me-side-card">
+                                <div class="me-side-title" data-i18n="media_recordings">מדיה והקלטות</div>
+                                <div class="mission-media-row">
+                                    <button id="mb-record-btn" type="button" class="control-btn">
                   <span>►</span> <span data-i18n="record">הקלטה</span>
                 </button>
-                <input class="gv-in" id="mb-recording-link" placeholder="קישור להקלטה..." data-i18n-placeholder="recording_link_placeholder" type="text"/>
-              </div>
-              <div id="mb-image-dropzone" class="mission-dropzone">
-                <label for="mb-file-input" class="me-drop-label">
+                                    <input class="gv-in" id="mb-recording-link" placeholder="קישור להקלטה..." data-i18n-placeholder="recording_link_placeholder" type="text" />
+                                </div>
+                                <div id="mb-image-dropzone" class="mission-dropzone">
+                                    <label for="mb-file-input" class="me-drop-label">
                   <span class="me-drop-icon" aria-hidden="true">📷</span>
                   <span style="font-size:13px; font-weight:700; color:var(--text-title);"><span data-i18n="select_drag_pictures">בחר או גרור תמונות</span></span>
                   <span style="font-size:11.5px; color:var(--text-sub);" data-i18n="click_choose_file">לחץ כאן לבחירת קובץ</span>
                 </label>
-                <input id="mb-file-input" type="file" accept="image/*" multiple style="display:none;" />
-                <div id="mb-image-preview" style="display:none; margin-top:12px; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
-                <div id="mb-image-limit-message" role="status" style="display:none; margin-top:8px; color:#ef4444; font-size:12px; font-weight:700;"></div>
-              </div>
-            </section>
+                                    <input id="mb-file-input" type="file" accept="image/*" multiple style="display:none;" />
+                                    <div id="mb-image-preview" style="display:none; margin-top:12px; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
+                                    <div id="mb-image-limit-message" role="status" style="display:none; margin-top:8px; color:#ef4444; font-size:12px; font-weight:700;"></div>
+                                </div>
+                            </section>
 
-            <section class="me-side-card">
-              <div class="me-side-title" data-i18n="advanced_options">אפשרויות מתקדמות</div>
-              <div class="mission-options">
-                <label class="mission-option">
+                            <section class="me-side-card">
+                                <div class="me-side-title" data-i18n="advanced_options">אפשרויות מתקדמות</div>
+                                <div class="mission-options">
+                                    <label class="mission-option">
                   <input id="mb-use-template" type="checkbox" />
                   <span data-i18n="use_as_template">השתמש כתבנית</span>
                 </label>
-                <label class="mission-option">
+                                    <label class="mission-option">
                   <input id="mb-email-me" type="checkbox" />
                   <span data-i18n="email_me_employee">שלח לי / לעובד במייל</span>
                 </label>
-                <label class="mission-option">
+                                    <label class="mission-option">
                   <input id="mb-whatsapp-reminder" type="checkbox" />
                   <span data-i18n="whatsapp_reminder">תזכורת וואטסאפ</span>
                 </label>
-                <label class="mission-option">
+                                    <label class="mission-option">
                   <input id="mb-notify-client" type="checkbox" />
                   <span data-i18n="notify_client">הודע ללקוח</span>
                 </label>
-              </div>
-            </section>
-          </aside>
-        </div>
+                                </div>
+                            </section>
+                        </aside>
+                    </div>
 
-      </div>
+                </div>
 
-      <!-- Docked action bar — always above footer nav -->
-      <div class="me-actions me-actions--dock" id="mb-mission-actions">
-        <button type="button" id="mb-delete-mission" class="me-btn me-btn--danger" hidden>
+                <!-- Docked action bar — always above footer nav -->
+                <div class="me-actions me-actions--dock" id="mb-mission-actions">
+                    <button type="button" id="mb-delete-mission" class="me-btn me-btn--danger" hidden>
           <svg fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="17"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           <span data-i18n="delete">מחק</span>
         </button>
-        <div class="me-actions-spacer"></div>
-        <a href="tasks.html" class="me-btn me-btn--ghost" data-i18n="cancel">ביטול</a>
-        <button id="mb-create-mission" class="me-btn me-btn--primary" type="button">
+                    <div class="me-actions-spacer"></div>
+                    <a href="tasks.html" class="me-btn me-btn--ghost" data-i18n="cancel">ביטול</a>
+                    <button id="mb-create-mission" class="me-btn me-btn--primary" type="button">
           <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewBox="0 0 24 24" width="18"><path d="M20 6 9 17l-5-5"></path></svg>
           <span data-i18n="create_task">צור משימה</span>
         </button>
-      </div>
+                </div>
 
-      <div id="app-footer"></div>
+                <div id="app-footer">
+                    <div class="app-footer-nav">
+                        <a href="sales_home.html" class="nav-item" data-id="home">
+                            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"></path><path d="M5 9.5V20h14V9.5"></path></svg>
+                            <span style="font-weight:700;" data-i18n="home">Home</span>
+                        </a>
+                        <a href="kanban.html" class="nav-item" data-id="kanban">
+                            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                            <span data-i18n="kanban">Kanban</span>
+                        </a>
+                        <a href="tasks.html" class="nav-item" data-id="tasks">
+                            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"></rect><path d="m8 11 2.5 2.5L15 9M8 17h6"></path></svg>
+                            <span data-i18n="tasks">Tasks</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
 </body>
+
 </html>
