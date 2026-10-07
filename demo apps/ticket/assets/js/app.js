@@ -3805,6 +3805,16 @@
     var clientFields = resolveClientFields(r);
     var statusRaw = String(pick(r, ['status', 'state', 'ticket_status', 'status_name'], 'Opened') || 'Opened');
     var apiMedia = mergeTicketMedia(id, normalizeTicketPhotos(r.photos), ticketMediaFiles(r, id));
+    var rawAddress = pick(r, [
+      'address', 'full_address', 'service_address', 'customer_address',
+      'street_address', 'address_line1', 'street', 'city', 'location'
+    ], '') || pick(customer, [
+      'address', 'full_address', 'service_address', 'street_address',
+      'address_line1', 'street', 'city', 'location'
+    ], '');
+    var address = String(rawAddress || '').trim();
+    var city = String(pick(r, ['city_name', 'town'], '') || pick(customer, ['city_name', 'town'], '') || '').trim();
+    if (address && city && address.toLowerCase().indexOf(city.toLowerCase()) < 0) address += ', ' + city;
     var mapped = {
       id: id,
       number: String(pick(r, ['number', 'ticket_number', 'serial', 'id', 'ticket_id'], id)),
@@ -3816,8 +3826,7 @@
         pick(customer, ['contact', 'name'], '') || ''),
       phone: String(pick(r, ['mobile', 'phone', 'tel', 'whatsapp'], '') ||
         pick(customer, ['mobile', 'phone'], '') || ''),
-      address: String(pick(r, ['address', 'full_address', 'city', 'location'], '') ||
-        pick(customer, ['address', 'city'], '') || ''),
+      address: address,
       lat: pick(r, ['lat', 'latitude'], null),
       lng: pick(r, ['lng', 'longitude', 'lon'], null),
       time: String(pick(r, ['time', 'scheduled_time', 'hour', 'start_time'], '') || ''),
@@ -4031,19 +4040,27 @@
     return 'https://www.google.com/maps/dir/' + path + '/?output=embed';
   }
 
-  function startRouteUrl(tickets) {
+  function startRouteUrl(tickets, origin) {
     var open = (tickets || getTickets()).filter(function (t) {
       return migrateStatus(t.status) !== STATUS.closed;
     });
     if (!open.length) return '#';
-    if (open.length === 1) return mapsUrl(open[0]);
+    var start = origin || 'current location';
+    if (open.length === 1) {
+      var singleDestination = (open[0].lat != null && open[0].lng != null)
+        ? (open[0].lat + ',' + open[0].lng)
+        : open[0].address;
+      if (!singleDestination) return '#';
+      return 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(start) +
+        '&destination=' + encodeURIComponent(singleDestination);
+    }
     var dest = open[open.length - 1];
     var waypoints = open.slice(0, -1).map(function (t) {
       return (t.lat != null && t.lng != null) ? (t.lat + ',' + t.lng) : t.address;
     }).filter(Boolean).join('|');
     var destStr = (dest.lat != null && dest.lng != null) ? (dest.lat + ',' + dest.lng) : dest.address;
     if (!destStr) return '#';
-    return 'https://www.google.com/maps/dir/?api=1&origin=current+location&destination=' +
+    return 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(start) + '&destination=' +
       encodeURIComponent(destStr) +
       (waypoints ? '&waypoints=' + encodeURIComponent(waypoints) : '');
   }
@@ -4552,12 +4569,55 @@
     return true;
   }
 
+  function showRouteNotice(message) {
+    var button = document.getElementById('startRouteBtn');
+    if (!button) return;
+    var label = button.querySelector('[data-i18n="start_route"]') || button.querySelector('span');
+    if (!label) return;
+    var original = button.getAttribute('data-default-route-label') || label.textContent;
+    button.setAttribute('data-default-route-label', original);
+    label.textContent = message;
+    button.classList.add('route-unavailable');
+    setTimeout(function () {
+      label.textContent = original;
+      button.classList.remove('route-unavailable');
+    }, 3000);
+  }
+
+  function clearRouteNotice() {
+    var button = document.getElementById('startRouteBtn');
+    if (!button) return;
+    var label = button.querySelector('[data-i18n="start_route"]') || button.querySelector('span');
+    if (!label) return;
+    var original = button.getAttribute('data-default-route-label') || t('start_route');
+    button.setAttribute('data-default-route-label', original);
+    label.textContent = original;
+    button.classList.remove('route-unavailable');
+  }
+
   async function openInAppRoute(tickets) {
+    clearRouteNotice();
     var open = (tickets || getTickets()).filter(function (t) {
       return migrateStatus(t.status) !== STATUS.closed;
     });
     if (!open.length) {
-      alert(t('data_not_found'));
+      showRouteNotice('No open tickets available');
+      return;
+    }
+    // The schedule page does not load Leaflet in the standalone demo. Open a
+    // real Google Maps route instead of showing an empty map overlay.
+    if (!global.L || !global.L.map) {
+      var liveOrigin = null;
+      try {
+        liveOrigin = await getCurrentPosition();
+      } catch (e) { /* use Google Maps current-location fallback */ }
+      var origin = liveOrigin ? (liveOrigin.lat + ',' + liveOrigin.lng) : null;
+      var externalRoute = startRouteUrl(open, origin);
+      if (externalRoute && externalRoute !== '#') {
+        global.open(externalRoute, '_blank', 'noopener,noreferrer');
+      } else {
+        showRouteNotice('Ticket addresses are unavailable');
+      }
       return;
     }
     var label = t('start_route') + ' · ' + open.length + ' ' + t('visits');
@@ -4574,7 +4634,12 @@
     if (!stops.length) {
       setMapLoading(false);
       closeInAppMap();
-      alert(t('data_not_found'));
+      var fallbackRoute = startRouteUrl(open);
+      if (fallbackRoute && fallbackRoute !== '#') {
+        global.open(fallbackRoute, '_blank', 'noopener,noreferrer');
+      } else {
+        showRouteNotice('Ticket addresses are unavailable');
+      }
       return;
     }
 
@@ -5625,6 +5690,50 @@
     err.classList.remove('hidden');
   }
 
+  function renderSignatureImage(target, source) {
+    if (!target || !source) return;
+    var image = new Image();
+    image.onload = function () {
+      try {
+        var canvas = global.document.createElement('canvas');
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        // Older JPEG signatures were exported from a transparent canvas and
+        // therefore received a black background. Remove only near-black
+        // background pixels while keeping the dark-blue signature strokes.
+        if (/^data:image\/jpe?g/i.test(source)) {
+          var pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          for (var i = 0; i < pixels.data.length; i += 4) {
+            if (pixels.data[i] < 14 && pixels.data[i + 1] < 14 && pixels.data[i + 2] < 14) {
+              pixels.data[i] = 255;
+              pixels.data[i + 1] = 255;
+              pixels.data[i + 2] = 255;
+            }
+          }
+          ctx.putImageData(pixels, 0, 0);
+        }
+        target.src = canvas.toDataURL('image/png');
+      } catch (e) {
+        target.src = source;
+      }
+    };
+    image.onerror = function () { target.src = source; };
+    image.src = source;
+  }
+
+  function cleanHistoryMessage(value) {
+    return String(value || '')
+      // Media manifests are internal storage data, not service-history text.
+      .replace(/\s*BIZ1_MEDIA\s*:\s*\{[\s\S]*$/i, '')
+      .replace(/\s*data:image\/[^,\s]+,[A-Za-z0-9+/=]+/gi, '')
+      .trim();
+  }
+
   function renderTicketHistory() {
     var root = global.document.getElementById('ticketHistory');
     if (!root) return;
@@ -5635,10 +5744,12 @@
     }
     root.innerHTML = items.map(function (h) {
       if (h.text) {
+        var message = cleanHistoryMessage(h.text);
+        if (!message) return '';
         return '<div class="history-row history-row--message">' +
           '<div class="history-title">' + (h.name || h.who || tr('data_not_found')) + '</div>' +
           '<div class="history-meta">' + (h.time || '') + '</div>' +
-          '<div class="history-message">' + String(h.text).replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; }) + '</div>' +
+          '<div class="history-message">' + message.replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; }) + '</div>' +
         '</div>';
       }
       var when = h.dateAt ? new Date(h.dateAt).toLocaleDateString() : (h.time || '');
@@ -5789,7 +5900,7 @@
     var signature = ticket.signature || '';
     if (signatureWrap) signatureWrap.classList.toggle('hidden', !signature);
     if (signatureImage) {
-      if (signature) signatureImage.src = signature;
+      if (signature) renderSignatureImage(signatureImage, signature);
       else signatureImage.removeAttribute('src');
     }
   }
@@ -5953,10 +6064,12 @@
     var ticket = ticketState.ticket;
     var isClosed = !!(ticket && FieldApp.migrateStatus(ticket.status) === FieldApp.STATUS.closed);
     var sig = ticket && ticket.signature;
-    if (isClosed && sig) {
+    // A signature is a one-time sign-off. Reopening a ticket must not expose
+    // a second signing canvas or allow the original signature to be replaced.
+    if (sig) {
       if (canvas) canvas.classList.add('hidden');
       if (preview) {
-        preview.src = sig;
+        renderSignatureImage(preview, sig);
         preview.classList.remove('hidden');
       }
       if (clearBtn) clearBtn.style.display = 'none';
@@ -5998,9 +6111,12 @@
 
   function updateTicketCompleteBtnVisibility(ticket) {
     var isClosed = !!(ticket && FieldApp.migrateStatus(ticket.status) === FieldApp.STATUS.closed);
+    var hasSignature = !!(ticket && ticket.signature);
     var completeBtn = global.document.getElementById('ticketCompleteBtn');
     if (completeBtn) {
-      completeBtn.style.display = 'flex';
+      if (hasSignature) completeBtn.setAttribute('data-signature-locked', '1');
+      var signatureLocked = completeBtn.getAttribute('data-signature-locked') === '1';
+      completeBtn.style.display = (signatureLocked && !isClosed) ? 'none' : 'flex';
       completeBtn.setAttribute('data-reopen', isClosed ? '1' : '0');
       var completeLabel = completeBtn.querySelector('span');
       if (completeLabel) {
@@ -6025,7 +6141,7 @@
       spareBtn.classList.toggle('is-disabled', isClosed);
       spareBtn.style.opacity = isClosed ? '0.45' : '';
     }
-    if (submitBtn) submitBtn.style.display = isClosed ? 'none' : 'flex';
+    if (submitBtn) submitBtn.style.display = (isClosed || hasSignature) ? 'none' : 'flex';
     if (summaryEl) {
       summaryEl.readOnly = isClosed;
       if (isClosed && ticket) summaryEl.value = String(ticket.summary || ticket.subject || '');
@@ -6220,6 +6336,10 @@
             statusApi: FieldApp.statusToApi(FieldApp.STATUS.opened)
           });
           ticketState.ticket = FieldApp.getTicket(ticketState.id);
+          // Remove the reopen action immediately after a successful reopen.
+          // Keep it locked even if the refreshed API object omits signature.
+          completeNavBtn.setAttribute('data-signature-locked', '1');
+          completeNavBtn.style.display = 'none';
           updateTicketCompleteBtnVisibility(ticketState.ticket);
           var statusSelect = global.document.getElementById('ticketStatusSelect');
           if (statusSelect) statusSelect.value = FieldApp.STATUS.opened;
@@ -6327,7 +6447,7 @@
     if (clearSig && !clearSig.__bound) {
       clearSig.__bound = true;
       clearSig.addEventListener('click', function () {
-        if (ticketState.ticket && FieldApp.migrateStatus(ticketState.ticket.status) === FieldApp.STATUS.closed) return;
+        if (ticketState.ticket && (FieldApp.migrateStatus(ticketState.ticket.status) === FieldApp.STATUS.closed || ticketState.ticket.signature)) return;
         clearTicketSignatureCanvas();
         FieldApp.updateTicket(ticketState.id, { signature: null }, { silent: true });
         ticketState.ticket = FieldApp.getTicket(ticketState.id);
@@ -6343,6 +6463,7 @@
         showFormError('completeFormError', '');
         if (!ticketState.ticket || submitBtn.disabled) return;
         if (FieldApp.migrateStatus(ticketState.ticket.status) === FieldApp.STATUS.closed) return;
+        if (ticketState.ticket.signature) return;
 
         var summary = persistWorkSummary().trim();
         if (!summary) {
@@ -6360,7 +6481,18 @@
         if (submitLabel) submitLabel.textContent = tr('loading');
 
         try {
-          var signatureDataUrl = ticketState.hasStroke ? ticketCanvas().toDataURL('image/jpeg', 0.9) : null;
+          var signatureDataUrl = null;
+          if (ticketState.hasStroke) {
+            var signatureCanvas = ticketCanvas();
+            var signatureContext = ticketCtx();
+            signatureContext.save();
+            signatureContext.setTransform(1, 0, 0, 1, 0, 0);
+            signatureContext.globalCompositeOperation = 'destination-over';
+            signatureContext.fillStyle = '#fff';
+            signatureContext.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            signatureContext.restore();
+            signatureDataUrl = signatureCanvas.toDataURL('image/png');
+          }
           var mediaFiles = [];
           var requestPhotos = (ticketState.ticket.photos || []).map(function (photo, index) {
             var source = photo.dataUrl || photo.url || '';

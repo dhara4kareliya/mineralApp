@@ -1506,32 +1506,6 @@
     goPage('invoice');
   }
 
-  async function deleteCurrentInvoice() {
-    var doc = state.currentDoc || loadCurrentDoc();
-    var documentId = doc && (doc.id || doc.document_id || doc.documents_id);
-    if (!documentId || !window.confirm(t('confirmDeleteDocument'))) return;
-
-    var button = $('btnDeleteInvoice');
-    if (button) {
-      button.disabled = true;
-      button.textContent = '…';
-    }
-    try {
-      await app().deleteDocument(documentId, portalCustomerId());
-      try {
-        sessionStorage.removeItem(DOC_KEY);
-        sessionStorage.removeItem(VIEW_ONLY_KEY);
-      } catch (e) { /* ignore storage errors */ }
-      goPage('dashboard');
-    } catch (err) {
-      if (button) {
-        button.disabled = false;
-        button.textContent = t('deleteInvoiceButton');
-      }
-      window.alert((err && err.message) || t('deleteDocumentFailed'));
-    }
-  }
-
   function openDocumentPdf(doc) {
     openInvoice(doc, { viewOnly: true });
   }
@@ -2172,7 +2146,6 @@
     if (page === 'invoice') {
       if (!requireAuthOrLogin()) return;
       on('btnInvBack', 'click', function () { goPage('dashboard'); });
-      on('btnDeleteInvoice', 'click', deleteCurrentInvoice);
       on('btnPay', 'click', submitPayment);
       setPayMethod('cc');
       loadBankOptions();

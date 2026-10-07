@@ -225,7 +225,11 @@ button, input, select, textarea { font-family: system-ui, -apple-system, 'Segoe 
   inset: 0;
   z-index: 80;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  backdrop-filter: blur(3px);
   justify-content: center;
   border-radius: 26px;
   overflow: hidden;
@@ -611,16 +615,47 @@ button, input, select, textarea { font-family: system-ui, -apple-system, 'Segoe 
   inset: 0;
   background: var(--overlay);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  backdrop-filter: blur(3px);
   z-index: 20;
 }
 .success-sheet {
   width: 100%;
+  max-width: 520px;
   background: var(--bg-card);
-  border-radius: 24px 24px 0 0;
-  padding: 28px 22px 36px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 32px 28px 28px;
   text-align: center;
   color: var(--text);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .4);
+}
+
+.success-sheet [data-i18n="success_title"] {
+  display: block;
+  color: var(--text) !important;
+  font-size: 21px !important;
+}
+
+.success-sheet [data-i18n="success_body"] {
+  color: var(--text-muted) !important;
+}
+
+.success-sheet > a {
+  min-height: 48px;
+  box-sizing: border-box;
+  align-items: center;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.schedule-route-btn.route-unavailable {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .map-overlay {
@@ -1262,6 +1297,9 @@ html[dir="rtl"] .pass-toggle {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fff;
+}
+.ticket-action-btn[data-signature-locked="1"] {
+  display: none !important;
 }
 .complete-layout {
   max-width: 720px;
