@@ -1,141 +1,142 @@
-Layout.render({
-      active: 'dashboard',
-      titleKey: 'nav.dashboard',
-      subtitleKey: 'dash.welcome',
-    });
-
     (async function init() {
-      const stats = document.getElementById('stats');
-      const widgets = document.getElementById('dash-widgets');
-      let welcome = Auth.getWelcome();
+            const stats = document.getElementById('stats');
+            const widgets = document.getElementById('dash-widgets');
+            let welcome = Auth.getWelcome();
 
-      try {
-        welcome = await API.welcome();
-        Auth.setSession({
-          welcome,
-          modules: welcome.modules || {},
-          customer: {
-            ...(Auth.getCustomer() || {}),
-            id: welcome.c_id,
-            owner_id: welcome.owner_id,
-            name: welcome.name || welcome.customer?.name || Auth.getCustomer()?.name,
-            email: welcome.email || welcome.customer?.email || Auth.getCustomer()?.email,
-          },
-        });
-      } catch (err) {
-        Toast.error(err.message || I18n.t('failedToLoad'));
-      }
+            try {
+                welcome = await API.welcome();
+                Auth.setSession({
+                    welcome,
+                    modules: welcome.modules || {},
+                    customer: {
+                        ...(Auth.getCustomer() || {}),
+                        id: welcome.c_id,
+                        owner_id: welcome.owner_id,
+                        name: welcome.name || (welcome.customer && welcome.customer.name) || (Auth.getCustomer() && Auth.getCustomer().name),
+                        email: welcome.email || (welcome.customer && welcome.customer.email) || (Auth.getCustomer() && Auth.getCustomer().email),
+                    },
+                });
+            } catch (err) {
+                if (err.auth) return;
+                Toast.error(err.message || I18n.t('failedToLoad'));
+            }
 
-      const modules = welcome?.modules || Auth.getModules();
-      const enabled = (key) => modules[key] === true;
+            Layout.render({
+                active: 'dashboard',
+                titleKey: 'nav.dashboard',
+                subtitleKey: 'dash.welcome',
+            });
 
-      const statDefs = [
-        { key: 'tickets', labelKey: 'dash.openTickets', icon: '🎫' },
-        { key: 'appointments', labelKey: 'dash.appointments', icon: '📅' },
-        { key: 'invoices', labelKey: 'dash.invoices', icon: '🧾' },
-        { key: 'projects', labelKey: 'dash.projects', icon: '📁' },
-        { key: 'products', labelKey: 'dash.products', icon: '📦' },
-        { key: 'rooms', labelKey: 'dash.roomBookings', icon: '🏨' },
-      ].filter((s) => enabled(s.key));
+            const modules = (welcome && welcome.modules) || Auth.getModules();
+            const enabled = (key) => modules[key] === true;
 
-      const requests = {};
-      if (enabled('tickets')) requests.tickets = API.ticketsList({ limit: 5, show: 1 });
-      if (enabled('appointments')) requests.appointments = API.appointmentsList({ limit: 5 });
-      if (enabled('invoices')) requests.invoices = API.invoicesList({ limit: 5 });
-      if (enabled('projects')) requests.projects = API.projectsList({ limit: 5 });
-      if (enabled('products')) requests.products = API.productsList({ limit: 5 });
-      if (enabled('rooms')) requests.rooms = API.roomsBookings({ limit: 5 });
+            const statDefs = [
+                { key: 'tickets', labelKey: 'dash.openTickets', icon: '🎫' },
+                { key: 'appointments', labelKey: 'dash.appointments', icon: '📅' },
+                { key: 'invoices', labelKey: 'dash.invoices', icon: '🧾' },
+                { key: 'projects', labelKey: 'dash.projects', icon: '📁' },
+                { key: 'products', labelKey: 'dash.products', icon: '📦' },
+                { key: 'rooms', labelKey: 'dash.roomBookings', icon: '🏨' },
+            ].filter((s) => enabled(s.key));
 
-      const results = {};
-      await Promise.all(
-        Object.entries(requests).map(async ([key, promise]) => {
-          try {
-            results[key] = { ok: true, data: await promise };
-          } catch (err) {
-            results[key] = { ok: false, error: err };
-          }
-        })
-      );
+            const requests = {};
+            if (enabled('tickets')) requests.tickets = API.ticketsList({ limit: 5, show: 1 });
+            if (enabled('appointments')) requests.appointments = API.appointmentsList({ limit: 5 });
+            if (enabled('invoices')) requests.invoices = API.invoicesList({ limit: 5 });
+            if (enabled('projects')) requests.projects = API.projectsList({ limit: 5 });
+            if (enabled('products')) requests.products = API.productsList({ limit: 5 });
+            if (enabled('rooms')) requests.rooms = API.roomsBookings({ limit: 5 });
 
-      if (statDefs.length) {
-        stats.innerHTML = statDefs
-          .map((s) => {
-            const res = results[s.key];
-            const value = res?.ok ? UI.listCount(res.data) : '—';
-            return `<div class="card stat-card">
+            const results = {};
+            await Promise.all(
+                Object.entries(requests).map(async([key, promise]) => {
+                    try {
+                        results[key] = { ok: true, data: await promise };
+                    } catch (err) {
+                        results[key] = { ok: false, error: err };
+                    }
+                })
+            );
+
+            if (statDefs.length) {
+                stats.innerHTML = statDefs
+                    .map((s) => {
+                        const res = results[s.key];
+                        const value = res && res.ok ? UI.listCount(res.data) : '—';
+                        return `<div class="card stat-card">
               <div class="stat-icon">${s.icon}</div>
               <div class="stat-value">${value}</div>
               <div class="stat-label">${I18n.t(s.labelKey)}</div>
             </div>`;
-          })
-          .join('');
-      } else {
-        stats.innerHTML = `<div class="card"><p class="muted text-sm">${I18n.t('dash.noModules')}</p></div>`;
-      }
+                    })
+                    .join('');
+            } else {
+                stats.innerHTML = `<div class="card"><p class="muted text-sm">${I18n.t('dash.noModules')}</p></div>`;
+            }
 
-      const widgetDefs = [
-        enabled('tickets') && {
-          id: 'dash-tickets',
-          link: 'tickets.html',
-          result: results.tickets,
-          render: (row) => `<tr class="clickable" data-nav-href="ticket-detail.html?id=${row.ticket_id || row.id}">
+            const widgetDefs = [
+                enabled('tickets') && {
+                    id: 'dash-tickets',
+                    link: 'tickets.html',
+                    result: results.tickets,
+                    render: (row) => `<tr class="clickable" data-nav-href="ticket-detail.html?id=${row.ticket_id || row.id}">
                   <td><strong>#${row.ticket_id || row.id}</strong></td>
                   <td>${Layout.escapeHtml(row.subject || row.topic || '—')}</td>
                   <td><span class="badge ${row.show == 1 ? 'badge-success' : 'badge-muted'}">${row.show == 1 ? I18n.t('tickets.open') : I18n.t('tickets.closed')}</span></td>
                 </tr>`,
-          head: `<th>${I18n.t('table.id')}</th><th>${I18n.t('table.subject')}</th><th>${I18n.t('table.status')}</th>`,
-          empty: I18n.t('dash.noTickets'),
-          title: I18n.t('dash.recentTickets'),
-        },
-        enabled('appointments') && {
-          id: 'dash-appointments',
-          title: I18n.t('dash.upcomingAppointments'),
-          link: 'appointments.html',
-          result: results.appointments,
-          render: (row) => `<tr class="clickable" data-nav-href="appointment-detail.html?id=${row.id}">
+                    head: `<th>${I18n.t('table.id')}</th><th>${I18n.t('table.subject')}</th><th>${I18n.t('table.status')}</th>`,
+                    empty: I18n.t('dash.noTickets'),
+                    title: I18n.t('dash.recentTickets'),
+                },
+                enabled('appointments') && {
+                    id: 'dash-appointments',
+                    title: I18n.t('dash.upcomingAppointments'),
+                    link: 'appointments.html',
+                    result: results.appointments,
+                    render: (row) => `<tr class="clickable" data-nav-href="appointment-detail.html?id=${row.id}">
                   <td>${UI.formatDateOnly(row.date)}</td>
                   <td>${Layout.escapeHtml(row.start_time || '')} – ${Layout.escapeHtml(row.end_time || '')}</td>
                 </tr>`,
-          head: `<th>${I18n.t('table.date')}</th><th>${I18n.t('table.time')}</th>`,
-          empty: I18n.t('dash.noAppointments'),
-        },
-        enabled('invoices') && {
-          id: 'dash-invoices',
-          title: I18n.t('dash.openInvoices'),
-          link: 'invoices.html',
-          result: results.invoices,
-          render: (row) => {
-            const pdfUrl = String(row.pdf_url || row.url || row.view_url || '').trim();
-            const openAttr = pdfUrl
-              ? `class="clickable" data-nav-open="${String(pdfUrl).replace(/"/g, '&quot;')}"`
-              : '';
-            return `<tr ${openAttr}>
+                    head: `<th>${I18n.t('table.date')}</th><th>${I18n.t('table.time')}</th>`,
+                    empty: I18n.t('dash.noAppointments'),
+                },
+                enabled('invoices') && {
+                    id: 'dash-invoices',
+                    title: I18n.t('dash.openInvoices'),
+                    link: 'invoices.html',
+                    result: results.invoices,
+                    render: (row) => {
+                        const pdfUrl = String(row.pdf_url || row.url || row.view_url || '').trim();
+                        const openAttr = pdfUrl ?
+                            `class="clickable" data-nav-open="${String(pdfUrl).replace(/"/g, '&quot;')}"` :
+                            '';
+                        return `<tr ${openAttr}>
                   <td>#${row.id}</td>
                   <td>${Layout.escapeHtml(row.type || I18n.t('dash.invoice'))}</td>
                   <td>${UI.formatMoney(row.final_amount, row.coin || '')}</td>
                   <td><span class="badge ${row.paid ? 'badge-success' : 'badge-warning'}">${Layout.escapeHtml(row.paid_label || (row.paid ? I18n.t('dash.paid') : I18n.t('dash.unpaid')))}</span></td>
                 </tr>`;
-          },
-          head: `<th>${I18n.t('table.id')}</th><th>${I18n.t('invoices.type')}</th><th>${I18n.t('invoices.amount')}</th><th>${I18n.t('table.status')}</th>`,
-          empty: I18n.t('dash.noInvoices'),
-        },
-        enabled('projects') && {
-          id: 'dash-projects',
-          title: I18n.t('dash.recentProjects'),
-          link: 'projects.html',
-          result: results.projects,
-          render: (row) => `<tr class="clickable" data-nav-href="project-detail.html?id=${row.id}">
+                    },
+                    head: `<th>${I18n.t('table.id')}</th><th>${I18n.t('invoices.type')}</th><th>${I18n.t('invoices.amount')}</th><th>${I18n.t('table.status')}</th>`,
+                    empty: I18n.t('dash.noInvoices'),
+                },
+                enabled('projects') && {
+                    id: 'dash-projects',
+                    title: I18n.t('dash.recentProjects'),
+                    link: 'projects.html',
+                    result: results.projects,
+                    render: (row) => `<tr class="clickable" data-nav-href="project-detail.html?id=${row.id}">
                   <td><strong>${Layout.escapeHtml(row.name || I18n.t('dash.untitled'))}</strong></td>
                   <td>#${row.id}</td>
                 </tr>`,
-          head: `<th>${I18n.t('table.name')}</th><th>${I18n.t('table.id')}</th>`,
-          empty: I18n.t('dash.noProjects'),
-        },
-      ].filter(Boolean);
+                    head: `<th>${I18n.t('table.name')}</th><th>${I18n.t('table.id')}</th>`,
+                    empty: I18n.t('dash.noProjects'),
+                },
+            ].filter(Boolean);
 
-      widgets.innerHTML = widgetDefs
-        .map(
-          (w) => `<div class="card" ${w.demo ? '' : 'data-live-target'}>
+            widgets.innerHTML = widgetDefs
+                .map(
+                    (w) => `<div class="card" ${w.demo ? '' : 'data-live-target'}>
             <div class="card-header">
               <div>
                 <div class="card-title">${w.title}</div>

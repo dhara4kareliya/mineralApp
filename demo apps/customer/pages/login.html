@@ -1,48 +1,50 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light dark" />
-  <title data-i18n="login.title">Sign in — Customer Portal</title>
-  <link rel="stylesheet" href="../css/styles.css?v=202609151230" />
-  <script src="../js/boot.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title data-i18n="login.title">Sign in — Customer Portal</title>
+    <link rel="stylesheet" href="../css/styles.css?v=202609151230" />
+    <script src="../js/boot.js"></script>
 </head>
+
 <body>
-  <div class="auth-page">
-    <section class="auth-visual">
-      <div class="auth-brand">
-        <div class="logo">CP</div>
-        <span data-i18n="login.brand">Customer Portal</span>
-      </div>
-      <div>
-        <h2 data-i18n="login.hero">Your projects, tickets, invoices & bookings — in one place.</h2>
-        <p data-i18n="login.heroSub">Sign in with your customer credentials. We’ll email a one-time code to keep your account secure.</p>
-      </div>
-      <p class="text-sm" style="opacity:.8" data-i18n="login.powered">Powered by Biz1 Customer APIs</p>
-    </section>
-
-    <section class="auth-panel">
-      <button type="button" class="btn btn-ghost lang-toggle auth-lang-toggle" data-lang-toggle>עברית</button>
-      <button type="button" class="btn btn-ghost btn-icon auth-theme-toggle" data-theme-toggle data-i18n-title="theme">🌙</button>
-
-      <div class="auth-stack">
-      <div class="auth-card">
-        <!-- Step 1: credentials -->
-        <div class="auth-step active" id="step-credentials">
-          <h1 data-i18n="login.welcome">Welcome back</h1>
-          <p class="lead" data-i18n="login.lead">Enter your customer ID or email and password to continue.</p>
-          <div id="cred-alert" hidden></div>
-          <form id="form-credentials" autocomplete="off" action="#" method="post">
-            <div class="form-group">
-              <label class="form-label" for="client_id" data-i18n="login.clientId">Customer ID or email</label>
-              <input class="form-control" id="client_id" required data-i18n-placeholder="login.clientPlaceholder" placeholder="e.g. 12614595 or you@email.com" autocomplete="off" autocapitalize="off" spellcheck="false" value="" />
+    <div class="auth-page">
+        <section class="auth-visual">
+            <div class="auth-brand">
+                <div class="logo">CP</div>
+                <span data-i18n="login.brand">Customer Portal</span>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="password" data-i18n="login.password">Password</label>
-              <div class="password-field">
-                <input class="form-control" id="password" type="password" required placeholder="••••••••" autocomplete="new-password" value="" />
-                <button type="button" class="password-toggle" id="toggle-password" data-i18n-aria="login.showPassword" data-i18n-title="login.showPassword" aria-label="Show password" title="Show password">
+            <div>
+                <h2 data-i18n="login.hero">Your projects, tickets, invoices & bookings — in one place.</h2>
+                <p data-i18n="login.heroSub">Sign in with your customer credentials. We’ll email a one-time code to keep your account secure.</p>
+            </div>
+            <p class="text-sm" style="opacity:.8" data-i18n="login.powered">Powered by Biz1 Customer APIs</p>
+        </section>
+
+        <section class="auth-panel">
+            <button type="button" class="btn btn-ghost lang-toggle auth-lang-toggle" data-lang-toggle>עברית</button>
+            <button type="button" class="btn btn-ghost btn-icon auth-theme-toggle" data-theme-toggle data-i18n-title="theme">🌙</button>
+
+            <div class="auth-stack">
+                <div class="auth-card">
+                    <!-- Step 1: credentials -->
+                    <div class="auth-step active" id="step-credentials">
+                        <h1 data-i18n="login.welcome">Welcome back</h1>
+                        <p class="lead" data-i18n="login.lead">Enter your customer ID or email and password to continue.</p>
+                        <div id="cred-alert" hidden></div>
+                        <form id="form-credentials" autocomplete="off" action="#" method="post">
+                            <div class="form-group">
+                                <label class="form-label" for="client_id" data-i18n="login.clientId">Customer ID or email</label>
+                                <input class="form-control" id="client_id" required data-i18n-placeholder="login.clientPlaceholder" placeholder="e.g. 12614595 or you@email.com" autocomplete="off" autocapitalize="off" spellcheck="false" value="" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="password" data-i18n="login.password">Password</label>
+                                <div class="password-field">
+                                    <input class="form-control" id="password" type="password" required placeholder="••••••••" autocomplete="new-password" value="" />
+                                    <button type="button" class="password-toggle" id="toggle-password" data-i18n-aria="login.showPassword" data-i18n-title="login.showPassword" aria-label="Show password" title="Show password">
                   <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
@@ -53,64 +55,59 @@
                     <line x1="1" y1="1" x2="23" y2="23"/>
                   </svg>
                 </button>
-              </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-block" id="btn-send-otp" data-i18n="login.continue">Continue</button>
+                        </form>
+                    </div>
+
+                    <!-- Step 2: OTP -->
+                    <div class="auth-step" id="step-otp">
+                        <h1 data-i18n="login.checkEmail">Check your email</h1>
+                        <p class="lead" data-i18n="login.otpLead">Enter the 6-digit code we sent. It expires in about 10 minutes.</p>
+                        <div id="otp-alert" hidden></div>
+                        <form id="form-otp" action="#" method="post">
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="login.otp">One-time password</label>
+                                <div class="otp-inputs" id="otp-inputs">
+                                    <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+                                    <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
+                                    <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
+                                    <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
+                                    <input inputmode="numeric" maxlength="1" aria-label="Digit 5" />
+                                    <input inputmode="numeric" maxlength="1" aria-label="Digit 6" />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-block" id="btn-verify-otp" data-i18n="login.verify">Verify &amp; sign in</button>
+                            <button type="button" class="btn btn-ghost btn-block mt-1" id="btn-back"><span class="btn-back-arrow" aria-hidden="true">←</span> <span data-i18n="back">Back</span></button>
+                            <p class="text-sm muted mt-2" style="text-align:center" data-i18n="login.noCode">
+                                Didn’t get a code? Check spam, or go back and request again.
+                            </p>
+                        </form>
+                    </div>
+                </div>
+
+                <aside class="demo-users" id="demo-users" data-i18n-aria="login.demoCredentials" aria-label="Demo Credentials">
+                    <div class="demo-users-title" data-i18n="login.demoCredentials">Demo Credentials</div>
+                    <div class="demo-users-list">
+                        <div class="demo-user-row">
+                            <span class="demo-user-creds" dir="ltr">demo@yopmail.com / pass0364</span>
+                            <button type="button" class="demo-user-btn" data-user="demo@yopmail.com" data-pass="pass0364" data-i18n="login.loginAsDemoUser">Login As Domo User</button>
+                        </div>
+                    </div>
+                </aside>
+                <p class="login-footer"><span data-i18n="login.showcase">Biz1 Showcase</span> · <span data-i18n="appName">Customer Portal</span></p>
             </div>
-            <button type="button" class="btn btn-primary btn-block" id="btn-send-otp" data-i18n="login.continue">Continue</button>
-          </form>
-        </div>
+        </section>
+    </div>
 
-        <!-- Step 2: OTP -->
-        <div class="auth-step" id="step-otp">
-          <h1 data-i18n="login.checkEmail">Check your email</h1>
-          <p class="lead" data-i18n="login.otpLead">Enter the 6-digit code we sent. It expires in about 10 minutes.</p>
-          <div id="otp-alert" hidden></div>
-          <form id="form-otp" action="#" method="post">
-            <div class="form-group">
-              <label class="form-label" data-i18n="login.otp">One-time password</label>
-              <div class="otp-inputs" id="otp-inputs">
-                <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
-                <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
-                <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
-                <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
-                <input inputmode="numeric" maxlength="1" aria-label="Digit 5" />
-                <input inputmode="numeric" maxlength="1" aria-label="Digit 6" />
-              </div>
-            </div>
-            <button type="button" class="btn btn-primary btn-block" id="btn-verify-otp" data-i18n="login.verify">Verify &amp; sign in</button>
-            <button type="button" class="btn btn-ghost btn-block mt-1" id="btn-back"><span class="btn-back-arrow" aria-hidden="true">←</span> <span data-i18n="back">Back</span></button>
-            <p class="text-sm muted mt-2" style="text-align:center" data-i18n="login.noCode">
-              Didn’t get a code? Check spam, or go back and request again.
-            </p>
-          </form>
-        </div>
-      </div>
-
-      <aside class="demo-users" id="demo-users" data-i18n-aria="login.demoCredentials" aria-label="Demo Credentials">
-        <div class="demo-users-title" data-i18n="login.demoCredentials">Demo Credentials</div>
-        <div class="demo-users-list">
-          <div class="demo-user-row">
-            <span class="demo-user-creds" dir="ltr">demo@yopmail.com / pass0364</span>
-            <button
-              type="button"
-              class="demo-user-btn"
-              data-user="demo@yopmail.com"
-              data-pass="pass0364"
-              data-i18n="login.loginAsDemoUser"
-            >Login As Domo User</button>
-          </div>
-        </div>
-      </aside>
-      <p class="login-footer"><span data-i18n="login.showcase">Biz1 Showcase</span> · <span data-i18n="appName">Customer Portal</span></p>
-      </div>
-    </section>
-  </div>
-
-  <script src="../js/config.js?v=202609041655"></script>
-  <script src="../js/theme.js?v=202609041655"></script>
-  <script src="../js/i18n.js?v=202609151150"></script>
-  <script src="../js/toast.js?v=202609041655"></script>
-  <script src="../js/auth.js?v=202609041655"></script>
-  <script src="../js/api.js?v=202609041655"></script>
-  <script src="../js/pages/login-page.js"></script>
+    <script src="../js/config.js?v=202610071400"></script>
+    <script src="../js/theme.js?v=202609041655"></script>
+    <script src="../js/i18n.js?v=202609151150"></script>
+    <script src="../js/toast.js?v=202609041655"></script>
+    <script src="../js/auth.js?v=202609041655"></script>
+    <script src="../js/api.js?v=202610071200"></script>
+    <script src="../js/pages/login-page.js"></script>
 </body>
+
 </html>
