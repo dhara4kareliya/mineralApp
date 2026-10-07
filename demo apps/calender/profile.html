@@ -19,11 +19,15 @@
           if (l !== 'he' && l !== 'en') l = 'en';
           document.documentElement.lang = l;
           document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
+          
+          var t=localStorage.getItem('biz1_fin_theme');
+          if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+          document.documentElement.setAttribute('data-theme',t);
         } catch (e) {}
       })();
     </script>
   </head>
-  <body data-theme="light">
+  <body>
     <div class="loyalty-shell">
       <div class="loyalty-topbar">
         <a href="./dashboard.html" class="loyalty-back">

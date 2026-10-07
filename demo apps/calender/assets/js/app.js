@@ -368,12 +368,12 @@
   }
 
   var DOMAIN = resolveDomain();
-  var ROLE_KEY = 'biz1fs_role';
-  var EMAIL_KEY = 'biz1fs_email';
-  var REMEMBER_KEY = 'biz1fs_remember';
-  var CRED_KEY = 'biz1fs_cred';
-  var SESSION_PASS_KEY = 'biz1fs_session_pass';
-  var USER_KEY = 'biz1fs_user_basic';
+  var ROLE_KEY = 'biz1_fin_role';
+  var EMAIL_KEY = 'biz1_fin_username';
+  var REMEMBER_KEY = 'biz1_fin_remember';
+  var CRED_KEY = 'biz1_fin_cred';
+  var SESSION_PASS_KEY = 'biz1_fin_session_pass';
+  var USER_KEY = 'biz1_fin_user_basic';
 
   var ROLE_HOME = { sales: 'dashboard.html', service: 'dashboard.html', tech: 'dashboard.html' };
 
@@ -897,8 +897,8 @@
 /* ===== theme + language toggle ===== */
 (function (global) {
   'use strict';
-  var THEME_KEY = 'biz1fs_theme';
-  var LANG_KEY = 'biz1fs_lang';
+  var THEME_KEY = 'biz1_fin_theme';
+  var LANG_KEY = 'biz1_fin_lang';
   var I18N = {
     en: {
       page_login_title: 'Biz1 Showcase',

@@ -36,7 +36,7 @@
       brandTag: 'Front desk · Calendar & Loyalty',
       viewDay: 'Day',
       viewWeek: 'Week',
-      viewStaff: 'Staff',
+      viewMonth: 'Month',
       staffFilterLabel: 'Staff',
       allStaff: 'All staff',
       quickBook: 'Quick Book',
@@ -88,7 +88,7 @@
       brandTag: 'עמדת קבלה · יומן ונאמנות',
       viewDay: 'יום',
       viewWeek: 'שבוע',
-      viewStaff: 'צוות',
+      viewMonth: 'חודש',
       staffFilterLabel: 'צוות',
       allStaff: 'כל הצוות',
       quickBook: 'הזמנה מהירה',
@@ -163,7 +163,7 @@
   function getLanguage() {
     const saved = (
       localStorage.getItem(LANG_KEY) ||
-      localStorage.getItem('biz1fs_lang') ||
+      localStorage.getItem('biz1_fin_lang') ||
       ''
     ).toLowerCase();
     return saved === 'he' ? 'he' : 'en';
@@ -176,7 +176,7 @@
     document.documentElement.dir = currentLang === 'he' ? 'rtl' : 'ltr';
     localStorage.setItem(LANG_KEY, currentLang);
     try {
-      localStorage.setItem('biz1fs_lang', currentLang);
+      localStorage.setItem('biz1_fin_lang', currentLang);
     } catch (e) { /* ignore */ }
 
     document.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -236,7 +236,7 @@
   }
 
   /* ---------- helpers ---------- */
-  const STAFF_COLORS = ['#0d9488', '#ea580c', '#0284c7', '#c026d3', '#16a34a', '#dc2626'];
+  const STAFF_COLORS = ['#0d9488', '#ea580c', '#0284c7', '#e11d48', '#16a34a', '#dc2626'];
   const START_HOUR = 8;
   const END_HOUR = 20;
   const DAY_NAMES = {
@@ -254,9 +254,9 @@
   /** In-memory only — always replaced from Calendar.List (same table as #calendar-tab) */
   let dayViewWeekAppointments = {};
   let currentDate = new Date();
-  let currentView = 'day';
-  let daySelectedStaffId = null;
-  let weekSelectedStaffId = null; // null = all staff (show everything from API)
+  let currentView = (window.localStorage && localStorage.getItem('biz1_dashboard_view')) || 'day';
+  let daySelectedStaffId = (window.localStorage && localStorage.getItem('biz1_dashboard_day_staff')) === 'all' ? null : ((window.localStorage && localStorage.getItem('biz1_dashboard_day_staff')) || null);
+  let weekSelectedStaffId = (window.localStorage && localStorage.getItem('biz1_dashboard_week_staff')) === 'all' ? null : ((window.localStorage && localStorage.getItem('biz1_dashboard_week_staff')) || null);
   let currentDetailAppt = null;
   let selectedSlot = null;
   let bookingLock = null;
@@ -387,7 +387,7 @@
       u.username ||
       u.user_name ||
       (basic && (basic.email || basic.username)) ||
-      localStorage.getItem('biz1fs_email') ||
+      localStorage.getItem('biz1_fin_username') ||
       '';
     if (name && String(name).trim()) return String(name).trim();
     if (email && String(email).trim()) return String(email).trim();
@@ -569,14 +569,26 @@
   }
 
   async function enrichAll(items) {
-    const out = [];
-    const chunkSize = 8;
-    for (let i = 0; i < items.length; i += chunkSize) {
-      const slice = items.slice(i, i + chunkSize);
-      const enriched = await Promise.all(slice.map(enrichAppointment));
-      out.push.apply(out, enriched);
-    }
-    return out;
+    return items.map(item => {
+      const customerId = item.customer_id || '';
+      const mobile = item.mobile || item.phone || mobileFromCustomers(customerId) || '';
+      return {
+        appointment_id: item.appointment_id || item.id,
+        title: item.title || '',
+        color: item.color || '',
+        date_time: item.date_time || '',
+        duration: item.duration,
+        start_time: item.start_time || '',
+        end_time: item.end_time || '',
+        customer_id: customerId,
+        client_name: item.client_name || '',
+        team_member_id: item.team_member_id || item.user || item.team_member || '',
+        team_member_id_2: item.team_member_id_2 || '',
+        event_id: item.event_id || '',
+        details: item.appoimenttext || item.details || item.note || '',
+        mobile: mobile || ''
+      };
+    });
   }
 
   function mapCalendarItems(items) {
@@ -827,6 +839,8 @@
     card.dir = currentLang === 'he' ? 'rtl' : 'ltr';
     addHoverRow(card, t('hoverTitle'), appt.service || 'Appointment');
     addHoverRow(card, t('hoverDate'), formatHoverDate(appt.dateStr));
+    const staff = STAFF.find((s) => String(s.id) === String(appt.staffId));
+    addHoverRow(card, t('staff'), staff ? staff.name : '—');
     addHoverRow(card, t('hoverCustomer'), appt.client);
     addHoverRow(card, t('hoverDetails'), appt.details || '—');
     addHoverRow(card, t('hoverTime'), (appt.start || '') + ' – ' + (appt.end || ''));
@@ -836,6 +850,57 @@
 
   function hideApptHover() {
     if (apptHoverEl) apptHoverEl.classList.remove('open');
+  }
+
+  /* ---------- CUSTOM CELL TOOLTIP ---------- */
+  let cellTipEl = null;
+  let cellTipTimer = null;
+  let cellTipAnchor = null;
+  function getCellTipEl() {
+    if (cellTipEl) return cellTipEl;
+    cellTipEl = document.createElement('div');
+    cellTipEl.className = 'cell-tooltip';
+    document.body.appendChild(cellTipEl);
+    return cellTipEl;
+  }
+
+  function showCellTooltip(e) {
+    const el = e.currentTarget;
+    clearTimeout(cellTipTimer);
+    cellTipAnchor = el;
+    cellTipTimer = setTimeout(() => {
+      if (cellTipAnchor !== el || !el.isConnected) return;
+    const tip = getCellTipEl();
+    const color = el.dataset.tipColor || '#94a3b8';
+    tip.innerHTML =
+      '<div class="cell-tip-row">' +
+        '<span class="cell-tip-label">📅 Date</span>' +
+        '<span class="cell-tip-value">' + (el.dataset.tipDate || '') + '</span>' +
+      '</div>' +
+      '<div class="cell-tip-row">' +
+        '<span class="cell-tip-label">🕐 Time</span>' +
+        '<span class="cell-tip-value">' + (el.dataset.tipTime || '') + '</span>' +
+      '</div>' +
+      '<div class="cell-tip-row">' +
+        '<span class="cell-tip-dot" style="background:' + color + '"></span>' +
+        '<span class="cell-tip-label">Staff</span>' +
+        '<span class="cell-tip-value">' + (el.dataset.tipStaff || '') + '</span>' +
+      '</div>';
+    const rect = el.getBoundingClientRect();
+    let left = rect.left + rect.width / 2;
+    let top = rect.top - 8;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.classList.add('visible');
+      cellTipTimer = null;
+    }, 500);
+  }
+
+  function hideCellTooltip() {
+    clearTimeout(cellTipTimer);
+    cellTipTimer = null;
+    cellTipAnchor = null;
+    if (cellTipEl) cellTipEl.classList.remove('visible');
   }
 
   function buildApptEl(appt, staffInfo, draggable, rowH) {
@@ -849,12 +914,7 @@
     if (finalHeight < 36) el.classList.add('appt-compact');
     el.style.top = top + 'px';
     el.style.height = finalHeight + 'px';
-    el.style.borderInlineStartColor = staffInfo
-      ? staffInfo.color
-      : getStaffColor(appt.staffId) || '#0d9488';
-    if (staffInfo && staffInfo.color) {
-      el.style.background = staffInfo.color + '22';
-    }
+    el.style.setProperty('--appt-color', staffInfo ? staffInfo.color : (getStaffColor(appt.staffId) || '#0d9488'));
     el.setAttribute('data-appt-id', appt.id);
     el.innerHTML =
       '<div class="appt-time">' +
@@ -893,6 +953,53 @@
     });
     if (appt.justUpdated) appt.justUpdated = false;
     return el;
+  }
+
+  function applyOverlapStyles(apptItems) {
+    if (!apptItems || !apptItems.length) return;
+    apptItems.sort((a, b) => timeToMinutes(a.appt.start) - timeToMinutes(b.appt.start) || timeToMinutes(b.appt.end) - timeToMinutes(a.appt.end));
+    
+    let columns = [];
+    let lastEventEnding = null;
+    
+    apptItems.forEach((item) => {
+      let startMin = timeToMinutes(item.appt.start);
+      let endMin = timeToMinutes(item.appt.end);
+      
+      if (lastEventEnding !== null && startMin >= lastEventEnding) {
+        packEvents(columns);
+        columns = [];
+        lastEventEnding = null;
+      }
+      
+      let placed = false;
+      for (let i = 0; i < columns.length; i++) {
+        if (timeToMinutes(columns[i][columns[i].length - 1].appt.end) <= startMin) {
+          columns[i].push(item);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) columns.push([item]);
+      
+      if (lastEventEnding === null || endMin > lastEventEnding) {
+        lastEventEnding = endMin;
+      }
+    });
+    
+    if (columns.length > 0) packEvents(columns);
+    
+    function packEvents(cols) {
+      let numCols = cols.length;
+      for (let i = 0; i < numCols; i++) {
+        for (let j = 0; j < cols[i].length; j++) {
+          let item = cols[i][j];
+          item.el.style.insetInlineStart = `calc(${(i / numCols) * 100}% + 4px)`;
+          item.el.style.width = `calc(${100 / numCols}% - 8px)`;
+          item.el.style.insetInlineEnd = 'auto';
+        }
+      }
+    }
   }
 
   function attachDropHandlers(cell, dateStr, hour, staffId) {
@@ -1079,16 +1186,122 @@
           return String(a.staffId) === String(s.id);
         });
       })();
-      dayAppts.forEach((appt) => {
-        const info =
-          STAFF.find((x) => String(x.id) === String(appt.staffId)) || s;
-        col.appendChild(buildApptEl(appt, info, true, 64));
+      const builtAppts = dayAppts.map((appt) => {
+        const info = STAFF.find((x) => String(x.id) === String(appt.staffId)) || s;
+        return { appt, el: buildApptEl(appt, info, true, 64) };
       });
+      applyOverlapStyles(builtAppts);
+      builtAppts.forEach(b => col.appendChild(b.el));
 
       grid.appendChild(col);
     });
   }
 
+  function buildHorizontalApptEl(appt, staffInfo, draggable) {
+    const totalMins = (END_HOUR - START_HOUR) * 60;
+    const startMins = minutesFromDayStart(appt.start);
+    const endMins = minutesFromDayStart(appt.end);
+    const leftPct = (startMins / totalMins) * 100;
+    const widthPct = ((endMins - startMins) / totalMins) * 100;
+
+    const el = document.createElement('div');
+    const duration = timeToMinutes(appt.end) - timeToMinutes(appt.start);
+    el.className = 'appt status-' + (appt.status || 'confirmed') + (appt.justUpdated ? ' just-updated' : '');
+    if (duration <= 30) {
+      el.classList.add('appt-horizontal-compact');
+    }
+    el.style.insetInlineStart = `calc(${leftPct}% + 4px)`;
+    el.style.width = `calc(${widthPct}% - 8px)`;
+    el.style.top = '4px';
+    el.style.height = 'calc(100% - 8px)';
+    el.style.setProperty('--appt-color', staffInfo ? staffInfo.color : (getStaffColor(appt.staffId) || '#0d9488'));
+    el.setAttribute('data-appt-id', appt.id);
+    el.innerHTML =
+      '<div class="appt-time">' +
+      appt.start +
+      ' – ' +
+      appt.end +
+      '</div>' +
+      '<div class="appt-client">' +
+      (appt.client || '—') +
+      '</div>' +
+      '<div class="appt-service">' +
+      (appt.service || '') +
+      '</div>';
+    if (draggable) {
+      el.setAttribute('draggable', 'true');
+      el.addEventListener('dragstart', (e) => {
+        hideApptHover();
+        e.dataTransfer.setData('text/plain', String(appt.id));
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => {
+          el.classList.add('dragging');
+          document.body.classList.add('is-dragging-appt');
+        }, 0);
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        document.body.classList.remove('is-dragging-appt');
+      });
+    }
+    el.addEventListener('mouseenter', () => showApptHover(appt, el));
+    el.addEventListener('mouseleave', hideApptHover);
+    el.addEventListener('click', (e) => {
+      hideApptHover();
+      e.stopPropagation();
+      openApptDetail(appt);
+    });
+    if (appt.justUpdated) appt.justUpdated = false;
+    return el;
+  }
+
+  function applyHorizontalOverlapStyles(apptItems) {
+    if (!apptItems || !apptItems.length) return;
+    apptItems.sort((a, b) => timeToMinutes(a.appt.start) - timeToMinutes(b.appt.start) || timeToMinutes(b.appt.end) - timeToMinutes(a.appt.end));
+    
+    let rows = [];
+    let lastEventEnding = null;
+    
+    apptItems.forEach((item) => {
+      let startMin = timeToMinutes(item.appt.start);
+      let endMin = timeToMinutes(item.appt.end);
+      
+      if (lastEventEnding !== null && startMin >= lastEventEnding) {
+        packHorizontalEvents(rows);
+        rows = [];
+        lastEventEnding = null;
+      }
+      
+      let placed = false;
+      for (let i = 0; i < rows.length; i++) {
+        if (timeToMinutes(rows[i][rows[i].length - 1].appt.end) <= startMin) {
+          rows[i].push(item);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) rows.push([item]);
+      
+      if (lastEventEnding === null || endMin > lastEventEnding) {
+        lastEventEnding = endMin;
+      }
+    });
+    
+    if (rows.length > 0) packHorizontalEvents(rows);
+    
+    function packHorizontalEvents(rs) {
+      let numRows = rs.length;
+      for (let i = 0; i < numRows; i++) {
+        for (let j = 0; j < rs[i].length; j++) {
+          let item = rs[i][j];
+          item.el.style.top = `calc(${((i / numRows) * 100)}% + 2px)`;
+          item.el.style.height = `calc(${100 / numRows}% - 4px)`;
+        }
+      }
+    }
+  }
+
+  /* ---------- WEEK VIEW: 7 days × one staff ---------- */
   /* ---------- WEEK VIEW: 7 days × one staff ---------- */
   function renderWeekView() {
     const weekGrid = document.getElementById('weekGrid');
@@ -1100,118 +1313,236 @@
       days.push(d);
     }
     const todayStr = fmtDate(new Date());
-    const staffInfo = weekSelectedStaffId
-      ? STAFF.find((s) => String(s.id) === String(weekSelectedStaffId)) || STAFF[0]
-      : null;
+    
+    let staffList = weekSelectedStaffId
+      ? STAFF.filter((s) => String(s.id) === String(weekSelectedStaffId))
+      : STAFF.slice();
+    if (!staffList.length) staffList.push({ id: '', name: '—', color: '#94a3b8' });
 
     weekGrid.innerHTML = '';
     const corner = document.createElement('div');
     corner.className = 'grid-corner';
+    corner.style.gridColumn = 'span 2';
     weekGrid.appendChild(corner);
 
-    days.forEach((d) => {
+    for (let h = START_HOUR; h < END_HOUR; h++) {
+      const th = document.createElement('div');
+      th.className = 'week-head time-head';
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
+      const ampm = h < 12 ? 'AM' : 'PM';
+      th.innerHTML = '<div class="week-head-date" style="font-size:12px">' + hour12 + ':00 ' + ampm + '</div>';
+      weekGrid.appendChild(th);
+    }
+
+    days.forEach((d, dayIndex) => {
       const dateStr = fmtDate(d);
-      const head = document.createElement('div');
-      head.className = 'week-head' + (dateStr === todayStr ? ' is-today' : '');
-      head.innerHTML =
+      const dateCell = document.createElement('div');
+      dateCell.className = 'time-col date-row-head';
+      dateCell.style.display = 'flex';
+      dateCell.style.flexDirection = 'column';
+      dateCell.style.justifyContent = 'center';
+      dateCell.style.alignItems = 'center';
+      dateCell.style.borderBottom = '1px solid var(--border)';
+      if (dayIndex > 0) dateCell.style.borderTop = '2px solid var(--date-separator)';
+      dateCell.style.gridRow = 'span ' + staffList.length;
+      dateCell.style.gridColumn = '1';
+      dateCell.innerHTML =
         '<div class="week-head-day">' +
         (DAY_NAMES[currentLang] || DAY_NAMES.en)[d.getDay()] +
         '</div>' +
-        '<div class="week-head-date">' +
+        '<div class="week-head-date" style="margin-top:2px; font-size:14px; font-weight:800;">' +
         d.getDate() +
         '</div>';
-      weekGrid.appendChild(head);
-    });
-
-    const timeCol = document.createElement('div');
-    timeCol.className = 'time-col';
-    timeCol.innerHTML = timeColumnHTML(56);
-    weekGrid.appendChild(timeCol);
-
-    days.forEach((d) => {
-      const dateStr = fmtDate(d);
-      const col = document.createElement('div');
-      col.className = 'week-day-col';
-      col.style.position = 'relative';
-
-      for (let h = START_HOUR; h < END_HOUR; h++) {
-        const cell = document.createElement('div');
-        cell.className = 'hour-cell';
-        cell.addEventListener('click', () =>
-          openBookingModal({ dateStr, hour: h, staffId: weekSelectedStaffId || undefined })
-        );
-        attachDropHandlers(cell, dateStr, h, weekSelectedStaffId || undefined);
-        col.appendChild(cell);
+      if (dateStr === todayStr) {
+        dateCell.style.color = 'var(--accent)';
       }
+      weekGrid.appendChild(dateCell);
 
-      // null staff filter = show ALL API appointments (same as #calendar-tab)
-      const dayAppts = apptsOnDate(dateStr, weekSelectedStaffId);
-      dayAppts.forEach((appt) => {
-        const info =
-          STAFF.find((s) => String(s.id) === String(appt.staffId)) ||
-          staffInfo ||
-          STAFF[0];
-        col.appendChild(buildApptEl(appt, info, true, 56));
+      staffList.forEach((staff, index) => {
+        const staffCell = document.createElement('div');
+        staffCell.className = 'staff-row-head';
+        staffCell.style.display = 'flex';
+        staffCell.style.alignItems = 'center';
+        staffCell.style.justifyContent = 'center';
+        staffCell.style.padding = '8px';
+        staffCell.style.borderBottom = '1px solid var(--border)';
+        staffCell.style.borderInlineEnd = '1px solid var(--border)';
+        staffCell.style.fontSize = '11px';
+        staffCell.style.fontWeight = '700';
+        staffCell.style.textAlign = 'center';
+        staffCell.style.background = 'var(--surface)';
+        if (dayIndex > 0 && index === 0) staffCell.style.borderTop = '2px solid var(--date-separator)';
+        staffCell.style.gridColumn = '2';
+        staffCell.innerHTML = staff.name;
+        weekGrid.appendChild(staffCell);
+
+        const rowContainer = document.createElement('div');
+        rowContainer.className = 'week-day-row';
+        rowContainer.style.gridColumn = '3 / span ' + (END_HOUR - START_HOUR);
+        rowContainer.style.position = 'relative';
+        rowContainer.style.display = 'grid';
+        rowContainer.style.gridTemplateColumns = 'repeat(' + (END_HOUR - START_HOUR) + ', 1fr)';
+        rowContainer.style.borderBottom = '1px solid var(--border)';
+        if (dayIndex > 0 && index === 0) rowContainer.style.borderTop = '2px solid var(--date-separator)';
+        rowContainer.style.minHeight = '75px';
+
+        for (let h = START_HOUR; h < END_HOUR; h++) {
+          const cell = document.createElement('div');
+          cell.className = 'hour-cell horizontal-cell';
+          cell.style.borderInlineEnd = '1px solid var(--border)';
+          cell.style.borderBottom = 'none';
+          const hour12 = h % 12 === 0 ? 12 : h % 12;
+          const ampm = h < 12 ? 'AM' : 'PM';
+          const nextH = h + 1;
+          const nextHour12 = nextH % 12 === 0 ? 12 : nextH % 12;
+          const nextAmpm = nextH < 12 ? 'AM' : 'PM';
+          const dayName = (DAY_NAMES[currentLang] || DAY_NAMES.en)[d.getDay()];
+          cell.dataset.tipDate = dayName + ', ' + d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+          cell.dataset.tipTime = hour12 + ':00 ' + ampm + ' – ' + nextHour12 + ':00 ' + nextAmpm;
+          cell.dataset.tipStaff = staff.name || '';
+          cell.dataset.tipColor = staff.color || getStaffColor(staff.id) || '#94a3b8';
+          cell.addEventListener('mouseenter', showCellTooltip);
+          cell.addEventListener('mouseleave', hideCellTooltip);
+          cell.addEventListener('click', () =>
+            openBookingModal({ dateStr, hour: h, staffId: staff.id || undefined })
+          );
+          attachDropHandlers(cell, dateStr, h, staff.id || undefined);
+          rowContainer.appendChild(cell);
+        }
+
+        const allAppts = dayViewWeekAppointments[dateStr] || [];
+        const dayAppts = allAppts.filter((a) => {
+          if (!a.staffId) return index === 0;
+          return String(a.staffId) === String(staff.id);
+        });
+
+        const builtAppts = dayAppts.map((appt) => {
+          const el = buildHorizontalApptEl(appt, staff, true);
+          return { appt, el };
+        });
+        applyHorizontalOverlapStyles(builtAppts);
+        builtAppts.forEach(b => rowContainer.appendChild(b.el));
+
+        weekGrid.appendChild(rowContainer);
       });
-
-      weekGrid.appendChild(col);
     });
   }
 
-  /* ---------- STAFF VIEW: multi-resource cards ---------- */
-  function renderStaffView() {
-    const staffViewEl = document.getElementById('staffView');
-    const dateStr = fmtDate(currentDate);
-    staffViewEl.innerHTML = '';
+  /* ---------- MONTH VIEW: 7x5 or 7x6 grid ---------- */
+  function renderMonthView() {
+    const monthGrid = document.getElementById('monthGrid');
+    monthGrid.innerHTML = '';
+    const dateStrFilter = fmtDate(currentDate);
+    const mDate = new Date(dateStrFilter + 'T00:00:00'); // Use currentDate year/month
+    const y = mDate.getFullYear();
+    const m = mDate.getMonth();
 
-    STAFF.forEach((s) => {
-      const list = apptsOnDate(dateStr, s.id).filter(
-        (a) => !a.staffId || String(a.staffId) === String(s.id)
-      );
-      // unassigned only on first staff card to avoid duplicates
-      const filtered =
-        String(s.id) === String(STAFF[0] && STAFF[0].id)
-          ? list
-          : list.filter((a) => String(a.staffId) === String(s.id));
-      const card = document.createElement('div');
-      card.className = 'staff-res-card';
-      card.innerHTML =
-        '<div class="staff-res-header">' +
-        '<div class="staff-res-avatar" style="background:' +
-        s.color +
-        '">' +
-        initials(s.name) +
-        '</div>' +
-        '<div><div class="staff-res-name">' +
-        s.name +
-        '</div><div class="staff-res-role">' +
-        formatStaffRole(s.role) +
-        '</div></div>' +
-        '<div class="staff-res-count">' +
-        filtered.length +
-        '</div></div>' +
-        '<div class="staff-res-body"><div class="staff-mini-grid">' +
-        '<div class="time-col">' +
-        timeColumnHTML(52) +
-        '</div>' +
-        '<div class="staff-mini-col" data-mini-col="' +
-        s.id +
-        '" style="position:relative;"></div></div></div>';
-      staffViewEl.appendChild(card);
+    const monthStart = new Date(y, m, 1);
+    const startDay = monthStart.getDay(); // 0-6
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
 
-      const miniCol = card.querySelector('[data-mini-col="' + s.id + '"]');
-      for (let h = START_HOUR; h < END_HOUR; h++) {
-        const cell = document.createElement('div');
-        cell.className = 'hour-cell';
-        cell.addEventListener('click', () => openBookingModal({ dateStr, hour: h, staffId: s.id }));
-        attachDropHandlers(cell, dateStr, h, s.id);
-        miniCol.appendChild(cell);
-      }
-      filtered.forEach((appt) => miniCol.appendChild(buildApptEl(appt, s, true, 52)));
-    });
+    for (let i = 0; i < 7; i++) {
+       const head = document.createElement('div');
+       head.className = 'month-head';
+       head.textContent = (DAY_NAMES[currentLang] || DAY_NAMES.en)[i];
+       monthGrid.appendChild(head);
+    }
 
-    if (!STAFF.length) {
-      staffViewEl.innerHTML = '<div class="empty-staff">No team members — check User.Basic</div>';
+    for (let i = 0; i < startDay; i++) {
+       const cell = document.createElement('div');
+       cell.className = 'month-cell empty';
+       monthGrid.appendChild(cell);
+    }
+
+    const todayStr = fmtDate(new Date());
+
+    for (let i = 1; i <= daysInMonth; i++) {
+       const d = new Date(y, m, i);
+       const dateStr = fmtDate(d);
+       const cell = document.createElement('div');
+       cell.className = 'month-cell';
+       
+       const headerDiv = document.createElement('div');
+       headerDiv.className = 'month-cell-header';
+
+       const dateDiv = document.createElement('div');
+       dateDiv.className = 'month-date';
+       dateDiv.textContent = i;
+       if (dateStr === todayStr) {
+         dateDiv.style.color = 'var(--accent)';
+       }
+       
+       dateDiv.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentDate = new Date(dateStr + 'T12:00:00');
+          setView('day');
+       });
+
+       let dayAppts = dayViewWeekAppointments[dateStr] || [];
+       const filterId = getActiveStaffFilterId();
+       if (filterId) {
+         dayAppts = dayAppts.filter(a => !a.staffId || String(a.staffId) === String(filterId));
+       }
+
+       if (dayAppts.length > 0) {
+          const count = dayAppts.length;
+          let trafficWord = 'Quiet';
+          let tagClass = 'tag-quiet';
+
+          if (count >= 7) {
+             trafficWord = 'Very Busy';
+             tagClass = 'tag-busy';
+          } else if (count >= 4) {
+             trafficWord = 'Steady';
+             tagClass = 'tag-steady';
+          } else if (count >= 2) {
+             trafficWord = 'Moderate';
+             tagClass = 'tag-moderate';
+          }
+
+          const summaryEl = document.createElement('div');
+          summaryEl.className = 'month-traffic-tag ' + tagClass;
+          summaryEl.textContent = trafficWord;
+          
+          summaryEl.addEventListener('click', (e) => {
+             e.stopPropagation();
+             currentDate = new Date(dateStr + 'T12:00:00');
+             setView('day');
+          });
+          headerDiv.appendChild(summaryEl);
+       }
+
+       headerDiv.appendChild(dateDiv);
+       cell.appendChild(headerDiv);
+
+       if (dayAppts.length > 0) {
+          const count = dayAppts.length;
+          const dotsEl = document.createElement('div');
+          dotsEl.className = 'month-dots-container';
+          const maxDots = 25;
+          const dotsToShow = dayAppts.slice(0, maxDots);
+          
+          dotsToShow.forEach(appt => {
+              const dot = document.createElement('div');
+              dot.className = 'month-mini-dot';
+              dot.style.background = getStaffColor(appt.staffId) || 'var(--accent)';
+              dotsEl.appendChild(dot);
+          });
+          
+          if (count > maxDots) {
+              const plus = document.createElement('div');
+              plus.className = 'month-mini-plus';
+              plus.textContent = '+' + (count - maxDots);
+              dotsEl.appendChild(plus);
+          }
+          cell.appendChild(dotsEl);
+       }
+
+       cell.addEventListener('click', () => {
+          currentDate = new Date(dateStr + 'T12:00:00');
+          setView('day');
+       });
+       monthGrid.appendChild(cell);
     }
   }
 
@@ -1230,25 +1561,36 @@
     const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const weekText = fmt(weekStart) + ' – ' + fmt(weekEnd);
     if (dayEl) dayEl.textContent = dayText;
-    if (weekEl) weekEl.textContent = weekText;
+    if (weekEl) {
+      if (currentView === 'month') {
+        weekEl.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      } else {
+        weekEl.textContent = weekText;
+      }
+    }
   }
 
   async function shiftCalendar(deltaDays) {
-    currentDate.setDate(currentDate.getDate() + deltaDays);
+    if (currentView === 'month' && Math.abs(deltaDays) === 7) {
+       currentDate.setMonth(currentDate.getMonth() + (deltaDays > 0 ? 1 : -1));
+    } else {
+       currentDate.setDate(currentDate.getDate() + deltaDays);
+    }
     updateWeekRangeLabel();
     await reloadAppointments();
   }
 
   function setView(view) {
     currentView = view;
+    try { localStorage.setItem('biz1_dashboard_view', view); } catch(e) {}
     document.querySelectorAll('#viewSwitch button').forEach((btn) => {
       btn.classList.toggle('active', btn.getAttribute('data-view') === view);
     });
     document.getElementById('dayGrid').classList.toggle('active', view === 'day');
     document.getElementById('weekGrid').classList.toggle('active', view === 'week');
-    document.getElementById('staffView').classList.toggle('active', view === 'staff');
+    document.getElementById('monthGrid').classList.toggle('active', view === 'month');
     document.getElementById('dayStaffSelect').classList.toggle('active', view === 'day');
-    document.getElementById('weekStaffSelect').classList.toggle('active', view === 'week');
+    document.getElementById('weekStaffSelect').classList.toggle('active', view === 'week' || view === 'month');
     updateWeekRangeLabel();
     renderCurrentView();
   }
@@ -1256,7 +1598,7 @@
   function renderCurrentView() {
     if (currentView === 'day') renderDayView();
     else if (currentView === 'week') renderWeekView();
-    else renderStaffView();
+    else renderMonthView();
   }
 
   /* ---------- detail modal ---------- */
@@ -1380,25 +1722,48 @@
         return;
       }
     }
-    durEl.value = String(getDefaultService().duration || 30);
+    durEl.value = String(Math.max(30, getDefaultService().duration || 30));
+  }
+
+  function refreshDurationOptions(startTime) {
+    const durEl = document.getElementById('qbDuration');
+    if (!durEl) return;
+    const dateStr = document.getElementById('qbDate').value || fmtDate(currentDate);
+    const staffId = document.getElementById('qbStaff').value;
+    const current = Math.max(30, Number(durEl.value) || getDefaultService().duration || 30);
+    const booked = (dayViewWeekAppointments[dateStr] || [])
+      .filter((a) => !staffId || !a.staffId || String(a.staffId) === String(staffId))
+      .filter((a) => !startTime || timeToMinutes(a.start) > timeToMinutes(startTime));
+    const nextStart = booked.reduce((min, a) => {
+      const value = timeToMinutes(a.start);
+      return value < min ? value : min;
+    }, END_HOUR * 60);
+    const maxDuration = Math.min(nextStart - timeToMinutes(startTime || padTime(START_HOUR, 0)), (END_HOUR * 60) - timeToMinutes(startTime || padTime(START_HOUR, 0)));
+    const values = [];
+    for (let minutes = 30; minutes <= maxDuration; minutes += 5) values.push(minutes);
+    if (!values.length && maxDuration >= 30) values.push(30);
+    values.sort((a, b) => a - b);
+    durEl.innerHTML = values.map((minutes) => '<option value="' + minutes + '">' + minutes + '</option>').join('');
+    durEl.value = String(values.includes(current) ? current : values[values.length - 1]);
   }
 
   function renderSlots(slots) {
     const panel = document.getElementById('qbSlotsPanel');
     const label = document.getElementById('qbSlotsLabel');
     selectedSlot = null;
-    const available = (slots || []).filter((s) => s.available === 1 || s.available === true || s.available === undefined);
-    if (!available.length) {
+    const options = (slots || []).filter((s) => s.available === 1 || s.available === true || s.available === undefined || s.booked);
+    const available = options.filter((s) => !s.booked);
+    if (!options.length) {
       panel.innerHTML = '<div class="custom-option" style="cursor:default;color:var(--text-muted)">No free slots</div>';
       label.textContent = 'No free slots — try another date';
       highlightQbSteps();
       return;
     }
-    label.textContent = 'Select a time slot';
-    panel.innerHTML = available
+    label.textContent = available.length ? 'Select a time slot' : 'All time slots are booked';
+    panel.innerHTML = options
       .map(
         (s) =>
-          '<div class="custom-option" data-time="' +
+          '<div class="custom-option' + (s.booked ? ' disabled' : '') + '" data-time="' +
           s.time +
           '" data-end="' +
           (s.end || '') +
@@ -1410,11 +1775,13 @@
       .join('');
     panel.querySelectorAll('.custom-option').forEach(opt => {
       opt.addEventListener('click', () => {
+        if (opt.classList.contains('disabled')) return;
         panel.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         label.textContent = opt.textContent;
         selectedSlot = { time: opt.dataset.time, end: opt.dataset.end };
         document.getElementById('qbSlotsWrap').classList.remove('open');
+        refreshDurationOptions(selectedSlot.time);
         applyBookingStaffColor(document.getElementById('qbStaff').value);
         syncDurationFromSlot();
         highlightQbSteps();
@@ -1431,12 +1798,14 @@
     }
   });
 
-  function fallbackSlots(dateStr, staffId, duration) {
+  function fallbackSlots(dateStr, staffId, duration, includeBooked) {
     const booked = (dayViewWeekAppointments[dateStr] || []).filter(
       (a) => !staffId || a.staffId === staffId
     );
     const slots = [];
-    const step = duration || 30;
+    // Keep start times on half-hour boundaries; the entered duration controls
+    // the end time and is checked against appointments on both sides.
+    const step = 30;
     for (let h = START_HOUR; h < END_HOUR; h++) {
       for (let m = 0; m < 60; m += step) {
         if (h === END_HOUR - 1 && m + step > 60) break;
@@ -1446,18 +1815,22 @@
         const conflict = booked.some((a) => {
           return !(timeToMinutes(end) <= timeToMinutes(a.start) || timeToMinutes(start) >= timeToMinutes(a.end));
         });
-        if (!conflict) slots.push({ time: start, end: end, available: 1 });
+        if (!conflict || includeBooked) {
+          slots.push({ time: start, end: end, available: conflict ? 0 : 1, booked: conflict });
+        }
       }
     }
     return slots;
   }
 
   async function refreshSlots() {
+    const previousTime = selectedSlot && selectedSlot.time;
     const dateStr = document.getElementById('qbDate').value || fmtDate(currentDate);
     const staffId = document.getElementById('qbStaff').value;
     const svc = getDefaultService();
     const typeId = svc.id;
-    const duration = svc.duration;
+    const durationEl = document.getElementById('qbDuration');
+    const duration = Math.max(30, Number(durationEl && durationEl.value) || svc.duration || 30);
 
     const label = document.getElementById('qbSlotsLabel');
     if(label) label.textContent = 'Loading slots…';
@@ -1482,8 +1855,28 @@
         });
       }
     }
-    if (!slots.length) slots = fallbackSlots(dateStr, staffId, duration);
+    if (!slots.length) slots = fallbackSlots(dateStr, staffId, duration, true);
+
+    // Builder availability can include stale/booked entries. Always remove
+    // overlaps from the appointments already loaded for this date/staff.
+    const booked = (dayViewWeekAppointments[dateStr] || []).filter((a) => {
+      return !staffId || !a.staffId || String(a.staffId) === String(staffId);
+    });
+    slots = slots.map((s) => {
+      const start = String(s.time || '').slice(0, 5);
+      const end = endFromStart(start, duration);
+      const overlaps = booked.some((a) => {
+        return !(timeToMinutes(end) <= timeToMinutes(a.start) || timeToMinutes(start) >= timeToMinutes(a.end));
+      });
+      return Object.assign({}, s, { time: start, end: end, booked: !!s.booked || overlaps });
+    });
     renderSlots(slots);
+    refreshDurationOptions(previousTime || '');
+    if (previousTime) {
+      const previousOption = Array.from(document.querySelectorAll('#qbSlotsPanel .custom-option'))
+        .find((option) => option.dataset.time === previousTime && !option.classList.contains('disabled'));
+      if (previousOption) previousOption.click();
+    }
     highlightQbSteps();
   }
 
@@ -1518,7 +1911,10 @@
       syncBookingTitle();
     }
     const durEl = document.getElementById('qbDuration');
-    if (durEl) durEl.value = String(getDefaultService().duration || 30);
+    if (durEl) {
+      durEl.value = String(Math.max(30, getDefaultService().duration || 30));
+      refreshDurationOptions('');
+    }
     const addrEl = document.getElementById('qbAddress');
     if (addrEl) addrEl.value = '';
     const detailsEl = document.getElementById('qbDetails');
@@ -1543,24 +1939,8 @@
       if (opt) {
         opt.click();
       } else {
-        selectedSlot = { time: prefer, end: '' };
-        panel.innerHTML += '<div class="custom-option selected" data-time="' + prefer + '">' + prefer + '</div>';
-        label.textContent = prefer;
-        syncDurationFromSlot();
-        
-        const newOpt = panel.querySelector('.custom-option[data-time="' + prefer + '"]');
-        if(newOpt) {
-          newOpt.addEventListener('click', () => {
-            panel.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
-            newOpt.classList.add('selected');
-            label.textContent = newOpt.textContent;
-            selectedSlot = { time: newOpt.dataset.time, end: newOpt.dataset.end };
-            document.getElementById('qbSlotsWrap').classList.remove('open');
-            applyBookingStaffColor(document.getElementById('qbStaff').value);
-            syncDurationFromSlot();
-            highlightQbSteps();
-          });
-        }
+        selectedSlot = null;
+        label.textContent = 'Selected time is not available';
       }
       applyBookingStaffColor(qbStaff.value);
       highlightQbSteps();
@@ -1858,18 +2238,6 @@
       if (!(e.detail && e.detail.type === 'ready')) return;
       if (!getToken()) return;
       paintLiveChip();
-      if (pollTimer) clearInterval(pollTimer);
-      // Fast safety net if a payload key is unexpected
-      pollTimer = setInterval(function () {
-        if (!getToken()) return;
-        let st = null;
-        try {
-          st = MineralBarApp.getRealtimeState && MineralBarApp.getRealtimeState();
-        } catch (err) { /* ignore */ }
-        if (!(st && st.connected)) return;
-        if (document.hidden) return;
-        reloadAppointments({ silent: true, fast: true }).catch(function () {});
-      }, 4000);
     });
   }
 
@@ -1892,6 +2260,9 @@
 
   async function init() {
     applyLanguage(getLanguage());
+    
+    const savedView = localStorage.getItem('biz1_dashboard_view') || 'day';
+    setView(savedView);
 
     try {
       const basic = await fetchUserBasic();
@@ -1932,8 +2303,6 @@
       ];
     }
 
-    // Default week filter = ALL (show every #calendar-tab booking)
-    weekSelectedStaffId = null;
     const allStaffLabel = (I18N[currentLang] || I18N.en).allStaff || 'All staff';
     const dayPicker = document.getElementById('dayStaffPicker');
     dayPicker.innerHTML =
@@ -1941,6 +2310,7 @@
       allStaffLabel +
       '</option>' +
       STAFF.map((s) => '<option value="' + s.id + '">' + s.name + '</option>').join('');
+    dayPicker.value = daySelectedStaffId || 'all';
 
     const weekPicker = document.getElementById('weekStaffPicker');
     weekPicker.innerHTML =
@@ -1948,14 +2318,18 @@
       allStaffLabel +
       '</option>' +
       STAFF.map((s) => '<option value="' + s.id + '">' + s.name + '</option>').join('');
-    weekPicker.value = 'all';
-    updateColorDot(document.getElementById('weekStaffDot'), null);
-    updateColorDot(document.getElementById('dayStaffDot'), null);
+    weekPicker.value = weekSelectedStaffId || 'all';
+    
+    updateColorDot(document.getElementById('weekStaffDot'), weekSelectedStaffId);
+    updateColorDot(document.getElementById('dayStaffDot'), daySelectedStaffId);
+    const dayLabel = document.getElementById('dayRangeLabel');
+    if (dayLabel) dayLabel.style.color = getStaffColor(daySelectedStaffId);
+    const weekLabel = document.getElementById('weekRangeLabel');
+    if (weekLabel) weekLabel.style.color = getStaffColor(weekSelectedStaffId);
 
     updateWeekRangeLabel();
 
     await reloadAppointments();
-    setView('day');
     connectDashboardRealtime();
   }
 
@@ -1968,6 +2342,36 @@
     renderCurrentView();
   });
 
+  function updateThemeIcon() {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      // If dark, show Sun icon to switch to light
+      btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+    } else {
+      // If light, show Moon icon to switch to dark
+      btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+    }
+  }
+
+  const themeToggleBtn = document.getElementById('themeToggle');
+  if (themeToggleBtn) {
+    updateThemeIcon();
+    themeToggleBtn.addEventListener('click', () => {
+      let currentTheme = document.documentElement.getAttribute('data-theme');
+      if (!currentTheme) {
+        currentTheme = localStorage.getItem('biz1_fin_theme') === 'dark' ? 'dark' : 'light';
+      }
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      try { localStorage.setItem('biz1_fin_theme', newTheme); } catch(e) {}
+      updateThemeIcon();
+    });
+  }
+
+
+
   document.getElementById('viewSwitch').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-view]');
     if (!btn) return;
@@ -1976,6 +2380,7 @@
 
   document.getElementById('dayStaffPicker').addEventListener('change', (e) => {
     daySelectedStaffId = e.target.value === 'all' ? null : e.target.value;
+    try { localStorage.setItem('biz1_dashboard_day_staff', daySelectedStaffId || 'all'); } catch(e) {}
     updateColorDot(document.getElementById('dayStaffDot'), daySelectedStaffId);
     const dayLabel = document.getElementById('dayRangeLabel');
     if (dayLabel) dayLabel.style.color = getStaffColor(daySelectedStaffId);
@@ -1984,6 +2389,7 @@
 
   document.getElementById('weekStaffPicker').addEventListener('change', (e) => {
     weekSelectedStaffId = e.target.value === 'all' ? null : e.target.value;
+    try { localStorage.setItem('biz1_dashboard_week_staff', weekSelectedStaffId || 'all'); } catch(e) {}
     updateColorDot(document.getElementById('weekStaffDot'), weekSelectedStaffId);
     const weekLabel = document.getElementById('weekRangeLabel');
     if (weekLabel) weekLabel.style.color = getStaffColor(weekSelectedStaffId);
@@ -2022,6 +2428,13 @@
     highlightQbSteps();
   });
   document.getElementById('qbDate').addEventListener('change', refreshSlots);
+  document.getElementById('qbDuration').addEventListener('change', refreshSlots);
+  const qbSlotsTrigger = document.getElementById('qbSlotsTrigger');
+  if (qbSlotsTrigger) {
+    qbSlotsTrigger.addEventListener('click', () => {
+      document.getElementById('qbSlotsWrap').classList.toggle('open');
+    });
+  }
   const qbTitleEl = document.getElementById('qbTitle');
   if (qbTitleEl) {
     qbTitleEl.addEventListener('input', () => {
@@ -2078,10 +2491,7 @@
     }
   });
 
-  document.getElementById('themeToggle').addEventListener('click', () => {
-    const cur = document.body.getAttribute('data-theme');
-    document.body.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
-  });
+
 
   document.getElementById('logoutBtn').addEventListener('click', () => {
     try {

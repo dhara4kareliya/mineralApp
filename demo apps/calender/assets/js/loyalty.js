@@ -337,8 +337,11 @@
 
     document.getElementById('markVisitBtn').addEventListener('click', markVisitComplete);
     document.getElementById('themeToggleLoyalty').addEventListener('click', () => {
-      document.body.dataset.theme =
-        document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+      const root = document.documentElement;
+      const cur = root.getAttribute('data-theme');
+      const nxt = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', nxt);
+      try { localStorage.setItem('biz1_fin_theme', nxt); } catch(e) {}
     });
     document.getElementById('langSwitch').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-lang]');

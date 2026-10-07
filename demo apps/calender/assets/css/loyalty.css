@@ -9,7 +9,7 @@
   --display: 'Sora', 'DM Sans', sans-serif;
 }
 
-body[data-theme='light'] {
+[data-theme='light'] {
   --bg: #eef6f4;
   --card-bg: #ffffff;
   --text: #12241f;
@@ -17,7 +17,7 @@ body[data-theme='light'] {
   --border: #d5e4de;
 }
 
-body[data-theme='dark'] {
+[data-theme='dark'] {
   --bg: #0c1614;
   --card-bg: #13201c;
   --text: #e8f5f1;

@@ -10,11 +10,14 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,500&family=Sora:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/css/dashboard.css?v=20260827" />
+    <link rel="stylesheet" href="./assets/css/dashboard.css?v=20261005" />
     <script src="./assets/config.js?v=20260921a"></script>
-    <script src="./assets/js/app.js?v=20260921a"></script>
+    <script>
+      (function(){try{var t=localStorage.getItem('biz1_fin_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+    </script>
+    <script src="./assets/js/app.js?v=20261005b"></script>
   </head>
-  <body data-theme="light">
+  <body>
     <div class="app-shell">
       <header class="topbar">
         <div class="topbar-left">
@@ -28,7 +31,7 @@
           <div class="view-switch" id="viewSwitch" role="tablist">
             <button type="button" data-view="day" class="active" data-i18n="viewDay">Day</button>
             <button type="button" data-view="week" data-i18n="viewWeek">Week</button>
-            <button type="button" data-view="staff" data-i18n="viewStaff">Staff</button>
+            <button type="button" data-view="month" data-i18n="viewMonth">Month</button>
           </div>
         </div>
         <div class="topbar-right">
@@ -37,7 +40,7 @@
             <button type="button" data-lang="he">עב</button>
           </div>
           <div class="user-chip" id="loggedInUser" title="" hidden></div>
-          <button type="button" class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+          <button type="button" class="icon-btn" id="themeToggle" aria-label="Toggle theme" data-theme-toggle>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
@@ -95,7 +98,7 @@
 
         <div class="day-grid active" id="dayGrid" style="--staff-count: 4"></div>
         <div class="week-grid" id="weekGrid"></div>
-        <div class="staff-view" id="staffView"></div>
+        <div class="month-grid" id="monthGrid"></div>
       </div>
     </div>
 
@@ -128,18 +131,17 @@
           </div>
           <div class="modal-field">
             <label for="qbDuration" data-i18n="duration">Duration (minutes)</label>
-            <input type="number" id="qbDuration" min="5" step="5" value="30" />
+            <select id="qbDuration"></select>
           </div>
           <div class="modal-field">
             <label for="qbAddress" data-i18n="address">Location</label>
             <input type="text" id="qbAddress" autocomplete="off" data-i18n-placeholder="addressPlaceholder" placeholder="Office" />
           </div>
           <div class="modal-field full-width">
-            <label data-i18n="availableSlots">Available time slots</label>
+            <label data-i18n="selectedTime">Selected time</label>
             <div class="custom-select" id="qbSlotsWrap">
-              <div class="custom-select-trigger" id="qbSlotsTrigger" onclick="document.getElementById('qbSlotsWrap').classList.toggle('open')">
+              <div class="custom-select-trigger" id="qbSlotsTrigger" style="background: var(--surface);">
                 <span id="qbSlotsLabel">Select a time slot</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
               </div>
               <div class="custom-select-panel" id="qbSlotsPanel"></div>
             </div>
@@ -199,6 +201,6 @@
       </div>
     </div>
 
-    <script src="./assets/js/dashboard.js?v=20260921a"></script>
+    <script src="./assets/js/dashboard.js?v=20261005b"></script>
   </body>
 </html>
