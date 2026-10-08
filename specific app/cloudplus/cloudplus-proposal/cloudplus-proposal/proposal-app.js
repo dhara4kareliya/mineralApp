@@ -510,31 +510,8 @@
 
   function sessionUser() {
     try {
-      if (window.MineralBarApp && MineralBarApp.user) return MineralBarApp.user;
-      if (window.MineralBarApp && MineralBarApp.getUser) {
-        var u = MineralBarApp.getUser();
-        if (u) return u;
-      }
-      var keys = ['mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token', 'token', 'access_token', 'bearer_token'];
-      for (var i = 0; i < keys.length; i++) {
-        var tok = localStorage.getItem(keys[i]) || sessionStorage.getItem(keys[i]);
-        if (tok) {
-          var payload = decodeJwt(tok);
-          if (payload) {
-            return {
-              id: payload.user_id || 1,
-              user_id: payload.user_id || 1,
-              name: payload.user_name || payload.domain || 'CloudPlus User',
-              username: payload.user_name || payload.domain || 'cloudplus',
-              user_name: payload.user_name || payload.domain || 'cloudplus',
-              email: payload.email || ((payload.user_name || 'cloudplus') + '@' + (payload.domain || 'cloudplus') + '.com'),
-              role: payload.role || 1,
-              domain: payload.domain || 'cloudplus'
-            };
-          }
-        }
-      }
-      return null;
+      if (!window.MineralBarApp || !MineralBarApp.getUser) return null;
+      return MineralBarApp.getUser() || null;
     } catch (e) {
       return null;
     }
@@ -777,63 +754,35 @@
   }
 
   function loginHref() {
-    return 'login.html';
+    var here = String(window.location.href || '');
+    saveReturnUrl(here);
+    try {
+      var u = new URL('../index.html', window.location.href);
+      u.searchParams.set('return', here);
+      u.hash = 'login';
+      return u.href;
+    } catch (e) {
+      return '../index.html?return=' + encodeURIComponent(here) + '#login';
+    }
   }
 
   /** Soft auth — never call ensureAuth here (it redirects to index.html#login in this folder). */
   async function ensureSession(opts) {
     opts = opts || {};
-    var qsLocal = new URLSearchParams(window.location.search || '');
-    var token = qsLocal.get('token') || qsLocal.get('bearer_token') || qsLocal.get('auth_token') || qsLocal.get('access_token');
-    if (token && window.__cpTokenAutoLogin) {
-      var tokenRes = await window.__cpTokenAutoLogin(token);
-      if (tokenRes && tokenRes.success) return true;
-      if (tokenRes && !tokenRes.success) {
-        setCustomerLoadStatus((state.lang === 'he' ? 'שגיאת התחברות לטוקן: ' : 'Token auth error: ') + (tokenRes.message || 'Invalid token'), true);
-        return false;
+    if (!window.MineralBarApp) return false;
+    try {
+      if (MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) return true;
+      if (MineralBarApp.canAutoRefresh && MineralBarApp.canAutoRefresh() && MineralBarApp.refreshSession) {
+        try {
+          await MineralBarApp.refreshSession();
+          return !!(MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated());
+        } catch (e2) { /* ignore */ }
       }
+    } catch (e3) {
+      console.warn('[cloudplus-proposal] ensureSession', e3);
     }
-
-    var keys = ['mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token', 'token', 'access_token', 'bearer_token'];
-    var storedToken = null;
-    for (var k = 0; k < keys.length; k++) {
-      try {
-        var t = localStorage.getItem(keys[k]) || sessionStorage.getItem(keys[k]);
-        if (t && t.length > 10) { storedToken = t; break; }
-      } catch (e) {}
-    }
-
-    if (storedToken && window.__cpTokenAutoLogin) {
-      try {
-        var autoRes = await window.__cpTokenAutoLogin(storedToken);
-        if (autoRes && autoRes.success) return true;
-      } catch (eAuto) {}
-    }
-
-    if (window.MineralBarApp) {
-      try {
-        if (MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) return true;
-        if (MineralBarApp.user || MineralBarApp.token) return true;
-        if (MineralBarApp.getUser && MineralBarApp.getUser()) return true;
-        if (MineralBarApp.getUserBasic && MineralBarApp.getUserBasic()) return true;
-        if (MineralBarApp.getClient) return true;
-        if (MineralBarApp.canAutoRefresh && MineralBarApp.canAutoRefresh() && MineralBarApp.refreshSession) {
-          try {
-            await MineralBarApp.refreshSession();
-            return !!(MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated());
-          } catch (e2) { /* ignore */ }
-        }
-      } catch (e3) {
-        console.warn('[cloudplus-proposal] ensureSession', e3);
-      }
-    }
-
-    if (storedToken) return true;
-
     if (opts.redirect) {
-      if (!qsLocal.has('return') && window.location.hash !== '#login') {
-        window.location.href = loginHref();
-      }
+      window.location.href = loginHref();
     }
     return false;
   }
@@ -933,6 +882,10 @@
   async function loadCustomerFromApi(customerId) {
     customerId = String(customerId || '').trim();
     if (!customerId) return null;
+    if (!window.MineralBarApp) {
+      setCustomerLoadStatus(t('errNotConnected'), true);
+      return null;
+    }
 
     state.customerLoading = true;
     state.customer.id = customerId;
@@ -940,113 +893,48 @@
     updateCustomerLabels();
 
     try {
-      var keys = ['mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token', 'token', 'access_token', 'bearer_token'];
-      var activeToken = null;
-      for (var k = 0; k < keys.length; k++) {
-        try {
-          var tok = localStorage.getItem(keys[k]) || sessionStorage.getItem(keys[k]);
-          if (tok && tok.length > 10) { activeToken = tok; break; }
-        } catch (e) {}
+      var okAuth = await ensureSession({ redirect: false });
+      if (!okAuth) {
+        setCustomerLoadStatus(t('errNotConnected'), true);
+        state.customerLoading = false;
+        updateCustomerLabels();
+        return null;
       }
 
       var c = null;
-      if (window.MineralBarApp && MineralBarApp.getCustomer) {
-        try {
-          var res = await MineralBarApp.getCustomer(customerId);
-          c = normalizeCustomer((res && res.customer) || res, customerId);
-        } catch (eGet) {}
+      if (MineralBarApp.getCustomer) {
+        var res = await MineralBarApp.getCustomer(customerId);
+        c = normalizeCustomer((res && res.customer) || res, customerId);
+      } else if (MineralBarApp.getClient) {
+        var raw = await MineralBarApp.getClient().request('Customer.Get', {
+          customer_id: customerId,
+          cust_id: customerId,
+          id: customerId
+        });
+        c = normalizeCustomer((raw && (raw.output || raw.data || raw.customer)) || raw, customerId);
+      } else {
+        throw new Error(t('errNotConnected'));
       }
 
-      if ((!c || !c.name) && window.MineralBarApp && MineralBarApp.getClient) {
-        try {
-          var client = MineralBarApp.getClient();
-          if (activeToken && client) {
-            if (typeof client.setToken === 'function') client.setToken(activeToken);
-            if (!client.headers) client.headers = {};
-            client.headers['Authorization'] = 'Bearer ' + activeToken;
-          }
-          var raw = await client.request('Customer.Get', {
-            customer_id: customerId,
-            cust_id: customerId,
-            id: customerId
-          });
-          c = normalizeCustomer((raw && (raw.output || raw.data || raw.customer || raw.row)) || raw, customerId);
-        } catch (eSdk) {}
-      }
-
-      if ((!c || !c.name) && window.MineralBarApp && MineralBarApp.getClient) {
-        try {
-          var client2 = MineralBarApp.getClient();
-          var rawList = await client2.request('Customer.List', {
-            search: customerId,
-            q: customerId,
-            customer_id: customerId,
-            limit: 10
-          });
-          var rows = (rawList && (rawList.output || rawList.data || rawList.rows || rawList.list)) || rawList || [];
-          if (!Array.isArray(rows) && rows && typeof rows === 'object') {
-            rows = rows.rows || rows.list || rows.customers || [];
-          }
-          if (Array.isArray(rows) && rows.length) {
-            var found = rows.find(function (r) {
-              return String(r.id || r.customer_id || r.cust_id || '').trim() === customerId;
-            }) || rows[0];
-            if (found) c = normalizeCustomer(found, customerId);
-          }
-        } catch (eList) {}
-      }
-
-      if ((!c || !c.name) && activeToken) {
-        try {
-          var userDomain = (window.Biz1Config && Biz1Config.user) || 'cloudplus';
-          var url = 'https://' + userDomain + '.biz1.co.il/app/Customer.Get';
-          var resp = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + activeToken,
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              id: customerId,
-              customer_id: customerId,
-              cust_id: customerId
-            })
-          });
-          if (resp.ok) {
-            var fData = await resp.json();
-            c = normalizeCustomer((fData && (fData.output || fData.data || fData.customer || fData.row)) || fData, customerId);
-          }
-        } catch (eFetch) {}
-      }
-
-      var hasDetail = c && (c.name || c.email || c.phone || c.companyName || c.companyId);
-      state.customer = {
-        id: customerId,
-        name: (c && c.name) ? c.name : ('#' + customerId),
-        email: (c && c.email) ? c.email : '—',
-        phone: (c && c.phone) ? c.phone : '—',
-        mobile: (c && c.mobile) ? c.mobile : '',
-        companyName: (c && c.companyName) ? c.companyName : '—',
-        companyId: (c && c.companyId) ? c.companyId : ''
-      };
+      if (!c || !c.id) throw new Error(t('errLoadCustomer'));
+      state.customer = c;
       setCustomerLoadStatus('', false);
       updateCustomerLabels();
-      return state.customer;
+      return c;
     } catch (e) {
       console.warn('[cloudplus-proposal] Customer.Get failed', e);
       state.customer = {
         id: customerId,
-        name: '#' + customerId,
-        email: '—',
-        phone: '—',
+        name: '',
+        email: '',
+        phone: '',
         mobile: '',
-        companyName: '—',
+        companyName: '',
         companyId: ''
       };
-      setCustomerLoadStatus('', false);
+      setCustomerLoadStatus((e && e.message) || t('errLoadCustomer'), true);
       updateCustomerLabels();
-      return state.customer;
+      return null;
     } finally {
       state.customerLoading = false;
       updateCustomerLabels();
@@ -1415,25 +1303,9 @@
           results.classList.remove('hidden');
           return;
         }
-        var keys = ['mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token', 'token', 'access_token', 'bearer_token'];
-        var activeToken = null;
-        for (var k = 0; k < keys.length; k++) {
-          try {
-            var tok = localStorage.getItem(keys[k]) || sessionStorage.getItem(keys[k]);
-            if (tok && tok.length > 10) { activeToken = tok; break; }
-          } catch (e) {}
-        }
-        var client = MineralBarApp.getClient();
-        if (activeToken && client) {
-          if (typeof client.setToken === 'function') client.setToken(activeToken);
-          if (!client.headers) client.headers = {};
-          client.headers['Authorization'] = 'Bearer ' + activeToken;
-        }
-        var raw = await client.request('Customer.List', {
+        var raw = await MineralBarApp.getClient().request('Customer.List', {
           search: query,
           q: query,
-          search_text: query,
-          name: query,
           limit: 8
         });
         var data = (raw && (raw.output || raw.data || raw.rows || raw.list)) || raw || [];
@@ -1531,26 +1403,14 @@
 
   (async function boot() {
     stripLoginHash();
-    var qsLocal = new URLSearchParams(window.location.search || '');
-    var token = qsLocal.get('token') || qsLocal.get('bearer_token') || qsLocal.get('auth_token') || qsLocal.get('access_token');
-
-    if (token && window.__cpTokenAutoLogin) {
-      var tokenRes = await window.__cpTokenAutoLogin(token);
-      if (!tokenRes.success) {
-        setCustomerLoadStatus((state.lang === 'he' ? 'שגיאת התחברות לטוקן: ' : 'Token auth error: ') + tokenRes.message, true);
-        showToast((state.lang === 'he' ? 'שגיאת התחברות: ' : 'Auth error: ') + tokenRes.message);
-        return;
-      }
-    }
-
     var tries = 0;
     while (!window.MineralBarApp && tries < 40) {
       await new Promise(function (r) { setTimeout(r, 100); });
       tries++;
     }
-
+    // Require login; after login, index.html returns here via cloudplus_return_url.
     var okAuth = await ensureSession({ redirect: true });
-    if (!okAuth && !token && !window.MineralBarApp) return;
+    if (!okAuth) return;
 
     // Re-apply our labels after app.js MineralBarI18n runs.
     renderAll();

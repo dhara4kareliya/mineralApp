@@ -4,330 +4,45 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title data-cp-i18n="pageTitle">CloudPlus | בניית הצעת מחיר</title>
-  <script>
-  (function () {
-    try {
-      var qs = new URLSearchParams(location.search || '');
-      var lang = qs.get('lang')
-        || localStorage.getItem('cloudplus-proposal-lang')
-        || localStorage.getItem('cloudplus_lang')
-        || sessionStorage.getItem('cloudplus-proposal-lang')
-        || '';
-      if (lang !== 'he' && lang !== 'en') lang = 'he';
-      var dir = lang === 'he' ? 'rtl' : 'ltr';
-      document.documentElement.lang = lang;
-      document.documentElement.dir = dir;
-      document.documentElement.setAttribute('lang', lang);
-      document.documentElement.setAttribute('dir', dir);
-      window.__cpProposalLang = lang;
-      document.addEventListener('DOMContentLoaded', function () {
-        if (document.body) {
-          document.body.dir = dir;
-          document.body.setAttribute('dir', dir);
-          document.body.style.direction = dir;
-        }
-        var shell = document.querySelector('.app-shell');
-        if (shell) {
-          shell.setAttribute('dir', dir);
-          shell.style.direction = dir;
-        }
-      });
-    } catch (e) { /* ignore */ }
-  })();
-  </script>
-  <link rel="stylesheet" href="proposal.css?v=mockup-34">
-  <style id="cp-custom-line-styles">
-    /* Critical: custom-line form (also in proposal.css — kept here so HTML deploy alone still styles it) */
-    .custom-line-wrap { margin-top: 4px; }
-    .custom-line-wrap.is-open > .add-custom { display: none !important; }
-    .add-custom {
-      width: 100% !important;
-      box-sizing: border-box;
-      border: 1px dashed #b9c4d1;
-      background: #fafbfd;
-      color: #435167;
-      padding: 11px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex !important;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      font-weight: 600;
-      font-size: 13px;
-    }
-    .add-custom:hover { border-color: #0c8f84; color: #10243f; background: #f3fbfa; }
-    .add-custom > span:first-child { color: #0c8f84; font-size: 18px; line-height: 1; font-weight: 700; }
-    .custom-item-form {
+  <title>CloudPlus | מעביר לדף הבית…</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
       margin: 0;
       padding: 0;
-      border: 1px solid #d3dbe7;
-      background: #f7f9fc;
-      border-radius: 10px;
-      overflow: hidden;
-      display: block;
-    }
-    .custom-item-form.hidden { display: none !important; }
-    .custom-item-form-head {
-      padding: 12px 14px;
-      border-bottom: 1px solid #e1e7f0;
-      background: #eef3f8;
-    }
-    .custom-item-form-head strong {
-      display: block;
-      font-size: 13px;
-      font-weight: 700;
-      color: #10243f;
-    }
-    .custom-item-fields { display: grid; gap: 12px; padding: 14px; }
-    .custom-item-field {
-      display: grid !important;
-      grid-template-columns: 1fr;
-      gap: 6px;
-      min-width: 0;
-      margin: 0;
-      width: 100%;
-    }
-    .custom-item-field > label {
-      display: block !important;
-      margin: 0;
-      color: #536075;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      line-height: 1.2;
-    }
-    .custom-item-field > input,
-    .custom-item-field > select {
-      display: block !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      min-width: 0 !important;
-      height: 40px !important;
-      border: 1px solid #c8d2df;
-      padding: 0 12px !important;
-      background: #fff;
-      border-radius: 8px;
-      outline: none;
-      color: #172033;
-      box-sizing: border-box !important;
-    }
-    .custom-item-field > input:focus,
-    .custom-item-field > select:focus {
-      border-color: #7eb6b1;
-      box-shadow: 0 0 0 3px rgba(12, 143, 132, .12);
-    }
-    .custom-item-actions {
-      display: grid !important;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
+      background: #0b1728;
+      color: #ffffff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      padding: 0 14px 14px;
+      justify-content: center;
+      min-height: 100vh;
     }
-    .custom-item-submit {
-      height: 40px;
-      border: 0;
-      border-radius: 8px;
-      background: #10243f;
-      color: #fff;
-      font-weight: 700;
-      font-size: 13px;
-      padding: 0 16px;
-      cursor: pointer;
+    .spinner-wrap {
+      text-align: center;
+      padding: 24px;
     }
-    .custom-item-submit:hover { background: #173657; }
-    .custom-item-cancel {
-      height: 40px;
-      min-width: 72px;
-      border: 1px solid #d0d8e4;
-      background: #fff;
-      color: #5d6b7e;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 0 14px;
-      border-radius: 8px;
-      cursor: pointer;
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(255, 255, 255, 0.12);
+      border-left-color: #0c8f84;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px auto;
     }
-    .custom-item-cancel:hover { background: #eef2f7; color: #10243f; border-color: #bcc7d6; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    p {
+      color: #94a3b8;
+      font-size: 15px;
+      margin: 0;
+      font-weight: 500;
+    }
   </style>
-</head>
-<body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand" aria-label="CloudPlus">
-        <span class="brand-mark" id="brandLogo" aria-hidden="true">C+</span>
-        <span>
-          <strong id="brandName">CloudPlus</strong>
-          <small data-cp-i18n="brandSubtitle">מערכת הצעות מחיר</small>
-        </span>
-      </div>
-      <div class="topbar-actions">
-        <div class="lang-switch" role="group" aria-label="Language">
-          <button class="lang-button active" type="button" data-lang="he" aria-pressed="true">עב</button>
-          <button class="lang-button" type="button" data-lang="en" aria-pressed="false">EN</button>
-        </div>
-        <span class="draft-state"><i></i> <span data-cp-i18n="draftSaved">טיוטה נשמרה כעת</span></span>
-        <button class="icon-button" type="button" data-cp-i18n-title="help" data-cp-i18n-aria="help" title="עזרה" aria-label="עזרה">?</button>
-        <div class="member-chip" id="memberChip" title="">
-          <span class="member-avatar" id="memberAvatar">?</span>
-          <span>
-            <strong id="memberName">—</strong>
-            <small id="memberRole">—</small>
-          </span>
-        </div>
-      </div>
-    </header>
-
-    <main class="workspace">
-      <aside class="category-panel" data-cp-i18n-aria="categoryPanelAria" aria-label="קטגוריות שירות">
-        <div class="category-heading">
-          <span data-cp-i18n="buildProposal">בניית הצעה</span>
-          <small id="progressText">0 מתוך 8 שירותים</small>
-        </div>
-        <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
-        <nav id="categoryNav" class="category-nav"></nav>
-        <div class="category-note">
-          <strong data-cp-i18n="specialPricingTitle">צריך תמחור מיוחד?</strong>
-          <span data-cp-i18n="specialPricingText">ניתן להוסיף שורה מותאמת אישית בסיכום ההצעה.</span>
-        </div>
-      </aside>
-
-      <section class="builder-column">
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow" data-cp-i18n="newProposal">הצעת מחיר חדשה</p>
-            <h1 data-cp-i18n="pageHeading">מרכזיה בענן לעסק</h1>
-            <p data-cp-i18n="pageSubheading">בחרו לקוח ושירותים. הסיכום מתעדכן אוטומטית.</p>
-          </div>
-          <button class="secondary-button" id="resetButton" type="button" data-cp-i18n="resetDraft">ניקוי טיוטה</button>
-        </div>
-
-        <section class="customer-section" aria-labelledby="customerTitle">
-          <div class="section-title-row">
-            <div>
-              <span class="step-number">1</span>
-              <span><strong id="customerTitle" data-cp-i18n="customerTitle">בחירת לקוח</strong><small data-cp-i18n="customerSubtitle">קיים במערכת או לקוח חדש</small></span>
-            </div>
-            <span id="urlCustomerBadge" class="source-badge" data-cp-i18n="loadedFromLink">נטען מהקישור</span>
-          </div>
-          <div class="segmented" role="group" data-cp-i18n-aria="customerTypeAria" aria-label="סוג לקוח">
-            <button class="segment active" type="button" data-mode="existing" data-cp-i18n="existingCustomer">לקוח קיים</button>
-            <button class="segment" type="button" data-mode="new" data-cp-i18n="newCustomer">לקוח חדש</button>
-          </div>
-
-          <div id="existingCustomerPanel">
-            <label class="search-field" for="customerSearch">
-              <span aria-hidden="true">⌕</span>
-              <input id="customerSearch" type="search" data-cp-i18n-placeholder="customerSearchPlaceholder" placeholder="חיפוש לפי שם, חברה, טלפון או מספר לקוח" autocomplete="off">
-              <kbd>Ctrl K</kbd>
-            </label>
-            <div id="customerResults" class="customer-results hidden"></div>
-            <div id="selectedCustomer" class="selected-customer">
-              <span class="customer-avatar" id="selectedCustomerAvatar">?</span>
-              <span class="customer-main">
-                <strong id="selectedCustomerName">—</strong>
-                <small id="selectedCustomerId">—</small>
-              </span>
-              <span class="customer-detail">
-                <small data-cp-i18n="email">אימייל</small>
-                <strong id="selectedCustomerEmail">—</strong>
-              </span>
-              <span class="customer-detail">
-                <small data-cp-i18n="phone">טלפון</small>
-                <strong id="selectedCustomerPhone">—</strong>
-              </span>
-              <span class="customer-detail">
-                <small data-cp-i18n="companyName">שם חברה</small>
-                <strong id="selectedCustomerCompany">—</strong>
-              </span>
-              <span class="customer-detail">
-                <small data-cp-i18n="companyId">ח.פ. / ע.מ.</small>
-                <strong id="selectedCompanyId">—</strong>
-              </span>
-              <button class="icon-button light" id="clearCustomer" type="button" data-cp-i18n-title="changeCustomer" data-cp-i18n-aria="changeCustomer" title="החלפת לקוח" aria-label="החלפת לקוח">×</button>
-            </div>
-            <p id="customerLoadStatus" class="customer-load-status hidden" role="status"></p>
-          </div>
-
-          <form id="newCustomerPanel" class="new-customer-grid hidden">
-            <label><span data-cp-i18n="fullName">שם מלא *</span><input id="newCustomerName" type="text" data-cp-i18n-placeholder="fullNamePlaceholder" placeholder="שם איש הקשר"></label>
-            <label><span data-cp-i18n="companyName">שם חברה</span><input id="newCustomerCompany" type="text" data-cp-i18n-placeholder="companyNamePlaceholder" placeholder="שם העסק"></label>
-            <label><span data-cp-i18n="phone">טלפון *</span><input id="newCustomerPhone" type="tel" placeholder="050-0000000"></label>
-            <label><span data-cp-i18n="emailRequired">אימייל *</span><input id="newCustomerEmail" type="email" placeholder="name@company.co.il"></label>
-          </form>
-        </section>
-
-        <section class="services-section" aria-labelledby="servicesTitle">
-          <div class="section-title-row services-heading">
-            <div>
-              <span class="step-number">2</span>
-              <span><strong id="servicesTitle" data-cp-i18n="servicesTitle">בחירת שירותים</strong><small id="categoryDescription">תשתית המרכזיה והשלוחות</small></span>
-            </div>
-            <label class="compact-search"><span>⌕</span><input id="serviceSearch" type="search" data-cp-i18n-placeholder="serviceSearchPlaceholder" placeholder="חיפוש שירות"></label>
-          </div>
-          <div id="serviceGrid" class="service-grid"></div>
-        </section>
-      </section>
-
-      <aside class="summary-panel" aria-labelledby="summaryTitle">
-        <div class="summary-head">
-          <div><p class="eyebrow" data-cp-i18n="summary">סיכום</p><h2 id="summaryTitle" data-cp-i18n="proposalDetails">פרטי ההצעה</h2></div>
-          <span id="itemCount" class="count-badge">0 פריטים</span>
-        </div>
-        <div class="summary-customer">
-          <span data-cp-i18n="forCustomer">עבור</span>
-          <strong id="summaryCustomer">—</strong>
-          <small id="summaryCustomerId"></small>
-        </div>
-        <div id="summaryItems" class="summary-items"></div>
-        <div class="custom-line-wrap">
-          <button id="customItemButton" class="add-custom" type="button"><span aria-hidden="true">+</span> <span data-cp-i18n="addCustomLine">הוספת שורה מותאמת</span></button>
-          <form id="customItemForm" class="custom-item-form hidden" autocomplete="off">
-            <div class="custom-item-form-head">
-              <strong data-cp-i18n="addCustomLine">הוספת שורה מותאמת</strong>
-            </div>
-            <div class="custom-item-fields">
-              <div class="custom-item-field">
-                <label for="customItemName" data-cp-i18n="customLineName">תיאור *</label>
-                <input id="customItemName" type="text" data-cp-i18n-placeholder="customLineNamePlaceholder" placeholder="שורה מותאמת" required>
-              </div>
-              <div class="custom-item-field">
-                <label for="customItemPrice" data-cp-i18n="customLinePrice">מחיר *</label>
-                <input id="customItemPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
-              </div>
-              <div class="custom-item-field">
-                <label for="customItemQty" data-cp-i18n="quantity">כמות</label>
-                <input id="customItemQty" type="number" min="1" step="1" value="1" inputmode="numeric">
-              </div>
-              <div class="custom-item-field">
-                <label for="customItemBilling" data-cp-i18n="customLineBilling">חיוב</label>
-                <select id="customItemBilling">
-                  <option value="monthly" data-cp-i18n="unitMonthly">לחודש</option>
-                  <option value="once" data-cp-i18n="unitOnce">חד־פעמי</option>
-                </select>
-              </div>
-            </div>
-            <div class="custom-item-actions">
-              <button type="submit" class="custom-item-submit" data-cp-i18n="addCustomLineConfirm">הוספה</button>
-              <button type="button" id="customItemCancel" class="custom-item-cancel" data-cp-i18n="cancel">ביטול</button>
-            </div>
-          </form>
-        </div>
-        <div class="totals">
-          <div><span data-cp-i18n="monthlyTotal">סה״כ חודשי</span><strong id="monthlyTotal">₪0</strong></div>
-          <div><span data-cp-i18n="oneTimeTotal">סה״כ חד־פעמי</span><strong id="oneTimeTotal">₪0</strong></div>
-          <div class="vat-row"><span data-cp-i18n="pricesExcludeVat">המחירים אינם כוללים מע״מ</span><span data-cp-i18n="beforeDiscounts">לפני הנחות</span></div>
-        </div>
-        <button id="createProposalButton" class="primary-button" type="button" data-cp-i18n="createProposal">יצירת הצעה</button>
-        <button class="text-button" type="button" data-cp-i18n="saveDraft">שמירת טיוטה</button>
-        <p id="createStatus" class="create-status hidden" role="status"></p>
-      </aside>
-    </main>
-  </div>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="../assets/config.js?v=20260925e"></script>
+  <script src="../assets/config.js?v=20261008a"></script>
   <script>
   (function () {
     var user = (window.Biz1Config && Biz1Config.user) || 'cloudplus';
@@ -340,401 +55,193 @@
     }
   })();
   </script>
-  <script src="../assets/js/app.js?v=20260925e"></script>
-  <!-- Auth gate: unauthenticated users → login, then back to this URL -->
+  <script src="../assets/js/app.js?v=20261008a"></script>
+</head>
+<body>
+  <div class="spinner-wrap">
+    <div class="spinner"></div>
+    <p id="routerMsg">בודק התחברות למערכת…</p>
+  </div>
+
   <script>
   (function () {
     'use strict';
-    if (window.__cpAuthGateInstalled) return;
-    window.__cpAuthGateInstalled = true;
-    var RETURN_URL_KEY = 'cloudplus_return_url';
 
-    function goLogin() {
-      var href = String(window.location.href || '');
+    function decodeJwt(token) {
       try {
-        if (href) {
-          sessionStorage.setItem(RETURN_URL_KEY, href);
-          try { localStorage.setItem(RETURN_URL_KEY, href); } catch (eLs) { /* ignore */ }
+        var parts = String(token || '').split('.');
+        if (parts.length === 3) {
+          var base64Url = parts[1];
+          var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          return JSON.parse(jsonPayload);
         }
-      } catch (e0) { /* ignore */ }
-      try {
-        var u = new URL('../index.html', window.location.href);
-        u.searchParams.set('return', href);
-        u.hash = 'login';
-        window.location.href = u.href;
-      } catch (e1) {
-        window.location.href = '../index.html?return=' + encodeURIComponent(href) + '#login';
-      }
+      } catch (e) {}
+      return null;
     }
 
-    async function gate() {
-      var tries = 0;
-      while (!window.MineralBarApp && tries < 50) {
-        await new Promise(function (r) { setTimeout(r, 100); });
-        tries += 1;
-      }
-      if (!window.MineralBarApp) {
-        goLogin();
-        return;
-      }
-      try {
-        if (MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) return;
-        if (MineralBarApp.canAutoRefresh && MineralBarApp.canAutoRefresh() && MineralBarApp.refreshSession) {
-          try {
-            await MineralBarApp.refreshSession();
-            if (MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) return;
-          } catch (e2) { /* ignore */ }
-        }
-      } catch (e3) { /* ignore */ }
-      goLogin();
-    }
+    async function validateTokenAndSession(token) {
+      if (!token) return false;
+      
+      var jwtPayload = decodeJwt(token);
+      var userDomain = (jwtPayload && jwtPayload.domain) || (window.Biz1Config && Biz1Config.user) || 'cloudplus';
+      userDomain = String(userDomain).trim().toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/\.biz1\.co\.il.*$/i, '')
+        .replace(/[^a-z0-9-]/g, '');
 
-    gate();
-  })();
-  </script>
-  <script src="proposal-labels.js?v=mockup-34"></script>
-  <script src="proposal-session.js?v=mockup-34"></script>
-  <!-- New filename forces upload of fixed create logic (old proposal-app.js rejects New customer). -->
-  <script src="proposal-app.mockup-31.js?v=mockup-34"></script>
-  <!-- Deploy-proof: New customer + Create proposal (works even if app JS is still stale) -->
-  <script>
-  (function () {
-    'use strict';
-    if (window.__cpNewCustomerCreateFix) return;
-    window.__cpNewCustomerCreateFix = true;
+      var endpoints = [
+        'https://' + userDomain + '.biz1.co.il/app/User.Basic',
+        'https://' + userDomain + '.biz1.co.il/app/user_basic',
+        '/app/User.Basic',
+        '/app/user_basic'
+      ];
 
-    function isNewCustomerMode() {
-      var btn = document.querySelector('.segment[data-mode="new"]');
-      return !!(btn && btn.classList.contains('active'));
-    }
+      var resultData = null;
 
-    function val(id) {
-      var el = document.getElementById(id);
-      return el ? String(el.value || '').trim() : '';
-    }
-
-    function setStatus(msg, kind) {
-      var el = document.getElementById('createStatus');
-      if (!el) return;
-      if (!msg) {
-        el.textContent = '';
-        el.className = 'create-status hidden';
-        return;
-      }
-      el.textContent = msg;
-      el.className = 'create-status' + (kind === 'ok' ? ' is-ok' : ' is-error');
-    }
-
-    function siteLang() {
-      var lang = (document.documentElement && document.documentElement.lang) || window.__cpProposalLang || '';
-      try {
-        var qs = new URLSearchParams(window.location.search || '');
-        if (qs.get('lang') === 'en' || qs.get('lang') === 'he') lang = qs.get('lang');
-      } catch (e0) { /* ignore */ }
-      return lang === 'en' ? 'en' : 'he';
-    }
-
-    function parseMoney(text) {
-      var n = String(text || '').replace(/[^\d.]/g, '');
-      return Number(n) || 0;
-    }
-
-    function collectItemsFromSummary() {
-      var items = [];
-      var nodes = document.querySelectorAll('#summaryItems .summary-item');
-      nodes.forEach(function (node) {
-        var nameEl = node.querySelector('.summary-item-head strong');
-        var metaEl = node.querySelector('.summary-item-meta span');
-        var itemName = nameEl ? String(nameEl.textContent || '').trim() : 'Item';
-        var meta = metaEl ? String(metaEl.textContent || '') : '';
-        var qtyMatch = meta.match(/(\d+)\s*×/);
-        var priceMatch = meta.match(/₪\s*([\d.]+)/);
-        var qty = qtyMatch ? (Number(qtyMatch[1]) || 1) : 1;
-        var price = priceMatch ? (Number(priceMatch[1]) || 0) : 0;
-        var total = Math.round(qty * price * 100) / 100;
-        var desc = '';
-        var card = document.querySelector('.service-card.selected[data-service], .service-card.selected');
-        // Prefer matching selected cards by remove id
-        var removeBtn = node.querySelector('[data-remove], [data-remove-custom]');
-        var sid = removeBtn ? (removeBtn.getAttribute('data-remove') || '') : '';
-        if (sid) {
-          var matched = document.querySelector('.service-card[data-service="' + sid + '"] p');
-          if (matched) desc = String(matched.textContent || '').trim();
-        }
-        if (!desc && removeBtn && removeBtn.getAttribute('data-remove-custom')) {
-          desc = itemName;
-        }
-        items.push({
-          item_name: itemName,
-          item_qty: qty,
-          item_price: price,
-          item_total: total,
-          iteeeem_id: 0,
-          item_discount_type: 'price',
-          item_discount: 0,
-          item_productdesc: desc,
-          item_notes: desc,
-          item_SKU: ''
-        });
-      });
-      return items;
-    }
-
-    async function resolveInvoiceSettingId(client) {
-      try {
-        var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
-        var coData = coRes && (coRes.data || coRes.output || coRes);
-        var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
-        var co = null;
-        if (coRows && coRows.length) {
-          co = coRows.find(function (r) {
-            return r && (r.is_default || Number(r.default_settings) === 1 || Number(r.is_default) === 1);
-          }) || coRows[0];
-        }
-        return co ? String(co.id || co.invoice_setting_id || co.invoice_settings_id || '').trim() : '';
-      } catch (e) {
-        return '';
-      }
-    }
-
-    async function createNewCustomerProposal() {
-      var name = val('newCustomerName');
-      var company = val('newCustomerCompany');
-      var phone = val('newCustomerPhone');
-      var email = val('newCustomerEmail');
-      var lang = siteLang();
-      if (!name) { setStatus(lang === 'he' ? 'יש להזין שם מלא' : 'Please enter full name', 'error'); return; }
-      if (!phone) { setStatus(lang === 'he' ? 'יש להזין טלפון' : 'Please enter phone', 'error'); return; }
-      if (!email) { setStatus(lang === 'he' ? 'יש להזין אימייל' : 'Please enter email', 'error'); return; }
-
-      var items = collectItemsFromSummary();
-      if (!items.length) {
-        setStatus(lang === 'he' ? 'יש לבחור לפחות שירות אחד' : 'Select at least one service', 'error');
-        return;
-      }
-
-      if (!window.MineralBarApp || !MineralBarApp.getClient) {
-        setStatus(lang === 'he' ? 'אין חיבור ל-Biz1' : 'Not connected to Biz1', 'error');
-        return;
-      }
-
-      var btn = document.getElementById('createProposalButton');
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = lang === 'he' ? 'יוצר הצעה…' : 'Creating…';
-      }
-      setStatus('');
-
-      try {
-        if (MineralBarApp.isAuthenticated && !MineralBarApp.isAuthenticated()) {
-          throw new Error(lang === 'he' ? 'אין חיבור ל-Biz1' : 'Not connected to Biz1');
-        }
-        var client = MineralBarApp.getClient();
-        var customerId = '';
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
         try {
-          var addRes = await client.request('Customer.Add', {
-            name: name,
-            email: email,
-            phone: phone,
-            mobile: phone,
-            company: company || ''
-          });
-          customerId = String(
-            (addRes && (addRes.existing_customer_id || addRes.duplicate_customer_id ||
-              addRes.customer_id || addRes.contactus_id || addRes.id)) || ''
-          ).trim();
-        } catch (addErr) {
-          // success:0 "Customer already exists" still includes the customer id.
-          var raw = (addErr && (addErr.raw || addErr.data || addErr.response)) || {};
-          customerId = String(
-            (raw.existing_customer_id || raw.duplicate_customer_id ||
-              raw.customer_id || raw.contactus_id || raw.id) || ''
-          ).trim();
-          if (!customerId) throw addErr;
-        }
-        if (!customerId || customerId === '0' || customerId === 'null') {
-          throw new Error(lang === 'he' ? 'יצירת הלקוח נכשלה' : 'Failed to create customer');
-        }
-
-        var finalAmount = 0;
-        items.forEach(function (it) { finalAmount += Number(it.item_total) || 0; });
-        var monthlyEl = document.getElementById('monthlyTotal');
-        var oneTimeEl = document.getElementById('oneTimeTotal');
-        var m = parseMoney(monthlyEl && monthlyEl.textContent);
-        var o = parseMoney(oneTimeEl && oneTimeEl.textContent);
-        if (m || o) finalAmount = m + o;
-
-        var payload = {
-          customer_id: customerId,
-          name: name,
-          email: email,
-          phone: phone,
-          mobile: phone,
-          document_type: 'order_proposals',
-          document_lang: lang,
-          final_amount: finalAmount,
-          items: JSON.stringify(items),
-          note: 'CloudPlus proposal · validity 14 days'
-        };
-        var invId = await resolveInvoiceSettingId(client);
-        if (invId) payload.invoice_setting_id = invId;
-
-        var created = await client.request('Documents.Add', payload);
-        var ok = created && (
-          Number(created.success) === 1 ||
-          created.success === true ||
-          created.inserted_documents_id ||
-          created.document_id ||
-          created.id
-        );
-        if (!ok) {
-          throw new Error((created && (created.message || created.error)) || (lang === 'he' ? 'יצירת ההצעה נכשלה' : 'Failed to create proposal'));
-        }
-        var docId = String(created.inserted_documents_id || created.document_id || created.id || '');
-        var okMsg = docId
-          ? (lang === 'he' ? ('הצעה #' + docId + ' נוצרה בהצלחה') : ('Proposal #' + docId + ' created successfully'))
-          : (lang === 'he' ? 'ההצעה נוצרה בהצלחה' : 'Proposal created successfully');
-        setStatus(okMsg, 'ok');
-      } catch (err) {
-        var msg = (err && err.message) || (lang === 'he' ? 'יצירת ההצעה נכשלה' : 'Failed to create proposal');
-        if (err && err.raw && err.raw.message) msg = String(err.raw.message);
-        setStatus(msg, 'error');
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = lang === 'he' ? 'יצירת הצעה' : 'Create proposal';
-        }
-      }
-    }
-
-    document.addEventListener('click', function (event) {
-      var btn = event.target && event.target.closest && event.target.closest('#createProposalButton');
-      if (!btn) return;
-      if (!isNewCustomerMode()) return;
-      // Fixed app JS already handles New customer — don't double-create.
-      if (window.__cpProposalNewCustomerCreate) return;
-      // Old proposal-app.js always errors on New customer — handle it here instead.
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      createNewCustomerProposal();
-    }, true);
-  })();
-  </script>
-  <!-- Inline deploy-proof fix: works even if proposal-app.js / create-fix.js not uploaded -->
-  <script>
-  (function () {
-    'use strict';
-    if (window.__cpCreateFixInstalled) return;
-    window.__cpCreateFixInstalled = true;
-    var SERVICE_DESC = [
-      { names: ['Cloud extension', 'שלוחה בענן'], he: 'שלוחה מלאה למשתמש כולל אפליקציה', en: 'Full user extension including mobile app' },
-      { names: ['IVR call router', 'נתב שיחות IVR'], he: 'תפריט קולי וניתוב לפי שעות פעילות', en: 'Voice menu and routing by business hours' },
-      { names: ['Call queue', 'תור שיחות'], he: 'המתנה חכמה, מוזיקה והודעות', en: 'Smart hold, music, and announcements' },
-      { names: ['Advanced contact center', 'מוקד שירות מתקדם'], he: 'דוחות נציגים וניהול עומסים', en: 'Agent reports and load management' },
-      { names: ['3,000-minute bank', 'בנק 3,000 דקות'], he: 'חבילה מומלצת לעד 10 שלוחות', en: 'Recommended package for up to 10 extensions' },
-      { names: ['1,000-minute bank', 'בנק 1,000 דקות'], he: 'לעסקים עם נפח שיחות נמוך', en: 'For businesses with low call volume' },
-      { names: ['10GB recording storage', 'אחסון הקלטות 10GB'], he: 'שמירה וחיפוש הקלטות בענן', en: 'Store and search recordings in the cloud' },
-      { names: ['100GB recording storage', 'אחסון הקלטות 100GB'], he: 'החבילה המומלצת לארגונים', en: 'Recommended package for organizations' },
-      { names: ['073 number allocation', 'הקצאת מספר 073'], he: 'מספר עסקי חדש בענן', en: 'New business number in the cloud' },
-      { names: ['Existing number porting', 'ניוד מספר קיים'], he: 'ניוד קו מספק תקשורת קיים', en: 'Port a line from an existing carrier' },
-      { names: ['Yealink IP phone', 'טלפון IP Yealink'], he: 'דגם שולחני לעמדת עבודה', en: 'Desktop model for workstations' },
-      { names: ['Power supply / PoE', 'ספק כוח / PoE'], he: 'אביזר הזנה לטלפון IP', en: 'Power accessory for IP phones' },
-      { names: ['CRM connection', 'חיבור CRM'], he: 'זיהוי לקוח והקפצת כרטיס', en: 'Caller ID and contact-card popup' },
-      { names: ['Custom development hour', 'שעת פיתוח מותאם'], he: 'מינימום הזמנה: 5 שעות', en: 'Minimum order: 5 hours' },
-      { names: ['Business internet + Fortinet', 'אינטרנט עסקי + Fortinet'], he: 'חיבור מאובטח עם ניהול מרכזי', en: 'Secure connection with central management' },
-      { names: ['Business eSIM line', 'קו eSIM עסקי'], he: 'קו סלולרי לעובד או למכשיר', en: 'Mobile line for an employee or device' },
-      { names: ['PBX AI up to 5,000 minutes', 'AI למרכזיה עד 5,000 דקות'], he: 'תמלול, סיכום וניתוח שיחות', en: 'Transcription, summary, and call analysis' },
-      { names: ['Fax2Mail'], he: 'קבלת פקס ישירות למייל', en: 'Receive faxes directly to email' }
-    ];
-    function siteLang() {
-      var lang = (document.documentElement && document.documentElement.lang) || window.__cpProposalLang || '';
-      try {
-        var qs = new URLSearchParams(window.location.search || '');
-        if (qs.get('lang') === 'en' || qs.get('lang') === 'he') lang = qs.get('lang');
-      } catch (e0) {}
-      try {
-        var stored = localStorage.getItem('cloudplus-proposal-lang') || localStorage.getItem('cloudplus_lang');
-        if (stored === 'en' || stored === 'he') lang = stored;
-      } catch (e1) {}
-      return lang === 'en' ? 'en' : 'he';
-    }
-    function lookupDescription(itemName, lang) {
-      var hay = String(itemName || '');
-      for (var i = 0; i < SERVICE_DESC.length; i++) {
-        var row = SERVICE_DESC[i];
-        for (var n = 0; n < row.names.length; n++) {
-          if (hay.indexOf(row.names[n]) !== -1) return lang === 'en' ? row.en : row.he;
-        }
-      }
-      return '';
-    }
-    function enrichPayload(body) {
-      if (!body || typeof body !== 'object') return body;
-      var next = {};
-      for (var k in body) if (Object.prototype.hasOwnProperty.call(body, k)) next[k] = body[k];
-      var lang = siteLang();
-      next.document_lang = lang;
-      // Biz1 rejects these on Add — creator comes from the auth session.
-      if (Object.prototype.hasOwnProperty.call(next, 'company_name')) delete next.company_name;
-      if (Object.prototype.hasOwnProperty.call(next, 'created_by_user_id')) delete next.created_by_user_id;
-      var items = next.items;
-      if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e2) { items = null; } }
-      if (Array.isArray(items)) {
-        items = items.map(function (it) {
-          if (!it || typeof it !== 'object') return it;
-          var row = {};
-          for (var ik in it) if (Object.prototype.hasOwnProperty.call(it, ik)) row[ik] = it[ik];
-          var desc = String(row.item_productdesc || row.item_notes || lookupDescription(row.item_name, lang) || '').trim();
-          if (desc) {
-            row.item_productdesc = desc;
-            if (!row.item_notes) row.item_notes = desc;
+          var client = MineralBarApp.getClient();
+          if (client) {
+            if (typeof client.setToken === 'function') client.setToken(token);
+            if (!client.headers) client.headers = {};
+            client.headers['Authorization'] = 'Bearer ' + token;
           }
-          return row;
-        });
-        next.items = JSON.stringify(items);
+          var sdkRes = await client.request('User.Basic', {});
+          if (sdkRes && (sdkRes.success === '1' || sdkRes.success === 1 || sdkRes.success === true || sdkRes.status === 'success' || sdkRes.ok || sdkRes.data || sdkRes.user)) {
+            resultData = sdkRes;
+          }
+        } catch (sdkErr) {}
       }
-      return next;
-    }
-    function sanitizeCustomerAdd(body) {
-      if (!body || typeof body !== 'object') return body;
-      var next = {};
-      for (var k in body) if (Object.prototype.hasOwnProperty.call(body, k)) next[k] = body[k];
-      if (Object.prototype.hasOwnProperty.call(next, 'company_name')) {
-        if (!next.company && next.company_name) next.company = next.company_name;
-        delete next.company_name;
-      }
-      return next;
-    }
-    function patchClient(client) {
-      if (!client || typeof client.request !== 'function' || client.__cpCreateFix) return client;
-      var orig = client.request.bind(client);
-      client.request = function (route, body) {
-        if (route === 'Customer.Add') body = sanitizeCustomerAdd(body);
-        if (route === 'Documents.Add') body = enrichPayload(body);
-        return orig(route, body);
-      };
-      client.__cpCreateFix = true;
-      return client;
-    }
-    function install() {
-      if (window.__biz1FsClient) patchClient(window.__biz1FsClient);
-      if (window.MineralBarApp) {
-        if (typeof MineralBarApp.getClient === 'function' && !MineralBarApp.__cpCreateFixGetClient) {
-          var origGet = MineralBarApp.getClient.bind(MineralBarApp);
-          MineralBarApp.getClient = function () { return patchClient(origGet()); };
-          MineralBarApp.__cpCreateFixGetClient = true;
-          try { patchClient(origGet()); } catch (e3) {}
+
+      if (!resultData) {
+        for (var i = 0; i < endpoints.length; i++) {
+          var methods = ['POST'];
+          for (var m = 0; m < methods.length; m++) {
+            try {
+              var opts = {
+                method: methods[m],
+                headers: {
+                  'Authorization': 'Bearer ' + token,
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                }
+              };
+              if (methods[m] === 'POST') opts.body = JSON.stringify({});
+
+              var res = await fetch(endpoints[i], opts);
+              var data = null;
+              var contentType = res.headers.get('content-type') || '';
+              if (contentType.indexOf('application/json') !== -1) {
+                data = await res.json();
+              } else {
+                var rawText = await res.text();
+                try { data = JSON.parse(rawText); } catch (eJson) {}
+              }
+
+              if (res.ok && data && (data.success === '1' || data.success === 1 || data.success === true || data.status === 'success' || data.ok || data.data || data.user)) {
+                resultData = data;
+                break;
+              }
+            } catch (fErr) {}
+          }
+          if (resultData) break;
         }
-        if (MineralBarApp.client) patchClient(MineralBarApp.client);
+      }
+
+      if (!resultData && jwtPayload && (jwtPayload.user_id || jwtPayload.user_name || jwtPayload.domain)) {
+        var nowSec = Math.floor(Date.now() / 1000);
+        if (!jwtPayload.exp || jwtPayload.exp > nowSec) {
+          resultData = {
+            success: '1',
+            status: 'success',
+            data: {
+              user: {
+                id: jwtPayload.user_id || 1,
+                user_id: jwtPayload.user_id || 1,
+                name: jwtPayload.user_name || jwtPayload.domain || 'CloudPlus User',
+                username: jwtPayload.user_name || jwtPayload.domain || 'cloudplus',
+                user_name: jwtPayload.user_name || jwtPayload.domain || 'cloudplus',
+                email: jwtPayload.email || ((jwtPayload.user_name || 'cloudplus') + '@' + (jwtPayload.domain || 'cloudplus') + '.com'),
+                role: jwtPayload.role || 1,
+                domain: jwtPayload.domain || 'cloudplus'
+              }
+            }
+          };
+        }
+      }
+
+      if (resultData) {
+        var keys = ['mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token', 'token', 'access_token', 'bearer_token'];
+        keys.forEach(function (k) {
+          try { localStorage.setItem(k, token); } catch (e) {}
+          try { sessionStorage.setItem(k, token); } catch (e) {}
+        });
+
+        if (window.MineralBarApp) {
+          try {
+            if (typeof MineralBarApp.setToken === 'function') MineralBarApp.setToken(token);
+            if (typeof MineralBarApp.saveSession === 'function') {
+              var role = (MineralBarApp.detectRole && MineralBarApp.detectRole(resultData)) || 'sales';
+              var email = (resultData.data && resultData.data.user && resultData.data.user.email) ||
+                          (resultData.user && resultData.user.email) || '';
+              MineralBarApp.saveSession(resultData, role, email);
+            }
+            MineralBarApp.token = token;
+            MineralBarApp.user = (resultData.data && resultData.data.user) || resultData.user || resultData;
+            MineralBarApp.isAuthenticated = function () { return true; };
+          } catch (eApp) {}
+        }
+        return true;
+      }
+      return false;
+    }
+
+    async function routeUser() {
+      var qs = new URLSearchParams(window.location.search || '');
+      var token = qs.get('token') || qs.get('bearer_token') || qs.get('auth_token') || qs.get('access_token');
+      var keys = ['mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token', 'token', 'access_token', 'bearer_token'];
+      
+      if (!token) {
+        for (var k = 0; k < keys.length; k++) {
+          try {
+            var t = localStorage.getItem(keys[k]) || sessionStorage.getItem(keys[k]);
+            if (t && t.length > 10) { token = t; break; }
+          } catch (e) {}
+        }
+      }
+
+      var isValid = false;
+      if (token) {
+        isValid = await validateTokenAndSession(token);
+      }
+
+      if (!isValid && window.MineralBarApp) {
+        try {
+          if (MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) isValid = true;
+          else if (MineralBarApp.user || MineralBarApp.token) isValid = true;
+          else if (MineralBarApp.canAutoRefresh && MineralBarApp.canAutoRefresh() && MineralBarApp.refreshSession) {
+            await MineralBarApp.refreshSession();
+            if (MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) isValid = true;
+          }
+        } catch (eSdk) {}
+      }
+
+      if (isValid) {
+        var search = window.location.search || '';
+        window.location.href = 'home.html' + search;
+      } else {
+        window.location.href = 'login.html';
       }
     }
-    install();
-    var tries = 0;
-    var timer = setInterval(function () {
-      tries += 1;
-      install();
-      if (tries > 40) clearInterval(timer);
-    }, 250);
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', routeUser);
+    } else {
+      routeUser();
+    }
   })();
   </script>
 </body>
