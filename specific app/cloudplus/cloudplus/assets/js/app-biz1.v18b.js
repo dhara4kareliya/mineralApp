@@ -7535,7 +7535,7 @@
             '<svg fill="none" height="13" stroke="#b6bdc8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="13"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>' +
             '<span class="mineral-ticket-addr-text"></span></span></div>'
         : '') +
-      '<div class="mineral-ticket-subject"></div>' +
+      '<div class="mineral-ticket-subject"><div class="mineral-ticket-subject-inner"></div></div>' +
       '<div class="mineral-ticket-actions">' +
         '<button type="button" class="mineral-btn-details open-ticket-btn" data-stop>' +
           '<svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>' +
@@ -7548,7 +7548,7 @@
       '</div>';
 
     card.querySelector('.mineral-ticket-name').textContent = client;
-    card.querySelector('.mineral-ticket-subject').textContent = '"' + subject + '"';
+    card.querySelector('.mineral-ticket-subject-inner').textContent = '"' + subject + '"';
     var addrText = card.querySelector('.mineral-ticket-addr-text');
     if (addrText) addrText.textContent = address;
 

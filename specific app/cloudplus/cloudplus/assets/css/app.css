@@ -1508,6 +1508,14 @@ html[dir="rtl"] .tickets-pager-btn svg {
   font-size: 16px;
   font-weight: 800;
   color: var(--text);
+  word-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
 }
 .mineral-ticket-meta {
   font-size: 12px;
@@ -1515,13 +1523,24 @@ html[dir="rtl"] .tickets-pager-btn svg {
   margin-top: 2px;
 }
 .mineral-ticket-subject {
-  font-size: 13px;
-  color: var(--text-secondary);
   margin-top: 9px;
-  line-height: 1.5;
   background: var(--bg-muted);
   border-radius: 9px;
   padding: 9px 11px;
+  overflow: hidden;
+}
+.mineral-ticket-subject-inner {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  word-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
 }
 .mineral-ticket-badge {
   display: inline-flex;
@@ -1558,10 +1577,22 @@ html[dir="rtl"] .tickets-pager-btn svg {
 }
 .mineral-ticket-addr {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   font-size: 12.5px;
   color: #7b8595;
+  max-width: 100%;
+}
+.mineral-ticket-addr-text {
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .mineral-ticket-actions {
   display: flex;

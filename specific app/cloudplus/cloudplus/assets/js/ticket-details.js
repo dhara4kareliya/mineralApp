@@ -717,11 +717,45 @@
     P.show(empty, false);
     rows.forEach(function (row) {
       var dir = chatDirection(row);
+      
+      var isImg = false;
+      if (row.file_url) {
+        isImg = /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(row.file_url);
+      }
+
+      var rowEl = global.document.createElement('div');
+      rowEl.className = 'td-chat-row td-chat-row--' + dir;
+      
+      var avatar = global.document.createElement('div');
+      avatar.className = 'td-chat-avatar';
+      if (isImg) {
+        var img = global.document.createElement('img');
+        img.src = row.file_url;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '50%';
+        avatar.appendChild(img);
+        avatar.style.background = 'transparent';
+      } else {
+        var uName = String(row.user_name || '').trim();
+        var initials = (global.FieldApp && FieldApp.utils && FieldApp.utils.initials) ? FieldApp.utils.initials(uName || '?') : (uName.charAt(0) || '?').toUpperCase();
+        avatar.textContent = initials;
+      }
+      rowEl.appendChild(avatar);
+
       var bubble = global.document.createElement('div');
       bubble.className = 'td-chat-bubble td-chat-bubble--' + dir;
-      var text = String((row && row.message) || '').trim() || '—';
-      bubble.appendChild(global.document.createTextNode(text));
-      if (row.file_url) {
+      var text = String((row && row.message) || '').trim();
+      
+      if (!text && isImg) text = '—';
+      if (!text && !row.file_url) text = '—';
+      
+      if (text) {
+        bubble.appendChild(global.document.createTextNode(text));
+      }
+      
+      if (row.file_url && !isImg) {
         var link = global.document.createElement('a');
         link.href = row.file_url;
         link.target = '_blank';
@@ -730,6 +764,7 @@
         link.textContent = row.file_url.split('/').pop() || 'file';
         bubble.appendChild(link);
       }
+      
       var metaBits = [];
       if (row.user_name) metaBits.push(String(row.user_name));
       if (row.time) metaBits.push(String(row.time));
@@ -739,7 +774,8 @@
         meta.textContent = metaBits.join(' · ');
         bubble.appendChild(meta);
       }
-      list.appendChild(bubble);
+      rowEl.appendChild(bubble);
+      list.appendChild(rowEl);
     });
     list.scrollTop = list.scrollHeight;
   }

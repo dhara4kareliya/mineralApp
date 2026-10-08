@@ -121,6 +121,22 @@
     var wrap = $('taSelected');
     var c = st.customer;
     P.show(wrap, !!c);
+    
+    ['taCustNameInput'].forEach(function (id) {
+      var el = $(id);
+      if (el) {
+        if (c) {
+          el.setAttribute('readonly', 'readonly');
+          el.style.opacity = '0.6';
+          el.style.pointerEvents = 'none';
+        } else {
+          el.removeAttribute('readonly');
+          el.style.opacity = '';
+          el.style.pointerEvents = '';
+        }
+      }
+    });
+
     if (!c) return;
     $('taCustInitials').textContent = P.initials(c.name);
     $('taCustName').textContent = c.name;
