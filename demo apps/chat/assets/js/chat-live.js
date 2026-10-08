@@ -425,6 +425,25 @@
     if (last < raw.length) parts.push({ type: 'text', value: raw.slice(last) });
     if (!parts.length) parts.push({ type: 'text', value: raw });
 
+    var bareFilenames = [];
+    parts.forEach(function (p) {
+      if (p.type === 'url' && !/^(https?:\/\/|biz1upload\/)/i.test(p.value)) {
+        bareFilenames.push(p.value.split('/').pop().split('?')[0].toLowerCase());
+      }
+    });
+
+    var hasAnyAbsolute = parts.some(function (other) {
+      return other.type === 'url' && /^(https?:\/\/)/i.test(other.value);
+    });
+
+    parts.forEach(function (p) {
+      if (p.type === 'url' && !/^(https?:\/\/|biz1upload\/)/i.test(p.value)) {
+        if (hasAnyAbsolute) {
+          p.type = 'text'; // Convert to text so it doesn't render as a media player
+        }
+      }
+    });
+
     var hasAudioUrl = parts.some(function (p) {
       if (p.type !== 'url') return false;
       var href = p.value;
