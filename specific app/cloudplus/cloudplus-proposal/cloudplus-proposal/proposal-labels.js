@@ -61,8 +61,7 @@
       salesTeam: 'צוות מכירות',
       createProposal: 'יצירת הצעה',
       saveDraft: 'שמירת טיוטה',
-      companyIdPlaceholder: 'מספר חברה',
-      logout: 'התנתקות'
+      companyIdPlaceholder: 'מספר חברה'
     },
     en: {
       pageTitle: 'CloudPlus | Quote Builder',
@@ -122,8 +121,7 @@
       salesTeam: 'Sales team',
       createProposal: 'Create proposal',
       saveDraft: 'Save draft',
-      companyIdPlaceholder: 'Company number',
-      logout: 'Log out'
+      companyIdPlaceholder: 'Company number'
     }
   };
 

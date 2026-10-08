@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>Order Status Manager · Biz1 CRM</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('orderapp_theme');
+        if (t !== 'dark' && t !== 'light') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+      try {
+        var l = localStorage.getItem('orderapp_lang');
+        if (l !== 'he' && l !== 'en') l = 'en';
+        document.documentElement.lang = l === 'he' ? 'he' : 'en';
+        document.documentElement.dir = l === 'he' ? 'rtl' : 'ltr';
+      } catch (e) { }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./css/app.css?v=orders-16" />
+  <style>
+    :root {
+      --crm-primary: #2563eb;
+      --crm-primary-dark: #1d4ed8;
+      --crm-bg: #f8fafc;
+      --crm-card-bg: #ffffff;
+      --crm-border: #e2e8f0;
+      --crm-text: #0f172a;
+      --crm-text-muted: #64748b;
+    }
+
+    [data-theme="dark"] {
+      --crm-bg: #0f172a;
+      --crm-card-bg: #1e293b;
+      --crm-border: #334155;
+      --crm-text: #f8fafc;
+      --crm-text-muted: #94a3b8;
+    }
+
+    body.status-page {
+      min-height: 100vh;
+      background: var(--crm-bg);
+      color: var(--crm-text);
+      font-family: 'Plus Jakarta Sans', 'Heebo', -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Full Width Navbar */
+    .crm-navbar {
+      width: 100%;
+      background: var(--crm-card-bg);
+      border-bottom: 1px solid var(--crm-border);
+      padding: 0.9rem 2rem;
+      box-sizing: border-box;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .crm-navbar-container {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .crm-brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .crm-logo-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+    }
+
+    .crm-title-text {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .crm-sub-text {
+      font-size: 0.8rem;
+      color: var(--crm-text-muted);
+      margin: 0;
+    }
+
+    /* New Styled Controls: Language Translator & Theme Switcher */
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    /* Segmented Language Control */
+    .lang-segmented-control {
+      display: inline-flex;
+      align-items: center;
+      background: var(--crm-bg);
+      border: 1px solid var(--crm-border);
+      border-radius: 9999px;
+      padding: 3px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .lang-segmented-control:hover {
+      border-color: #94a3b8;
+    }
+
+    .lang-segment {
+      padding: 0.35rem 0.85rem;
+      font-size: 0.825rem;
+      font-weight: 700;
+      border-radius: 9999px;
+      color: var(--crm-text-muted);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .lang-segment.active {
+      background: var(--crm-primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Modern Theme Switcher Button */
+    .theme-switch-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--crm-bg);
+      border: 1px solid var(--crm-border);
+      border-radius: 9999px;
+      padding: 0.4rem 0.9rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--crm-text);
+      transition: all 0.2s ease;
+    }
+
+    .theme-switch-btn:hover {
+      border-color: var(--crm-primary);
+      background: var(--crm-card-bg);
+    }
+
+    [data-theme="dark"] .theme-switch-btn .sun { display: none; }
+    [data-theme="light"] .theme-switch-btn .moon { display: none; }
+    [data-theme="dark"] .theme-switch-btn .moon { display: inline-flex; }
+    [data-theme="light"] .theme-switch-btn .sun { display: inline-flex; }
+
+    /* Full Width Container */
+    .full-width-container {
+      width: 100%;
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+      box-sizing: border-box;
+      flex: 1;
+    }
+
+    .crm-card {
+      background: var(--crm-card-bg);
+      border: 1px solid var(--crm-border);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    /* Full Width Hero Banner */
+    .crm-hero-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      padding: 2.25rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .order-id-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(37, 99, 235, 0.25);
+      border: 1px solid rgba(96, 165, 250, 0.4);
+      color: #93c5fd;
+      font-weight: 800;
+      font-size: 0.95rem;
+      padding: 0.4rem 1.1rem;
+      border-radius: 9999px;
+    }
+
+    .hero-order-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin: 0.6rem 0 0.2rem;
+      color: #f8fafc;
+    }
+
+    .hero-order-sub {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin: 0;
+    }
+
+    .crm-body {
+      padding: 2.5rem;
+    }
+
+    /* Metrics Grid (Full Width) */
+    .metrics-full-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .crm-metric-box {
+      background: var(--crm-bg);
+      border: 1px solid var(--crm-border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .crm-metric-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .metric-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #eff6ff;
+      color: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .metric-label-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--crm-text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .metric-value-text {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--crm-text);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .section-title-bar {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin: 0 0 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--crm-text);
+    }
+
+    /* Wide Status Cards Grid */
+    .status-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .status-option-card {
+      background: var(--crm-card-bg);
+      border: 2px solid var(--crm-border);
+      border-radius: 16px;
+      padding: 1rem 1.25rem;
+      min-height: 64px;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      user-select: none;
+    }
+
+    .status-option-card:hover {
+      border-color: #3b82f6;
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px -6px rgba(59, 130, 246, 0.2);
+    }
+
+    .status-option-card.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+    }
+
+    [data-theme="dark"] .status-option-card.selected {
+      background: #1e3a8a;
+      border-color: #3b82f6;
+    }
+
+    .status-info-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .status-color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+    }
+
+    .status-title-name {
+      font-weight: 800;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      color: var(--crm-text);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .status-radio-check {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: transparent;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .status-option-card.selected .status-radio-check {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+
+    /* Big Submit Button */
+    .btn-crm-update {
+      width: 100%;
+      padding: 1.25rem 2rem;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #ffffff;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+    }
+
+    .btn-crm-update:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-crm-update:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Full Width Celebration Dashboard */
+    .crm-celebration-card {
+      background: var(--crm-card-bg);
+      border: 2px solid #bbf7d0;
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(34, 197, 94, 0.12);
+      padding: 3.5rem 2.5rem;
+      text-align: center;
+    }
+
+    .celebration-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      box-shadow: 0 14px 32px rgba(34, 197, 94, 0.4);
+    }
+
+    .celebration-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--crm-text);
+      margin: 0 0 0.5rem;
+    }
+
+    .celebration-sub {
+      font-size: 1.1rem;
+      color: var(--crm-text-muted);
+      margin: 0 0 2.5rem;
+    }
+
+    .journey-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 2rem;
+      background: var(--crm-bg);
+      border: 1px solid var(--crm-border);
+      padding: 1.25rem 2.5rem;
+      border-radius: 9999px;
+      margin-bottom: 2.5rem;
+    }
+
+    .response-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      text-align: left;
+      margin-bottom: 2.5rem;
+    }
+
+    .response-grid-item {
+      background: var(--crm-bg);
+      border: 1px solid var(--crm-border);
+      border-radius: 16px;
+      padding: 1.25rem;
+    }
+
+    .response-grid-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--crm-text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .response-grid-value {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--crm-text);
+    }
+
+    .status-badge-success {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #dcfce7;
+      color: #15803d;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+
+<body data-page="change-status" class="status-page">
+  <div id="app" class="app">
+    <!-- Full Width CRM Navbar -->
+    <header class="crm-navbar">
+      <div class="crm-navbar-container">
+        <a href="./orders.html" class="crm-brand" id="backBtn">
+          <div class="crm-logo-badge">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h10" stroke-linecap="round" /></svg>
+          </div>
+          <div>
+            <div class="crm-title-text" data-i18n="changeStatusTitle">Biz1 CRM · Order Status Manager</div>
+            <div class="crm-sub-text" data-i18n="changeStatusSub">Instant Order Status Update & Webhook Automation</div>
+          </div>
+        </a>
+
+        <!-- Redesigned UI Controls: Language Translator Segment & Theme Switcher Button -->
+        <div class="controls-group">
+          <!-- Segmented Language Toggle Pill -->
+          <div class="lang-segmented-control" id="langBtn" role="button" tabindex="0" title="Switch Language">
+            <span class="lang-segment lang-en active">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              English
+            </span>
+            <span class="lang-segment lang-he">
+              עברית
+            </span>
+          </div>
+
+          <!-- Styled Theme Switcher Button -->
+          <button type="button" class="theme-switch-btn" id="themeBtn" aria-label="Toggle Theme">
+            <span class="sun">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+              Light
+            </span>
+            <span class="moon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              Dark
+            </span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Full Width Main Dashboard Container -->
+    <main class="full-width-container">
+      <!-- Loading State -->
+      <div id="statusLoading" class="crm-card" style="text-align: center; padding: 5rem 2rem;">
+        <div class="spinner" style="margin: 0 auto 1.25rem; width: 48px; height: 48px; border: 4px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        <p style="font-size: 1.2rem; font-weight: 700; color: var(--crm-text-muted);" data-i18n="emailOrdersLoading">Loading order details...</p>
+      </div>
+
+      <!-- Alert Notification -->
+      <div id="statusAlert" class="alert-box" hidden></div>
+
+      <!-- Full Width Order Details & Status Form Card -->
+      <div id="statusCard" class="crm-card" hidden>
+        <!-- Hero Header -->
+        <div class="crm-hero-banner">
+          <div>
+            <span class="order-id-chip">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line></svg>
+              <span id="orderIdBadge">#—</span>
+            </span>
+            <h2 id="orderTitle" class="hero-order-title">—</h2>
+            <p id="orderSub" class="hero-order-sub">—</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.35rem;" data-i18n="currentStatus">Current Status</div>
+            <div id="currentStatusBadge" style="display: inline-block;">—</div>
+          </div>
+        </div>
+
+        <div class="crm-body">
+          <!-- Information Metrics Grid -->
+          <div class="metrics-full-grid">
+            <div class="crm-metric-box">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </div>
+              <div class="metric-label-title" data-i18n="colCustomer">Client Name</div>
+              <div class="metric-value-text" id="detailCustomer">—</div>
+            </div>
+
+            <div class="crm-metric-box">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              </div>
+              <div class="metric-label-title" data-i18n="product">Product Name</div>
+              <div class="metric-value-text" id="detailProduct">—</div>
+            </div>
+
+            <div class="crm-metric-box">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+              <div class="metric-label-title" data-i18n="colTotal">Total Price</div>
+              <div class="metric-value-text" id="detailPrice">—</div>
+            </div>
+
+            <div class="crm-metric-box">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              </div>
+              <div class="metric-label-title" data-i18n="date">Date</div>
+              <div class="metric-value-text" id="detailDate">—</div>
+            </div>
+          </div>
+
+          <!-- Status Form -->
+          <form id="changeStatusForm">
+            <div class="section-title-bar">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <span data-i18n="selectNewStatus">Select New Status</span>
+            </div>
+
+            <div id="statusPickerGrid" class="status-cards-grid">
+              <!-- Dynamic Status Option Cards -->
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-crm-update" id="submitStatusBtn">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <span data-i18n="updateStatusBtn">Update Status</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Celebration Success Screen (Full Width CRM View) -->
+      <div id="successCard" class="crm-celebration-card" hidden>
+        <div class="celebration-icon">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2 class="celebration-title" data-i18n="statusUpdatedSuccess">Order Status Updated Successfully!</h2>
+        <p class="celebration-sub" id="successSub">The CRM order status record has been updated.</p>
+
+        <!-- Journey Bar -->
+        <div class="journey-bar">
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--crm-text-muted); margin-bottom: 0.25rem;">Previous Status</div>
+            <div id="prevStatusDisplay">—</div>
+          </div>
+          <div style="font-size: 1.75rem; color: #22c55e; font-weight: 800;">➔</div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--crm-text-muted); margin-bottom: 0.25rem;">New Status</div>
+            <div id="newStatusDisplay">—</div>
+          </div>
+        </div>
+
+        <!-- Summary Grid -->
+        <div class="response-metrics-grid">
+          <div class="response-grid-item">
+            <div class="response-grid-label">Order Number</div>
+            <div class="response-grid-value" id="respOrderId">#—</div>
+          </div>
+          <div class="response-grid-item">
+            <div class="response-grid-label">Client Name</div>
+            <div class="response-grid-value" id="respCustomer">—</div>
+          </div>
+          <div class="response-grid-item">
+            <div class="response-grid-label">Product</div>
+            <div class="response-grid-value" id="respProduct">—</div>
+          </div>
+          <div class="response-grid-item">
+            <div class="response-grid-label">CRM Update Result</div>
+            <div id="respCrmStatus"><span class="status-badge-success">✔ Order Updated</span></div>
+          </div>
+          <div class="response-grid-item">
+            <div class="response-grid-label">Updated At</div>
+            <div class="response-grid-value" id="respTime" style="font-size: 0.95rem;">—</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <button type="button" class="btn-crm-update" id="resetBtn" style="max-width: 320px;">
+            Update Status Again
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <style>
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+
+  <script src="./js/biz1-sdk.js?v=orders-23"></script>
+  <script src="./js/i18n.js?v=orders-23"></script>
+  <script src="./js/common.js?v=orders-23"></script>
+  <script src="./js/change-status.js?v=orders-23"></script>
+</body>
+
+</html>

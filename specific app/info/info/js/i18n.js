@@ -149,7 +149,21 @@ window.OrderI18n = (function _i18nSub1() {
       noPhone: "No phone",
       product: "Product",
       language: "Language",
-      actions: "Actions"
+      actions: "Actions",
+      changeStatus: "Change status",
+      changeStatusTitle: "Update Order Status",
+      changeStatusSub: "Select a new status for this order line and trigger CRM webhook automation.",
+      changeStatusLinkTitle: "Click to change status for this order line",
+      currentStatus: "Current Status",
+      selectNewStatus: "Select New Status",
+      updateStatusBtn: "Update Status & Send Webhook",
+      updatingStatus: "Sending webhook & updating status...",
+      statusUpdatedSuccess: "Order status updated successfully! CRM Webhook triggered.",
+      webhookPayload: "Webhook Delivery Payload",
+      webhookUrlLabel: "Webhook URL (Optional CRM endpoint)",
+      webhookUrlPlaceholder: "https://crm.example.com/api/webhook",
+      orderNotFound: "Order not found or ID missing.",
+      invalidOrderId: "Please provide a valid order ID in the URL parameter (?id=...)."
     },
     he: {
       pageTitle: "הזמנות · Biz1",
@@ -295,7 +309,21 @@ window.OrderI18n = (function _i18nSub1() {
       noPhone: "אין טלפון",
       product: "מוצר",
       language: "שפה",
-      actions: "פעולות"
+      actions: "פעולות",
+      changeStatus: "שינוי סטטוס",
+      changeStatusTitle: "עדכון סטטוס הזמנה",
+      changeStatusSub: "בחר סטטוס חדש עבור שורת ההזמנה והפעל אוטומציית וובהוק ל-CRM.",
+      changeStatusLinkTitle: "לחץ לשינוי סטטוס עבור שורת הזמנה זו",
+      currentStatus: "סטטוס נוכחי",
+      selectNewStatus: "בחר סטטוס חדש",
+      updateStatusBtn: "עדכן סטטוס והפעל וובהוק",
+      updatingStatus: "שולח וובהוק ומעדכן סטטוס...",
+      statusUpdatedSuccess: "סטטוס ההזמנה עודכן בהצלחה! וובהוק CRM הופעל.",
+      webhookPayload: "נתוני וובהוק שנשלחו",
+      webhookUrlLabel: "כתובת Webhook (נקודת קצה ל-CRM)",
+      webhookUrlPlaceholder: "https://crm.example.com/api/webhook",
+      orderNotFound: "הזמנה לא נמצאה או חסר מזהה.",
+      invalidOrderId: "אנא ספק מזהה הזמנה תקין בפרמטר ה-URL (?id=...)."
     }
   };
 

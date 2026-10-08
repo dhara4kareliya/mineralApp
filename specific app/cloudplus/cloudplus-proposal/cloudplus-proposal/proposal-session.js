@@ -20,71 +20,26 @@
     return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
   }
 
-  function decodeJwt(token) {
-    try {
-      var parts = String(token || '').split('.');
-      if (parts.length === 3) {
-        var base64Url = parts[1];
-        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        return JSON.parse(jsonPayload);
-      }
-    } catch (e) {}
-    return null;
-  }
-
   function readUser() {
+    if (!window.MineralBarApp) return { user: null, email: '', role: '', brand: 'CloudPlus' };
     var user = null;
-    if (window.MineralBarApp) {
-      try { user = MineralBarApp.getUser && MineralBarApp.getUser(); } catch (e) { /* ignore */ }
-      if (!user && MineralBarApp.user) user = MineralBarApp.user;
-      if (!user) {
-        try {
-          var basic = MineralBarApp.getUserBasic && MineralBarApp.getUserBasic();
-          user = (basic && basic.data && basic.data.user) || (basic && basic.user) || null;
-        } catch (e2) { /* ignore */ }
-      }
-    }
-
+    try { user = MineralBarApp.getUser && MineralBarApp.getUser(); } catch (e) { /* ignore */ }
     if (!user) {
-      var keys = ['mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token', 'token', 'access_token', 'bearer_token'];
-      for (var k = 0; k < keys.length; k++) {
-        try {
-          var tok = localStorage.getItem(keys[k]) || sessionStorage.getItem(keys[k]);
-          if (tok) {
-            var payload = decodeJwt(tok);
-            if (payload) {
-              user = {
-                id: payload.user_id || 1,
-                user_id: payload.user_id || 1,
-                name: payload.user_name || payload.domain || 'CloudPlus User',
-                username: payload.user_name || payload.domain || 'cloudplus',
-                user_name: payload.user_name || payload.domain || 'cloudplus',
-                email: payload.email || ((payload.user_name || 'cloudplus') + '@' + (payload.domain || 'cloudplus') + '.com'),
-                role: payload.role || 1,
-                domain: payload.domain || 'cloudplus'
-              };
-              break;
-            }
-          }
-        } catch (eJwt) {}
-      }
+      try {
+        var basic = MineralBarApp.getUserBasic && MineralBarApp.getUserBasic();
+        user = (basic && basic.data && basic.data.user) || (basic && basic.user) || null;
+      } catch (e2) { /* ignore */ }
     }
-
     var email = '';
     var role = '';
     var brand = 'CloudPlus';
-    if (window.MineralBarApp) {
-      try { email = (MineralBarApp.getEmail && MineralBarApp.getEmail()) || ''; } catch (e3) { /* ignore */ }
-      try { role = (MineralBarApp.getRole && MineralBarApp.getRole()) || ''; } catch (e4) { /* ignore */ }
-      try {
-        var lang = document.documentElement.lang === 'he' ? 'he' : 'en';
-        brand = (MineralBarApp.getBrandName && MineralBarApp.getBrandName(lang)) || brand;
-      } catch (e5) { /* ignore */ }
-    }
-    if (!email && user) email = user.email || user.username || user.user_name || '';
+    try { email = (MineralBarApp.getEmail && MineralBarApp.getEmail()) || ''; } catch (e3) { /* ignore */ }
+    try { role = (MineralBarApp.getRole && MineralBarApp.getRole()) || ''; } catch (e4) { /* ignore */ }
+    try {
+      var lang = document.documentElement.lang === 'he' ? 'he' : 'en';
+      brand = (MineralBarApp.getBrandName && MineralBarApp.getBrandName(lang)) || brand;
+    } catch (e5) { /* ignore */ }
+    if (!email && user) email = user.email || user.username || '';
     return { user: user, email: email, role: role, brand: brand };
   }
 
@@ -196,36 +151,7 @@
     setTimeout(refreshAndPaint, 1200);
   }
 
-  function logout() {
-    var keys = [
-      'mineralbar_token', 'biz1_token', 'cloudplus_token', 'auth_token',
-      'token', 'access_token', 'bearer_token', 'cloudplus_user',
-      'mineralbar_user', 'cloudplus_return_url'
-    ];
-    keys.forEach(function (k) {
-      try { localStorage.removeItem(k); } catch (e) {}
-      try { sessionStorage.removeItem(k); } catch (e) {}
-    });
-    if (window.MineralBarApp) {
-      try {
-        if (typeof MineralBarApp.logout === 'function') MineralBarApp.logout();
-        if (typeof MineralBarApp.clearSession === 'function') MineralBarApp.clearSession();
-        MineralBarApp.token = null;
-        MineralBarApp.user = null;
-      } catch (e) {}
-    }
-    window.location.href = 'login.html';
-  }
-
-  document.addEventListener('click', function (event) {
-    var btn = event.target && event.target.closest && event.target.closest('#logoutButton');
-    if (btn) {
-      event.preventDefault();
-      logout();
-    }
-  });
-
-  window.CloudPlusProposalSession = { paint: paint, refreshAndPaint: refreshAndPaint, logout: logout };
+  window.CloudPlusProposalSession = { paint: paint, refreshAndPaint: refreshAndPaint };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

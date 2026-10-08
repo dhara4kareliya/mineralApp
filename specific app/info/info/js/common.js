@@ -10,7 +10,13 @@ window.OrderApp = (function _commonSub1() {
     js: 1,
     index: 1,
     login: 1,
-    customer: 1
+    customer: 1,
+    homephp: 1,
+    dhara: 1,
+    mineral: 1,
+    specific: 1,
+    app: 1,
+    info: 1
   };
 
   function normalizeTenantUser(raw) {
@@ -52,6 +58,12 @@ window.OrderApp = (function _commonSub1() {
   }
 
   function resolveTenantUser() {
+    var host = String(
+      (typeof location !== "undefined" && location.hostname) || ""
+    ).toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host.indexOf("192.168.") === 0 || host.indexOf("10.") === 0) {
+      return "info";
+    }
     var fromPath = pathUsername();
     if (fromPath) return fromPath;
     return "info";
@@ -846,6 +858,13 @@ window.OrderApp = (function _commonSub1() {
     return String(value).slice(0, 10);
   }
 
+  var STATIC_ORDER_STATUSES = [
+    { id: "609", status_id: "609", name: "בבירור", name_he: "בבירור", name_en: "In Inquiry", color: "#f59e0b" },
+    { id: "610", status_id: "610", name: "התוכנית לא נסגרה", name_he: "התוכנית לא נסגרה", name_en: "Plan Not Closed", color: "#9ca3af" },
+    { id: "611", status_id: "611", name: "התוכנית נסגרה - בהמתנה לתשלום", name_he: "התוכנית נסגרה - בהמתנה לתשלום", name_en: "Plan Closed - Awaiting Payment", color: "#eab308" },
+    { id: "615", status_id: "615", name: "שולם תיווך", name_he: "שולם תיווך", name_en: "Brokerage Paid", color: "#2ecc71" }
+  ];
+
   function statusMeta(row) {
     var rawId = row && (
       (row.order_status_id != null && String(row.order_status_id) !== "" && String(row.order_status_id) !== "0")
@@ -853,12 +872,19 @@ window.OrderApp = (function _commonSub1() {
         : (row.order_status || row.status_id)
     );
     var id = String(rawId || "");
-    var found = state.statuses.find(function _commonSub34(s) { return String(s.id || s.status_id) === id; });
+    var found = (state.statuses || []).find(function _commonSub34(s) { return String(s.id || s.status_id) === id; });
+    if (!found) {
+      found = STATIC_ORDER_STATUSES.find(function(s) { return String(s.id) === id; });
+    }
+    var isHeb = isHe();
+    var label = (row && (row.order_status_label || row.order_status_name || row.status_name)) ||
+      (found && (isHeb ? (found.name_he || found.name || found.label) : (found.name_en || found.name || found.label))) ||
+      (id ? "#" + id : "—");
+    var color = (row && (row.order_status_color || row.color)) || (found && found.color) || "";
     return {
       id: id,
-      label: (row && (row.order_status_label || row.order_status_name || row.status_name || row.name_en)) ||
-        (found && (found.name_en || found.name || found.label)) || (id ? "#" + id : "—"),
-      color: (row && (row.order_status_color || row.color)) || (found && found.color) || ""
+      label: label,
+      color: color
     };
   }
 
@@ -915,6 +941,13 @@ window.OrderApp = (function _commonSub1() {
     var data = (basic && basic.data) || basic || {};
     state.user = data.user || {};
     state.org = data.org || {};
+    if (data.api_token || data.token) state.api_token = data.api_token || data.token;
+    try {
+      if (state.org) localStorage.setItem("biz1_user_org", JSON.stringify(state.org));
+      if (state.user) localStorage.setItem("biz1_user_info", JSON.stringify(state.user));
+      var tok = getApiToken();
+      if (tok) localStorage.setItem("biz1_api_token", tok);
+    } catch (e) {}
     if ($("userChip")) $("userChip").textContent = state.user.name || state.user.email || t("signedIn");
     connectRealtime();
   }
@@ -1008,6 +1041,13 @@ window.OrderApp = (function _commonSub1() {
       }
       state.user = user;
       state.org = data.org || {};
+      if (data.api_token || data.token) state.api_token = data.api_token || data.token;
+      try {
+        if (state.org) localStorage.setItem("biz1_user_org", JSON.stringify(state.org));
+        if (state.user) localStorage.setItem("biz1_user_info", JSON.stringify(state.user));
+        var tok = getApiToken();
+        if (tok) localStorage.setItem("biz1_api_token", tok);
+      } catch (e0) {}
       if ($("userChip")) $("userChip").textContent = state.user.name || state.user.email || t("signedIn");
       try { connectRealtime(); } catch (e1) { /* optional on login page */ }
     } catch (err) {
@@ -1716,10 +1756,9 @@ window.OrderApp = (function _commonSub1() {
   }
 
   function emailTableColumns() {
-    // Include every field from the Fields picker (on + off), not only visible table columns.
-    var cols = pickerFields();
-    if (!cols.length) cols = availableFieldColumns();
-    if (!cols.length) {
+    // Only include selected/visible table columns in email, matching the Fields picker selection.
+    var cols = visibleTableColumns(true);
+    if (!cols || !cols.length) {
       cols = ["customer_name", "date", "order_name", "order_status", "total_price", "id", "notes"].map(makeColumn);
     }
     return cols.map(function _commonSub61(col) {
@@ -1734,15 +1773,99 @@ window.OrderApp = (function _commonSub1() {
     });
   }
 
+  var CIPHER_KEY = "BIZ1_ORDER_STATUS_APP_SECRET";
+
+  function getApiToken() {
+    if (state.org && state.org.api_token) return state.org.api_token;
+    if (state.user && state.user.api_token) return state.user.api_token;
+    if (state.api_token) return state.api_token;
+    try {
+      var directTok = localStorage.getItem("biz1_api_token");
+      if (directTok) return directTok;
+      var savedOrg = localStorage.getItem("biz1_user_org");
+      if (savedOrg) {
+        var parsed = JSON.parse(savedOrg);
+        if (parsed && parsed.api_token) return parsed.api_token;
+      }
+      var savedUser = localStorage.getItem("biz1_user_info");
+      if (savedUser) {
+        var parsedUser = JSON.parse(savedUser);
+        if (parsedUser && parsedUser.api_token) return parsedUser.api_token;
+      }
+    } catch (e) {}
+    return "";
+  }
+
+  function encryptOrderToken(data) {
+    try {
+      var jsonStr = typeof data === "string" ? data : JSON.stringify(data);
+      var key = CIPHER_KEY;
+      var xorStr = "";
+      for (var i = 0; i < jsonStr.length; i++) {
+        xorStr += String.fromCharCode(jsonStr.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      var utf8Str = encodeURIComponent(xorStr).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+        return String.fromCharCode('0x' + p1);
+      });
+      var b64 = btoa(utf8Str);
+      return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    } catch (e) {
+      console.warn("encryptOrderToken error:", e);
+      return "";
+    }
+  }
+
+  function getHomePageBaseUrl() {
+    try {
+      if (typeof window !== "undefined" && window.location) {
+        var origin = window.location.origin || (window.location.protocol + "//" + window.location.host);
+        var path = window.location.pathname || "";
+        var basePath = path.substring(0, path.lastIndexOf('/'));
+        if (basePath === "/") basePath = "";
+        return origin + basePath;
+      }
+    } catch (e) {}
+    return resolveDomain();
+  }
+
+  function getChangeStatusUrl(id, row) {
+    var idVal = String(id || "").trim();
+    if (!idVal) return "#";
+    var nameVal = row ? (customerName(row) || row.customer_name || row.client_name || row.cust_name || "") : "";
+    if (nameVal === t("customer")) nameVal = "";
+    
+    var tenantUser = resolveTenantUser() || "info";
+    var apiToken = getApiToken();
+    var payloadObj = {
+      order_id: idVal,
+      api_token: apiToken,
+      user: tenantUser
+    };
+    var encToken = encryptOrderToken(payloadObj);
+
+    var base = getHomePageBaseUrl();
+    var url = (base ? (base + '/') : '') + 'change-status.html?data=' + encodeURIComponent(encToken);
+    if (nameVal) url += '&client_name=' + encodeURIComponent(nameVal);
+    return url;
+  }
+
   function emailStatusHtml(row) {
     var meta = statusMeta(row);
-    if (!meta.id || meta.id === "0") {
-      return '<span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eef1f6;color:#64748b;font-size:12px;font-weight:700;">—</span>';
-    }
+    var rid = rowId(row);
     var bg = meta.color || "#dbeafe";
+    var label = meta.label || "—";
+    if (!meta.id || meta.id === "0") {
+      bg = "#eef1f6";
+    }
+    if (rid) {
+      var changeUrl = getChangeStatusUrl(rid, row);
+      return '<a href="' + escapeHtml(changeUrl) + '" target="_blank" title="' + escapeHtml(t("changeStatusLinkTitle") || "Click to change order status") + '" style="display:inline-block;padding:4px 10px;border-radius:999px;background:' +
+        escapeHtml(bg) + ';color:#0f172a;font-size:12px;font-weight:700;text-decoration:none;border:1px solid rgba(0,0,0,0.08);">' +
+        escapeHtml(label) + ' <span style="font-size:10px;opacity:0.8;">&#9998;</span></a>';
+    }
     return '<span style="display:inline-block;padding:3px 8px;border-radius:999px;background:' +
       escapeHtml(bg) + ';color:#0f172a;font-size:12px;font-weight:700;">' +
-      escapeHtml(meta.label || "—") + "</span>";
+      escapeHtml(label) + "</span>";
   }
 
   function emailCellHtml(row, col) {
@@ -1754,7 +1877,18 @@ window.OrderApp = (function _commonSub1() {
       return escapeHtml(labels[paid] || labels[0] || "—");
     }
     if (col.kind === "product") return escapeHtml(productNameOf(row) || "—");
-    if (col.kind === "id") return '<span style="font-weight:700;color:#0f172a;">' + escapeHtml(rowId(row) ? ("#" + rowId(row)) : "—") + "</span>";
+    if (col.kind === "id") {
+      var rid = rowId(row);
+      if (!rid) return "—";
+      var changeUrl = getChangeStatusUrl(rid, row);
+      return '<a href="' + escapeHtml(changeUrl) + '" target="_blank" title="' + escapeHtml(t("changeStatusLinkTitle") || "Click to change order status") + '" style="font-weight:700;color:#2563eb;text-decoration:underline;">#' + escapeHtml(rid) + '</a>';
+    }
+    if (col.kind === "action") {
+      var ridAction = rowId(row);
+      if (!ridAction) return "—";
+      var changeUrlAction = getChangeStatusUrl(ridAction, row);
+      return '<a href="' + escapeHtml(changeUrlAction) + '" target="_blank" style="display:inline-block;padding:4px 10px;border-radius:6px;background:#2563eb;color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;">' + escapeHtml(t("changeStatus") || "Change Status") + '</a>';
+    }
     if (col.kind === "price") {
       var price = displayScalar(rowFieldValue(row, col) || row.total_price || row.book_price || "");
       return '<span style="font-weight:700;color:#0f172a;">' + escapeHtml(price || "—") + "</span>";
@@ -1793,7 +1927,17 @@ window.OrderApp = (function _commonSub1() {
   function buildOrdersTableHtml(rows) {
     var dir = isHe() ? "rtl" : "ltr";
     var align = dir === "rtl" ? "right" : "left";
-    var cols = emailTableColumns();
+    var cols = emailTableColumns().slice();
+    var hasActionCol = cols.some(function(c) { return c && (c.kind === "action" || c.key === "action"); });
+    if (!hasActionCol) {
+      cols.push({
+        key: "action",
+        kind: "action",
+        label_en: "Action",
+        label_he: "פעולה",
+        i18n: "changeStatus"
+      });
+    }
     if (!rows || !rows.length) {
       return '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#64748b;direction:' + dir + ';text-align:' + align + ';">' +
         escapeHtml(t("emailNoOrderRows")) + "</p>";
