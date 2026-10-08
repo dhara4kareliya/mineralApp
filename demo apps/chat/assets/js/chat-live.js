@@ -437,10 +437,10 @@
     });
 
     parts.forEach(function (p) {
-      if (p.type === 'url' && !/^(https?:\/\/|biz1upload\/)/i.test(p.value)) {
-        if (hasAnyAbsolute) {
-          p.type = 'text'; // Convert to text so it doesn't render as a media player
-        }
+      if (p.type === 'url' && !/^(https?:\/\/)/i.test(p.value)) {
+        // Always convert bare filenames to text. They are either previews (uploading) or they have a working absolute URL alongside them.
+        // This prevents the browser from firing 404 requests for biz1upload/ dummy paths.
+        p.type = 'text';
       }
     });
 
