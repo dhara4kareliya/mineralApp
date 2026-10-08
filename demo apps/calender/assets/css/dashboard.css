@@ -1429,11 +1429,24 @@ html[data-theme='dark'] .appt-staff-dot {
 
 .week-staff-select select option {
     background: #fff;
+    color: var(--text);
+}
+
+.week-staff-select select option:hover,
+.week-staff-select select option:focus,
+.week-staff-select select option:checked {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
 }
 
 html[data-theme='dark'] .custom-select-panel,
 html[data-theme='dark'] .custom-select-trigger {
     background: #0a191f !important;
+}
+
+html[data-theme='dark'] .week-staff-select select option {
+    background: #0e1e2b;
+    color: var(--text);
 }
 
 .custom-option.disabled {

@@ -366,11 +366,12 @@
         if (!select) return;
         Array.from(select.options).forEach((option) => {
             const isAllStaff = option.value === 'all';
+            const label = (option.dataset.colorLabel || option.textContent || '').replace(/^[●◉○◦]\\s*/, '').trim();
+            const marker = isAllStaff ? '○' : '●';
+            option.dataset.colorLabel = label;
             option.style.color = isAllStaff ? '' : getStaffColor(option.value);
-            if (!option.dataset.colorLabel) {
-                option.dataset.colorLabel = option.textContent.replace(/^●\s*/, '');
-            }
-            option.textContent = isAllStaff ? option.dataset.colorLabel : '● ' + option.dataset.colorLabel;
+            option.style.backgroundColor = option.selected ? 'var(--accent-soft)' : '';
+            option.textContent = marker + ' ' + label;
         });
     }
 
@@ -1955,13 +1956,11 @@
             return;
         }
         bookingLock =
-            opts.hour != null ?
-            {
+            opts.hour != null ? {
                 fixed: true,
                 dateStr: fixedDateStr,
                 time: fixedSlotStart
-            } :
-            { fixed: false };
+            } : { fixed: false };
 
         const qbDate = document.getElementById('qbDate');
         const qbStaff = document.getElementById('qbStaff');
