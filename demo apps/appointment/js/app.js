@@ -1709,12 +1709,47 @@ function downloadCsv(filename, headers, rows) {
 }
 
 function downloadCsvLines(filename, lines) {
-  const escape = (v) => {
-    const s = v == null ? "" : String(v);
-    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  const centerCols = new Set();
+  for (let r = 0; r < Math.min(5, lines.length); r++) {
+    const row = lines[r];
+    row.forEach((h, i) => {
+      const hStr = String(h).toLowerCase();
+      if (
+        hStr.includes("amount") || hStr.includes("treatment") || hStr.includes("status") ||
+        hStr.includes("סכום") || hStr.includes("טיפול") || hStr.includes("סטטוס") ||
+        hStr.includes("type") || hStr.includes("סוג") || hStr.includes("left") || hStr.includes("נותר") ||
+        hStr === "left_amount" || hStr === "left amount" || hStr === "status_label"
+      ) {
+        centerCols.add(i);
+      }
+    });
+  }
+
+  const escape = (v, cIdx) => {
+    let s = v == null ? "" : String(v);
+    if (s && s !== "—") {
+      s = s.replace(/[\u200E\u200F]/g, '');
+      if (/[\u0590-\u05FF]/.test(s)) {
+        s = "\u200F" + s;
+      } else {
+        s = "\u200E" + s;
+      }
+    }
+    
+    // Fake center alignment by padding with spaces
+    let isCenter = centerCols.has(cIdx) || s.trim() === "—" || s.trim() === "-" || s.includes("—");
+    if (isCenter && s.length < 24) {
+      const pad = 24 - s.length;
+      const leftPad = Math.floor(pad / 2);
+      const rightPad = pad - leftPad;
+      s = " ".repeat(leftPad) + s + " ".repeat(rightPad);
+    }
+
+    if (/[",\n ]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
-  const csv = lines.map((row) => row.map(escape).join(",")).join("\n");
+
+  const csv = lines.map((row) => row.map((cell, i) => escape(cell, i)).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

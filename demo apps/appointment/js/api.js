@@ -28,7 +28,7 @@ const Api = {
     const parts = String(location.pathname || "")
       .split("/")
       .filter(Boolean);
-    let user = "demo";
+    let user = "eli";
     if (
       parts.length >= 1 &&
       /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,40}$/.test(parts[0]) &&
