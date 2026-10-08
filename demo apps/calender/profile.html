@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/css/loyalty.css?v=20260730" />
+    <link rel="stylesheet" href="./assets/css/loyalty.css?v=20261008" />
     <script src="./assets/config.js?v=20260921a"></script>
     <script>
       (function () {
@@ -95,10 +95,15 @@
             <tbody id="visitLogsBody"></tbody>
           </table>
         </div>
+        <div class="pagination-wrap" id="paginationWrap" style="display: none;">
+          <button type="button" class="page-btn" id="pagePrevBtn" data-i18n="prevPage" disabled>Previous</button>
+          <span class="page-info" id="pageInfo">Page 1 of 1</span>
+          <button type="button" class="page-btn" id="pageNextBtn" data-i18n="nextPage" disabled>Next</button>
+        </div>
       </div>
     </div>
 
     <div class="toast-stack" id="toastStackLoyalty"></div>
-    <script src="./assets/js/loyalty.js?v=20260921a"></script>
+    <script src="./assets/js/loyalty.js?v=20261008"></script>
   </body>
 </html>

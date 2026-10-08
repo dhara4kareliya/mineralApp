@@ -38,7 +38,10 @@
       freeVisit: 'Free reward visit',
       frontDesk: 'Front desk',
       appointment: 'Appointment',
-      staffPrefix: 'Staff #'
+      staffPrefix: 'Staff #',
+      prevPage: 'Previous',
+      nextPage: 'Next',
+      pageInfo: 'Page {page} of {total}'
     },
     he: {
       backToCalendar: 'חזרה ליומן',
@@ -72,7 +75,10 @@
       freeVisit: 'ביקור הטבה חינם',
       frontDesk: 'דלפק קבלה',
       appointment: 'פגישה',
-      staffPrefix: 'צוות #'
+      staffPrefix: 'צוות #',
+      prevPage: 'הקודם',
+      nextPage: 'הבא',
+      pageInfo: 'עמוד {page} מתוך {total}'
     }
   };
   let currentLang = 'en';
@@ -261,6 +267,8 @@
 
   let loyaltyState = null;
   let customerId = '';
+  let currentLogPage = 1;
+  const logsPerPage = 10;
 
   async function fetchLoyaltyData(clientName, custId, mobileHint) {
     let visitLogs = [];
@@ -522,16 +530,29 @@
 
   function renderVisitLogs() {
     const tbody = document.getElementById('visitLogsBody');
+    const pageWrap = document.getElementById('paginationWrap');
     tbody.innerHTML = '';
+    
     // Latest date first; same-day newer entries above older ones
     const logs = [...loyaltyState.visit_logs].sort(
       (a, b) => visitLogTime(b) - visitLogTime(a)
     );
+    
     if (!logs.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="empty-row">' + t('noVisits') + '</td></tr>';
+      if (pageWrap) pageWrap.style.display = 'none';
       return;
     }
-    logs.forEach((log) => {
+
+    const totalPages = Math.ceil(logs.length / logsPerPage) || 1;
+    if (currentLogPage > totalPages) currentLogPage = totalPages;
+    if (currentLogPage < 1) currentLogPage = 1;
+
+    const startIdx = (currentLogPage - 1) * logsPerPage;
+    const endIdx = startIdx + logsPerPage;
+    const pageLogs = logs.slice(startIdx, endIdx);
+
+    pageLogs.forEach((log) => {
       const tr = document.createElement('tr');
       const isFree = !!(log.is_free || log.status === 'free');
       let statusHtml =
@@ -552,6 +573,27 @@
         '</div></td>';
       tbody.appendChild(tr);
     });
+
+    if (pageWrap) {
+      if (totalPages > 1) {
+        pageWrap.style.display = 'flex';
+        const info = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('pagePrevBtn');
+        const nextBtn = document.getElementById('pageNextBtn');
+        
+        if (info) info.textContent = t('pageInfo', { page: currentLogPage, total: totalPages });
+        if (prevBtn) {
+          prevBtn.disabled = currentLogPage === 1;
+          prevBtn.textContent = t('prevPage');
+        }
+        if (nextBtn) {
+          nextBtn.disabled = currentLogPage === totalPages;
+          nextBtn.textContent = t('nextPage');
+        }
+      } else {
+        pageWrap.style.display = 'none';
+      }
+    }
   }
 
   function markVisitComplete() {
@@ -647,4 +689,20 @@
       setTimeout(() => toast.remove(), 300);
     }, 2500);
   }
+
+  document.addEventListener('click', function (e) {
+    if (e.target.id === 'pagePrevBtn' || e.target.closest('#pagePrevBtn')) {
+      if (currentLogPage > 1) {
+        currentLogPage--;
+        renderVisitLogs();
+      }
+    } else if (e.target.id === 'pageNextBtn' || e.target.closest('#pageNextBtn')) {
+      const totalPages = Math.ceil((loyaltyState.visit_logs || []).length / logsPerPage) || 1;
+      if (currentLogPage < totalPages) {
+        currentLogPage++;
+        renderVisitLogs();
+      }
+    }
+  });
+
 })();
