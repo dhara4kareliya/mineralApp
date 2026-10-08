@@ -1551,17 +1551,17 @@
 
             if (dayAppts.length > 0) {
                 const count = dayAppts.length;
-                let trafficWord = 'Quiet';
+                let trafficWord = currentLang === 'he' ? 'שקט' : 'Quiet';
                 let tagClass = 'tag-quiet';
 
                 if (count >= 7) {
-                    trafficWord = 'Very Busy';
+                    trafficWord = currentLang === 'he' ? 'עמוס מאוד' : 'Very Busy';
                     tagClass = 'tag-busy';
                 } else if (count >= 4) {
-                    trafficWord = 'Steady';
+                    trafficWord = currentLang === 'he' ? 'יציב' : 'Steady';
                     tagClass = 'tag-steady';
                 } else if (count >= 2) {
-                    trafficWord = 'Moderate';
+                    trafficWord = currentLang === 'he' ? 'רגיל' : 'Moderate';
                     tagClass = 'tag-moderate';
                 }
 
@@ -1614,7 +1614,8 @@
     function updateWeekRangeLabel() {
         const dayEl = document.getElementById('dayRangeLabel');
         const weekEl = document.getElementById('weekRangeLabel');
-        const dayText = currentDate.toLocaleDateString('en-US', {
+        const locale = currentLang === 'he' ? 'he-IL' : 'en-US';
+        const dayText = currentDate.toLocaleDateString(locale, {
             weekday: 'short',
             month: 'short',
             day: 'numeric',
@@ -1623,12 +1624,12 @@
         const weekStart = startOfWeek(currentDate);
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 6);
-        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const fmt = (d) => d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
         const weekText = fmt(weekStart) + ' – ' + fmt(weekEnd);
         if (dayEl) dayEl.textContent = dayText;
         if (weekEl) {
             if (currentView === 'month') {
-                weekEl.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                weekEl.textContent = currentDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
             } else {
                 weekEl.textContent = weekText;
             }

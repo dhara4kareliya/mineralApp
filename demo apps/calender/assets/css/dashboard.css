@@ -287,6 +287,10 @@ html[dir='rtl'] .sync-bar {
     border-color: var(--accent);
 }
 
+html[dir='rtl'] .week-range-nav button svg {
+    transform: scaleX(-1);
+}
+
 .week-range-label {
     font-size: 13px;
     font-weight: 700;
@@ -1053,7 +1057,7 @@ html[data-theme='dark'] .week-grid .grid-corner {
     font-size: 14px;
     font-weight: 700;
     color: var(--text-muted);
-    margin-left: auto;
+    margin-inline-start: auto;
     cursor: pointer;
     padding: 2px;
     border-radius: 4px;
