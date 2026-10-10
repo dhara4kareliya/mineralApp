@@ -1837,6 +1837,15 @@
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+    document.querySelectorAll('.ds-input[data-align-lang]').forEach(function (el) {
+      if (el.getAttribute('data-align-lang') === 'ltr') {
+        el.style.textAlign = 'left';
+        el.style.direction = 'ltr';
+      } else {
+        el.style.textAlign = lang === 'he' ? 'right' : 'left';
+        el.style.direction = dir;
+      }
+    });
     var demoBox = document.getElementById('demo-users');
     if (demoBox) demoBox.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
   }
@@ -3379,8 +3388,10 @@
     var selectedCustomerId = mission && mission.customer_id ? String(mission.customer_id) : String(board.client_id || '');
     var selectedProjectId = mission && mission.project_id ? String(mission.project_id) : String(board.id || '');
 
+    var isHe = getLang() === 'he';
+
     // Build Customer <select> dropdown (same pattern as project form customerOptions)
-    var custSelectHtml = '<option value="">-- Select Customer --</option>';
+    var custSelectHtml = '<option value="">' + (isHe ? '-- בחר לקוח --' : '-- Select Customer --') + '</option>';
     state.customers.forEach(function (c) {
       var id = String(c.id || c.customer_id || '');
       var name = pick(c, ['name', 'company', 'full_name', 'customer_name'], '#' + id);
@@ -3388,8 +3399,8 @@
     });
 
     // Build Project <select> dropdown
-    var projSelectHtml = '<option value="">-- Assign project --</option>';
-    projSelectHtml += '<option value="new">Add New Project</option>';
+    var projSelectHtml = '<option value="">' + (isHe ? '-- שייך פרויקט --' : '-- Assign project --') + '</option>';
+    projSelectHtml += '<option value="new">' + (isHe ? 'הוסף פרויקט חדש' : 'Add New Project') + '</option>';
     projects.forEach(function (p) {
       var pid = String(p.id || p.project_id || '');
       var pname = p.name || p.project_name || ('#' + pid);
@@ -3397,7 +3408,7 @@
     });
 
     // Build Mission Steps <select>
-    var stepsHtml = '<option value="">-- Select Missions steps --</option><option value="new">Add New Steps</option>';
+    var stepsHtml = '<option value="">' + (isHe ? '-- בחר שלבי משימה --' : '-- Select Missions steps --') + '</option><option value="new">' + (isHe ? 'הוסף שלבים חדשים' : 'Add New Steps') + '</option>';
     missionSteps.forEach(function(s) {
       stepsHtml += '<option value="' + esc(s.id) + '">' + esc(s.name || s.step_name || s.step_name_en || s.title) + '</option>';
     });
@@ -3409,7 +3420,7 @@
     '.mission-mode-banner { display: inline-flex; align-items: center; justify-content: center; padding: 7px 12px; border-radius: 999px; border: 1px solid #d9d4ff; background: #f2f0ff; color: #4c3fbd; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 12px; }' +
     '.mission-col { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 18px; }' +
     '.mission-field { display: flex; flex-direction: column; gap: 6px; }' +
-    '.mission-label { color: #6958d4; font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }' +
+    '.mission-label { color: #6958d4; font-size: 13px; font-weight: 600; letter-spacing: 0.01em; text-align: start; }' +
     '.mission-input, .mission-select { border: 1px solid #e1e3f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; width: 100%; box-sizing: border-box; color: #333; outline: none; background: white; transition: border-color 0.2s; appearance: none; -webkit-appearance: none; }' +
     '.mission-select { background: white url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' fill=\'%23666\'%3E%3Cpath d=\'M0 0l6 8 6-8z\'/%3E%3C/svg%3E") no-repeat right 14px center; padding-right: 36px; cursor: pointer; }' +
     '.mission-input:focus, .mission-select:focus { border-color: #6958d4; box-shadow: 0 0 0 3px rgba(105,88,212,0.08); }' +
@@ -3458,51 +3469,51 @@
     '[data-theme="dark"] .pill-white { background: var(--bg-muted); color: var(--text); border-color: var(--border); }' +
     '</style>' +
 
-    '<div class="mission-mode-banner">' + (missionId ? 'Edit Mission' : 'Add Mission') + '</div>' +
+    '<div class="mission-mode-banner">' + (missionId ? (isHe ? 'עריכת משימה' : 'Edit Mission') : (isHe ? 'הוספת משימה' : 'Add Mission')) + '</div>' +
     '<div class="mission-form-grid">' +
 
-      /* ── LEFT COLUMN ── */
+      /* ── DETAILS COLUMN ── */
       '<div class="mission-col">' +
-        '<div class="mission-field"><label class="mission-label">Mission Details <span style="color:red">*</span></label><textarea id="mText" class="mission-input mission-textarea" placeholder="Type your message here"></textarea></div>' +
-        '<div class="mission-field"><label class="mission-label">Notes</label><textarea id="mNotes" class="mission-input mission-textarea" placeholder="Type your message here"></textarea></div>' +
-        '<div class="mission-field"><label class="mission-label">Image:</label>' +
+        '<div class="mission-field"><label class="mission-label">' + (isHe ? 'פרטי המשימה' : 'Mission Details') + ' <span style="color:red">*</span></label><textarea id="mText" class="mission-input mission-textarea" placeholder="' + (isHe ? 'הקלד את ההודעה כאן' : 'Type your message here') + '"></textarea></div>' +
+        '<div class="mission-field"><label class="mission-label">' + (isHe ? 'הערות' : 'Notes') + '</label><textarea id="mNotes" class="mission-input mission-textarea" placeholder="' + (isHe ? 'הקלד את ההודעה כאן' : 'Type your message here') + '"></textarea></div>' +
+        '<div class="mission-field"><label class="mission-label">' + (isHe ? 'תמונה' : 'Image') + '</label>' +
         '<div id="mMediaDrop" class="mission-box mission-box-dashed" style="padding:10px; cursor:pointer;">' +
         '<input type="file" id="mMedia" class="mission-file-input" accept="image/*" multiple>' +
         '<div id="mMediaPlaceholder" style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px; color:#888;">' +
         '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6958d4" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
-        '<span style="font-size:12px;">Click to choose image or drag & drop</span></div>' +
+        '<span style="font-size:12px;">' + (isHe ? 'לחץ לבחירת תמונה או גרור ושחרר' : 'Click to choose image or drag & drop') + '</span></div>' +
         '<div id="mMediaPreview" class="mission-preview-grid" style="display:none;"></div>' +
         '</div></div>' +
-        '<div class="mission-dark-header">Sub missions <div>⊕</div></div>' +
-        '<textarea id="mSubMissions" class="mission-input mission-textarea" placeholder="Enter sub missions, one per line" style="min-height:50px;"></textarea>' +
+        '<div class="mission-dark-header">' + (isHe ? 'משימות משנה' : 'Sub missions') + ' <div>⊕</div></div>' +
+        '<textarea id="mSubMissions" class="mission-input mission-textarea" placeholder="' + (isHe ? 'הזן משימות משנה, אחת בכל שורה' : 'Enter sub missions, one per line') + '" style="min-height:50px;"></textarea>' +
       '</div>' +
 
-      /* ── RIGHT COLUMN ── */
+      /* ── SETTINGS COLUMN ── */
       '<div class="mission-col">' +
-        '<label class="mission-checkbox" style="font-weight:600;"><input type="checkbox" id="mPrivate"> Private Mission</label>' +
+        '<label class="mission-checkbox" style="font-weight:600;"><input type="checkbox" id="mPrivate"> ' + (isHe ? 'משימה פרטית' : 'Private Mission') + '</label>' +
         '<div class="mission-row">' +
-          '<div class="mission-field"><label class="mission-label">Assign Customer:</label><select id="mCustomer" class="mission-select">' + custSelectHtml + '</select></div>' +
-          '<div class="mission-field"><label class="mission-label">Select Team Member:</label><div id="mTeam" class="mission-team-list"></div></div>' +
+          '<div class="mission-field"><label class="mission-label">' + (isHe ? 'שיוך לקוח' : 'Assign Customer') + '</label><select id="mCustomer" class="mission-select">' + custSelectHtml + '</select></div>' +
+          '<div class="mission-field"><label class="mission-label">' + (isHe ? 'בחירת חבר צוות' : 'Select Team Member') + '</label><div id="mTeam" class="mission-team-list"></div></div>' +
         '</div>' +
         '<div class="mission-row">' +
-          '<div class="mission-field"><label class="mission-label">Missions steps:</label><select id="mMissionSteps" class="mission-select">' + stepsHtml + '</select></div>' +
+          '<div class="mission-field"><label class="mission-label">' + (isHe ? 'שלבי משימה' : 'Missions steps') + '</label><select id="mMissionSteps" class="mission-select">' + stepsHtml + '</select></div>' +
         '</div>' +
         '<div class="mission-row">' +
-          '<div class="mission-field"><label class="mission-label">Date to do:</label><input type="datetime-local" id="mDateToDo" class="mission-input"></div>' +
-          '<div class="mission-field"><label class="mission-label">Priority:</label><select id="mPriority" class="mission-select"><option value="transparent">Default</option><option value="yellow">Yellow</option><option value="red">Red</option><option value="green">Green</option><option value="blue">Blue</option></select></div>' +
+          '<div class="mission-field"><label class="mission-label">' + (isHe ? 'תאריך יעד' : 'Date to do') + '</label><input type="datetime-local" id="mDateToDo" class="mission-input"></div>' +
+          '<div class="mission-field"><label class="mission-label">' + (isHe ? 'עדיפות' : 'Priority') + '</label><select id="mPriority" class="mission-select"><option value="transparent">' + (isHe ? 'ברירת מחדל' : 'Default') + '</option><option value="yellow">' + (isHe ? 'צהוב' : 'Yellow') + '</option><option value="red">' + (isHe ? 'אדום' : 'Red') + '</option><option value="green">' + (isHe ? 'ירוק' : 'Green') + '</option><option value="blue">' + (isHe ? 'כחול' : 'Blue') + '</option></select></div>' +
         '</div>' +
-        '<div class="mission-field"><label class="mission-label">Status:</label><div class="mission-pills" style="margin-top:4px;">' +
-          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="to_do" class="mission-pill-input mission-pill-color-input" checked><div class="mission-pill pill-red">To Do</div></label>' +
-          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="queries" class="mission-pill-input mission-pill-color-input"><div class="mission-pill pill-yellow">Queries</div></label>' +
-          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="testing" class="mission-pill-input mission-pill-color-input"><div class="mission-pill pill-white">Testing</div></label>' +
-          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="done" class="mission-pill-input mission-pill-color-input"><div class="mission-pill pill-green">Done</div></label>' +
+        '<div class="mission-field"><label class="mission-label">' + (isHe ? 'סטטוס' : 'Status') + '</label><div class="mission-pills" style="margin-top:4px;">' +
+          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="to_do" class="mission-pill-input mission-pill-color-input" checked><div class="mission-pill pill-red">' + (isHe ? 'לעשות' : 'To Do') + '</div></label>' +
+          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="queries" class="mission-pill-input mission-pill-color-input"><div class="mission-pill pill-yellow">' + (isHe ? 'שאילתות' : 'Queries') + '</div></label>' +
+          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="testing" class="mission-pill-input mission-pill-color-input"><div class="mission-pill pill-white">' + (isHe ? 'בדיקה' : 'Testing') + '</div></label>' +
+          '<label class="mission-pill-label"><input type="radio" name="mStatus" value="done" class="mission-pill-input mission-pill-color-input"><div class="mission-pill pill-green">' + (isHe ? 'בוצע' : 'Done') + '</div></label>' +
         '</div></div>' +
       '</div>' +
     '</div>';
 
-    openModal(missionId ? 'Edit Mission' : 'Add Mission', html,
+    openModal(missionId ? (isHe ? 'עריכת משימה' : 'Edit Mission') : (isHe ? 'הוספת משימה' : 'Add Mission'), html,
       '<button type="button" class="btn-ghost" data-modal-close>' + esc(tr('cancel')) + '</button>' +
-      '<button type="button" class="btn-primary" id="mCreateBtn" data-col="' + esc(colKey) + '" data-mission-id="' + esc(missionId || '') + '" style="padding: 0 24px;">' + (missionId ? 'Save Changes' : 'Create Mission') + '</button>',
+      '<button type="button" class="btn-primary" id="mCreateBtn" data-col="' + esc(colKey) + '" data-mission-id="' + esc(missionId || '') + '" style="padding: 0 24px;">' + (missionId ? (isHe ? 'שמור שינויים' : 'Save Changes') : (isHe ? 'צור משימה' : 'Create Mission')) + '</button>',
       { form: true }
     );
 
