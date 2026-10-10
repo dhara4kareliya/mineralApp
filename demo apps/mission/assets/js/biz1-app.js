@@ -486,7 +486,12 @@
     var customer = m.customer_name || (window.t ? window.t('no_customer') : 'No customer');
     var desc = m.description || m.note || m.notes || '';
     var imagePaths = parseMissionImageList(m.image);
-    var firstImageUrl = imagePaths.length ? resolveFileUrl(imagePaths[0]) : '';
+    var firstImagePath = imagePaths.length ? imagePaths[0] : '';
+    var candidates = firstImagePath ? getImageCandidateUrls(firstImagePath) : [];
+    var firstImageUrl = candidates.length ? candidates[0] : '';
+    var fallbacks = candidates.slice(1);
+    var isAudioOrVideo = firstImagePath && isMediaAudioOrVideo(firstImagePath);
+    var recordingLink = parseRecordingFromMeta(m.meta);
     
     var html = '<div style="font-size:18px; font-weight:800; color:var(--text-title); margin:0 0 18px; line-height:1.35; overflow-wrap:anywhere;">' + esc(title) + '</div>';
     
@@ -534,9 +539,25 @@
     html += '</div>';
     html += '</div>';
 
-    // Keep the details popup compact: show only the first attached image.
+    // Keep the details popup compact: show only the first attached image or media.
     if (firstImageUrl) {
-      html += '<img src="' + esc(firstImageUrl) + '" alt="Task image" style="display:block; width:100%; max-height:220px; object-fit:cover; border-radius:14px; margin-bottom:24px; border:1px solid var(--border-panel, #e4e8ee);" />';
+      if (isAudioOrVideo) {
+        html += '<div style="margin-bottom:24px;">';
+        html += '<audio controls src="' + esc(firstImageUrl) + '" style="width:100%; height:36px; border-radius:10px;"></audio>';
+        html += '</div>';
+      } else {
+        html += '<img class="task-detail-img-preview" src="' + esc(firstImageUrl) + '" alt="" data-fallbacks="' + esc(fallbacks.join('|')) + '" style="display:block; width:100%; max-height:220px; object-fit:cover; border-radius:14px; margin-bottom:24px; border:1px solid var(--border-panel, #e4e8ee);" />';
+      }
+    }
+
+    // Attached Recording from meta (if distinct from image attachment)
+    if (recordingLink && recordingLink !== firstImagePath) {
+      var recCandidates = getImageCandidateUrls(recordingLink);
+      var mainRecUrl = recCandidates[0] || recordingLink;
+      html += '<div style="background:var(--bg-screen, #fff); border:1px solid var(--border-panel, #e4e8ee); border-radius:14px; padding:12px 14px; margin-bottom:24px; box-shadow:0 4px 14px rgba(0,0,0,0.03);">';
+      html += '<div style="font-size:11px; font-weight:800; color:var(--text-sub); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">' + (window.t ? (window.t('recording') || 'הקלטה') : 'Recording') + '</div>';
+      html += '<audio controls src="' + esc(mainRecUrl) + '" style="width:100%; height:36px;"></audio>';
+      html += '</div>';
     }
     
     // Notes
@@ -562,6 +583,20 @@
     html += '</div>';
     
     content.innerHTML = html;
+
+    var detailImg = content.querySelector('.task-detail-img-preview');
+    if (detailImg) {
+      detailImg.addEventListener('error', function () {
+        var rawFb = detailImg.getAttribute('data-fallbacks') || '';
+        var fbs = rawFb.split('|').filter(Boolean);
+        if (fbs.length) {
+          detailImg.src = fbs.shift();
+          detailImg.setAttribute('data-fallbacks', fbs.join('|'));
+        } else {
+          detailImg.style.display = 'none';
+        }
+      });
+    }
 
     var doneBtn = content.querySelector('[data-done-mission-id]');
     if (doneBtn && !isTaskDone) {
@@ -1552,7 +1587,9 @@
       payload.notify_client = p.notify_client ? 1 : 0;
       payload.email_me_employee = (p.email_me_employee || p.email_reminder) ? 1 : 0;
       payload.whatsApp_reminder = (p.whatsApp_reminder || p.whatsapp_reminder) ? 1 : 0;
-      payload.use_as_template = p.use_as_template ? 1 : 0;
+      var asTemplate = !!(p.use_as_template || p.client_create);
+      payload.use_as_template = asTemplate ? 1 : 0;
+      payload.client_create = asTemplate ? 1 : 0;
       payload.private_mission = (p.private_mission || p.private) ? 1 : 0;
 
       var raw = await client.request('Mission.Create', payload);
@@ -1697,23 +1734,134 @@
     notify_client: true,
     email_me_employee: true,
     whatsApp_reminder: true,
-    use_as_template: true
+    use_as_template: true,
+    client_create: true
   };
 
   var FILES_CDN = 'https://files.biz1.co.il/';
 
-  function resolveFileUrl(pathOrUrl) {
-    var s = String(pathOrUrl || '').trim();
-    if (!s) return '';
-    if (/^https?:\/\//i.test(s) || /^data:/i.test(s)) return s;
-    return FILES_CDN + s.replace(/^\/+/, '');
+  function isMediaAudioOrVideo(path) {
+    if (!path) return false;
+    var s = String(path).toLowerCase().split('?')[0];
+    return /\.(mp3|mp4|wav|ogg|m4a|webm|mov|aac|flac)$/i.test(s);
   }
 
   function parseMissionImageList(imageField) {
-    var raw = String(imageField || '').trim();
-    if (!raw) return [];
+    if (!imageField) return [];
+    var raw = String(imageField).trim();
+    if (!raw || raw === 'null' || raw === 'undefined' || raw === '[]' || raw === '{}') return [];
     if (/^data:image\//i.test(raw)) return [raw];
-    return raw.split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+
+    if ((raw.charAt(0) === '[' && raw.charAt(raw.length - 1) === ']') ||
+        (raw.charAt(0) === '{' && raw.charAt(raw.length - 1) === '}')) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map(function(item) {
+            if (!item) return '';
+            if (typeof item === 'object') return item.path || item.url || item.file_path || '';
+            return String(item).trim();
+          }).filter(function(p) {
+            return p && p !== 'null' && p !== 'undefined';
+          });
+        } else if (parsed && typeof parsed === 'object') {
+          var single = parsed.path || parsed.url || parsed.file_path || parsed.file || '';
+          if (single && single !== 'null' && single !== 'undefined') return [single];
+        }
+      } catch (e) { /* fall back */ }
+    }
+
+    return raw.split(',').map(function (p) {
+      return p.replace(/^[\["'\s]+|[\]"'\s]+$/g, '').trim();
+    }).filter(function(p) {
+      return p && p !== 'null' && p !== 'undefined' && p !== '[]' && p !== '{}';
+    });
+  }
+
+  function getImageCandidateUrls(pathOrUrl) {
+    if (!pathOrUrl) return [];
+    var p = String(pathOrUrl).trim();
+    if (!p || p === 'null' || p === 'undefined') return [];
+    if (/^data:/i.test(p) || /^blob:/i.test(p)) return [p];
+
+    var candidates = [];
+    var seen = Object.create(null);
+    function add(u) {
+      if (!u) return;
+      u = String(u).trim();
+      if (!u || seen[u]) return;
+      seen[u] = true;
+      candidates.push(u);
+    }
+
+    var domain = '';
+    try {
+      if (window.MineralBarApp && typeof MineralBarApp.getDomain === 'function') {
+        domain = MineralBarApp.getDomain();
+      }
+      if (!domain && window.MineralBarApp && MineralBarApp.DOMAIN) {
+        domain = MineralBarApp.DOMAIN;
+      }
+      if (!domain && typeof DOMAIN !== 'undefined') {
+        domain = DOMAIN;
+      }
+    } catch (e) { domain = ''; }
+    var baseDomain = domain ? String(domain).replace(/\/+$/, '') : '';
+    var apiRoot = 'biz1.co.il';
+    try {
+      if (window.Biz1Config && typeof Biz1Config.resolveApiRoot === 'function') {
+        apiRoot = Biz1Config.resolveApiRoot();
+      }
+    } catch (e) { }
+
+    if (/^https?:\/\//i.test(p)) {
+      add(p);
+      if (/^http:\/\//i.test(p)) {
+        add(p.replace(/^http:\/\//i, 'https://'));
+      }
+      if (/files\.bull36\.com/i.test(p)) {
+        add(p.replace(/files\.bull36\.com/i, 'files.biz1.co.il'));
+      } else if (/files\.biz1\.co\.il/i.test(p)) {
+        add(p.replace(/files\.biz1\.co\.il/i, 'files.bull36.com'));
+      }
+      var urlPath = p.replace(/^https?:\/\/[^\/]+\/+/, '');
+      if (urlPath) {
+        add('https://files.' + apiRoot + '/' + urlPath);
+        add('https://files.biz1.co.il/' + urlPath);
+        if (baseDomain) {
+          add(baseDomain + '/' + urlPath);
+          add(baseDomain + '/biz1upload/' + urlPath);
+          add(baseDomain + '/files/' + urlPath);
+        }
+      }
+      return candidates;
+    }
+
+    var clean = p.replace(/^\/+/, '');
+
+    add('https://files.' + apiRoot + '/' + clean);
+    add('https://files.biz1.co.il/' + clean);
+    add('https://files.biz1.co.il/biz1upload/' + clean);
+    add('https://files.biz1.co.il/biz1upload/site/' + clean);
+    add('https://files.biz1.co.il/biz1upload/upload/' + clean);
+    add('https://files.biz1.co.il/files/' + clean);
+    add('https://files.biz1.co.il/upload/' + clean);
+    add('https://files.biz1.co.il/uploads/' + clean);
+
+    if (baseDomain) {
+      add(baseDomain + '/' + clean);
+      add(baseDomain + '/biz1upload/' + clean);
+      add(baseDomain + '/files/' + clean);
+      add(baseDomain + '/biz1upload/site/' + clean);
+      add(baseDomain + '/upload/' + clean);
+    }
+
+    return candidates;
+  }
+
+  function resolveFileUrl(pathOrUrl) {
+    var list = getImageCandidateUrls(pathOrUrl);
+    return list.length ? list[0] : '';
   }
 
   function parseRecordingFromMeta(meta) {
@@ -1800,7 +1948,7 @@
       }
       for (var i = 0; i < list.length; i++) {
         var up = await uploadCustomerFile(cid, list[i]);
-        uploaded.push(up.path || up.url);
+        uploaded.push(up.url || up.path);
       }
     }
     var merged = kept.concat(uploaded);
@@ -1822,10 +1970,21 @@
   async function saveMissionRecording(missionId, recordingLink, previousMeta) {
     var id = requireId(missionId, 'mission_id/id');
     var meta = buildRecordingMeta(recordingLink, previousMeta);
-    if (meta !== String(previousMeta == null ? '' : previousMeta).trim()) {
-      await updateMission({ id: id, mission_id: id, filed: 'meta', saveoutput: meta });
+    // Sanitize meta length so it never exceeds column limit (MySQL 500 Data too long for column 'meta')
+    var safeMeta = meta;
+    if (safeMeta && safeMeta.length > 60) {
+      safeMeta = safeMeta.slice(0, 60);
     }
-    return { meta: meta };
+    var prev = String(previousMeta == null ? '' : previousMeta).trim();
+    if (safeMeta && safeMeta.length > 60) prev = prev.slice(0, 60);
+    if (safeMeta !== prev) {
+      try {
+        await updateMission({ id: id, mission_id: id, filed: 'meta', saveoutput: safeMeta });
+      } catch (err) {
+        console.warn('[Biz1] Warning: Failed to update mission meta column:', err);
+      }
+    }
+    return { meta: safeMeta };
   }
 
   function toUtcDateTimeString(value) {
@@ -1855,11 +2014,14 @@
     if (value == null) return '';
     if (field === 'private_mission' || field === 'notify_client' ||
         field === 'email_me_employee' || field === 'whatsApp_reminder' ||
-        field === 'use_as_template') {
-      return (value === true || Number(value) === 1) ? '1' : '0';
+        field === 'use_as_template' || field === 'client_create') {
+      return (value === true || Number(value) === 1 || value === '1') ? '1' : '0';
     }
     if (field === 'project_id' || field === 'step_id' || field === 'missions_steps_id') {
       return String(Number(value) || 0);
+    }
+    if (field === 'lead_id') {
+      return String(value || '').trim();
     }
     if (field === 'member_id') {
       var members = value;
@@ -1900,14 +2062,48 @@
         val = toUtcDateTimeString(val);
         if (!val) continue;
       }
-      if (val === '') continue;
+      if (val === '') {
+        // If field was already empty in current, skip
+        var curRaw = current[filed];
+        if (curRaw === undefined) {
+          if (filed === 'note') curRaw = current.note;
+          else if (filed === 'color') curRaw = current.color;
+        }
+        if (!curRaw) continue;
+      }
       if (typeof val === 'object') {
         try { val = JSON.stringify(val); } catch (e) { val = String(val); }
       }
-      if (filed === 'private_mission') val = (val === true || val === 1 || val === '1') ? 1 : 0;
-      if (Object.prototype.hasOwnProperty.call(current, filed) &&
-          comparableMissionValue(filed, current[filed]) === comparableMissionValue(filed, val)) {
-        continue;
+      if (filed === 'private_mission' || filed === 'use_as_template' || filed === 'client_create' ||
+          filed === 'notify_client' || filed === 'email_me_employee' || filed === 'whatsApp_reminder') {
+        val = (val === true || val === 1 || val === '1') ? 1 : 0;
+      }
+
+      // Treat use_as_template / client_create as the same flag when comparing current state.
+      if (filed === 'use_as_template' || filed === 'client_create') {
+        var curOn = comparableMissionValue('client_create', current.use_as_template) === '1' ||
+          comparableMissionValue('client_create', current.client_create) === '1';
+        var nextOn = comparableMissionValue(filed, val) === '1';
+        if (curOn === nextOn) continue;
+      } else {
+        // Look up current value accounting for common aliases in current
+        var currVal = current[filed];
+        if (currVal === undefined) {
+          if (filed === 'lead_id') currVal = current.customer_id != null ? current.customer_id : (current.client_id != null ? current.client_id : current.lead_id);
+          else if (filed === 'member_id') currVal = current.organizations_user != null ? current.organizations_user : (current.assigned_to != null ? current.assigned_to : current.member_id);
+          else if (filed === 'private_mission') currVal = current.is_private != null ? current.is_private : (current.private != null ? current.private : current.private_mission);
+          else if (filed === 'missions_steps_id') currVal = current.step_id != null ? current.step_id : current.missions_steps_id;
+          else if (filed === 'mission') currVal = current.title != null ? current.title : current.mission;
+        }
+
+        // If current does not define this boolean/optional field and val is default 0 or empty, skip
+        if (currVal === undefined && (val === 0 || val === '0' || val === '' || val == null)) {
+          continue;
+        }
+
+        if (comparableMissionValue(filed, currVal) === comparableMissionValue(filed, val)) {
+          continue; // Unchanged! Skip calling Mission.Update
+        }
       }
       results.push(await updateMission({ id: id, mission_id: id, filed: filed, saveoutput: val }));
     }
@@ -2520,6 +2716,8 @@
     saveMissionImages: saveMissionImages,
     saveMissionRecording: saveMissionRecording,
     resolveFileUrl: resolveFileUrl,
+    getImageCandidateUrls: getImageCandidateUrls,
+    isMediaAudioOrVideo: isMediaAudioOrVideo,
     parseMissionImageList: parseMissionImageList,
     parseRecordingFromMeta: parseRecordingFromMeta,
     FILES_CDN: FILES_CDN,

@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Biz1 Showcase - New Task</title>
     <script src="assets/js/theme-boot.js"></script>
-    <link rel="stylesheet" href="assets/css/style.css?v=mission-7">
+    <link rel="stylesheet" href="assets/css/style.css?v=mission-17">
     <script src="assets/js/lang.js?v=mission-2"></script>
     <script src="assets/js/config.js?v=mission-2"></script>
     <script src="assets/js/biz1-sdk.js?v=mission-2"></script>
-    <script src="assets/js/biz1-app.js?v=mission-4"></script>
+    <script src="assets/js/biz1-app.js?v=mission-7"></script>
     <script src="assets/js/page-boot.js?v=mission-6"></script>
-    <script src="assets/js/mission-create-live.js?v=mission-6"></script>
-    <script src="assets/js/components.js?v=mission-3"></script>
+    <script src="assets/js/mission-create-live.js?v=mission-8"></script>
+    <script src="assets/js/components.js?v=mission-4"></script>
 </head>
 
 <body>
@@ -163,6 +163,11 @@
                   <span>►</span> <span data-i18n="record">הקלטה</span>
                 </button>
                                     <input class="gv-in" id="mb-recording-link" placeholder="קישור להקלטה..." data-i18n-placeholder="recording_link_placeholder" type="text" />
+                                    <input id="mb-record-file-input" type="file" accept="audio/*,video/*,.mp3,.mp4,audio/mp3,video/mp4" style="display:none;" />
+                                </div>
+                                <div id="mb-recording-file-info" style="display:none; margin-top:-6px; margin-bottom:12px; font-size:12px; color:var(--text-sub); align-items:center; justify-content:space-between; padding:4px 8px; background:var(--bg-form); border:1px solid var(--border-panel); border-radius:6px;">
+                                    <span id="mb-recording-file-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:85%;"></span>
+                                    <button type="button" id="mb-record-clear-btn" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:14px; padding:0 4px;" title="Clear">✕</button>
                                 </div>
                                 <div id="mb-image-dropzone" class="mission-dropzone">
                                     <label for="mb-file-input" class="me-drop-label">

@@ -664,41 +664,55 @@
       
       var filterOptions = document.getElementById('task-filter-options');
       if (filterOptions) {
-        var optionsHtml = '<div class="filter-options-group">';
-        optionsHtml += '<div class="filter-option' + (activeStatusFilter === 'all' ? ' is-active' : '') + '" data-val="all">' + (window.t ? window.t('all') : 'All') + '</div>';
-        optionsHtml += '</div>';
-        
-        optionsHtml += '<div class="filter-category-title">TIME</div>';
+        var optionsHtml = '';
+
+        // Category 1: Main View Filters (All, Today, Priority, Upcoming, Done)
+        var isAllActive = (currentFilterType === 'show_all_together_tasks' && (activeStatusFilter === 'all' || activeStatusFilter === 'main_all'));
+        var isTodayActive = (currentFilterType === 'today_tasks' || activeStatusFilter === 'main_today');
+        var isPriorityActive = (currentFilterType === 'priority_tasks' || activeStatusFilter === 'main_priority');
+        var isUpcomingActive = (currentFilterType === 'upcoming_tasks' || activeStatusFilter === 'main_upcoming');
+        var isDoneActive = (currentFilterType === 'done_tasks' || activeStatusFilter === 'main_done');
+
+        optionsHtml += '<div class="filter-category-title">' + (window.t ? (window.t('tasks') || 'TASKS') : 'TASKS') + '</div>';
         optionsHtml += '<div class="filter-options-group">';
-        optionsHtml += '<div class="filter-option' + (activeStatusFilter === 'filter_today' ? ' is-active' : '') + '" data-val="filter_today">' + (window.t ? window.t('tasks_for_today') : 'Today') + '</div>';
+        optionsHtml += '<div class="filter-option' + (isAllActive ? ' is-active' : '') + '" data-val="main_all">' + (window.t ? window.t('filter_all') : 'All') + '</div>';
+        optionsHtml += '<div class="filter-option' + (isTodayActive ? ' is-active' : '') + '" data-val="main_today">' + (window.t ? window.t('filter_today') : 'Today') + '</div>';
+        optionsHtml += '<div class="filter-option' + (isPriorityActive ? ' is-active' : '') + '" data-val="main_priority">' + (window.t ? window.t('filter_priority') : 'Priority') + '</div>';
+        optionsHtml += '<div class="filter-option' + (isUpcomingActive ? ' is-active' : '') + '" data-val="main_upcoming">' + (window.t ? window.t('filter_upcoming') : 'Upcoming') + '</div>';
+        optionsHtml += '<div class="filter-option' + (isDoneActive ? ' is-active' : '') + '" data-val="main_done">' + (window.t ? window.t('filter_done') : 'Done') + '</div>';
         optionsHtml += '</div>';
-        
-        optionsHtml += '<div class="filter-category-title">PRIORITY</div>';
+
+        // Category 2: Status columns
+        if (projectColumns && projectColumns.length) {
+          optionsHtml += '<div class="filter-category-title">' + (window.t ? (window.t('status_label') || 'STATUS') : 'STATUS') + '</div>';
+          optionsHtml += '<div class="filter-options-group">';
+          projectColumns.forEach(function (col) {
+            var valKey = 'status_' + col.value;
+            var isActive = (activeStatusFilter === valKey);
+            optionsHtml += '<div class="filter-option' + (isActive ? ' is-active' : '') + '" data-val="' + esc(valKey) + '">' +
+              esc(col.label) + '</div>';
+          });
+          optionsHtml += '</div>';
+        }
+
+        // Category 3: Priority
+        optionsHtml += '<div class="filter-category-title">' + (window.t ? (window.t('priority_label') || 'PRIORITY') : 'PRIORITY') + '</div>';
         optionsHtml += '<div class="filter-options-group">';
         optionsHtml += '<div class="filter-option' + (activeStatusFilter === 'priority_urgent' ? ' is-active' : '') + '" data-val="priority_urgent">' + (window.t ? window.t('priority_urgent') : 'Urgent') + '</div>';
         optionsHtml += '<div class="filter-option' + (activeStatusFilter === 'priority_normal' ? ' is-active' : '') + '" data-val="priority_normal">' + (window.t ? window.t('priority_normal') : 'Normal') + '</div>';
         optionsHtml += '<div class="filter-option' + (activeStatusFilter === 'priority_low' ? ' is-active' : '') + '" data-val="priority_low">' + (window.t ? window.t('priority_low') : 'Low') + '</div>';
         optionsHtml += '</div>';
 
-        optionsHtml += '<div class="filter-category-title">STATUS</div>';
-        optionsHtml += '<div class="filter-options-group">';
-        if (projectColumns && projectColumns.length) {
-          projectColumns.forEach(function (col) {
-            var valKey = 'status_' + col.value;
-            var isCurrentDone = (currentFilterType === 'done_tasks' && normalizeStatus(col.value) === 'done');
-            var isActive = (activeStatusFilter === valKey) || (activeStatusFilter === 'all' && isCurrentDone);
-            optionsHtml += '<div class="filter-option' + (isActive ? ' is-active' : '') + '" data-val="' + esc(valKey) + '">' +
-              esc(col.label) + '</div>';
-          });
-        } else {
-          optionsHtml += '<div style="font-size:13px; font-weight:600; color:var(--text-sub);">' +
-            esc((window.t && window.t('unable_load_columns')) || 'Unable to load columns') +
-            '</div>';
-        }
-        optionsHtml += '</div>';
-        
         filterOptions.innerHTML = optionsHtml;
-        
+
+        var filterBtn = document.getElementById('task-filter-btn');
+        if (filterBtn) {
+          var isFiltered = !isAllActive;
+          filterBtn.style.borderColor = isFiltered ? 'var(--color-primary)' : 'var(--border-panel)';
+          filterBtn.style.color = isFiltered ? 'var(--color-primary)' : 'var(--text-sub)';
+          filterBtn.style.background = isFiltered ? 'var(--color-primary-soft)' : 'var(--bg-form)';
+        }
+
         var opts = filterOptions.querySelectorAll('.filter-option');
         opts.forEach(function(opt) {
           opt.addEventListener('click', async function() {
@@ -715,15 +729,50 @@
 
             var filterBtn = document.getElementById('task-filter-btn');
             if (filterBtn) {
-              if (val !== 'all') {
-                filterBtn.style.borderColor = 'var(--color-primary)';
-                filterBtn.style.color = 'var(--color-primary)';
-                filterBtn.style.background = 'var(--color-primary-soft)';
-              } else {
-                filterBtn.style.borderColor = 'var(--border-panel)';
-                filterBtn.style.color = 'var(--text-sub)';
-                filterBtn.style.background = 'var(--bg-form)';
-              }
+              var isFiltered = (val !== 'all' && val !== 'main_all');
+              filterBtn.style.borderColor = isFiltered ? 'var(--color-primary)' : 'var(--border-panel)';
+              filterBtn.style.color = isFiltered ? 'var(--color-primary)' : 'var(--text-sub)';
+              filterBtn.style.background = isFiltered ? 'var(--color-primary-soft)' : 'var(--bg-form)';
+            }
+
+            if (val === 'main_all' || val === 'all') {
+              currentFilterType = 'show_all_together_tasks';
+              activeStatusFilter = 'all';
+              await loadTasks('show_all_together_tasks');
+              document.getElementById('task-filter-panel').style.display = 'none';
+              return;
+            }
+
+            if (val === 'main_today') {
+              currentFilterType = 'today_tasks';
+              activeStatusFilter = 'main_today';
+              await loadTasks('today_tasks');
+              document.getElementById('task-filter-panel').style.display = 'none';
+              return;
+            }
+
+            if (val === 'main_priority') {
+              currentFilterType = 'priority_tasks';
+              activeStatusFilter = 'main_priority';
+              await loadTasks('priority_tasks');
+              document.getElementById('task-filter-panel').style.display = 'none';
+              return;
+            }
+
+            if (val === 'main_upcoming') {
+              currentFilterType = 'upcoming_tasks';
+              activeStatusFilter = 'main_upcoming';
+              await loadTasks('upcoming_tasks');
+              document.getElementById('task-filter-panel').style.display = 'none';
+              return;
+            }
+
+            if (val === 'main_done') {
+              currentFilterType = 'done_tasks';
+              activeStatusFilter = 'main_done';
+              await loadTasks('done_tasks');
+              document.getElementById('task-filter-panel').style.display = 'none';
+              return;
             }
 
             var statusVal = val.indexOf('status_') === 0 ? val.slice('status_'.length) : '';
@@ -732,57 +781,40 @@
             // If user clicked Done / Completed in the status modal:
             if (normTarget === 'done') {
               currentFilterType = 'done_tasks';
-              setActiveMainFilter('done_tasks');
+              activeStatusFilter = 'main_done';
               await loadTasks('done_tasks');
               document.getElementById('task-filter-panel').style.display = 'none';
               return;
             }
 
-            // If user was on done_tasks and picked an open status or all:
+            // If user was on done_tasks and picked an open status:
             if (currentFilterType === 'done_tasks') {
               currentFilterType = 'show_all_together_tasks';
-              setActiveMainFilter('show_all_together_tasks');
               await loadTasks('show_all_together_tasks');
-              if (val === 'all') {
-                document.getElementById('task-filter-panel').style.display = 'none';
-                return;
-              }
             }
 
             var containers = document.querySelectorAll('.task-group-container');
+            var td = todayKey();
+            containers.forEach(function(c) {
+              var hasVisible = false;
+              c.querySelectorAll('.task-row-card').forEach(function(row) {
+                var m = {};
+                try { m = JSON.parse(row.getAttribute('data-mission') || '{}'); } catch(e) {}
+                var show = false;
 
-            if (val === 'all') {
-              containers.forEach(function(c) {
-                c.style.display = 'block';
-                c.querySelectorAll('.task-row-card').forEach(function(row) {
-                  row.style.display = 'block';
-                });
+                if (val.startsWith('priority_')) {
+                  var pri = priorityFromMission(m, td);
+                  show = (val === 'priority_' + pri);
+                } else if (statusVal) {
+                  var mStatus = statusFromMission(m);
+                  show = (mStatus === normTarget) || (normalizeColumnValue(m.project_column || m.status || '').toLowerCase() === statusVal.toLowerCase());
+                }
+
+                row.style.display = show ? 'block' : 'none';
+                if (show) hasVisible = true;
               });
-            } else {
-              var td = todayKey();
-              containers.forEach(function(c) {
-                var hasVisible = false;
-                c.querySelectorAll('.task-row-card').forEach(function(row) {
-                  var m = {};
-                  try { m = JSON.parse(row.getAttribute('data-mission') || '{}'); } catch(e) {}
-                  var show = false;
-
-                  if (val === 'filter_today') {
-                    show = (parseCreatedDate(m) === td);
-                  } else if (val.startsWith('priority_')) {
-                    var pri = priorityFromMission(m, td);
-                    show = (val === 'priority_' + pri);
-                  } else if (statusVal) {
-                    var mStatus = statusFromMission(m);
-                    show = (mStatus === normTarget) || (normalizeColumnValue(m.project_column || m.status || '').toLowerCase() === statusVal.toLowerCase());
-                  }
-
-                  row.style.display = show ? 'block' : 'none';
-                  if (show) hasVisible = true;
-                });
-                c.style.display = hasVisible ? 'block' : 'none';
-              });
-            }
+              c.style.display = hasVisible ? 'block' : 'none';
+            });
             document.getElementById('task-filter-panel').style.display = 'none';
           });
         });
@@ -858,6 +890,16 @@
       closeFilterBtn.dataset.wired = 'true';
       closeFilterBtn.addEventListener('click', function() {
         document.getElementById('task-filter-panel').style.display = 'none';
+      });
+    }
+
+    var filterPanel = document.getElementById('task-filter-panel');
+    if (filterPanel && !filterPanel.dataset.backdropWired) {
+      filterPanel.dataset.backdropWired = 'true';
+      filterPanel.addEventListener('click', function(e) {
+        if (e.target === filterPanel) {
+          filterPanel.style.display = 'none';
+        }
       });
     }
   }

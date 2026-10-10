@@ -362,25 +362,15 @@ body:has(#screenLogin) .screen-content {
 }
 
 .app-header-status {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px var(--page-pad) 4px;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-title);
-    flex: none;
-    background: var(--bg-form);
-    position: sticky;
-    top: 0;
-    z-index: 52;
+    display: none !important;
 }
 
 .app-header-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px var(--page-pad) 14px;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px var(--page-pad);
     border-bottom: 1px solid var(--border-panel);
     flex: none;
     background: var(--bg-form);
@@ -388,6 +378,18 @@ body:has(#screenLogin) .screen-content {
     top: 0;
     z-index: 51;
     box-shadow: 0 1px 0 var(--border-panel);
+    width: 100%;
+    box-sizing: border-box;
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+.app-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
 }
 
 .app-avatar {
@@ -438,13 +440,27 @@ body:has(#screenLogin) .screen-content {
     align-items: flex-start;
     flex: none;
     flex-shrink: 0;
-    direction: ltr;
+    direction: inherit;
     box-shadow: 0 -4px 20px rgba(15, 24, 40, 0.04);
     position: sticky;
     bottom: 0;
     z-index: 50;
     margin-top: auto;
     width: 100%;
+}
+
+[dir="rtl"] .app-footer-nav,
+[dir="rtl"] #app-footer,
+html[dir="rtl"] .app-footer-nav,
+html[dir="rtl"] #app-footer {
+    direction: rtl;
+}
+
+[dir="ltr"] .app-footer-nav,
+[dir="ltr"] #app-footer,
+html[dir="ltr"] .app-footer-nav,
+html[dir="ltr"] #app-footer {
+    direction: ltr;
 }
 
 #app-footer {
@@ -552,11 +568,22 @@ body:has(#screenLogin) .screen-content {
 }
 
 #task-detail-panel>#task-detail-content,
-#task-detail-panel>.dc-scroll {
+#task-detail-panel>.dc-scroll,
+#task-detail-content {
     position: relative;
     z-index: 1;
-    padding-top: 26px !important;
+    padding-top: 16px !important;
     box-sizing: border-box;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+#task-detail-panel>#task-detail-content::-webkit-scrollbar,
+#task-detail-panel>.dc-scroll::-webkit-scrollbar,
+#task-detail-content::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 @media (min-width: 640px) {
@@ -571,7 +598,7 @@ body:has(#screenLogin) .screen-content {
     #task-detail-panel>.dc-scroll {
         border-radius: 0 0 16px 16px;
         background: var(--bg-screen);
-        max-height: min(70vh, 640px);
+        max-height: min(88vh, 760px);
         width: min(392px, 100%);
         margin-inline: auto;
         box-shadow: 0 16px 40px rgba(15, 24, 40, 0.2);
@@ -2083,44 +2110,78 @@ textarea {
 
 .mission-filter-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 16px;
+    margin-bottom: 16px;
+    width: 100%;
+    flex-wrap: nowrap;
     direction: ltr;
     unicode-bidi: isolate;
 }
 
-.mission-filter-area {
-    margin-left: auto;
+.mission-filter-controls {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-}
-
-.mission-filter-header>* {
-    direction: ltr;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    flex-wrap: nowrap;
+    min-width: 0;
 }
 
 .mission-filter-chips {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
+    display: inline-flex !important;
     align-items: center;
     gap: 8px;
-    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
     overflow-x: auto;
-    padding-bottom: 10px;
-    margin-bottom: 14px;
     scrollbar-width: none;
-    direction: ltr;
-    unicode-bidi: isolate;
+    -ms-overflow-style: none;
+    white-space: nowrap;
+    flex: 0 1 auto;
+}
+
+.mission-filter-chips::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .mission-filter-chips .mb-filter-chip {
+    padding: 7px 15px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
     flex: 0 0 auto;
-    order: initial;
+    border: 1px solid var(--border-panel);
+    background: var(--bg-panel);
+    color: var(--text-sub);
+    transition: all 0.15s ease;
+}
+
+.mission-filter-chips .mb-filter-chip[data-type="show_all_together_tasks"],
+.mission-filter-chips .mb-filter-chip.is-active {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+}
+
+.mission-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 99px;
+    border: 1.5px solid var(--border-panel);
+    background: var(--bg-form);
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    color: var(--text-sub);
+    transition: all 0.15s ease;
 }
 
 
@@ -2150,11 +2211,8 @@ textarea {
      :root {
         --page-pad: 48px;
     }
-    .app-header-status {
-        padding: 14px var(--page-pad) 6px;
-    }
     .app-header-bar {
-        padding: 12px var(--page-pad) 16px;
+        padding: 14px var(--page-pad);
     }
     .app-greeting {
         font-size: 24px;
@@ -2227,6 +2285,15 @@ textarea {
         max-width: 480px;
         margin: auto;
         width: calc(100% - 48px);
+        max-height: 85vh;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    #task-filter-panel>div::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
     #task-filter-panel {
         justify-content: center !important;

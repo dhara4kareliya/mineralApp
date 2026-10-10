@@ -435,6 +435,7 @@
   }
 
   var selectedImageFiles = [];
+  var selectedRecordingFile = null;
   var remoteImagePaths = [];
   var MAX_MISSION_IMAGES = 3;
   var loadedMissionMeta = '';
@@ -480,31 +481,94 @@
     }
     previewEl.style.display = 'flex';
 
-    function addThumb(src, onRemove) {
+    function addThumb(pathOrUrl, onRemove) {
       var wrap = document.createElement('div');
-      wrap.style.cssText = 'position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid var(--border-panel);background:#fff;';
-      var img = document.createElement('img');
-      img.alt = 'image';
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      img.src = src;
+      wrap.style.cssText = 'position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid var(--border-panel);background:#fff;display:flex;align-items:center;justify-content:center;';
+
       var removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.setAttribute('aria-label', 'Remove');
       removeBtn.textContent = '×';
-      removeBtn.style.cssText = 'position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:20px;cursor:pointer;padding:0;';
+      removeBtn.style.cssText = 'position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:20px;cursor:pointer;padding:0;z-index:2;';
       removeBtn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         onRemove();
         renderImagePreviews(previewEl);
       });
-      wrap.appendChild(img);
+
+      var isMedia = (window.MineralBarApp && typeof MineralBarApp.isMediaAudioOrVideo === 'function')
+        ? MineralBarApp.isMediaAudioOrVideo(pathOrUrl)
+        : /\.(mp3|mp4|wav|ogg|m4a|webm|mov|aac|flac)$/i.test(String(pathOrUrl || '').toLowerCase().split('?')[0]);
+
+      if (isMedia) {
+        var mediaBox = document.createElement('div');
+        mediaBox.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;color:#1d60a2;padding:4px;box-sizing:border-box;user-select:none;';
+        var mIcon = document.createElement('span');
+        mIcon.style.cssText = 'font-size:22px;line-height:1;margin-bottom:2px;';
+        mIcon.textContent = /\.(mp4|webm|mov)$/i.test(String(pathOrUrl || '')) ? '🎬' : '🎵';
+        var mName = document.createElement('span');
+        mName.style.cssText = 'font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:#475569;';
+        var mBase = String(pathOrUrl || '').split('/').pop().split('?')[0] || 'Media';
+        mName.textContent = mBase;
+        mName.title = mBase;
+        mediaBox.appendChild(mIcon);
+        mediaBox.appendChild(mName);
+        wrap.appendChild(mediaBox);
+      } else {
+        var candidates = (window.MineralBarApp && typeof MineralBarApp.getImageCandidateUrls === 'function')
+          ? MineralBarApp.getImageCandidateUrls(pathOrUrl)
+          : [];
+        if (!candidates.length) {
+          var single = fileUrl(pathOrUrl);
+          if (single) candidates = [single];
+        }
+
+        var img = document.createElement('img');
+        img.alt = '';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        var candIdx = 0;
+        if (candidates.length) {
+          img.src = candidates[0];
+        } else {
+          img.src = fileUrl(pathOrUrl);
+        }
+
+        img.onerror = function () {
+          candIdx += 1;
+          if (candIdx < candidates.length) {
+            img.src = candidates[candIdx];
+          } else {
+            // All candidates failed — show graceful placeholder instead of broken browser icon
+            img.style.display = 'none';
+            if (!wrap.querySelector('.mb-thumb-placeholder')) {
+              var ph = document.createElement('div');
+              ph.className = 'mb-thumb-placeholder';
+              ph.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;color:#64748b;font-size:10px;text-align:center;padding:4px;box-sizing:border-box;user-select:none;';
+              var phIcon = document.createElement('span');
+              phIcon.style.cssText = 'font-size:22px;line-height:1;margin-bottom:2px;';
+              phIcon.textContent = '🖼️';
+              var phTxt = document.createElement('span');
+              phTxt.style.cssText = 'font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 2px;';
+              var bName = String(pathOrUrl || '').split('/').pop().split('?')[0] || 'Image';
+              phTxt.textContent = bName;
+              phTxt.title = bName;
+              ph.appendChild(phIcon);
+              ph.appendChild(phTxt);
+              wrap.insertBefore(ph, removeBtn);
+            }
+          }
+        };
+
+        wrap.appendChild(img);
+      }
+
       wrap.appendChild(removeBtn);
       previewEl.appendChild(wrap);
     }
 
     remoteImagePaths.forEach(function (path) {
-      addThumb(fileUrl(path), function () {
+      addThumb(path, function () {
         remoteImagePaths = remoteImagePaths.filter(function (p) { return p !== path; });
       });
     });
@@ -617,10 +681,44 @@
 
     var recordBtn = qs('#mb-record-btn');
     var recordingIn = qs('#mb-recording-link');
-    if (recordBtn && recordingIn) {
+    var recordFileInput = qs('#mb-record-file-input');
+    var recordClearBtn = qs('#mb-record-clear-btn');
+    var recordFileInfo = qs('#mb-recording-file-info');
+    var recordFileName = qs('#mb-recording-file-name');
+
+    if (recordBtn && recordFileInput) {
       recordBtn.addEventListener('click', function () {
-        recordingIn.focus();
-        recordingIn.select && recordingIn.select();
+        recordFileInput.click();
+      });
+    }
+
+    if (recordFileInput) {
+      recordFileInput.addEventListener('change', function () {
+        var file = (recordFileInput.files && recordFileInput.files[0]) || null;
+        if (!file) return;
+        selectedRecordingFile = file;
+        if (recordingIn) recordingIn.value = file.name;
+        if (recordFileName) recordFileName.textContent = '🎵 ' + file.name;
+        if (recordFileInfo) recordFileInfo.style.display = 'flex';
+      });
+    }
+
+    if (recordClearBtn) {
+      recordClearBtn.addEventListener('click', function () {
+        selectedRecordingFile = null;
+        if (recordFileInput) recordFileInput.value = '';
+        if (recordingIn) recordingIn.value = '';
+        if (recordFileInfo) recordFileInfo.style.display = 'none';
+      });
+    }
+
+    if (recordingIn) {
+      recordingIn.addEventListener('input', function () {
+        if (!recordingIn.value.trim()) {
+          selectedRecordingFile = null;
+          if (recordFileInput) recordFileInput.value = '';
+          if (recordFileInfo) recordFileInfo.style.display = 'none';
+        }
       });
     }
   }
@@ -629,11 +727,17 @@
     var recordingIn = qs('#mb-recording-link');
     var recordingLink = recordingIn ? String(recordingIn.value || '').trim() : '';
     var hasNewFiles = selectedImageFiles.length > 0;
+    var hasNewRecording = !!selectedRecordingFile;
 
-    if (hasNewFiles && !customerId) {
+    if (!customerId) {
+      var custSel = qs('#mb-customer-name');
+      if (custSel && custSel.value) customerId = custSel.value;
+    }
+
+    if ((hasNewFiles || hasNewRecording) && !customerId) {
       var err = new Error(
         (window.t && window.t('customer_required_for_images')) ||
-        'Select a customer before uploading images.'
+        'Select a customer before uploading files.'
       );
       err.code = 'CUSTOMER_REQUIRED_FOR_UPLOAD';
       throw err;
@@ -654,17 +758,47 @@
       syncFileInput(qs('#mb-file-input'));
     }
 
+    // If audio/video file selected via record button, upload to CDN via Files.Upload
+    if (hasNewRecording && customerId && typeof MineralBarApp.uploadCustomerFile === 'function') {
+      try {
+        var rawName = selectedRecordingFile.name || 'recording.mp3';
+        var extMatch = rawName.match(/\.[a-zA-Z0-9]+$/);
+        var ext = extMatch ? extMatch[0] : '.mp3';
+        var cleanBase = rawName.replace(/\.[a-zA-Z0-9]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+        var safeFileName = (cleanBase || 'rec') + '_' + Date.now().toString().slice(-6) + ext;
+
+        var uploadRes = await MineralBarApp.uploadCustomerFile(customerId, selectedRecordingFile, {
+          file_name: safeFileName
+        });
+        if (uploadRes && (uploadRes.path || uploadRes.url)) {
+          recordingLink = uploadRes.path || uploadRes.url;
+          if (recordingIn) recordingIn.value = recordingLink;
+        }
+        selectedRecordingFile = null;
+      } catch (uploadErr) {
+        console.error('[Biz1] Recording upload failed:', uploadErr);
+        throw uploadErr;
+      }
+    }
+
     if (typeof MineralBarApp.saveMissionRecording === 'function') {
       await MineralBarApp.saveMissionRecording(missionId, recordingLink, loadedMissionMeta);
       loadedMissionMeta = buildLocalRecordingMeta(recordingLink, loadedMissionMeta);
     } else {
-      await MineralBarApp.updateMission({
-        id: missionId,
-        mission_id: missionId,
-        filed: 'meta',
-        saveoutput: recordingLink
-      });
-      loadedMissionMeta = recordingLink;
+      var safeLink = recordingLink ? recordingLink.slice(0, 60) : '';
+      if (safeLink !== String(loadedMissionMeta || '').trim()) {
+        try {
+          await MineralBarApp.updateMission({
+            id: missionId,
+            mission_id: missionId,
+            filed: 'meta',
+            saveoutput: safeLink
+          });
+          loadedMissionMeta = safeLink;
+        } catch (metaErr) {
+          console.warn('[Biz1] Meta update ignored:', metaErr);
+        }
+      }
     }
   }
 
@@ -738,6 +872,7 @@
       recording_link: recordingLink,
       date_to_do: dateToDo,
       use_as_template: templateCb ? (templateCb.checked ? 1 : 0) : 0,
+      client_create: templateCb ? (templateCb.checked ? 1 : 0) : 0,
       email_me_employee: emailCb ? (emailCb.checked ? 1 : 0) : 0,
       whatsApp_reminder: whatsappCb ? (whatsappCb.checked ? 1 : 0) : 0,
       notify_client: notifyCb ? (notifyCb.checked ? 1 : 0) : 0
@@ -758,6 +893,22 @@
       var m = res.mission || {};
       loadedMissionData = Object.assign({}, m);
       if (m.date_to_do_format) loadedMissionData.date_to_do = m.date_to_do_format;
+      loadedMissionData.lead_id = String(m.customer_id || m.client_id || m.lead_id || '').trim();
+      loadedMissionData.member_id = String(m.organizations_user || m.member_id || m.assigned_to || '').trim();
+      loadedMissionData.private_mission = (m.private || m.private_mission || m.is_private || Number(m.private_mission) === 1) ? 1 : 0;
+      loadedMissionData.missions_steps_id = String(m.missions_steps_id || m.step_id || '').trim();
+      loadedMissionData.project_id = (m.project_id && Number(m.project_id) > 0) ? Number(m.project_id) : 0;
+      loadedMissionData.project_column = (m.is_done || Number(m.done) === 1) ? 'done' : String(m.project_column || 'to_do').trim();
+      loadedMissionData.mission = String(m.mission || m.title || '').trim();
+      loadedMissionData.note = String(m.note || '').trim();
+      loadedMissionData.color = String(m.color || '').trim();
+      loadedMissionData.notify_client = (Number(m.notify_client) === 1 || m.notify_client === true) ? 1 : 0;
+      loadedMissionData.email_me_employee = (Number(m.email_me_employee) === 1 || m.email_me_employee === true) ? 1 : 0;
+      loadedMissionData.whatsApp_reminder = (Number(m.whatsApp_reminder) === 1 || m.whatsApp_reminder === true) ? 1 : 0;
+      var isTemplate = !!(Number(m.use_as_template) === 1 || m.use_as_template === true || m.use_as_template === '1' ||
+        Number(m.client_create) === 1 || m.client_create === true || m.client_create === '1');
+      loadedMissionData.use_as_template = isTemplate ? 1 : 0;
+      loadedMissionData.client_create = isTemplate ? 1 : 0;
 
       var titleIn = qs('#mb-mission-title');
       var noteIn = qs('#mb-mission-note');
@@ -824,8 +975,18 @@
         recLink = m.recording_link;
       } else if (m.meta && /^https?:\/\//i.test(String(m.meta).trim())) {
         recLink = String(m.meta).trim();
+      } else if (m.meta) {
+        recLink = String(m.meta).trim();
       }
       if (recordingLinkIn) recordingLinkIn.value = recLink;
+      if (recLink) {
+        var recInfo = qs('#mb-recording-file-info');
+        var recName = qs('#mb-recording-file-name');
+        if (recInfo && recName) {
+          recName.textContent = '🎵 ' + recLink.split('/').pop();
+          recInfo.style.display = 'flex';
+        }
+      }
 
       loadedMissionImage = m.image || '';
       setRemoteImagesFromMission(loadedMissionImage);
@@ -837,8 +998,8 @@
       if (emailCb) emailCb.checked = !!(Number(m.email_me_employee) === 1 || m.email_me_employee === true);
       if (whatsappCb) whatsappCb.checked = !!(Number(m.whatsApp_reminder) === 1 || m.whatsApp_reminder === true);
       if (notifyCb) notifyCb.checked = !!(Number(m.notify_client) === 1 || m.notify_client === true);
-      if (templateCb && m.use_as_template != null) {
-        templateCb.checked = !!(Number(m.use_as_template) === 1 || m.use_as_template === true);
+      if (templateCb) {
+        templateCb.checked = isTemplate;
       }
 
       if (teamSel) {
@@ -1017,7 +1178,8 @@
             notify_client: payload.notify_client ? 1 : 0,
             email_me_employee: payload.email_me_employee ? 1 : 0,
             whatsApp_reminder: payload.whatsApp_reminder ? 1 : 0,
-            use_as_template: payload.use_as_template ? 1 : 0
+            use_as_template: payload.use_as_template ? 1 : 0,
+            client_create: payload.use_as_template ? 1 : 0
           };
           if (payload.date_to_do) fields.date_to_do = payload.date_to_do;
           if (payload.customer_id) fields.lead_id = payload.customer_id;

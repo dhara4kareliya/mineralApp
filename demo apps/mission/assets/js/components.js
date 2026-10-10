@@ -1,8 +1,20 @@
 (function() {
     const COMPONENT_FALLBACKS = {
-        'header.html': `<!-- status bar + greeting (loaded into #app-header) -->
-<div class="app-header-status status-bar status-bar--light">
-  <span id="mb-live-clock" class="status-clock">--:--</span>
+        'header.html': `<!-- greeting + logout, theme, lang in 1 line (loaded into #app-header) -->
+<div class="app-header-bar">
+  <div class="app-header-left">
+    <div style="position:relative;" id="avatar-menu-wrapper">
+      <div class="app-avatar" onclick="event.stopPropagation(); var menu = document.getElementById('avatar-menu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';" style="cursor:pointer;" title="Menu">M</div>
+      
+      <div id="avatar-menu" style="display:none; position:absolute; top:calc(100% + 8px); left:0; background:var(--bg-panel, #fff); border-radius:12px; padding:8px 16px; box-shadow:0 6px 20px rgba(0,0,0,0.1); z-index:9999; border:1px solid var(--border-panel, #e5e7eb); white-space:nowrap;">
+        <div onclick="document.getElementById('avatar-menu').style.display='none'; window.Biz1LogoutConfirm && window.Biz1LogoutConfirm();" style="display:flex; align-items:center; gap:8px; color:#c0392b; font-weight:700; font-size:15px; cursor:pointer; padding:6px 0;">
+          <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+          <span data-i18n="logout"></span>
+        </div>
+      </div>
+    </div>
+    <div id="mb-home-greeting" class="app-greeting" data-i18n="loading"></div>
+  </div>
 
   <div class="status-bar-right">
     <button type="button" id="headerLogoutBtn" class="header-logout-btn" title="Logout" aria-label="Logout" onclick="window.Biz1LogoutConfirm && window.Biz1LogoutConfirm()">
@@ -19,22 +31,7 @@
       <button type="button" class="lang-btn" id="mb-lang-he" data-lang="he">עב</button>
       <button type="button" class="lang-btn" id="mb-lang-en" data-lang="en">EN</button>
     </div>
-
   </div>
-</div>
-
-<div class="app-header-bar">
-  <div style="position:relative;" id="avatar-menu-wrapper">
-    <div class="app-avatar" onclick="event.stopPropagation(); var menu = document.getElementById('avatar-menu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none';" style="cursor:pointer;" title="Menu">M</div>
-    
-    <div id="avatar-menu" style="display:none; position:absolute; top:calc(100% + 8px); left:0; background:var(--bg-panel, #fff); border-radius:12px; padding:8px 16px; box-shadow:0 6px 20px rgba(0,0,0,0.1); z-index:9999; border:1px solid var(--border-panel, #e5e7eb); white-space:nowrap;">
-      <div onclick="document.getElementById('avatar-menu').style.display='none'; window.Biz1LogoutConfirm && window.Biz1LogoutConfirm();" style="display:flex; align-items:center; gap:8px; color:#c0392b; font-weight:700; font-size:15px; cursor:pointer; padding:6px 0;">
-        <svg fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
-        <span data-i18n="logout"></span>
-      </div>
-    </div>
-  </div>
-  <div id="mb-home-greeting" class="app-greeting" data-i18n="loading"></div>
 </div>
 
 <!-- Logout confirm modal -->
