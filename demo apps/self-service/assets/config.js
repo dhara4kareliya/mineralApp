@@ -84,7 +84,7 @@
 
     /** App display name — Hebrew + English */
     brand: {
-      he: 'Biz1 Showcase',
+      he: 'תצוגת ביז1',
       en: 'Biz1 Showcase'
     },
 

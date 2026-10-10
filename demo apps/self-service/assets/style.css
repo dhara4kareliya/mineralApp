@@ -1908,16 +1908,59 @@ img, svg { display: block; }
 /* RTL Support for Login Page */
 [dir="rtl"] .brand-hero {
   text-align: right;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 [dir="rtl"] .brand-hero-inner {
-  align-items: flex-end;
+  align-items: flex-start;
   text-align: right;
 }
 
 [dir="rtl"] .brand-feature-item {
-  flex-direction: row-reverse;
+  flex-direction: row;
+  text-align: right;
+  justify-content: flex-start;
+}
+
+[dir="rtl"] .brand-icon {
+  margin: 0 0 28px 0;
+  align-self: flex-start;
+}
+
+[dir="rtl"] .brand-title,
+[dir="rtl"] .brand-sub,
+[dir="rtl"] .brand-text-group {
+  text-align: right;
+  width: 100%;
+}
+
+[dir="rtl"] .brand-features {
+  text-align: right;
+  padding: 0;
+  width: 100%;
+}
+
+[dir="rtl"] #phone,
+[dir="rtl"] #phone::placeholder,
+[dir="rtl"] input[name="biz1ss-phone"],
+[dir="rtl"] input[name="biz1ss-phone"]::placeholder {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+[dir="rtl"] .login-card .input,
+[dir="rtl"] .login-card .ds-input {
+  text-align: right;
+}
+
+[dir="rtl"] .login-card .input::placeholder,
+[dir="rtl"] .login-card .ds-input::placeholder {
+  text-align: right;
+}
+
+[dir="rtl"] .input--otp {
+  text-align: center !important;
+  direction: ltr !important;
 }
 
 /* Tablet Layout (641px - 899px) */

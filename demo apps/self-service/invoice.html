@@ -55,7 +55,7 @@
           <path d="m5 7.5 7 4 7-4M12 11.5V20"/>
         </svg>
       </div>
-      <div>Biz1 <small>Customer Portal</small></div>
+      <div><span data-i18n="topBrand">Biz1</span> <small data-i18n="topBrandSub">Customer Portal</small></div>
     </div>
 
     <div class="top-actions">
@@ -83,9 +83,9 @@
 
     <!-- Back navigation -->
     <div style="margin-bottom: 18px;">
-      <button id="btnInvBack" type="button" data-i18n="back" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-secondary);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;padding:6px 0;transition:color 0.2s;" onmouseover="this.style.color='var(--brand)'" onmouseout="this.style.color='var(--text-secondary)'">
+      <button id="btnInvBack" type="button" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-secondary);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;padding:6px 0;transition:color 0.2s;" onmouseover="this.style.color='var(--brand)'" onmouseout="this.style.color='var(--text-secondary)'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Back to dashboard
+        <span data-i18n="backDash">Back to dashboard</span>
       </button>
     </div>
 
@@ -94,10 +94,10 @@
       <div class="hero-copy">
         <div class="status"><i></i> <span id="invStatusLabel" data-i18n="statusPending">Pending payment</span></div>
         <h1 id="invDocTitle" data-i18n="invoiceTitle">Your invoice is ready.</h1>
-        <p>Review the details below and complete your payment securely.</p>
+        <p data-i18n="invoiceSub">Review the details below and complete your payment securely.</p>
       </div>
       <div class="amount">
-        <div class="amount-label">Total amount due</div>
+        <div class="amount-label" data-i18n="amountDue">Total amount due</div>
         <div class="amount-value"><span>$</span><span id="invAmount">0.00</span></div>
       </div>
     </section>
@@ -114,7 +114,7 @@
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <path d="M14 2v6h6M8 13h8M8 17h8"/>
             </svg>
-            Invoice preview
+            <span data-i18n="invoicePreview">Invoice preview</span>
           </div>
           <a id="pdfOpenLinkTop" class="small-button" href="#" target="_blank" rel="noopener" data-i18n="openDoc" style="display:none;">Open document</a>
         </div>
@@ -123,7 +123,7 @@
             <iframe id="pdfFrame" title="Invoice PDF" style="width:100%;height:100%;border:none;display:block;"></iframe>
             <div id="pdfFallback" class="hidden" style="position:absolute;inset:0;padding:40px;text-align:center;color:var(--text-muted);background:var(--glass-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
               <p data-i18n="pdfUnavailable" style="margin:0;">PDF preview unavailable</p>
-              <p style="margin:0;font-size:12px;opacity:0.8;">Use Open document to view the file in a new tab.</p>
+              <p style="margin:0;font-size:12px;opacity:0.8;" data-i18n="pdfFallbackSub">Use Open document to view the file in a new tab.</p>
               <a id="pdfOpenLink" class="small-button" href="#" target="_blank" rel="noopener" data-i18n="openDoc">Open document</a>
             </div>
           </div>
@@ -146,12 +146,12 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="m5 12 4 4L19 6"/>
             </svg>
-            Encrypted
+            <span data-i18n="tagEncrypted">Encrypted</span>
           </div>
         </div>
 
         <div class="payment-inner">
-          <p class="payment-intro">Choose a payment method and fill the required fields.</p>
+          <p class="payment-intro" data-i18n="payIntro">Choose a payment method and fill the required fields.</p>
 
           <div id="payError" class="error-box hidden" style="margin-bottom: 18px;">
             <div id="payErrorText" class="error-text"></div>
@@ -336,8 +336,8 @@
             </div>
 
             <div class="field" style="margin-top:12px;">
-              <label for="payNote">Internal payment notes</label>
-              <textarea id="payNote" class="input ds-input" rows="2" placeholder="Note" style="resize:vertical;"></textarea>
+              <label for="payNote" data-i18n="payNoteLabel">Internal payment notes</label>
+              <textarea id="payNote" class="input ds-input" rows="2" data-i18n-placeholder="payNotePlaceholder" placeholder="Note" style="resize:vertical;"></textarea>
             </div>
 
             <button class="pay-button" id="btnPay" type="button" style="margin-top: 14px;">
@@ -352,9 +352,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            Payments are securely encrypted
+            <span data-i18n="paymentsEncrypted">Payments are securely encrypted</span>
           </div>
-          <p class="fineprint">Powered by Biz1 Secure Checkout. Card data is encrypted and never stored.</p>
+          <p class="fineprint" data-i18n="payFineprint">Powered by Biz1 Secure Checkout. Card data is encrypted and never stored.</p>
         </div>
       </section>
 
@@ -363,8 +363,8 @@
 
   <!-- ── FOOTER ── -->
   <footer class="inv-footer">
-    <span>© 2026 Biz1 Showcase</span>
-    <span><a href="#" id="helpLink">Need help?</a> &nbsp;·&nbsp; Secure checkout</span>
+    <span data-i18n="footerCopy">© 2026 Biz1 Showcase</span>
+    <span><a href="#" id="helpLink" data-i18n="needHelp">Need help?</a> &nbsp;·&nbsp; <span data-i18n="secureCheckout">Secure checkout</span></span>
   </footer>
 
 </div>
