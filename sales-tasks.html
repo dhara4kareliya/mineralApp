@@ -53,6 +53,19 @@
       flex: 0 0 auto !important;
       white-space: nowrap !important;
     }
+    #task-detail-panel > #task-detail-content,
+    #task-detail-panel > .dc-scroll,
+    #task-detail-content {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    #task-detail-panel > #task-detail-content::-webkit-scrollbar,
+    #task-detail-panel > .dc-scroll::-webkit-scrollbar,
+    #task-detail-content::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
   </style>
 </head>
 <body data-role="sales" data-active-tab="tasks">

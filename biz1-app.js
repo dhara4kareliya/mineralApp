@@ -1226,10 +1226,20 @@
   async function saveMissionRecording(missionId, recordingLink, previousMeta) {
     var id = requireId(missionId, 'mission_id/id');
     var meta = buildRecordingMeta(recordingLink, previousMeta);
-    if (meta !== String(previousMeta == null ? '' : previousMeta).trim()) {
-      await updateMission({ id: id, mission_id: id, filed: 'meta', saveoutput: meta });
+    var safeMeta = meta;
+    if (safeMeta && safeMeta.length > 60) {
+      safeMeta = safeMeta.slice(0, 60);
     }
-    return { meta: meta };
+    var prev = String(previousMeta == null ? '' : previousMeta).trim();
+    if (safeMeta && safeMeta.length > 60) prev = prev.slice(0, 60);
+    if (safeMeta !== prev) {
+      try {
+        await updateMission({ id: id, mission_id: id, filed: 'meta', saveoutput: safeMeta });
+      } catch (err) {
+        console.warn('[Biz1] Warning: Failed to update mission meta column:', err);
+      }
+    }
+    return { meta: safeMeta };
   }
 
   function padDatePart(valueToPad) {
@@ -1341,9 +1351,21 @@
           comparableMissionValue('client_create', current.client_create) === '1';
         var nextOn = comparableMissionValue(filed, value) === '1';
         if (curOn === nextOn) continue;
-      } else if (Object.prototype.hasOwnProperty.call(current, filed) &&
-          comparableMissionValue(filed, current[filed]) === comparableMissionValue(filed, value)) {
-        continue;
+      } else {
+        var currVal = current[filed];
+        if (currVal === undefined) {
+          if (filed === 'lead_id') currVal = current.customer_id != null ? current.customer_id : (current.client_id != null ? current.client_id : current.lead_id);
+          else if (filed === 'member_id') currVal = current.organizations_user != null ? current.organizations_user : (current.assigned_to != null ? current.assigned_to : current.member_id);
+          else if (filed === 'private_mission') currVal = current.is_private != null ? current.is_private : (current.private != null ? current.private : current.private_mission);
+          else if (filed === 'missions_steps_id') currVal = current.step_id != null ? current.step_id : current.missions_steps_id;
+          else if (filed === 'mission') currVal = current.title != null ? current.title : current.mission;
+        }
+        if (currVal === undefined && (value === 0 || value === '0' || value === '' || value == null)) {
+          continue;
+        }
+        if (comparableMissionValue(filed, currVal) === comparableMissionValue(filed, value)) {
+          continue;
+        }
       }
       results.push(await updateMission({ id: id, mission_id: id, filed: filed, saveoutput: value }));
     }
