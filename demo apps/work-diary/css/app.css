@@ -24,13 +24,15 @@
   --off-bg: #f1f5f9;
   --input-bg: #ffffff;
   --topbar-bg: rgba(255, 255, 255, 0.85);
+  --selection-bg: #2563eb;
+  --selection-color: #ffffff;
 }
 
 [data-theme="dark"] {
   --bg: #090909;
   --bg-elevated: #121212;
   --text: #FFFFFF;
-  --text-muted: #888888;
+  --text-muted: #a1a1aa;
   --border: rgba(255, 255, 255, 0.06);
   --primary: #22C55E;
   --primary-hover: #16A34A;
@@ -46,12 +48,36 @@
   --topbar-bg: rgba(9, 9, 9, 0.85);
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.7);
+  --selection-bg: #3b82f6;
+  --selection-color: #ffffff;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+::selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
+  -webkit-text-fill-color: var(--selection-color, #ffffff) !important;
+}
+
+*::selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
+  -webkit-text-fill-color: var(--selection-color, #ffffff) !important;
+}
+
+::-moz-selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
+}
+
+*::-moz-selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
 }
 
 html {
@@ -1049,9 +1075,6 @@ body:not(.auth-checking) .boot-loader {
   flex-direction: row-reverse;
 }
 
-[dir="rtl"] .topbar-left,
-[dir="rtl"] .topbar-right,
-[dir="rtl"] .brand-mini,
 [dir="rtl"] .user-chip,
 [dir="rtl"] .history-filters,
 [dir="rtl"] .modal-actions,
@@ -2032,9 +2055,15 @@ body:not(.auth-checking) .boot-loader {
 }
 
 .calendar-card .card-desc {
-  font-size: 0.8rem !important;
-  opacity: 0.5 !important;
-  margin: 2px 0 0 !important;
+  font-size: 0.85rem !important;
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+  margin: 3px 0 0 !important;
+}
+
+[data-theme="dark"] .calendar-card .card-desc {
+  color: #a1a1aa !important;
+  opacity: 1 !important;
 }
 
 /* Month Picker Styling */
@@ -2062,13 +2091,18 @@ body:not(.auth-checking) .boot-loader {
 
 .cal-weekday {
   text-align: center !important;
-  font-size: 0.7rem !important;
+  font-size: 0.8rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
-  color: var(--text) !important;
-  opacity: 0.35 !important;
-  padding: 4px 0 !important;
+  letter-spacing: 0.06em !important;
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+  padding: 6px 0 !important;
+}
+
+[data-theme="dark"] .cal-weekday {
+  color: #a1a1aa !important;
+  opacity: 1 !important;
 }
 
 /* Calendar grid */
@@ -2312,16 +2346,26 @@ body:not(.auth-checking) .boot-loader {
 }
 
 .data-table thead th {
-  font-size: 0.7rem !important;
+  font-size: 0.72rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
-  opacity: 0.4 !important;
-  padding: 4px 12px 8px !important;
+  opacity: 0.85 !important;
+  color: var(--text-muted) !important;
+  padding: 6px 12px 10px !important;
   background: transparent !important;
   backdrop-filter: none !important;
-  text-align: left !important;
   border: none !important;
+}
+
+[dir="ltr"] .data-table thead th,
+[dir="ltr"] .data-table tbody td {
+  text-align: left !important;
+}
+
+[dir="rtl"] .data-table thead th,
+[dir="rtl"] .data-table tbody td {
+  text-align: right !important;
 }
 
 .data-table tbody tr {
@@ -2340,12 +2384,20 @@ body:not(.auth-checking) .boot-loader {
   color: var(--text) !important;
 }
 
-.data-table tbody td:first-child {
+[dir="ltr"] .data-table tbody td:first-child {
   border-radius: 10px 0 0 10px !important;
 }
 
-.data-table tbody td:last-child {
+[dir="ltr"] .data-table tbody td:last-child {
   border-radius: 0 10px 10px 0 !important;
+}
+
+[dir="rtl"] .data-table tbody td:first-child {
+  border-radius: 0 10px 10px 0 !important;
+}
+
+[dir="rtl"] .data-table tbody td:last-child {
+  border-radius: 10px 0 0 10px !important;
 }
 /* Custom Time Picker */
 .custom-time-picker {

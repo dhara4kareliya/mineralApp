@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=wd-2" />
-  <link rel="stylesheet" href="css/calendar.css?v=12" />
+  <link rel="stylesheet" href="css/app.css?v=wd-4" />
+  <link rel="stylesheet" href="css/calendar.css?v=14" />
 </head>
 
 <body class="auth-checking">
@@ -131,7 +131,8 @@
                 </div>
               </div>
               <p id="day-times-add-hint" class="card-desc hidden"
-                style="margin-bottom: 14px; padding: 10px 14px; background: var(--bg); border: 1px dashed var(--border-soft); border-radius: var(--radius-sm); color: var(--text-muted);">
+                style="margin-bottom: 14px; padding: 10px 14px; background: var(--bg); border: 1px dashed var(--border-soft); border-radius: var(--radius-sm); color: var(--text-muted);"
+                data-i18n="workHoursRecordedAuto">
                 Work hours are recorded automatically from Live Shift Control — clock in and out on the day itself.</p>
 
               <div class="field" id="day-type-field" style="margin-bottom: 14px;">
@@ -144,7 +145,7 @@
                 <p id="day-type-hint" class="card-desc hidden" data-i18n="specialDayTimeHint">Sick and vacation entries
                   are full-day records and do not track work hours.</p>
                 <p id="day-type-lock-hint" class="card-desc hidden"
-                  style="color: var(--warning, #e6a817); font-size: 0.8rem;">Day type can't be changed once an entry
+                  style="color: var(--warning, #e6a817); font-size: 0.8rem;" data-i18n="dayTypeLockHint">Day type can't be changed once an entry
                   exists.</p>
               </div>
 
@@ -219,7 +220,7 @@
           </section>
         </div>
       </main>
-      <footer style="text-align: center; padding: 24px 24px 16px; margin-top: auto; font-size: 0.8rem; color: var(--text-muted);">
+      <footer style="text-align: center; padding: 24px 24px 16px; margin-top: auto; font-size: 0.8rem; color: var(--text-muted);" data-i18n="footerCopy">
         &copy; 2026 BrandPeak. All rights reserved.
       </footer>
     </section>
@@ -229,12 +230,12 @@
 
   <script src="js/config.js?v=wd-1"></script>
   <script src="js/biz1-sdk.js?v=wd-1"></script>
-  <script src="js/i18n.js?v=wd-1"></script>
+  <script src="js/i18n.js?v=wd-3"></script>
   <script src="js/utils.js?v=wd-1"></script>
   <script src="js/ui.js?v=wd-1"></script>
   <script src="js/api.js?v=wd-1"></script>
   <script src="js/auth.js?v=wd-1"></script>
-  <script src="js/calendar.js?v=wd-34"></script>
+  <script src="js/calendar.js?v=wd-36"></script>
 </body>
 
 </html>

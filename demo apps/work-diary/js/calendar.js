@@ -928,7 +928,7 @@ const CalendarPage = (function () {
       if (saveBtn) saveBtn.disabled = false;
       if (typeHint) {
         if (selectedType === 'holiday') {
-          typeHint.textContent = 'This day is a company holiday.';
+          typeHint.textContent = I18n.t('companyHolidayHint') || 'This day is a company holiday.';
         } else {
           typeHint.textContent = I18n.t('specialDayTimeHint') || 'Sick and vacation entries are full-day records and do not track work hours.';
         }
@@ -1023,7 +1023,8 @@ const CalendarPage = (function () {
     // Apply add/edit mode — this sets day-type, toggles time block, and manages Save state
     applyDayFormMode(isLogOpen ? (selectedRow || {}) : null);
 
-    document.getElementById('day-note').value = isLogOpen ? (selectedRow?.note || selectedRow?.work_dairy_notes || '') : '';
+    const rawNote = isLogOpen ? (selectedRow?.note || selectedRow?.work_dairy_notes || '') : '';
+    document.getElementById('day-note').value = rawNote === 'End of shift' ? I18n.t('reasonEndOfShift') : rawNote;
 
     const selectedId = selectedEntryDetails?.apiId
       || attendanceApiId(session) || session?._resolvedTeamHoursId
@@ -1156,12 +1157,16 @@ const CalendarPage = (function () {
       row.selectionKey = rowKey;
       row._selectionKey = rowKey;
       tr.dataset.logKey = rowKey;
+      if (selectedLogKey && rowKey === selectedLogKey) {
+        tr.classList.add('selected-row');
+      }
       tr.style.cursor = 'pointer';
+      const displayNote = row.note === 'End of shift' ? I18n.t('reasonEndOfShift') : row.note;
       tr.innerHTML = `
         <td>${row.clockIn}</td>
         <td>${row.kind === 'sick' || row.kind === 'vacation' ? '—' : row.clockOut}</td>
         <td>${row.duration}</td>
-        <td>${row.note}</td>
+        <td>${displayNote}</td>
         <td>${statusBadge(row.kind)}</td>
       `;
       tr.addEventListener('click', async () => {
@@ -1280,7 +1285,7 @@ const CalendarPage = (function () {
         const overlapWarning = document.getElementById('day-overlap-warning');
         if (overlapWarning) {
           const typeName = dayType === 'sick' ? I18n.t('sickDay') : (dayType === 'vacation' ? I18n.t('vacationDay') : I18n.t('regularDay'));
-          overlapWarning.textContent = `⚠ You selected "${typeName}" but this day already has existing entries. Please delete them first from the log panel.`;
+          overlapWarning.textContent = I18n.t('overlapExistingEntries', { type: typeName }) || `⚠ You selected "${typeName}" but this day already has existing entries. Please delete them first from the log panel.`;
           overlapWarning.classList.remove('hidden');
         }
         if (btnSave) btnSave.disabled = false; // Allow them to click again if they change their mind

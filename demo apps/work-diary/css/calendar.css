@@ -10,6 +10,28 @@
   padding: 0;
 }
 
+::selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
+  -webkit-text-fill-color: var(--selection-color, #ffffff) !important;
+}
+
+*::selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
+  -webkit-text-fill-color: var(--selection-color, #ffffff) !important;
+}
+
+::-moz-selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
+}
+
+*::-moz-selection {
+  background-color: var(--selection-bg, #2563eb) !important;
+  color: var(--selection-color, #ffffff) !important;
+}
+
 :root {
   --bg-surface: #f5f7ff;
   --text-faint: #9da3c5;
@@ -40,7 +62,7 @@
 
 [data-theme="dark"] {
   --bg-surface: #121212;
-  --text-faint: #555555;
+  --text-faint: #a1a1aa;
   --border-soft: rgba(255, 255, 255, 0.03);
   --primary-light: rgba(34, 197, 94, 0.12);
   --primary-glow: rgba(34, 197, 94, 0.3);
@@ -169,11 +191,11 @@ select.input-sm {
 
 .cal-weekday {
   text-align: center;
-  font-size: 0.65rem;
-  font-weight: 800;
+  font-size: 0.8rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
 }
 
 /* ======= CALENDAR GRID ======= */
@@ -518,15 +540,24 @@ textarea {
 }
 
 .data-table thead th {
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-faint);
-  padding: 2px 14px 8px;
-  text-align: left;
+  color: var(--text-muted);
+  padding: 6px 14px 10px;
   background: transparent;
   border: none;
+}
+
+[dir="ltr"] .data-table thead th,
+[dir="ltr"] .data-table tbody td {
+  text-align: left;
+}
+
+[dir="rtl"] .data-table thead th,
+[dir="rtl"] .data-table tbody td {
+  text-align: right;
 }
 
 .data-table tbody tr {
@@ -538,20 +569,43 @@ textarea {
   background: var(--bg);
 }
 
+.data-table tbody tr.selected-row {
+  background: var(--primary-light, rgba(37, 99, 235, 0.12)) !important;
+}
+
 .data-table tbody td {
   padding: 11px 14px;
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
 }
 
-.data-table tbody td:first-child {
+[dir="ltr"] .data-table tbody td:first-child {
   border-left: 1px solid var(--border-soft);
+  border-right: none;
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
 
-.data-table tbody td:last-child {
+[dir="ltr"] .data-table tbody td:last-child {
   border-right: 1px solid var(--border-soft);
+  border-left: none;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+[dir="rtl"] .data-table tbody td:first-child {
+  border-right: 1px solid var(--border-soft);
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+[dir="rtl"] .data-table tbody td:last-child {
+  border-left: 1px solid var(--border-soft);
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+input[type="time"] {
+  direction: ltr !important;
+  text-align: center;
 }
 
 /* Misc */

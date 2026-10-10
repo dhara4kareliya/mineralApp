@@ -283,7 +283,7 @@ const Timesheet = (function () {
     await Api.teamHoursStartStop({
       timer_action: 'stop',
       team_hours_id: teamHoursId || undefined,
-      note: note || 'End of shift'
+      note: note || I18n.t('defaultEndShiftNote') || 'End of shift'
     });
 
     teamHoursId = 0;
@@ -627,6 +627,7 @@ const Timesheet = (function () {
       }
       lastDateStr = rowDateStr;
 
+      const noteText = row.note === 'End of shift' ? I18n.t('reasonEndOfShift') : (row.note || '—');
       const tr = document.createElement('tr');
       tr.dataset.id = row.id;
       tr.innerHTML = `
@@ -634,9 +635,9 @@ const Timesheet = (function () {
         <td>${formatRowTime(row.start_time || row.start)}</td>
         <td>${isRunning ? '—' : formatRowTime(row.end_time || row.stop_time || row.end)}</td>
         <td>${duration}</td>
-        <td class="note-col" title="${Utils.escapeHtml(row.note || '')}">
+        <td class="note-col" title="${Utils.escapeHtml(noteText === '—' ? '' : noteText)}">
           <div style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            ${Utils.escapeHtml(row.note || '—')}
+            ${Utils.escapeHtml(noteText)}
           </div>
         </td>
         <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
@@ -650,7 +651,7 @@ const Timesheet = (function () {
         <div class="session-row"><span>${I18n.t('colClockIn')}</span><strong>${formatRowTime(row.start_time || row.start)}</strong></div>
         <div class="session-row"><span>${I18n.t('colClockOut')}</span><strong>${isRunning ? '—' : formatRowTime(row.end_time || row.stop_time || row.end)}</strong></div>
         <div class="session-row"><span>${I18n.t('colDuration')}</span><strong>${duration}</strong></div>
-        <div class="session-row"><span>${I18n.t('colNote')}</span><strong>${Utils.escapeHtml(row.note || '—')}</strong></div>
+        <div class="session-row"><span>${I18n.t('colNote')}</span><strong>${Utils.escapeHtml(noteText)}</strong></div>
       `;
       cards.appendChild(card);
     });
@@ -658,15 +659,23 @@ const Timesheet = (function () {
     // Update Pagination UI
     const totalPages = Math.ceil(historyData.length / HISTORY_PAGE_SIZE);
     const infoEl = document.getElementById('page-info');
-    if (infoEl) infoEl.textContent = `Showing ${startIdx + 1} to ${Math.min(endIdx, historyData.length)} of ${historyData.length} entries`;
+    if (infoEl) {
+      infoEl.textContent = I18n.t('showingEntries', {
+        from: startIdx + 1,
+        to: Math.min(endIdx, historyData.length),
+        total: historyData.length
+      });
+    }
 
     const btnPrev = document.getElementById('page-prev');
     const btnNext = document.getElementById('page-next');
     if (btnPrev) {
+      btnPrev.textContent = I18n.t('paginationPrev');
       btnPrev.disabled = page === 1;
       btnPrev.onclick = () => { if (currentHistoryPage > 1) renderHistoryPage(currentHistoryPage - 1); };
     }
     if (btnNext) {
+      btnNext.textContent = I18n.t('paginationNext');
       btnNext.disabled = page === totalPages;
       btnNext.onclick = () => { if (currentHistoryPage < totalPages) renderHistoryPage(currentHistoryPage + 1); };
     }
