@@ -161,6 +161,14 @@ button, input, a { font-family: 'Heebo', sans-serif; }
   justify-content: space-around;
   align-items: flex-start;
   flex: none;
+  direction: inherit;
+}
+[dir="rtl"] .app-footer-nav,
+html[dir="rtl"] .app-footer-nav {
+  direction: rtl;
+}
+[dir="ltr"] .app-footer-nav,
+html[dir="ltr"] .app-footer-nav {
   direction: ltr;
 }
 .nav-item {
