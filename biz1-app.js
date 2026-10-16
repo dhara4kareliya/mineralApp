@@ -362,7 +362,7 @@
 
     try {
       if (global.navigator && global.navigator.serviceWorker &&
-        typeof global.navigator.serviceWorker.getRegistrations === 'function') {
+          typeof global.navigator.serviceWorker.getRegistrations === 'function') {
         jobs.push(
           global.navigator.serviceWorker.getRegistrations().then(function (regs) {
             return Promise.all((regs || []).map(function (reg) {
@@ -452,7 +452,7 @@
     try {
       if (global.getCurrentLanguage) lang = global.getCurrentLanguage();
       else if (global.localStorage) lang = global.localStorage.getItem('app_lang') || 'he';
-    } catch (e) { }
+    } catch(e) {}
     var isEn = lang === 'en';
 
     selects.forEach(function (sel) {
@@ -614,8 +614,8 @@
     });
     var rows = Array.isArray(raw && raw.data) ? raw.data
       : Array.isArray(raw && raw.rows) ? raw.rows
-        : Array.isArray(raw && raw.list) ? raw.list
-          : [];
+      : Array.isArray(raw && raw.list) ? raw.list
+      : [];
     return Object.assign({}, raw, { rows: rows, data: rows });
   }
 
@@ -640,13 +640,13 @@
     var raw = await client.request('Customer.List', params);
     var rows = Array.isArray(raw && raw.data) ? raw.data
       : Array.isArray(raw && raw.rows) ? raw.rows
-        : Array.isArray(raw && raw.items) ? raw.items
-          : [];
+      : Array.isArray(raw && raw.items) ? raw.items
+      : [];
     var total = (raw && (raw.recordsFiltered != null ? raw.recordsFiltered
       : raw.recordsTotal != null ? raw.recordsTotal
-        : raw.total != null ? raw.total
-          : raw.count != null ? raw.count
-            : rows.length));
+      : raw.total != null ? raw.total
+      : raw.count != null ? raw.count
+      : rows.length));
     return Object.assign({}, raw, { rows: rows, data: rows, total: Number(total) || rows.length });
   }
 
@@ -680,7 +680,7 @@
     body.append('customer_id', String(id));
     body.append('file', file, file.name || 'upload.bin');
     if (extra && typeof extra === 'object') {
-      Object.keys(extra).forEach(function (key) {
+      Object.keys(extra).forEach(function(key) {
         if (extra[key] != null) body.append(key, String(extra[key]));
       });
     }
@@ -1011,8 +1011,8 @@
       err.raw = raw;
       throw err;
     }
-    try { sessionStorage.setItem('mb_missions_dirty', String(Date.now())); } catch (e0) { }
-    try { notifyLiveReload({ key: 'mission.created', group: 'missions' }); } catch (e1) { }
+    try { sessionStorage.setItem('mb_missions_dirty', String(Date.now())); } catch (e0) {}
+    try { notifyLiveReload({ key: 'mission.created', group: 'missions' }); } catch (e1) {}
     return {
       id: createdId || null,
       message: raw.message || 'Task added',
@@ -1053,7 +1053,7 @@
   var MISSION_UPDATE_GAP_MS = 1500;
 
   function waitMs(ms) {
-    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
   }
 
   function isRateLimitError(err) {
@@ -1093,10 +1093,10 @@
     var id = requireId(p.id || p.mission_id, 'mission_id/id');
     var filed = p.filed || p.field || 'note';
     var saveoutput = p.saveoutput != null ? p.saveoutput : (p.value || '');
-    var task = missionUpdateQueue.then(function () {
+    var task = missionUpdateQueue.then(function() {
       return runMissionUpdateRequest(id, filed, saveoutput);
     });
-    missionUpdateQueue = task.catch(function () { /* keep queue usable */ });
+    missionUpdateQueue = task.catch(function() { /* keep queue usable */ });
     var raw = await task;
     if (!(raw && (Number(raw.success) === 1 || raw.success === true))) {
       var err = new Error((raw && raw.message) || 'Mission.Update failed');
@@ -1152,7 +1152,7 @@
     var raw = String(imageField || '').trim();
     if (!raw) return [];
     if (/^data:image\//i.test(raw)) return [raw];
-    return raw.split(',').map(function (path) { return path.trim(); }).filter(Boolean);
+    return raw.split(',').map(function(path) { return path.trim(); }).filter(Boolean);
   }
 
   function parseRecordingFromMeta(meta) {
@@ -1195,7 +1195,7 @@
 
   async function saveMissionImages(missionId, customerId, files, existingPaths, previousImageField) {
     var id = requireId(missionId, 'mission_id/id');
-    var kept = (existingPaths || []).map(function (path) {
+    var kept = (existingPaths || []).map(function(path) {
       return String(path || '').trim();
     }).filter(Boolean);
     var list = Array.prototype.slice.call(files || []);
@@ -1210,7 +1210,7 @@
       uploaded.push(result.path || result.url);
     }
     var seen = Object.create(null);
-    var merged = kept.concat(uploaded).filter(function (path) {
+    var merged = kept.concat(uploaded).filter(function(path) {
       if (seen[path]) return false;
       seen[path] = true;
       return true;
@@ -1226,20 +1226,10 @@
   async function saveMissionRecording(missionId, recordingLink, previousMeta) {
     var id = requireId(missionId, 'mission_id/id');
     var meta = buildRecordingMeta(recordingLink, previousMeta);
-    var safeMeta = meta;
-    if (safeMeta && safeMeta.length > 60) {
-      safeMeta = safeMeta.slice(0, 60);
+    if (meta !== String(previousMeta == null ? '' : previousMeta).trim()) {
+      await updateMission({ id: id, mission_id: id, filed: 'meta', saveoutput: meta });
     }
-    var prev = String(previousMeta == null ? '' : previousMeta).trim();
-    if (safeMeta && safeMeta.length > 60) prev = prev.slice(0, 60);
-    if (safeMeta !== prev) {
-      try {
-        await updateMission({ id: id, mission_id: id, filed: 'meta', saveoutput: safeMeta });
-      } catch (err) {
-        console.warn('[Biz1] Warning: Failed to update mission meta column:', err);
-      }
-    }
-    return { meta: safeMeta };
+    return { meta: meta };
   }
 
   function padDatePart(valueToPad) {
@@ -1299,8 +1289,8 @@
   function comparableMissionValue(field, value) {
     if (value == null) return '';
     if (field === 'private_mission' || field === 'notify_client' ||
-      field === 'email_me_employee' || field === 'whatsApp_reminder' ||
-      field === 'use_as_template' || field === 'client_create') {
+        field === 'email_me_employee' || field === 'whatsApp_reminder' ||
+        field === 'use_as_template' || field === 'client_create') {
       return (value === true || Number(value) === 1) ? '1' : '0';
     }
     if (field === 'project_id' || field === 'step_id' || field === 'missions_steps_id') {
@@ -1323,7 +1313,7 @@
   async function updateMissionFields(missionId, fields, currentFields) {
     var id = requireId(missionId, 'mission_id/id');
     var normalized = Object.create(null);
-    Object.keys(fields || {}).forEach(function (key) {
+    Object.keys(fields || {}).forEach(function(key) {
       var filed = MISSION_UPDATE_FIELD_MAP[key] || key;
       if (!MISSION_UPDATE_ALLOWED[filed]) return;
       var value = fields[key];
@@ -1342,7 +1332,7 @@
       }
       if (typeof value === 'object') value = JSON.stringify(value);
       if (filed === 'private_mission' || filed === 'use_as_template' || filed === 'client_create' ||
-        filed === 'notify_client' || filed === 'email_me_employee' || filed === 'whatsApp_reminder') {
+          filed === 'notify_client' || filed === 'email_me_employee' || filed === 'whatsApp_reminder') {
         value = (value === true || value === 1 || value === '1') ? 1 : 0;
       }
       // Treat use_as_template / client_create as the same flag when comparing current state.
@@ -1351,21 +1341,9 @@
           comparableMissionValue('client_create', current.client_create) === '1';
         var nextOn = comparableMissionValue(filed, value) === '1';
         if (curOn === nextOn) continue;
-      } else {
-        var currVal = current[filed];
-        if (currVal === undefined) {
-          if (filed === 'lead_id') currVal = current.customer_id != null ? current.customer_id : (current.client_id != null ? current.client_id : current.lead_id);
-          else if (filed === 'member_id') currVal = current.organizations_user != null ? current.organizations_user : (current.assigned_to != null ? current.assigned_to : current.member_id);
-          else if (filed === 'private_mission') currVal = current.is_private != null ? current.is_private : (current.private != null ? current.private : current.private_mission);
-          else if (filed === 'missions_steps_id') currVal = current.step_id != null ? current.step_id : current.missions_steps_id;
-          else if (filed === 'mission') currVal = current.title != null ? current.title : current.mission;
-        }
-        if (currVal === undefined && (value === 0 || value === '0' || value === '' || value == null)) {
-          continue;
-        }
-        if (comparableMissionValue(filed, currVal) === comparableMissionValue(filed, value)) {
-          continue;
-        }
+      } else if (Object.prototype.hasOwnProperty.call(current, filed) &&
+          comparableMissionValue(filed, current[filed]) === comparableMissionValue(filed, value)) {
+        continue;
       }
       results.push(await updateMission({ id: id, mission_id: id, filed: filed, saveoutput: value }));
     }
@@ -2111,7 +2089,7 @@
   function pickCashYesNoValue(field, wanted) {
     var want = String(wanted || '').toLowerCase() === 'yes' ? 'yes' : 'no';
     if (field && field.yes_val != null && String(field.yes_val) !== '' &&
-      field.no_val != null && String(field.no_val) !== '') {
+        field.no_val != null && String(field.no_val) !== '') {
       return want === 'yes' ? String(field.yes_val) : String(field.no_val);
     }
     var opts = collectTicketFieldOptions(field);
@@ -3683,7 +3661,7 @@
    */
   function bindLiveReload(fn, options) {
     options = options || {};
-    if (typeof fn !== 'function') return function () { };
+    if (typeof fn !== 'function') return function () {};
     ensureLiveReloadBus();
     var entry = {
       fn: fn,
