@@ -673,9 +673,8 @@
       setText('mb-stat-followups-sub', t('Follow-up', 'פולואפ'));
       setText('mb-pipe-leads', String(leadsCount));
       setText('mb-pipe-followup', String(followupCount));
-      scheduleRepaint();
-
       renderMissions(prioritized, openEstimate, today);
+      loadBull36HomeCustomers();
     } catch (err) {
       if (silent) {
         console.warn('[HomeLive] silent refresh failed — keeping dashboard', err);
@@ -689,6 +688,91 @@
           esc(t('Error loading dashboard', 'שגיאה בטעינת לוח הבקרה')) + '</div>';
       }
     }
+  }
+
+  var _cachedBull36Customers = [];
+
+  async function loadBull36HomeCustomers() {
+    var mount = document.getElementById('mb-live-home-customers');
+    var countEl = document.getElementById('mb-live-home-customers-count');
+    var searchEl = document.getElementById('mb-home-cust-search');
+    if (!mount) return;
+
+    try {
+      if (mount.innerHTML === '') {
+        mount.innerHTML = '<div style="padding:10px; text-align:center; color:#64748b; font-size:13px;">טוען לקוחות מ-Bull36 API (תיקייה 3122)...</div>';
+      }
+
+      var customers = [];
+      if (window.MineralBarApp && typeof MineralBarApp.fetchBull36Folder === 'function') {
+        customers = await MineralBarApp.fetchBull36Folder(3122);
+      } else {
+        var res = await fetch('https://bull36.com/api/get_folder_by_id?token=58CZS49DFHNN4KD24933&folder_id=3122');
+        var data = await res.json();
+        customers = (data && data.data) || [];
+      }
+
+      _cachedBull36Customers = customers || [];
+      if (countEl) countEl.textContent = String(_cachedBull36Customers.length);
+
+      renderBull36CustomersList('');
+
+      if (searchEl && !searchEl.__bound) {
+        searchEl.__bound = true;
+        searchEl.addEventListener('input', function () {
+          renderBull36CustomersList(searchEl.value || '');
+        });
+      }
+    } catch (e) {
+      console.warn('[HomeLive] Error loading Bull36 folder customers:', e);
+      if (mount && mount.innerHTML.indexOf('טוען') !== -1) {
+        mount.innerHTML = '<div style="padding:8px; color:#e11d48; font-size:12.5px;">שגיאה בטעינת לקוחות מ-Bull36 API</div>';
+      }
+    }
+  }
+
+  function renderBull36CustomersList(query) {
+    var mount = document.getElementById('mb-live-home-customers');
+    if (!mount) return;
+
+    var list = _cachedBull36Customers || [];
+    var q = String(query || '').trim().toLowerCase();
+    if (q) {
+      list = list.filter(function (c) {
+        return (c.name && c.name.toLowerCase().indexOf(q) !== -1) ||
+               (c.phone && String(c.phone).indexOf(q) !== -1) ||
+               (c.mobile && String(c.mobile).indexOf(q) !== -1) ||
+               (c.id && String(c.id).indexOf(q) !== -1);
+      });
+    }
+
+    if (!list.length) {
+      mount.innerHTML = '<div style="padding:12px; text-align:center; color:#94a3b8; font-size:13px; background:#f8fafc; border-radius:10px;">לא נמצאו לקוחות מתאימים</div>';
+      return;
+    }
+
+    var displaySlice = list.slice(0, 6);
+    mount.innerHTML = displaySlice.map(function (c) {
+      var name = c.name || c.full_name || ('לקוח #' + c.id);
+      var phone = c.mobile || c.phone || '—';
+      var initials = name.slice(0, 2);
+
+      return '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">' +
+        '<div style="display:flex; align-items:center; gap:10px;">' +
+          '<div style="width:36px; height:36px; border-radius:50%; background:#e0e7ff; color:#3730a3; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center;">' +
+            esc(initials) +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:14px; font-weight:700; color:#1e293b;">' + esc(name) + '</div>' +
+            '<div style="font-size:12px; color:#64748b; direction:ltr; text-align:right;">' + esc(phone) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex; align-items:center; gap:6px;">' +
+          '<span style="font-size:11px; font-weight:700; color:#059669; background:#dcfce7; padding:2px 7px; border-radius:99px;">תיקייה 3122</span>' +
+          '<a href="sales-customer-detail.html?id=' + encodeURIComponent(c.id) + '" style="font-size:12px; font-weight:700; color:#1d60a2; text-decoration:none; padding:4px 8px; border-radius:6px; background:#eff6ff;">צפה</a>' +
+        '</div>' +
+      '</div>';
+    }).join('');
   }
 
   function homeReady() {
