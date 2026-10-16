@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>חסדי שלמה — תיקי לקוחות, הכנסות והוצאות</title>
+  
+  <!-- Early Theme & Language Boot -->
+  <script src="assets/js/theme-boot.js"></script>
+  
+  <!-- Fonts & Stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/app.css?v=20261014-socket-pill-dark2">
+  
+  <!-- Configuration & App Logic -->
+  <script src="assets/config.js"></script>
+  <script src="assets/js/crypto-util.js"></script>
+  <script src="assets/vendor/socket.io.js?v=20261014-local"></script>
+  <script src="assets/vendor/biz1-sdk.js"></script>
+  <script defer src="assets/js/app.js?v=20261014-realtime-local"></script>
+</head>
+<body>
+
+  <!-- PASSIVE PASSWORD OVERLAY (No full username/OTP login required) -->
+  <div id="passiveOverlay" class="passive-overlay hidden">
+    <div class="passive-card">
+      <button type="button" id="passiveModalCloseBtn" class="modal-close-btn" style="position:absolute;top:16px;inset-inline-end:16px;" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="passive-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2 class="passive-title" data-i18n="authTitle">חסדי שלמה — התחברות דינמית</h2>
+      <p class="passive-desc" data-i18n="authDesc">הזן את פרטי הגישה שלך כדי לסנכרן נתונים חיים מ-Bull36 API</p>
+
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:#94a3b8; font-size:12px;">
+        <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+        <span>או הזן סיסמה / Token</span>
+        <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+      </div>
+
+      <form id="passiveForm" autocomplete="off">
+        <div style="margin-bottom:12px;">
+          <input type="password" id="passivePassInput" class="passive-input" placeholder="הזן סיסמה או Bearer Token..." autofocus required>
+        </div>
+        <button type="submit" id="passiveSubmitBtn" class="passive-btn" data-i18n="authBtn">סנכרן נתונים חיים עכשיו</button>
+        <div id="passiveError" class="passive-error hidden" data-i18n="authErr">חיבור נכשל. בדוק את הטוקן או הסיסמה</div>
+        <div style="margin-top:16px;">
+          <a href="login.html" style="font-size:12.5px;color:var(--primary);text-decoration:none;font-weight:600;">או היכנס דרך מסך התחברות מלא &larr;</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION VIEW -->
+  <div id="appContainer" class="app-container" style="display:none;">
+    
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-icon">ח״ש</div>
+        <div>
+          <h1 class="brand-title" data-i18n="brandTitle">חסדי שלמה</h1>
+          <div class="brand-subtitle" data-i18n="brandSubtitle">ניהול תיקי לקוחות, הכנסות והוצאות</div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- Realtime Socket Status -->
+        <div id="socketStatusChip" class="socket-status-chip socket-status-connecting" title="Realtime connection">
+          <span id="socketStatusDot" class="socket-status-dot"></span>
+          <span id="socketStatusLabel">Offline</span>
+        </div>
+
+        <!-- Refresh Data Button -->
+        <button type="button" id="refreshBtn" class="theme-toggle-btn" aria-label="Refresh Data" title="Refresh Live Data">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+
+
+        <!-- Language Switch (EN / עב) -->
+        <div class="lang-switch" role="group" aria-label="Language switch">
+          <button type="button" class="lang-btn" data-lang-btn="en">EN</button>
+          <button type="button" class="lang-btn active" data-lang-btn="he">עב</button>
+        </div>
+
+        <!-- Light / Dark Mode Toggle -->
+        <button type="button" id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle light / dark mode" title="Light / Dark mode">
+          <svg class="icon-sun hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+
+        <!-- Logout Button -->
+        <button type="button" id="logoutBtn" class="theme-toggle-btn" aria-label="Logout" title="התנתק מהמערכת">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- CUSTOMER LIST VIEW (Main Table & Overview) -->
+    <div id="customerListView" class="customer-list-view">
+      <!-- Overall Statistics Banner -->
+      <section class="stats-banner">
+        <div class="stat-card stat-card--customers">
+          <span class="stat-card-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span data-i18n="kpiCustomers">סה״כ לקוחות</span>
+          </span>
+          <span id="kpiTotalCustomers" class="stat-card-value">0</span>
+        </div>
+
+        <div class="stat-card stat-card--income">
+          <span class="stat-card-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <span data-i18n="kpiIncome">סה״כ הכנסות</span>
+          </span>
+          <span id="kpiTotalIncome" class="stat-card-value">₪0</span>
+        </div>
+
+        <div class="stat-card stat-card--expense">
+          <span class="stat-card-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            <span data-i18n="kpiExpenses">סה״כ הוצאות</span>
+          </span>
+          <span id="kpiTotalExpenses" class="stat-card-value">₪0</span>
+        </div>
+
+        <div class="stat-card stat-card--net">
+          <span class="stat-card-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <span data-i18n="kpiNet">מאזן נטו</span>
+          </span>
+          <span id="kpiTotalNet" class="stat-card-value">₪0</span>
+        </div>
+      </section>
+
+      <!-- Folder Navigation (Clickable Folder Tabs) -->
+      <section class="folder-section">
+        <div class="section-header">
+          <div class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span data-i18n="foldersTitle">תיקיות לקוחות</span>
+          </div>
+        </div>
+        <!-- <div id="folderTabs" class="folder-scroll-row"> -->
+          <!-- Rendered dynamically -->
+        <!-- </div> --> 
+      </section>
+
+      <!-- Search & Filters -->
+      <div class="filter-row">
+        <div class="search-input-wrap">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="customerSearchInput" class="search-input" placeholder="חיפוש לפי שם לקוח, טלפון, או מזהה..." data-i18n-placeholder="searchPlaceholder" autocomplete="off">
+          <button type="button" id="clearCustomerSearchBtn" class="clear-search-btn hidden" aria-label="Clear customer search" title="Clear search">×</button>
+        </div>
+      </div>
+
+      <!-- Customer Table & Loader -->
+      <main class="customer-main-content">
+        <!-- Prominent Loading State -->
+        <div id="customerTableLoader" class="customer-table-loader hidden" role="status" aria-live="polite">
+          <div class="loader-spinner-circle"></div>
+          <div class="loader-label" id="loaderLabel" data-i18n="loadingData">טוען נתונים חיים מ-Biz1 API...</div>
+        </div>
+
+        <!-- Customer Table Container -->
+        <div id="customerTableContainer" class="table-container">
+          <table class="data-table" id="customerDataTable">
+            <thead>
+              <tr>
+                <th class="th-cust" data-i18n="thCustomer">לקוח</th>
+                <th class="th-phone" data-i18n="thPhone">טלפון</th>
+                <th class="th-action-btn" data-i18n="thIncome">הכנסות (actually_received)</th>
+                <th class="th-action-btn" data-i18n="thExpenses">הוצאות (Expenses)</th>
+                <th class="th-net" style="text-align:end;" data-i18n="thNet">מאזן נטו</th>
+              </tr>
+            </thead>
+            <tbody id="customerTableBody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div id="tablePagination" class="table-pagination">
+          <div class="pagination-info">
+            <span id="paginationRange">1-10</span>
+            <span data-i18n="outOf">מתוך</span>
+            <span id="paginationTotal">0</span>
+            <span data-i18n="customersCount">לקוחות</span>
+          </div>
+          <div class="pagination-controls">
+            <div class="rows-per-page">
+              <label for="rowsPerPageSelect" data-i18n="rowsPerPage">שורות לעמוד:</label>
+              <select id="rowsPerPageSelect" class="pagination-select">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+            <div class="pagination-buttons">
+              <button type="button" id="prevPageBtn" class="page-btn" aria-label="Previous Page" title="Previous Page">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span id="pageIndicator" class="page-indicator">1 / 1</span>
+              <button type="button" id="nextPageBtn" class="page-btn" aria-label="Next Page" title="Next Page">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- CUSTOMER DETAIL & ENTRIES VIEW (Opens on Customer Row Click) -->
+    <div id="customerDetailView" class="customer-detail-view hidden">
+      
+      <!-- Top Navigation Bar (Location breadcrumbs removed) -->
+      <div class="customer-detail-nav">
+        <button type="button" id="customerBackToListBtn" class="btn-detail-back" title="חזרה לטבלת הלקוחות">
+          <svg class="back-arrow-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <span data-i18n="backToCustomers">חזרה ללקוחות</span>
+        </button>
+      </div>
+
+      <!-- Customer Header Profile Card -->
+      <section class="customer-detail-hero" id="customerDetailHero">
+        <div class="detail-hero-body">
+          <div class="detail-hero-avatar" id="detailCustAvatar">ח״ש</div>
+          <div class="detail-hero-content">
+            <div class="detail-hero-headline">
+              <div class="detail-hero-title-group">
+                <h2 class="detail-hero-name" id="detailCustName">—</h2>
+                <span class="detail-hero-id" id="detailCustId">#—</span>
+              </div>
+
+              <!-- Income & Expense Toggle Buttons (Positioned inside Hero Card) -->
+              <div class="customer-finance-toggle-strip" id="customerFinanceToggleStrip">
+                <button type="button" id="btnDetailIncome" class="finance-tab-btn active" data-type="income">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                  <span data-i18n="incomeLabel">הכנסות</span>
+                  <strong id="detailIncomeTotal">₪0</strong>
+                </button>
+                <button type="button" id="btnDetailExpense" class="finance-tab-btn" data-type="expense">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                  <span data-i18n="expenseLabel">הוצאות</span>
+                  <strong id="detailExpenseTotal">₪0</strong>
+                </button>
+              </div>
+
+              <div class="detail-hero-status-box" id="detailCustStatusWrap">
+                <!-- Status select / badge populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Contact & Meta Pills Row -->
+            <div class="detail-contact-pills" id="detailContactPills">
+              <!-- Phone Pill -->
+              <a href="#" id="detailCustPhonePill" class="contact-pill hidden" dir="ltr" title="חייג ללקוח">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <span id="detailCustPhoneVal">—</span>
+              </a>
+
+              <!-- WhatsApp Pill -->
+              <a href="#" id="detailCustWaBtn" target="_blank" rel="noopener noreferrer" class="contact-pill contact-pill--wa hidden" title="פתח שיחה בוואטסאפ">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                <span>WhatsApp</span>
+              </a>
+
+              <!-- Email Pill -->
+              <a href="#" id="detailCustEmailPill" class="contact-pill hidden" title="שלח אימייל">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <span id="detailCustEmailVal">—</span>
+              </a>
+
+              <!-- Folder Pill -->
+              <span id="detailCustFolderPill" class="contact-pill contact-pill--folder hidden" title="תיקייה">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span id="detailCustFolderVal">—</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Selected Entry Data Table & Actions View -->
+      <section class="customer-entry-data-view" id="customerEntryDataView">
+        <!-- Toolbar with Header & Search -->
+        <div class="entry-data-toolbar">
+          <div class="entry-title-wrap">
+            <h3 id="entrySectionTitle" class="entry-section-title">הגשה בקשה לקרנות</h3>
+            <span id="entryCountBadge" class="entry-count-badge">0</span>
+          </div>
+          <div class="entry-search-wrap">
+            <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="entryDataSearchInput" class="search-input" placeholder="חיפוש ברשומות..." data-i18n-placeholder="searchFieldValues" autocomplete="off">
+          </div>
+        </div>
+
+        <!-- Entry Table Loader -->
+        <div id="entryDataLoader" class="customer-table-loader hidden" role="status">
+          <div class="loader-spinner-circle"></div>
+          <div class="loader-label" data-i18n="loadingEntries">טוען רשומות מ-Biz1 API...</div>
+        </div>
+
+        <!-- Dynamic Entry Data Table -->
+        <div id="entryTableContainer" class="table-container entry-table-container">
+          <table class="data-table entry-data-table" id="customerEntryDataTable">
+            <thead id="customerEntryTableHead">
+              <!-- Dynamically populated column headers -->
+            </thead>
+            <tbody id="customerEntryTableBody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="entryTablePagination" class="table-pagination" style="display:none;">
+          <div class="pagination-info">
+            <span id="entryPaginationRange">0</span>
+            <span data-i18n="outOf">מתוך</span>
+            <span id="entryPaginationTotal">0</span>
+            <span data-i18n="entries">רשומות</span>
+          </div>
+          <div class="pagination-controls">
+            <div class="pagination-buttons">
+              <button type="button" id="entryPrevPageBtn" class="page-btn" aria-label="הקודם" title="הקודם">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span id="entryPageIndicator" class="page-indicator">1 / 1</span>
+              <button type="button" id="entryNextPageBtn" class="page-btn" aria-label="הבא" title="הבא">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State for Entries -->
+        <div id="entryEmptyState" class="entry-empty-state hidden">
+          <div class="entry-empty-icon">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="16" y2="14"/><line x1="8" y1="17" x2="8" y2="17"/><line x1="12" y1="17" x2="14" y2="17"/></svg>
+          </div>
+          <h3 class="entry-empty-title" data-i18n="noEntriesForCustomer">אין רשומות מקושרות ללקוח זה בסעיף זה</h3>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- DRILL-DOWN ENTRIES MODAL (Opens on click on Income or Expenses) -->
+  <div id="entriesModalOverlay" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-sheet" role="dialog" aria-labelledby="modalCustomerName">
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <div id="modalTypeIcon" class="modal-type-icon income">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div>
+            <h2 id="modalCustomerName" class="modal-title">—</h2>
+            <div id="modalTypeSubtitle" class="modal-subtitle">—</div>
+          </div>
+        </div>
+        <button type="button" id="modalCloseBtn" class="modal-close-btn" aria-label="Close modal">×</button>
+      </div>
+
+      <div class="modal-sum-bar">
+        <span data-i18n="modalTotalLabel">סה״כ לתצוגה:</span>
+        <span id="modalTotalSum" class="modal-sum-amount">₪0</span>
+      </div>
+
+      <div id="modalBody" class="modal-body dc-scroll">
+        <!-- Individual entries rendered here -->
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
