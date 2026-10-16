@@ -124,9 +124,10 @@ code {
   transition: 0.15s ease;
 }
 
-.btn:disabled {
+.btn:disabled,
+button:disabled {
   opacity: 0.6;
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 .btn-primary {
