@@ -1,1 +1,41 @@
+# Markdown documentation
 *.md
+
+# Archive & compressed files
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Server configuration & environment
+.htaccess
+.app_version
+.env
+.env.*
+
+# macOS metadata & system files
+__MACOSX/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# PHP temporary & configuration files
+php.ini.*
+*.log
+logs/
+
+# Cache directories & temporary files
+cache/
+*.tmp
+*.bak
+*.swp
+api_test_res.json
+api-check-report.json
+
