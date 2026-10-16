@@ -17,6 +17,43 @@
   var TOKEN_KEY = 'biz1_sdk_bearer_token';
   var LAST_EVENT_ID_KEY = 'biz1_realtime_last_event_id';
   var DEVICE_ID_KEY = 'biz1_realtime_device_id';
+  var CIPHER_KEY = 'BIZ1_APP_SECRET_KEY_2026';
+
+  function encryptPayload(payloadObj) {
+    var jsonStr = JSON.stringify(payloadObj || {});
+    var utf8Bytes = typeof TextEncoder !== 'undefined'
+      ? new TextEncoder().encode(jsonStr)
+      : (function(str) {
+          var arr = [];
+          for (var i = 0; i < str.length; i++) {
+            var code = str.charCodeAt(i);
+            if (code < 128) arr.push(code);
+            else {
+              var utf8Str = encodeURIComponent(str.charAt(i));
+              for (var j = 0; j < utf8Str.length; j++) {
+                if (utf8Str[j] === '%') {
+                  arr.push(parseInt(utf8Str.substr(j + 1, 2), 16));
+                  j += 2;
+                } else {
+                  arr.push(utf8Str.charCodeAt(j));
+                }
+              }
+            }
+          }
+          return new Uint8Array(arr);
+        })(jsonStr);
+
+    var xorBytes = new Uint8Array(utf8Bytes.length);
+    for (var i = 0; i < utf8Bytes.length; i++) {
+      xorBytes[i] = utf8Bytes[i] ^ CIPHER_KEY.charCodeAt(i % CIPHER_KEY.length);
+    }
+    var binStr = '';
+    for (var k = 0; k < xorBytes.length; k++) {
+      binStr += String.fromCharCode(xorBytes[k]);
+    }
+    var b64 = btoa(binStr);
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
 
   function Biz1ApiError(message, detail) {
     this.name = 'Biz1ApiError';
@@ -422,17 +459,29 @@
       headers.Authorization = 'Bearer ' + token;
     }
 
-    var res = await this.fetch(this.domain + this.appPath + '/' + route, {
+    var targetUrl = this.domain + this.appPath + '/' + route;
+    var payloadObj = {
+      target_url: targetUrl,
       method: 'POST',
       headers: headers,
-      body: toBody(data)
+      params: data || {}
+    };
+
+    var encData = encryptPayload(payloadObj);
+    var body = new URLSearchParams();
+    body.set('data', encData);
+
+    var res = await this.fetch('../order.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body
     });
     var text = await res.text();
     var json;
     try {
       json = text ? JSON.parse(text) : {};
     } catch (e) {
-      throw new Biz1ApiError('Biz1 route did not return JSON.', { route: route, status: res.status, response: text });
+      throw new Biz1ApiError('API gateway did not return JSON.', { route: route, status: res.status, response: text });
     }
 
     var failed = !res.ok || json.success === 0 || json.success === '0' || json.ok === false;

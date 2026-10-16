@@ -124,10 +124,9 @@ code {
   transition: 0.15s ease;
 }
 
-.btn:disabled,
-button:disabled {
+.btn:disabled {
   opacity: 0.6;
-  cursor: not-allowed;
+  cursor: wait;
 }
 
 .btn-primary {
@@ -1694,6 +1693,11 @@ a.customer-link {
   overflow: auto;
 }
 
+[dir="rtl"] .email-orders-preview {
+  direction: rtl;
+  text-align: right;
+}
+
 .email-orders-preview table {
   width: 100%;
 }
@@ -1868,6 +1872,28 @@ html[dir="rtl"] .data-table th.col-actions {
   word-break: break-word;
 }
 
-html[dir="rtl"] .toolbar>div {
-  justify-content: flex-end;
+html[dir="rtl"] .toolbar > div,
+html[dir="rtl"] .catalog-scroll,
+html[dir="rtl"] .filters {
+  direction: rtl;
+  justify-content: flex-start;
+}
+
+html[dir="rtl"] .filters #createOrderBtn,
+html[dir="rtl"] .filters #createCustomerOrderBtn {
+  order: -2;
+}
+
+html[dir="rtl"] .filters .field-picker-wrap {
+  order: -1;
+}
+
+html[dir="rtl"] .field-picker {
+  right: 0;
+  left: auto;
+}
+
+html[dir="rtl"] .bulk-bar {
+  justify-content: flex-start;
+  direction: rtl;
 }

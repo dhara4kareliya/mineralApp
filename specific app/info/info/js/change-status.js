@@ -78,6 +78,8 @@
         state.orderId = String(decrypted.order_id || decrypted.id || "").trim();
         state.apiToken = String(decrypted.api_token || decrypted.token || "").trim();
         state.tenantUser = String(decrypted.user || decrypted.username || "").trim();
+      } else {
+        state.invalidEncData = encData;
       }
     }
 
@@ -179,6 +181,75 @@
     return await res.json();
   }
 
+  var CIPHER_KEY = "BIZ1_APP_SECRET_KEY_2026";
+
+  function encryptPayload(payloadObj) {
+    var jsonStr = JSON.stringify(payloadObj || {});
+    var utf8Bytes = typeof TextEncoder !== "undefined"
+      ? new TextEncoder().encode(jsonStr)
+      : (function(str) {
+          var arr = [];
+          for (var i = 0; i < str.length; i++) {
+            var code = str.charCodeAt(i);
+            if (code < 128) arr.push(code);
+            else {
+              var utf8Str = encodeURIComponent(str.charAt(i));
+              for (var j = 0; j < utf8Str.length; j++) {
+                if (utf8Str[j] === '%') {
+                  arr.push(parseInt(utf8Str.substr(j + 1, 2), 16));
+                  j += 2;
+                } else {
+                  arr.push(utf8Str.charCodeAt(j));
+                }
+              }
+            }
+          }
+          return new Uint8Array(arr);
+        })(jsonStr);
+
+    var xorBytes = new Uint8Array(utf8Bytes.length);
+    for (var i = 0; i < utf8Bytes.length; i++) {
+      xorBytes[i] = utf8Bytes[i] ^ CIPHER_KEY.charCodeAt(i % CIPHER_KEY.length);
+    }
+    var binStr = "";
+    for (var k = 0; k < xorBytes.length; k++) {
+      binStr += String.fromCharCode(xorBytes[k]);
+    }
+    var b64 = btoa(binStr);
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  async function callGatewayApi(payloadObj, rawDataParam) {
+    var body = new URLSearchParams();
+    if (rawDataParam) {
+      body.set("data", rawDataParam);
+    } else {
+      var enc = encryptPayload(payloadObj);
+      body.set("data", enc);
+    }
+
+    var res = await fetch("../order.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body
+    });
+
+    var text = await res.text();
+    var json = null;
+    try {
+      json = text ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error("API Gateway did not return valid JSON.");
+    }
+
+    if (!res.ok || json.success === false || json.ok === false) {
+      var errStr = (json && (json.error || json.message)) || "API call failed (HTTP " + res.status + ")";
+      throw new Error(errStr);
+    }
+
+    return json;
+  }
+
   async function loadStatuses() {
     state.statuses = STATIC_ORDER_STATUSES;
   }
@@ -190,18 +261,20 @@
     var orderId = state.orderId;
     var orderData = null;
 
-    // Call GET API: https://{user}.biz1.co.il/api/get_order?api_token={api_token}&order_id={order_id}
-    var apiUrl = "https://" + user + ".biz1.co.il/api/get_order?api_token=" + encodeURIComponent(token) + "&order_id=" + encodeURIComponent(orderId);
+    var targetUrl = "https://" + user + ".biz1.co.il/api/get_order?api_token=" + encodeURIComponent(token) + "&order_id=" + encodeURIComponent(orderId);
     try {
-      var res = await fetch(apiUrl);
-      if (res.ok) {
-        var json = await res.json();
-        if (json && (json.data || json.order || json.result || json.id)) {
-          orderData = json.data || json.order || json.result || json;
-        }
+      var json = await callGatewayApi({
+        action: "get_order",
+        target_url: targetUrl,
+        method: "GET",
+        params: { user: user, api_token: token, order_id: orderId }
+      });
+      if (json && (json.data || json.order || json.result || json.id)) {
+        orderData = json.data || json.order || json.result || json;
       }
     } catch (e) {
-      console.warn("get_order direct API error:", e);
+      console.warn("get_order gateway API notice:", e);
+      showAlert(e.message, true);
     }
 
     if (!orderData) {
@@ -318,23 +391,23 @@
     var token = state.apiToken || "";
     var orderId = state.orderId;
     var statusId = state.selectedStatusId;
-    var foundStatus = state.statuses.find(function (s) { return String(s.id || s.status_id) === String(statusId); });
-    var isHe = document.documentElement.lang === "he";
     var statusNameParam =  statusId;
 
-    // Call Update API: https://{user}.bull36.com/api.php?api_token={api_token}&api=update_order&order_id={order_id}&order-cf-status={status_name}
     var updateApiUrl = "https://" + user + ".bull36.com/api.php?api_token=" + encodeURIComponent(token) +
       "&api=update_order_2&order_id=" + encodeURIComponent(orderId) +
       "&order-cf-status=" + (statusNameParam);
 
     var apiResult = null;
     try {
-      var res = await fetch(updateApiUrl, { method: "POST" });
-      if (res.ok) {
-        apiResult = await res.json();
-      }
+      apiResult = await callGatewayApi({
+        action: "update_order",
+        target_url: updateApiUrl,
+        method: "POST",
+        params: { user: user, api_token: token, order_id: orderId, "order-cf-status": statusNameParam }
+      });
     } catch (e) {
-      console.warn("update_order direct API error:", e);
+      console.warn("update_order gateway API error:", e);
+      showAlert(e.message, true);
     }
 
     // 2. Trigger Webhook (only if customWebhook is explicitly provided)
@@ -383,7 +456,7 @@
     if ($("respProduct")) $("respProduct").textContent = prodName;
 
     if ($("respCrmStatus")) {
-      var apiMsg = (apiResult && apiResult.message) ? apiResult.message : "Order status updated";
+      var apiMsg = (apiResult && apiResult.message && apiResult.message !== "Order status updated") ? apiResult.message : t("orderStatusUpdated");
       $("respCrmStatus").innerHTML = '<span class="status-badge-success">✔ ' + escapeHtml(apiMsg) + '</span>';
     }
 
@@ -391,13 +464,14 @@
 
     $("statusCard").hidden = true;
     $("successCard").hidden = false;
+    safeApplyI18n();
 
     if (state.order) state.order.order_status = state.selectedStatusId;
     if ($("currentStatusBadge")) $("currentStatusBadge").innerHTML = renderStatusBadge(state.selectedStatusId);
   }
 
   function syncLangSegmentUI() {
-    var cur = document.documentElement.lang || "en";
+    var cur = document.documentElement.lang || "he";
     var enSeg = document.querySelector(".lang-segment.lang-en");
     var heSeg = document.querySelector(".lang-segment.lang-he");
     if (enSeg && heSeg) {
@@ -413,6 +487,16 @@
 
     // Set custom webhook URL if provided in query params
     if ($("webhookUrlInput")) $("webhookUrlInput").value = state.webhookUrl || "";
+
+    if (state.invalidEncData) {
+      $("statusLoading").hidden = true;
+      try {
+        await callGatewayApi(null, state.invalidEncData);
+      } catch (err) {
+        showAlert(err.message || "Invalid or corrupted encrypted data. Decryption failed.", true);
+        return;
+      }
+    }
 
     if (!state.orderId) {
       $("statusLoading").hidden = true;
@@ -468,10 +552,14 @@
     var themeBtn = $("themeBtn");
     if (themeBtn) {
       themeBtn.addEventListener("click", function () {
+        if (window.OrderApp && typeof window.OrderApp.toggleTheme === "function") {
+          window.OrderApp.toggleTheme();
+          return;
+        }
         var currentTheme = document.documentElement.getAttribute("data-theme") || "light";
         var nextTheme = currentTheme === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", nextTheme);
-        localStorage.setItem("orderapp_theme", nextTheme);
+        try { localStorage.setItem("orderapp_theme", nextTheme); } catch (e) {}
       });
     }
   }

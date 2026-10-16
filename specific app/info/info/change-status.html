@@ -651,17 +651,17 @@
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
         </div>
         <h2 class="celebration-title" data-i18n="statusUpdatedSuccess">Order Status Updated Successfully!</h2>
-        <p class="celebration-sub" id="successSub">The CRM order status record has been updated.</p>
+        <p class="celebration-sub" id="successSub" data-i18n="crmRecordUpdated">The CRM order status record has been updated.</p>
 
         <!-- Journey Bar -->
         <div class="journey-bar">
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--crm-text-muted); margin-bottom: 0.25rem;">Previous Status</div>
+            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--crm-text-muted); margin-bottom: 0.25rem;" data-i18n="previousStatus">PREVIOUS STATUS</div>
             <div id="prevStatusDisplay">—</div>
           </div>
           <div style="font-size: 1.75rem; color: #22c55e; font-weight: 800;">➔</div>
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--crm-text-muted); margin-bottom: 0.25rem;">New Status</div>
+            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--crm-text-muted); margin-bottom: 0.25rem;" data-i18n="newStatus">NEW STATUS</div>
             <div id="newStatusDisplay">—</div>
           </div>
         </div>
@@ -669,29 +669,29 @@
         <!-- Summary Grid -->
         <div class="response-metrics-grid">
           <div class="response-grid-item">
-            <div class="response-grid-label">Order Number</div>
+            <div class="response-grid-label" data-i18n="colOrder">ORDER NUMBER</div>
             <div class="response-grid-value" id="respOrderId">#—</div>
           </div>
           <div class="response-grid-item">
-            <div class="response-grid-label">Client Name</div>
+            <div class="response-grid-label" data-i18n="colCustomer">CLIENT NAME</div>
             <div class="response-grid-value" id="respCustomer">—</div>
           </div>
           <div class="response-grid-item">
-            <div class="response-grid-label">Product</div>
+            <div class="response-grid-label" data-i18n="product">PRODUCT</div>
             <div class="response-grid-value" id="respProduct">—</div>
           </div>
           <div class="response-grid-item">
-            <div class="response-grid-label">CRM Update Result</div>
-            <div id="respCrmStatus"><span class="status-badge-success">✔ Order Updated</span></div>
+            <div class="response-grid-label" data-i18n="crmUpdateResult">CRM UPDATE RESULT</div>
+            <div id="respCrmStatus"><span class="status-badge-success" data-i18n="orderStatusUpdated">✔ Order status updated</span></div>
           </div>
           <div class="response-grid-item">
-            <div class="response-grid-label">Updated At</div>
+            <div class="response-grid-label" data-i18n="updatedAt">UPDATED AT</div>
             <div class="response-grid-value" id="respTime" style="font-size: 0.95rem;">—</div>
           </div>
         </div>
 
         <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-          <button type="button" class="btn-crm-update" id="resetBtn" style="max-width: 320px;">
+          <button type="button" class="btn-crm-update" id="resetBtn" style="max-width: 320px;" data-i18n="updateStatusAgain">
             Update Status Again
           </button>
         </div>
@@ -703,10 +703,10 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 
-  <script src="./js/biz1-sdk.js?v=orders-23"></script>
-  <script src="./js/i18n.js?v=orders-23"></script>
-  <script src="./js/common.js?v=orders-23"></script>
-  <script src="./js/change-status.js?v=orders-23"></script>
+  <script src="./js/biz1-sdk.js?v=orders-25"></script>
+  <script src="./js/i18n.js?v=orders-24"></script>
+  <script src="./js/common.js?v=orders-24"></script>
+  <script src="./js/change-status.js?v=orders-25"></script>
 </body>
 
 </html>
