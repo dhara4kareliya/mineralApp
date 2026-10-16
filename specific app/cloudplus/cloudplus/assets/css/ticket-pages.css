@@ -95,6 +95,7 @@ html[dir="rtl"] .page-back-icon { transform: scaleX(-1); }
   padding: 14px;
   box-shadow: var(--shadow-soft);
   margin-bottom: 14px;
+  overflow: hidden;
 }
 .td-card--rows { padding: 4px 14px; }
 
@@ -103,6 +104,7 @@ html[dir="rtl"] .page-back-icon { transform: scaleX(-1); }
   align-items: center;
   gap: 12px;
   text-decoration: none;
+  min-width: 0;
 }
 .td-avatar {
   width: 46px;
@@ -226,11 +228,14 @@ html[dir="rtl"] .page-back-icon { transform: scaleX(-1); }
   color: var(--text-secondary);
   line-height: 1.6;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+  max-width: 100%;
 }
 .td-tags {
   display: flex;
