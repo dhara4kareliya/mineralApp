@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 Showcase — Ticket</title>
 <script src="assets/js/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/css/app.css?v=ticket-15">
-<script src="assets/config.js?v=ticket-15"></script>
-<script src="assets/js/app.js?v=ticket-16"></script>
+<link rel="stylesheet" href="assets/css/app.css?v=ticket-31">
+<script src="assets/config.js?v=ticket-32"></script>
+<script src="assets/js/app.js?v=ticket-32"></script>
 
     <script>
       (function(){try{var t=localStorage.getItem('biz1_fin_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
@@ -119,12 +119,46 @@
             <button type="button" id="ticketNavMaps" class="btn-ghost ticket-action-btn" data-i18n="navigate">Navigate</button>
             <a id="ticketWaBtn" class="btn-ghost ticket-action-btn ticket-action-btn--wa" href="#" role="button" rel="noopener">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-              <span data-i18n="wa_on_way_btn">I'm on my way</span>
+              <span id="ticketWaBtnText" data-i18n="wa_on_way_btn">I'm on my way</span>
             </a>
+            <button type="button" id="ticketChatToggleBtn" class="btn-ghost ticket-action-btn ticket-action-btn--chat" aria-label="Open chat">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span data-i18n="ticket_chat_btn">Chat</span>
+              <span id="ticketChatUnreadBadge" class="ticket-chat-count-badge hidden">0</span>
+            </button>
             <button type="button" id="ticketCompleteBtn" class="btn-primary btn-green ticket-action-btn ticket-action-btn--complete">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>
               <span data-i18n="go_complete">Complete & Sign-Off</span>
             </button>
+          </div>
+
+          <!-- CHAT & WHATSAPP SECTION (Opens beneath action bar on click) -->
+          <div id="ticketChatSection" class="ticket-chat-section hidden">
+            <div class="ticket-chat-header">
+              <div class="ticket-chat-header-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                <span>WhatsApp &amp; Customer Chat</span>
+              </div>
+              <div class="ticket-chat-header-meta">
+                <span id="ticketChatCustomerName" class="ticket-chat-badge">—</span>
+                <a id="ticketChatExternalWaLink" class="ticket-chat-wa-ext hidden" href="#" target="_blank" rel="noopener noreferrer" title="Open in WhatsApp Web / App">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+                </a>
+                <button type="button" id="ticketChatCloseBtn" class="ticket-chat-close-btn" aria-label="Close chat">×</button>
+              </div>
+            </div>
+            <div id="ticketChatMessages" class="ticket-chat-messages dc-scroll"></div>
+            <div id="ticketChatTyping" class="ticket-chat-typing hidden">
+              <span class="ticket-chat-typing-dots"><span></span><span></span><span></span></span>
+              <span id="ticketChatTypingText">Customer is typing...</span>
+            </div>
+            <form id="ticketChatForm" class="ticket-chat-input-bar">
+              <input type="text" id="ticketChatInput" class="ds-input ticket-chat-input" placeholder="Type a message or WhatsApp update..." autocomplete="off">
+              <button type="submit" id="ticketChatSendBtn" class="btn-primary ticket-chat-send-btn">
+                <span>Send</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </form>
           </div>
         </div>
       </div>

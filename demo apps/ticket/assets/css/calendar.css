@@ -1,0 +1,916 @@
+/* ==========================================================================
+   Biz1 Ticket Platform — Calendar Styles (calendar.css)
+   Colors, typography and UI tokens precisely matching the Ticket Platform.
+   ========================================================================== */
+
+/* Date navigation box inside filter groups */
+.cal-range-nav-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.cal-nav-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cal-nav-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.cal-nav-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* View Switcher: Day / Week */
+.cal-view-switch {
+  display: inline-flex;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.cal-view-switch button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cal-view-switch button.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(29, 96, 162, 0.35);
+}
+
+/* View-Only Badge Pill */
+.cal-readonly-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  padding: 7px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   MAIN LAYOUT (Sidebar + Timetable Grid)
+   ========================================================================== */
+.calendar-main-layout {
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  gap: 16px;
+  align-items: start;
+  padding: 14px 20px 80px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .calendar-main-layout {
+    grid-template-columns: 1fr;
+    padding: 14px 16px 80px;
+    gap: 16px;
+  }
+}
+
+/* ==========================================================================
+   LEFT SIDEBAR (Mini Calendar & Team Member list)
+   ========================================================================== */
+.cal-sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cal-sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cal-sidebar-back {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.cal-sidebar-back:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.cal-sidebar-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* Mini Calendar Widget */
+.mini-cal-card {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mini-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mini-cal-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.mini-cal-nav-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mini-cal-nav-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.mini-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px 2px;
+  text-align: center;
+}
+
+.mini-cal-day {
+  position: relative;
+  width: 25px;
+  height: 25px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mini-cal-day:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.mini-cal-day.other-month {
+  color: var(--text-muted);
+  opacity: 0.35;
+}
+
+.mini-cal-day.active {
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(29, 96, 162, 0.4);
+}
+
+.mini-cal-day.today {
+  border: 1.5px solid var(--primary);
+}
+
+.mini-cal-day.has-tickets::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.mini-cal-day.active.has-tickets::after {
+  background: #ffffff;
+}
+
+/* TEAM MEMBER Section in Sidebar */
+.cal-team-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cal-team-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cal-team-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.team-filter-all-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.team-filter-all-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.team-filter-all-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.cal-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.team-member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.team-member-item:hover {
+  background: var(--primary-soft);
+}
+
+.team-member-item.active {
+  background: var(--primary-soft);
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
+.team-member-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.team-member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  flex: none;
+}
+
+.team-member-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-member-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.team-member-hours {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.team-member-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+
+/* ==========================================================================
+   RIGHT TIMETABLE AREA
+   ========================================================================== */
+.cal-body-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Unassigned tickets alert banner */
+.cal-unassigned-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #7c3aed;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+[data-theme="dark"] .cal-unassigned-banner {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
+.cal-unassigned-banner:hover {
+  background: rgba(139, 92, 246, 0.22);
+}
+
+.cal-unassigned-banner .pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  flex: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+}
+
+.cal-card-shell {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   DAY VIEW (Vertical Columns with Full Schedule Card Details)
+   ========================================================================== */
+.day-grid {
+  display: none;
+  grid-template-columns: 60px 1fr;
+  position: relative;
+  overflow-x: auto;
+}
+
+.day-grid.active {
+  display: grid;
+}
+
+.grid-corner {
+  border-inline-end: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-muted);
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+}
+
+.corner-date {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--primary);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.staff-head {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
+  text-align: center;
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.staff-head-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin: 0 auto 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+
+.staff-head-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.staff-head-role {
+  display: none;
+}
+
+.time-col {
+  border-inline-end: 1px solid var(--border);
+}
+
+/* Height for each hour slot */
+.time-slot {
+  height: 80px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-align: right;
+  padding: 6px 6px 0 0;
+  border-bottom: 1px solid var(--border-row);
+  font-weight: 700;
+  position: relative;
+  background: var(--bg-muted);
+  box-sizing: border-box;
+}
+
+.time-slot::after {
+  content: '30';
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  font-size: 8.5px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transform: translateY(-50%);
+}
+
+[dir="rtl"] .time-slot {
+  text-align: left;
+  padding: 6px 0 0 8px;
+}
+
+[dir="rtl"] .time-slot::after {
+  right: auto;
+  left: 8px;
+}
+
+.staff-col {
+  border-inline-end: 1px solid var(--border);
+  position: relative;
+}
+
+.hour-cell {
+  height: 80px;
+  border-bottom: 1px solid var(--border-row);
+  position: relative;
+  background: var(--bg-card);
+  box-sizing: border-box;
+}
+
+.hour-cell::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px dashed var(--border-row);
+  opacity: 0.7;
+}
+
+.now-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid var(--primary);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.now-indicator::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* ==========================================================================
+   TICKET APPOINTMENT CARD (Streamlined to Client, Meta, Time, Status Pill & Subject)
+   ========================================================================== */
+.appt-schedule-card {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 3px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.appt-schedule-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  z-index: 6;
+}
+
+/* Card inner top row with managed two-column layout */
+.appt-schedule-card .sched-card-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Left column (Client Title + Ticket #) with strict max-width & containment */
+.appt-schedule-card .sched-card-col-left {
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: calc(100% - 76px);
+  overflow: hidden;
+}
+
+/* Client title with strict max-length management & ellipsis */
+.appt-schedule-card .sched-card-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+/* Ticket # metadata with ellipsis */
+.appt-schedule-card .sched-card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+/* Right column (Time + Status Pill) with dedicated width & alignment */
+.appt-schedule-card .sched-card-col-right {
+  flex: 0 0 auto;
+  text-align: right;
+  min-width: 0;
+  max-width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+[dir="rtl"] .appt-schedule-card .sched-card-col-right {
+  text-align: left;
+  align-items: flex-start;
+}
+
+/* Time display with managed max-length */
+.appt-schedule-card .sched-card-time {
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: -0.2px;
+}
+
+/* Status pill with ellipsis */
+.appt-schedule-card .status-pill {
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appt-schedule-card .status-pill .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+/* Subject line with strict max-length management */
+.appt-schedule-card .sched-card-subject {
+  font-size: 11.5px;
+  color: var(--text);
+  font-weight: 700;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+/* ==========================================================================
+   WEEK VIEW (Swapped: Time on Left Y-axis, Dates & Staff on Top X-axis)
+   ========================================================================== */
+.week-grid {
+  display: none;
+  grid-template-columns: 60px repeat(7, minmax(130px, 1fr));
+  position: relative;
+  overflow-x: auto;
+}
+
+.week-grid.active {
+  display: grid;
+}
+
+.week-corner {
+  border-inline-end: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-muted);
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.week-day-header {
+  padding: 10px 8px;
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.week-day-header.today-header {
+  background: #2e8a63;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .week-day-header.today-header {
+  background: #246e4f;
+  color: #ffffff;
+}
+
+.week-staff-col-head {
+  padding: 8px 6px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
+  position: sticky;
+  top: 38px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.week-staff-col-head .week-staff-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  flex: none;
+}
+
+.week-staff-col-head .week-staff-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.week-staff-col-head .week-staff-name {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-staff-col-head .week-staff-hours {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.week-time-col {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  background: var(--bg-muted);
+}
+
+.week-data-col {
+  border-inline-end: 1px solid var(--border);
+}
+
+/* ==========================================================================
+   VIEW-ONLY DETAIL MODAL
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 16, 26, 0.72);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  max-width: 480px;
+  width: 100%;
+  padding: 22px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: modalPop 0.18s ease-out;
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.modal-field label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modal-static-field {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 8px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  word-break: break-word;
+}

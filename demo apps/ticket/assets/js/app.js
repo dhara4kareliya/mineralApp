@@ -2056,6 +2056,74 @@
   }
 
   /**
+   * Chat.SingleConversations — full thread for one messenger conversation.
+   * Required: messenger_meta_id (from Chat.Conversations).
+   */
+  async function listSingleConversations(messengerMetaId, extra) {
+    var meta = String(messengerMetaId == null ? '' : messengerMetaId).trim();
+    if (!meta) {
+      var e = new Error('Missing messenger_meta_id');
+      e.route = 'Chat.SingleConversations';
+      e.code = 'MISSING_ID';
+      throw e;
+    }
+    var client = getClient();
+    var extraOpts = extra || {};
+    var payload = Object.assign({
+      messenger_meta_id: meta,
+      messanger_meta_id: meta,
+      chat_id: meta,
+      meta_id: meta,
+      conversation_id: meta,
+      page: 1,
+      limit: 100,
+      start: 0
+    }, extraOpts);
+    if (extraOpts.customer_id) {
+      payload.customer_id = extraOpts.customer_id;
+      payload.cust_id = extraOpts.customer_id;
+      payload.contactus_id = extraOpts.customer_id;
+    }
+    if (extraOpts.type) payload.type = extraOpts.type;
+
+    var raw = await client.request('Chat.SingleConversations', payload);
+    var data = (raw && Array.isArray(raw.data))
+      ? raw.data
+      : (raw && Array.isArray(raw.rows) ? raw.rows : []);
+
+    var rows = data.map(function (r) {
+      var text = chatSnippet(r) || String(r.message || r.msg || r.note || '').trim();
+      var type = String(r.type || r.channel || r.msg_type || 'whatsapp').toLowerCase();
+      var displayTime = chatWhen(r) || r.time;
+      var row = {
+        id: (r.id && (r.id.$oid || r.id)) || r.message_id || '',
+        message: text,
+        user_name: r.user_name || r.from_name || r.sender_name || '',
+        email: r.email || '',
+        time: displayTime,
+        direction: r.direction,
+        type: type,
+        channel: type,
+        user_id: r.user_id,
+        messenger_meta_id: meta,
+        raw: r
+      };
+      return row;
+    }).filter(function (row) {
+      return !!(row.message || (row.raw && (row.raw.id || row.raw._id)));
+    });
+
+    return {
+      rows: rows,
+      count: Number(raw && raw.count != null ? raw.count : rows.length),
+      total: Number(raw && raw.total != null ? raw.total : rows.length),
+      messenger_meta_id: raw && (raw.messenger_meta_id || meta),
+      customer_id: raw && (raw.customer_id || raw.contactus_id),
+      raw: raw
+    };
+  }
+
+  /**
    * Chat.SendCustomer — always send customer_id (and cust_id alias).
    * Optional `from`: send_notes (default), send_whatsapp, send_email_quick, …
    * success may be string "4" with message_return when note/message was stored.
@@ -2127,7 +2195,8 @@
     'chat.message.received': 1,
     'whatsapp.message.received': 1,
     'whatsapp.inbox.refresh': 1,
-    'rooms.chat.message': 1
+    'rooms.chat.message': 1,
+    'ticket.whatsapp': 1
   };
   var MISSION_EVENT_KEYS = {
     'mission.reminder': 1,
@@ -2383,6 +2452,7 @@
     listEmails: listEmails,
     listChatConversations: listChatConversations,
     listCustomerMessages: listCustomerMessages,
+    listSingleConversations: listSingleConversations,
     parseEmailsHtml: parseEmailsHtml,
     sendCustomerMessage: sendCustomerMessage,
     connectRealtime: connectRealtime,
@@ -2478,6 +2548,8 @@
       live_socket_off: 'Socket Off',
       my_schedule: 'My Schedules',
       schedule_sub: 'Daily route & assigned tickets',
+      calendar_view: 'Calendar View',
+      assignment_calendar: 'Assignment calendar',
       visits: 'Visits',
       completed: 'Done',
       waiting: 'Open',
@@ -2617,6 +2689,8 @@
       live_socket_off: 'מנותק',
       my_schedule: 'הלוז שלי',
       schedule_sub: 'מסלול יומי וקריאות משובצות',
+      calendar_view: 'תצוגת יומן',
+      assignment_calendar: 'יומן שיבוצים',
       visits: 'ביקורים',
       completed: 'הושלמו',
       waiting: 'פתוחות',
@@ -3882,8 +3956,136 @@
     return [];
   }
 
+  var DEFAULT_RAW_TICKETS = [
+    {
+      ticket_id: 22290,
+      cust_id: 13757861,
+      customer_name: "Demo",
+      ticket_name: "Demo",
+      subject: "demo ticket 13",
+      open_date: "2026-10-09T04:39:11.000Z",
+      due_date: "2026-10-09T00:00:00.000Z",
+      close_date: "2026-10-09T04:43:16.000Z",
+      ticket_from_time: "11:00:00",
+      ticket_to_time: "11:30:00",
+      status: 3,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      mobile: "9099490994",
+      rating: "3",
+      address: null
+    },
+    {
+      ticket_id: 22113,
+      cust_id: 13757861,
+      customer_name: "Demo",
+      subject: "bro",
+      open_date: "2026-10-06T13:17:08.000Z",
+      due_date: "2026-10-06T13:17:08.000Z",
+      close_date: null,
+      status: 1,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      rating: "4",
+      address: null
+    },
+    {
+      ticket_id: 22112,
+      cust_id: 13757861,
+      customer_name: "Demo",
+      subject: "80[p7f",
+      open_date: "2026-10-06T13:15:01.000Z",
+      due_date: "2026-10-06T13:15:01.000Z",
+      close_date: null,
+      status: 2,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      rating: "1",
+      address: null
+    },
+    {
+      ticket_id: 21998,
+      cust_id: 13757861,
+      customer_name: "Demo",
+      subject: "creator4",
+      open_date: "2026-10-05T12:11:44.000Z",
+      due_date: "2026-10-05T12:11:44.000Z",
+      close_date: null,
+      status: 1,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      rating: "4",
+      address: null
+    },
+    {
+      ticket_id: 21944,
+      cust_id: 13757861,
+      customer_name: "Demo",
+      subject: "-fkfpkofjkpo",
+      open_date: "2026-10-05T06:03:45.000Z",
+      due_date: "2026-10-05T06:03:45.000Z",
+      close_date: null,
+      status: 1,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      rating: "1",
+      address: null
+    },
+    {
+      ticket_id: 21865,
+      cust_id: 13757861,
+      customer_name: "Demo",
+      subject: "create home page",
+      open_date: "2026-10-03T06:20:41.000Z",
+      due_date: "2026-10-03T06:20:41.000Z",
+      close_date: null,
+      status: 2,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      address: "punagam, surat - Gujrat.",
+      rating: "3"
+    },
+    {
+      ticket_id: 21534,
+      cust_id: 13757861,
+      customer_name: "Demo",
+      subject: "get issue in create ticket",
+      open_date: "2026-09-21T11:28:32.000Z",
+      due_date: "2026-09-21T11:28:32.000Z",
+      close_date: null,
+      status: 2,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      address: "789 Broad Ave, City",
+      rating: "4"
+    },
+    {
+      ticket_id: 21530,
+      cust_id: 13757861,
+      customer_name: "demo",
+      subject: "box booking huo",
+      open_date: "2026-09-21T10:38:46.000Z",
+      due_date: "2026-09-21T10:38:46.000Z",
+      close_date: null,
+      status: 2,
+      email: "demo@yopmail.com",
+      phone: "9099490994",
+      address: "Empire State Building",
+      rating: "2"
+    }
+  ];
+
+  function getDefaultTickets() {
+    return DEFAULT_RAW_TICKETS.map(mapTicket).filter(Boolean);
+  }
+
   function getTickets() {
-    return filterTicketsForUser(loadCache(), { includeClosed: true });
+    var cached = loadCache();
+    if (!cached.length) {
+      cached = getDefaultTickets();
+      memoryTickets = cached;
+    }
+    return filterTicketsForUser(cached, { includeClosed: true });
   }
 
   function getTicketsForCounts() {
@@ -4786,7 +4988,7 @@
 (function (global) {
   'use strict';
 
-  var AUTH_ROUTES = { schedule: 1, ticket: 1, complete: 1 };
+  var AUTH_ROUTES = { schedule: 1, calendar: 1, ticket: 1, complete: 1 };
   var booted = false;
   var currentPage = '';
   var draftSessionTicketId = null;
@@ -4846,6 +5048,7 @@
     var files = {
       login: 'login.html',
       schedule: 'schedule.html',
+      calendar: 'calendar.html',
       ticket: 'ticket.html',
       complete: 'complete.html'
     };
@@ -4871,6 +5074,7 @@
       if (attr) return String(attr);
     } catch (e0) { /* ignore */ }
     var path = String((global.location && global.location.pathname) || '').toLowerCase();
+    if (path.indexOf('calendar.html') !== -1) return 'calendar';
     if (path.indexOf('schedule.html') !== -1) return 'schedule';
     if (path.indexOf('ticket.html') !== -1) return 'ticket';
     if (path.indexOf('complete.html') !== -1) return 'complete';
@@ -4923,6 +5127,7 @@
     var titles = {
       login: tr('page_login_title'),
       schedule: tr('my_schedule') + ' — ' + brand,
+      calendar: (tr('assignment_calendar') || 'Assignment calendar') + ' — ' + brand,
       ticket: tr('ticket_title') + ' — ' + brand,
       complete: tr('go_complete') + ' — ' + brand
     };
@@ -5404,8 +5609,8 @@
           '<div class="sched-card-address">' + address + '</div>' +
         '</div>' +
         '<div style="text-align:end;flex:none;">' +
-          '<div class="sched-card-time" style="color:' + colors.accent + ';">' + time + '</div>' +
-          '<span class="status-pill" style="margin-top:6px;background:' + colors.bg + ';color:' + colors.text + ';">' +
+          (ticket.time ? '<div class="sched-card-time" style="color:' + colors.accent + ';">' + time + '</div>' : '') +
+          '<span class="status-pill" style="' + (ticket.time ? 'margin-top:6px;' : '') + 'background:' + colors.bg + ';color:' + colors.text + ';">' +
             '<span class="dot"></span>' + tr(FieldApp.statusLabelKey(ticket.status)) + '</span>' +
         '</div>' +
       '</div>' +
@@ -6148,6 +6353,427 @@
     }
   }
 
+  function escapeChatHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  var DEFAULT_WHATSAPP_THREADS = {
+    '22290': [
+      {
+        id: 'wa-msg-1',
+        who: 'Biz1 System',
+        text: 'Biz1 Login Code: 848166 Valid for 10 minutes. Portal link: https://apps.bull36.com/demo/self-service/?customer_id=13757861',
+        time: 'Yesterday 1:56 pm',
+        direction: 'out'
+      },
+      {
+        id: 'wa-msg-2',
+        who: 'Biz1 System',
+        text: 'קוד אימות ביז1: 411796 בתוקף ל-10 דקות קישור לפורטל: http://127.0.0.1:5500/demo%20apps/self-service/https:/index.html?customer_id=13757861',
+        time: 'Yesterday 1:57 pm',
+        direction: 'out'
+      },
+      {
+        id: 'wa-msg-3',
+        who: 'Demo (Technician)',
+        text: "Hi Demo, I'm on my way to your service visit (ticket #22290).",
+        time: 'Yesterday 4:31 pm',
+        direction: 'out'
+      },
+      {
+        id: 'wa-msg-4',
+        who: 'Demo',
+        text: 'J;O',
+        time: 'Today 2:44 pm',
+        direction: 'in'
+      }
+    ],
+    '13757861': [
+      {
+        id: 'wa-msg-1',
+        who: 'Biz1 System',
+        text: 'Biz1 Login Code: 848166 Valid for 10 minutes. Portal link: https://apps.bull36.com/demo/self-service/?customer_id=13757861',
+        time: 'Yesterday 1:56 pm',
+        direction: 'out'
+      },
+      {
+        id: 'wa-msg-2',
+        who: 'Biz1 System',
+        text: 'קוד אימות ביז1: 411796 בתוקף ל-10 דקות קישור לפורטל: http://127.0.0.1:5500/demo%20apps/self-service/https:/index.html?customer_id=13757861',
+        time: 'Yesterday 1:57 pm',
+        direction: 'out'
+      },
+      {
+        id: 'wa-msg-3',
+        who: 'Demo (Technician)',
+        text: "Hi Demo, I'm on my way to your service visit (ticket #22290).",
+        time: 'Yesterday 4:31 pm',
+        direction: 'out'
+      },
+      {
+        id: 'wa-msg-4',
+        who: 'Demo',
+        text: 'J;O',
+        time: 'Today 2:44 pm',
+        direction: 'in'
+      }
+    ]
+  };
+
+  function formatChatText(text) {
+    if (!text) return '';
+    var escaped = escapeChatHtml(text);
+    return escaped.replace(/(https?:\/\/[^\s]+)/g, function (url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;word-break:break-all;">' + url + '</a>';
+    });
+  }
+
+  var ticketChatSyncTimer = null;
+
+  async function fetchTicketLiveChat(ticket) {
+    if (!ticket) return [];
+    var customerId = ticket.customerId || (ticket.raw && ticket.raw.cust_id) || FieldApp.ticketCustomerId(ticket.raw) || 0;
+    var phone = String(ticket.phone || ticket.mobile || '').replace(/\D/g, '');
+    var client = (global.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient()) || null;
+    if (!client || !client.getToken || !client.getToken()) {
+      return [];
+    }
+
+    var apiRows = [];
+    var metaId = ticket.__messenger_meta_id || '';
+
+    // Step 0: Direct Ticket.Messages and Ticket.Get (data.chat) from official docs
+    if (ticket.id) {
+      try {
+        var tRes = await client.request('Ticket.Messages', { ticket_id: ticket.id, id: ticket.id });
+        var tData = (tRes && (tRes.data || tRes.rows || tRes.messages || tRes.chat)) || [];
+        if (Array.isArray(tData)) {
+          tData.forEach(function (r) {
+            if (r && (r.message || r.msg || r.text)) apiRows.push(r);
+          });
+        }
+      } catch (eTm) {}
+
+      try {
+        var getRes = await client.request('Ticket.Get', { id: ticket.id, ticket_id: ticket.id });
+        var chatRows = getRes && ((getRes.data && getRes.data.chat) || (getRes.ticket && getRes.ticket.chat));
+        if (Array.isArray(chatRows)) {
+          chatRows.forEach(function (r) {
+            if (r && (r.message || r.msg || r.text)) apiRows.push(r);
+          });
+        }
+      } catch (eTg) {}
+    }
+
+    // Step 1: Find messenger_meta_id via Chat.Conversations if not resolved yet
+    if (!metaId && MineralBarApp.listChatConversations) {
+      try {
+        var convs = await MineralBarApp.listChatConversations({ limit: 50 });
+        var rows = (convs && convs.rows) || [];
+        for (var i = 0; i < rows.length; i++) {
+          var c = rows[i];
+          var matchCust = customerId && String(c.customer_id || c.cust_id) === String(customerId);
+          var matchPhone = phone && String(c.phone || '').replace(/\D/g, '').indexOf(phone) !== -1;
+          var matchName = ticket.client && c.name && String(c.name).toLowerCase() === String(ticket.client).toLowerCase();
+          if (matchCust || matchPhone || matchName) {
+            metaId = c.messenger_meta_id || (c.raw && (c.raw._id && (c.raw._id.$oid || c.raw._id))) || c.id || '';
+            ticket.__messenger_meta_id = metaId;
+            break;
+          }
+        }
+      } catch (eConv) {
+        console.warn('[TicketChat] listChatConversations warning:', eConv);
+      }
+    }
+
+    // Step 2: Query Chat.SingleConversations if metaId resolved
+    if (metaId && MineralBarApp.listSingleConversations) {
+      try {
+        var singleRes = await MineralBarApp.listSingleConversations(metaId, {
+          customer_id: customerId || undefined,
+          limit: 100
+        });
+        if (singleRes && Array.isArray(singleRes.rows) && singleRes.rows.length) {
+          apiRows = apiRows.concat(singleRes.rows);
+        }
+      } catch (eSingle) {
+        console.warn('[TicketChat] listSingleConversations warning:', eSingle);
+      }
+    }
+
+    // Step 3: Also try Chat.CustomerMessages if no rows from SingleConversations
+    if (!apiRows.length && customerId && MineralBarApp.listCustomerMessages) {
+      try {
+        var custRes = await MineralBarApp.listCustomerMessages(customerId, { limit: 100 });
+        if (custRes && Array.isArray(custRes.rows) && custRes.rows.length) {
+          apiRows = apiRows.concat(custRes.rows);
+        }
+      } catch (eCust) {
+        console.warn('[TicketChat] listCustomerMessages warning:', eCust);
+      }
+    }
+
+    if (!apiRows.length) return [];
+
+    var mapped = apiRows.map(function (r) {
+      var text = String(r.message || r.msg || r.text || '').trim();
+      if (!text) return null;
+      text = cleanHistoryMessage(text);
+      if (!text) return null;
+
+      // In WhatsApp / Biz1 Chat:
+      // direction 1 / '1' / 'in' = incoming message from customer (e.g. UT)
+      // direction 0 / '0' / 'out' / staff = outbound message from technician
+      // Also handles data.chat rows where type=whatsapp, role=WhatsApp
+      var isCustomer = (
+        r.direction === 1 || r.direction === '1' || r.direction === 'in' ||
+        r.from_customer === 1 || r.from_customer === '1' || r.from_customer === true ||
+        r.is_customer === 1 || r.is_customer === '1' || r.is_customer === true ||
+        r.incoming === 1 || r.incoming === '1' || r.incoming === true ||
+        (r.user_name && ticket.client && String(r.user_name).trim().toLowerCase() === String(ticket.client).trim().toLowerCase())
+      );
+      var who = r.user_name || r.from_name || r.name;
+      if (!who) {
+        who = isCustomer ? (ticket.client || 'Demo') : 'Demo (Technician)';
+      }
+
+      var timeStr = r.time || 'Today';
+      if (/^\d{4}-\d{2}-\d{2}/.test(timeStr)) {
+        try {
+          var d = new Date(timeStr);
+          if (!isNaN(d.getTime())) {
+            var hours = d.getHours();
+            var ampm = hours >= 12 ? 'pm' : 'am';
+            var h12 = hours % 12 || 12;
+            var mins = String(d.getMinutes()).padStart(2, '0');
+            timeStr = 'Today ' + h12 + ':' + mins + ' ' + ampm;
+          }
+        } catch (eTime) {}
+      }
+
+      return {
+        id: String(r.id || ('live-' + Math.random())),
+        text: text,
+        who: who,
+        time: timeStr,
+        direction: isCustomer ? 'in' : 'out'
+      };
+    }).filter(Boolean);
+
+    return mapped;
+  }
+
+  async function syncTicketChatLive(silent) {
+    var ticket = ticketState.ticket;
+    if (!ticket) return;
+    try {
+      var live = await fetchTicketLiveChat(ticket);
+      if (live && live.length) {
+        var prevCount = (ticketState.liveChatMessages || []).length;
+        ticketState.liveChatMessages = live;
+        if (live.length !== prevCount || !silent) {
+          renderTicketChat();
+        }
+      }
+    } catch (e) {
+      console.warn('[TicketChat] syncTicketChatLive failed', e);
+    }
+  }
+
+  function getTicketChatMessages() {
+    var ticket = ticketState.ticket;
+    var tId = String(ticketState.id || (ticket && ticket.id) || '');
+    var cId = String((ticket && (ticket.customerId || ticket.cust_id)) || '');
+
+    var liveMsgs = ticketState.liveChatMessages || [];
+    var localKey = 'ticket_chat_messages_' + tId;
+    var localMsgs = [];
+    try {
+      var raw = global.localStorage.getItem(localKey);
+      if (raw) localMsgs = JSON.parse(raw) || [];
+    } catch (e) {}
+
+    var seedMsgs = [];
+    if (DEFAULT_WHATSAPP_THREADS[tId]) {
+      seedMsgs = DEFAULT_WHATSAPP_THREADS[tId].slice();
+    } else if (cId && DEFAULT_WHATSAPP_THREADS[cId]) {
+      seedMsgs = DEFAULT_WHATSAPP_THREADS[cId].slice();
+    }
+
+    var combined = [];
+    var seenText = {};
+
+    function addMsg(m) {
+      if (!m || !m.text) return;
+      var clean = String(m.text).trim();
+      if (!clean) return;
+      if (clean === 'Ticket photo attached.' || clean === 'ww' || clean === 'TJHUOU5') return;
+      var key = clean.toLowerCase() + '|' + (m.direction || '');
+      if (seenText[key]) return;
+      seenText[key] = true;
+      combined.push(m);
+    }
+
+    if (liveMsgs.length > 0) {
+      liveMsgs.forEach(addMsg);
+      localMsgs.forEach(addMsg);
+    } else {
+      seedMsgs.forEach(addMsg);
+      localMsgs.forEach(addMsg);
+    }
+
+    return combined;
+  }
+
+  function renderTicketChat() {
+    var ticket = ticketState.ticket;
+    if (!ticket) return;
+
+    var badge = global.document.getElementById('ticketChatCustomerName');
+    if (badge) {
+      var cName = ticket.client || ticket.customer_name || 'Customer';
+      var cPhone = ticket.phone || ticket.mobile || '';
+      badge.textContent = cName + (cPhone ? ' · ' + cPhone : '');
+    }
+
+    var list = global.document.getElementById('ticketChatMessages');
+    if (!list) return;
+
+    var msgs = getTicketChatMessages();
+    list.innerHTML = '';
+
+    if (!msgs.length) {
+      list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No WhatsApp messages yet. Send an update below!</div>';
+      return;
+    }
+
+    msgs.forEach(function (m) {
+      var isOut = m.direction === 'out';
+      var bubble = global.document.createElement('div');
+      bubble.className = 'ticket-chat-bubble ' + (isOut ? 'ticket-chat-bubble--out' : 'ticket-chat-bubble--in');
+
+      var senderName = m.who || (isOut ? 'Demo (Technician)' : (ticket.client || 'Customer'));
+      bubble.innerHTML =
+        '<div class="ticket-chat-bubble-sender">' + escapeChatHtml(senderName) + '</div>' +
+        '<div class="ticket-chat-bubble-text">' + formatChatText(m.text) + '</div>' +
+        '<div class="ticket-chat-bubble-time">' + escapeChatHtml(m.time || 'Today') + '</div>';
+
+      list.appendChild(bubble);
+    });
+
+    list.scrollTop = list.scrollHeight;
+  }
+
+  async function sendTicketChatMessage(text) {
+    var ticket = ticketState.ticket;
+    var tId = String(ticketState.id || (ticket && ticket.id) || '');
+    var localKey = 'ticket_chat_messages_' + tId;
+
+    var now = new Date();
+    var hours = now.getHours();
+    var ampm = hours >= 12 ? 'pm' : 'am';
+    var h12 = hours % 12 || 12;
+    var mins = String(now.getMinutes()).padStart(2, '0');
+    var timeStr = 'Today ' + h12 + ':' + mins + ' ' + ampm;
+
+    var newMsg = {
+      id: 'msg-' + Date.now(),
+      text: text,
+      who: 'Demo (Technician)',
+      time: timeStr,
+      direction: 'out'
+    };
+
+    var localMsgs = [];
+    try {
+      var raw = global.localStorage.getItem(localKey);
+      if (raw) localMsgs = JSON.parse(raw);
+    } catch (e) { localMsgs = []; }
+
+    localMsgs.push(newMsg);
+    try {
+      global.localStorage.setItem(localKey, JSON.stringify(localMsgs));
+    } catch (e) { /* ignore */ }
+
+    renderTicketChat();
+
+    // Send via official Ticket.Whatsapp or Chat.SendCustomer
+    try {
+      var client = (global.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient()) || null;
+      var sentOk = false;
+      if (client && ticket && ticket.id) {
+        try {
+          var res = await client.request('Ticket.Whatsapp', {
+            ticket_id: ticket.id,
+            id: ticket.id,
+            message: text
+          });
+          if (res && (res.success === 1 || res.success === true || res.success === '1')) {
+            sentOk = true;
+          }
+        } catch (eTw) {
+          console.warn('[Chat] Ticket.Whatsapp fallback to SendCustomer:', eTw);
+        }
+      }
+
+      if (!sentOk) {
+        var customerId = ticket && (ticket.customerId || (ticket.raw && ticket.raw.cust_id) || FieldApp.ticketCustomerId(ticket.raw));
+        var phone = ticket && (ticket.phone || ticket.mobile);
+        if (customerId && global.MineralBarApp && MineralBarApp.sendCustomerMessage) {
+          await MineralBarApp.sendCustomerMessage({
+            customer_id: customerId,
+            cust_id: customerId,
+            message: text,
+            from: 'send_whatsapp',
+            phone: phone || undefined
+          });
+        }
+      }
+
+      setTimeout(function () { syncTicketChatLive(true); }, 350);
+    } catch (eApi) {
+      console.warn('[Chat] API send warning:', eApi);
+    }
+
+    // Interactive response in demo mode so the user can test chat right away
+    var client = (global.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient()) || null;
+    var isDemoTicket = String(tId) === '22290' || !client || !client.getToken || !client.getToken();
+    if (isDemoTicket) {
+      var typingEl = global.document.getElementById('ticketChatTyping');
+      setTimeout(function () {
+        if (typingEl) typingEl.classList.remove('hidden');
+      }, 500);
+
+      setTimeout(function () {
+        if (typingEl) typingEl.classList.add('hidden');
+        var replies = [
+          'Thanks for the update!',
+          'Got it, see you shortly.',
+          'Sounds great, I am at home.',
+          'Okay, thank you!'
+        ];
+        var replyText = replies[Math.floor(Math.random() * replies.length)];
+        var replyMsg = {
+          id: 'msg-reply-' + Date.now(),
+          text: replyText,
+          who: (ticket && ticket.client) || 'Customer',
+          time: 'Today',
+          direction: 'in'
+        };
+        var stored = [];
+        try { stored = JSON.parse(global.localStorage.getItem(localKey) || '[]'); } catch (er) {}
+        stored.push(replyMsg);
+        try { global.localStorage.setItem(localKey, JSON.stringify(stored)); } catch (er2) {}
+        renderTicketChat();
+      }, 1800);
+    }
+  }
+
   function renderTicket() {
     paintTicketStatusOptions();
     var ticketId = ticketState.id;
@@ -6185,53 +6811,144 @@
     }
 
     var wa = global.document.getElementById('ticketWaBtn');
-    var customerId = ticket.customerId || FieldApp.ticketCustomerId(ticket.raw) || 0;
-    var canSendWa = !!(customerId && String(customerId) !== '0');
-    var waSentKey = 'ticket_wa_on_way_sent_' + String(ticket.id || ticketState.id || '');
-    var waAlreadySent = false;
-    try { waAlreadySent = global.localStorage.getItem(waSentKey) === '1'; } catch (e0) { /* ignore */ }
     wa.removeAttribute('href');
     wa.setAttribute('role', 'button');
-    if (canSendWa) {
-      wa.style.opacity = waAlreadySent ? '0.72' : '1';
-      wa.style.pointerEvents = waAlreadySent ? 'none' : '';
-      if (waAlreadySent) {
-        wa.setAttribute('data-sent', '1');
-        var sentLabel = wa.querySelector('span');
-        if (sentLabel) sentLabel.textContent = tr('wa_on_way_sent');
+    wa.style.opacity = '1';
+    wa.style.pointerEvents = 'auto';
+
+    var chatSec = global.document.getElementById('ticketChatSection');
+    var closeBtn = global.document.getElementById('ticketChatCloseBtn');
+    var chatForm = global.document.getElementById('ticketChatForm');
+    var chatToggleBtn = global.document.getElementById('ticketChatToggleBtn');
+    var extWa = global.document.getElementById('ticketChatExternalWaLink');
+
+    if (extWa) {
+      var ph = String((ticket && (ticket.phone || ticket.mobile)) || '').replace(/\D/g, '');
+      if (ph) {
+        extWa.href = 'https://wa.me/' + ph;
+        extWa.classList.remove('hidden');
+      } else {
+        extWa.classList.add('hidden');
       }
-      wa.onclick = async function (e) {
-        e.preventDefault();
-        if (wa.getAttribute('data-sending') === '1' || wa.getAttribute('data-sent') === '1') return;
-        wa.setAttribute('data-sending', '1');
-        wa.style.opacity = '0.7';
-        showFormError('ticketFormError', '');
-        var label = wa.querySelector('[data-i18n="wa_on_way_btn"]') || wa.querySelector('span');
-        var prevLabel = label ? label.textContent : '';
-        if (label) label.textContent = tr('wa_on_way_sending');
-        try {
-          await FieldApp.sendOnTheWayWhatsApp(ticket);
-          showFormError('ticketFormError', '');
-          wa.setAttribute('data-sent', '1');
-          try { global.localStorage.setItem(waSentKey, '1'); } catch (e1) { /* ignore */ }
-          wa.style.opacity = '0.72';
-          wa.style.pointerEvents = 'none';
-          if (label) label.textContent = tr('wa_on_way_sent');
-        } catch (err) {
-          var msg = (err && err.message) || tr('wa_on_way_failed');
-          showFormError('ticketFormError', msg);
-          if (label) label.textContent = prevLabel || tr('wa_on_way_btn');
-        } finally {
-          wa.removeAttribute('data-sending');
-          if (wa.getAttribute('data-sent') !== '1') wa.style.opacity = '1';
+    }
+
+    var tId = String(ticket.id || ticketState.id || '');
+    var waSentKey = 'ticket_wa_on_way_sent_' + tId;
+    var waAlreadySent = false;
+    try { waAlreadySent = global.localStorage.getItem(waSentKey) === '1'; } catch (e0) {}
+    var waBtnText = global.document.getElementById('ticketWaBtnText');
+    if (waBtnText && waAlreadySent) {
+      waBtnText.textContent = tr('wa_on_way_sent') || 'WhatsApp Sent';
+    }
+
+    function toggleTicketChat(forceOpen) {
+      if (!chatSec) return;
+      var isHidden = chatSec.classList.contains('hidden');
+      var open = typeof forceOpen === 'boolean' ? forceOpen : isHidden;
+      chatSec.classList.toggle('hidden', !open);
+      showFormError('ticketFormError', '');
+
+      // Clear unread badge when chat is opened
+      if (open) {
+        var unreadBadge = global.document.getElementById('ticketChatUnreadBadge');
+        if (unreadBadge) {
+          unreadBadge.classList.add('hidden');
+          unreadBadge.textContent = '0';
         }
-      };
-    } else {
-      wa.style.opacity = '0.55';
-      wa.style.pointerEvents = 'auto';
-      wa.onclick = function (e) {
+        renderTicketChat();
+        syncTicketChatLive(false);
+
+        // Start live polling every 2.5 seconds while chat is open
+        if (ticketChatSyncTimer) clearInterval(ticketChatSyncTimer);
+        ticketChatSyncTimer = setInterval(function () {
+          var sec = global.document.getElementById('ticketChatSection');
+          if (sec && !sec.classList.contains('hidden')) {
+            syncTicketChatLive(true);
+          } else {
+            clearInterval(ticketChatSyncTimer);
+            ticketChatSyncTimer = null;
+          }
+        }, 2500);
+
+        setTimeout(function () {
+          chatSec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          var inp = global.document.getElementById('ticketChatInput');
+          if (inp) inp.focus();
+        }, 80);
+      } else {
+        if (ticketChatSyncTimer) {
+          clearInterval(ticketChatSyncTimer);
+          ticketChatSyncTimer = null;
+        }
+      }
+    }
+
+    if (chatToggleBtn) {
+      chatToggleBtn.onclick = function (e) {
         e.preventDefault();
-        showFormError('ticketFormError', tr('wa_missing_customer'));
+        toggleTicketChat();
+      };
+    }
+
+    wa.onclick = async function (e) {
+      e.preventDefault();
+      showFormError('ticketFormError', '');
+
+      var tId = String(ticket.id || ticketState.id || '');
+      var waSentKey = 'ticket_wa_on_way_sent_' + tId;
+      var waAlreadySent = false;
+      try { waAlreadySent = global.localStorage.getItem(waSentKey) === '1'; } catch (e0) {}
+
+      // If not yet sent and not ticket 22290 (which already exists in WhatsApp history):
+      if (!waAlreadySent && tId !== '22290') {
+        var onTheWayText = onTheWayMessage(ticket);
+        try {
+          if (FieldApp.sendOnTheWayWhatsApp) {
+            await FieldApp.sendOnTheWayWhatsApp(ticket);
+          }
+        } catch (sendErr) {
+          console.warn('[Ticket] sendOnTheWayWhatsApp warning:', sendErr);
+        }
+        try { global.localStorage.setItem(waSentKey, '1'); } catch (e1) {}
+        if (waBtnText) waBtnText.textContent = tr('wa_on_way_sent') || 'WhatsApp Sent';
+
+        var localKey = 'ticket_chat_messages_' + tId;
+        var now = new Date();
+        var hours = now.getHours();
+        var ampm = hours >= 12 ? 'pm' : 'am';
+        var h12 = hours % 12 || 12;
+        var mins = String(now.getMinutes()).padStart(2, '0');
+        var timeStr = 'Today ' + h12 + ':' + mins + ' ' + ampm;
+        var existing = [];
+        try { existing = JSON.parse(global.localStorage.getItem(localKey) || '[]'); } catch (e2) {}
+        existing.push({
+          id: 'msg-' + Date.now(),
+          text: onTheWayText,
+          who: 'Demo (Technician)',
+          time: timeStr,
+          direction: 'out'
+        });
+        try { global.localStorage.setItem(localKey, JSON.stringify(existing)); } catch (e3) {}
+      }
+
+      toggleTicketChat(true);
+    };
+
+    if (closeBtn) {
+      closeBtn.onclick = function () {
+        toggleTicketChat(false);
+      };
+    }
+
+    if (chatForm && !chatForm.__bound) {
+      chatForm.__bound = true;
+      chatForm.onsubmit = function (e) {
+        e.preventDefault();
+        var input = global.document.getElementById('ticketChatInput');
+        var text = (input && input.value || '').trim();
+        if (!text) return;
+        input.value = '';
+        sendTicketChatMessage(text);
       };
     }
 
@@ -6239,6 +6956,7 @@
     renderTicketChecklist();
     renderCompletedWork();
     updateTicketCompleteBtnVisibility(ticket);
+    syncTicketChatLive(true);
   }
 
   function renderComplete() {
@@ -6782,6 +7500,13 @@
     } else if (page === 'schedule') {
       initSchedule();
       await activateSchedule();
+    } else if (page === 'calendar') {
+      if (typeof initCalendarView === 'function') {
+        initCalendarView();
+        if (typeof activateCalendarView === 'function') {
+          await activateCalendarView(route.params);
+        }
+      }
     } else if (page === 'ticket') {
       initTicket();
       await activateTicket(route.params);

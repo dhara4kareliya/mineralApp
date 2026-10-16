@@ -13,6 +13,7 @@
     ticket: 1,
     tickets: 1,
     schedule: 1,
+    calendar: 1,
     complete: 1,
     assets: 1,
     css: 1,

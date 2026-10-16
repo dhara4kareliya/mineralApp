@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 Showcase — Schedule</title>
 <script src="assets/js/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/css/app.css?v=ticket-11">
-<script src="assets/config.js?v=ticket-11"></script>
-<script src="assets/js/app.js?v=ticket-20"></script>
+<link rel="stylesheet" href="assets/css/app.css?v=ticket-27">
+<script src="assets/config.js?v=ticket-27"></script>
+<script src="assets/js/app.js?v=ticket-27"></script>
 
     <script>
       (function(){try{var t=localStorage.getItem('biz1_fin_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
@@ -42,11 +42,15 @@
         </div>
       </div>
       <div class="schedule-top">
-        <div class="schedule-heading">
+        <div class="schedule-heading" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div style="min-width:0;flex:1;">
             <div style="font-size:13px;color:var(--text-muted);font-weight:600;" data-i18n="schedule_sub">Daily route & assigned tickets</div>
             <div class="schedule-title" data-i18n="my_schedule">My Schedules</div>
           </div>
+          <a href="calendar.html" class="btn-ghost" id="openCalendarViewBtn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--border);color:var(--text);background:var(--bg-card);box-shadow:var(--shadow-soft);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span data-i18n="calendar_view">Calendar View</span>
+          </a>
         </div>
         <div id="scheduleSearchBar" class="schedule-search-bar">
           <input id="scheduleSearchInput" class="ds-input schedule-search-input" type="search" data-i18n-placeholder="search_tickets" placeholder="Search tickets by client, address, or #">

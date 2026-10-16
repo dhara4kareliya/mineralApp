@@ -1892,3 +1892,284 @@ html[dir="rtl"] .pass-toggle {
   border-color: var(--wa-border);
   color: var(--wa-text);
 }
+
+/* ── Ticket Chat & WhatsApp Section ── */
+.ticket-chat-section {
+  margin-top: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 16px);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  animation: chatSlideDown 200ms ease;
+}
+
+@keyframes chatSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ticket-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 12px;
+}
+
+.ticket-chat-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.ticket-chat-header-title svg {
+  color: var(--wa-text, #25b35e);
+}
+
+.ticket-chat-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticket-chat-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--filter-active-bg);
+  color: var(--filter-active-text);
+  border: 1px solid var(--filter-active-border);
+}
+
+.ticket-chat-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+
+.ticket-chat-close-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+.ticket-chat-messages {
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 2px 10px;
+}
+
+.ticket-chat-date-divider {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--bg-muted);
+  margin: 6px 0;
+}
+
+.ticket-chat-bubble {
+  max-width: 84%;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  position: relative;
+}
+
+/* User reference purple-indigo bubble for technician updates */
+.ticket-chat-bubble--out {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: 0 3px 12px rgba(79, 70, 229, 0.28);
+}
+
+.ticket-chat-bubble--out .ticket-chat-bubble-sender {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.ticket-chat-bubble--out .ticket-chat-bubble-time {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Customer incoming message bubble */
+.ticket-chat-bubble--in {
+  align-self: flex-start;
+  background: var(--bg-muted);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 16px 4px;
+}
+
+.ticket-chat-bubble-sender {
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+
+.ticket-chat-bubble-text {
+  white-space: pre-wrap;
+}
+
+.ticket-chat-bubble-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: right;
+}
+
+.ticket-chat-input-bar {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 10px !important;
+  margin-top: 12px !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.ticket-chat-input {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 11px 14px !important;
+  font-size: 13.5px !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+}
+
+.ticket-chat-send-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: 130px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 11px 22px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+}
+
+.ticket-chat-typing {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.ticket-action-btn--chat {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.28);
+  color: #6366f1;
+  position: relative;
+}
+.ticket-action-btn--chat:hover {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: #6366f1;
+}
+[data-theme="dark"] .ticket-action-btn--chat {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.38);
+  color: #a5b4fc;
+}
+
+.ticket-chat-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #e11d48;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  line-height: 1.4;
+  box-shadow: 0 2px 5px rgba(225, 29, 72, 0.4);
+}
+
+.ticket-client-chat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--wa-bg, rgba(37, 211, 102, 0.1));
+  border: 1px solid var(--wa-border, rgba(37, 211, 102, 0.3));
+  color: var(--wa-text, #16a34a);
+  cursor: pointer;
+  transition: all 140ms ease;
+  margin-left: auto;
+}
+[dir="rtl"] .ticket-client-chat-pill {
+  margin-left: 0;
+  margin-right: auto;
+}
+.ticket-client-chat-pill:hover {
+  background: var(--wa-border, rgba(37, 211, 102, 0.22));
+  transform: translateY(-1px);
+}
+
+.ticket-chat-wa-ext {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(37, 211, 102, 0.12);
+  color: #25d366;
+  text-decoration: none;
+  transition: transform 120ms ease;
+}
+.ticket-chat-wa-ext:hover {
+  transform: scale(1.15);
+}
+
+.ticket-chat-typing-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+.ticket-chat-typing-dots span {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: chatDotBounce 1.2s infinite;
+}
+.ticket-chat-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ticket-chat-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes chatDotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-3px); opacity: 1; }
+}
