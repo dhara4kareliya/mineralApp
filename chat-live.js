@@ -36,6 +36,29 @@
     });
   }
 
+  function applySendChannelAvailability(p) {
+    p = p || currentParams || {};
+    var hasPhone = !!telHref(p.phone);
+    var hasEmail = !!String(p.email || '').trim();
+    var buttons = document.querySelectorAll('.chat-send-channel');
+
+    buttons.forEach(function (btn) {
+      var channel = String(btn.getAttribute('data-channel') || '').toLowerCase();
+      var available = channel !== 'whatsapp' && channel !== 'email' && channel !== 'quick_email';
+      if (channel === 'whatsapp') available = hasPhone;
+      if (channel === 'email' || channel === 'quick_email') available = hasEmail;
+      btn.hidden = !available;
+      btn.disabled = !available;
+      btn.setAttribute('aria-hidden', available ? 'false' : 'true');
+    });
+
+    var selected = String(selectedSendChannel.channel_type || '').toLowerCase();
+    if ((selected === 'whatsapp' && !hasPhone) ||
+        ((selected === 'email' || selected === 'quick_email') && !hasEmail)) {
+      setSendChannel('notes', 'send_notes');
+    }
+  }
+
   function mapSendChannelToType(channel) {
     var c = String(channel || '').toLowerCase();
     if (c === 'whatsapp') return 'whatsapp';
@@ -884,6 +907,32 @@
       return phone;
     }).catch(function () {
       return '';
+    });
+  }
+
+  function resolveCustomerContact(p) {
+    p = p || currentParams || params() || {};
+    var cid = p.customer_id || p.cust_id || '';
+    if (!cid || !window.MineralBarApp || typeof MineralBarApp.getCustomer !== 'function') {
+      applySendChannelAvailability(p);
+      return Promise.resolve(p);
+    }
+    return MineralBarApp.getCustomer(cid).then(function (res) {
+      var customer = unwrapCustomer(res) || {};
+      var email = String(customer.email || customer.email_address || customer.mail || '').trim();
+      var phone = pickCustomerPhone(customer);
+      if (email) p.email = email;
+      if (phone) p.phone = phone;
+      if (currentParams) {
+        if (email) currentParams.email = email;
+        if (phone) currentParams.phone = phone;
+      }
+      applySendChannelAvailability(p);
+      fillHeader(p);
+      return p;
+    }).catch(function () {
+      applySendChannelAvailability(p);
+      return p;
     });
   }
 
@@ -1995,6 +2044,7 @@
     var p = params();
     currentParams = p;
     fillHeader(p);
+    applySendChannelAvailability(p);
 
     // Deep-link from schedule: ?filter=whatsapp&channel=whatsapp
     try {
@@ -2018,7 +2068,7 @@
     } catch (eDeep) { /* ignore */ }
 
     // Prefetch phone so call button works even when URL/list omitted cust_phone
-    resolveCustomerPhone(p);
+    await resolveCustomerContact(p);
 
     await loadThread(elId, p);
   }
