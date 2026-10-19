@@ -111,9 +111,10 @@
   }
 
   function paramsFromRow(row) {
-    var cid = String(row.customer_id || row.cust_id || row.client_id || '');
-    var last = row.last_message || row.message || row.subject || '';
     var raw = row.raw || {};
+    var cid = String(row.customer_id || row.cust_id || row.client_id || row.contactus_id ||
+      (raw && (raw.customer_id || raw.cust_id || raw.contactus_id || raw.client_id)) || '');
+    var last = row.last_message || row.message || row.subject || '';
     if (!last) last = raw.last_message || raw.message || raw.whatsapp_message || '';
     var meta = row.messenger_meta_id || '';
     if (!meta && raw) {
@@ -124,10 +125,10 @@
       customer_id: cid,
       cust_id: cid,
       messenger_meta_id: String(meta || ''),
-      email: row.email || '',
-      phone: row.phone || '',
+      email: row.email || (raw && raw.email) || '',
+      phone: row.phone || (raw && (raw.phone || raw.mobile)) || '',
       subject: row.subject || '',
-      name: row.name || '',
+      name: row.name || (raw && (raw.name || raw.cust_name)) || '',
       when: row.when || '',
       last_message: String(last || '').trim(),
       channel: row.channel || 'whatsapp',
@@ -135,15 +136,42 @@
     };
   }
 
-  /** Live probe: user_id > 0 staff out; user_id == 0 inbound (e.g. WhatsApp received). */
   function isOutgoing(row) {
-    if (row.user_id != null && row.user_id !== '' && !Number.isNaN(Number(row.user_id))) {
-      return Number(row.user_id) > 0;
-    }
+    if (!row) return false;
+    if (String(row.id || '').indexOf('local-') === 0) return true;
+
+    var raw = row.raw || {};
+
+    // Check explicit string direction
+    var dir = String(row.direction != null ? row.direction : (raw.direction != null ? raw.direction : '')).toLowerCase().trim();
+    if (dir === 'out' || dir === 'outgoing' || dir === 'sent') return true;
+    if (dir === 'in' || dir === 'incoming' || dir === 'received') return false;
+
+    // Check customer flags
+    if (raw.from_customer === 1 || raw.from_customer === '1' || raw.from_customer === true) return false;
+    if (raw.is_customer === 1 || raw.is_customer === '1' || raw.is_customer === true) return false;
+    if (raw.incoming === 1 || raw.incoming === '1' || raw.incoming === true) return false;
+
+    // Check route/from
+    var fromRoute = String(row.from || raw.from || raw.from_type || '').toLowerCase();
+    if (/send_whatsapp|send_notes|send_email|biz1_chat_message|staff/.test(fromRoute)) return true;
+
+    // Internal notes are always staff
     var t = normalizeType(row.type || row.channel);
     if (t === 'notes') return true;
-    if (row.direction === 1 || row.direction === '1' || row.direction === 'out' || row.direction === 'outgoing') return true;
-    if (row.direction === 0 || row.direction === '0' || row.direction === 'in' || row.direction === 'incoming') return false;
+
+    // Staff user_id > 0
+    if (row.user_id != null && row.user_id !== '' && !Number.isNaN(Number(row.user_id))) {
+      if (Number(row.user_id) > 0) return true;
+    }
+    if (raw.user_id != null && raw.user_id !== '' && !Number.isNaN(Number(raw.user_id))) {
+      if (Number(raw.user_id) > 0) return true;
+    }
+
+    // Direction in Biz1 (direction 0 = staff outbound, direction 1 = customer inbound)
+    if (row.direction === 0 || row.direction === '0' || raw.direction === 0 || raw.direction === '0') return true;
+    if (row.direction === 1 || row.direction === '1' || raw.direction === 1 || raw.direction === '1') return false;
+
     return false;
   }
 
@@ -732,12 +760,12 @@
       message: finalMsg,
       user_name: tt('me'),
       time: clock || nowTime(),
-      direction: 1,
+      direction: 'out',
       type: channelType,
       channel: channelType,
       user_id: 1,
       messenger_meta_id: p.messenger_meta_id || '',
-      raw: {}
+      raw: { direction: 'out' }
     };
     var App = window.Biz1App || window.MineralBarApp;
     if (App && typeof App.messageSortTs === 'function') {
@@ -975,25 +1003,54 @@
   }
 
   async function resolveMessengerMetaId(p) {
-    if (p.messenger_meta_id) return String(p.messenger_meta_id);
-    if (!p.customer_id) return '';
+    if (p.messenger_meta_id && p.customer_id && p.customer_id !== '0') return String(p.messenger_meta_id);
+
+    // Try finding row in existing cached message list if available
+    if (window.MineralBarMessages && typeof MineralBarMessages.findRow === 'function') {
+      var found = MineralBarMessages.findRow(p.customer_id, '', p.messenger_meta_id);
+      if (found) {
+        var foundCid = found.customer_id || found.cust_id || found.client_id || found.contactus_id ||
+          (found.raw && (found.raw.customer_id || found.raw.cust_id || found.raw.contactus_id || found.raw.client_id));
+        if (foundCid && String(foundCid) !== '0') {
+          p.customer_id = String(foundCid);
+          p.cust_id = String(foundCid);
+        }
+        if (!p.messenger_meta_id && found.messenger_meta_id) p.messenger_meta_id = String(found.messenger_meta_id);
+        if ((!p.name || p.name.indexOf('Conversation #') === 0) && found.name) p.name = found.name;
+        if (!p.email && found.email) p.email = found.email;
+        if (!p.phone && found.phone) p.phone = found.phone;
+        if (p.customer_id && p.customer_id !== '0') return String(p.messenger_meta_id || '');
+      }
+    }
+
+    if (!p.messenger_meta_id && (!p.customer_id || p.customer_id === '0')) return '';
+
     try {
       var App = window.Biz1App || window.MineralBarApp;
-      var res = await App.listChatConversations({ page: 1, limit: 25, start: 0 });
+      var res = await App.listChatConversations({ page: 1, limit: 50, start: 0 });
       var rows = res.rows || [];
       for (var i = 0; i < rows.length; i++) {
         var r = rows[i];
-        if (String(r.customer_id || r.cust_id || '') === String(p.customer_id)) {
-          p.messenger_meta_id = r.messenger_meta_id || '';
+        var metaMatch = p.messenger_meta_id && String(r.messenger_meta_id || '') === String(p.messenger_meta_id);
+        var custMatch = p.customer_id && p.customer_id !== '0' && String(r.customer_id || r.cust_id || '') === String(p.customer_id);
+        if (metaMatch || custMatch) {
+          if (!p.messenger_meta_id && r.messenger_meta_id) p.messenger_meta_id = String(r.messenger_meta_id);
+          var cid = r.customer_id || r.cust_id || r.client_id || r.contactus_id ||
+            (r.raw && (r.raw.customer_id || r.raw.cust_id || r.raw.contactus_id || r.raw.client_id));
+          if (cid && String(cid) !== '0' && (!p.customer_id || p.customer_id === '0')) {
+            p.customer_id = String(cid);
+            p.cust_id = String(cid);
+          }
+          if ((!p.name || p.name.indexOf('Conversation #') === 0) && r.name) p.name = r.name;
+          if (!p.email && r.email) p.email = r.email;
+          if (!p.phone && r.phone) p.phone = r.phone;
           p.last_message = r.last_message || r.message || p.last_message;
           p.when = r.when || p.when;
-          p.phone = r.phone || p.phone;
-          p.name = p.name || r.name;
           return String(p.messenger_meta_id || '');
         }
       }
     } catch (e) { /* ignore */ }
-    return '';
+    return String(p.messenger_meta_id || '');
   }
 
   function listChannelFromMsgType(t) {
@@ -1215,6 +1272,19 @@
         p.customer_id = String(res.customer_id);
         p.cust_id = p.customer_id;
       }
+      if (!p.customer_id || p.customer_id === '0') {
+        for (var cr = 0; cr < cachedRows.length; cr++) {
+          var rowCid = cachedRows[cr].customer_id || (cachedRows[cr].raw && (cachedRows[cr].raw.customer_id || cachedRows[cr].raw.cust_id || cachedRows[cr].raw.contactus_id || cachedRows[cr].raw.client_id));
+          if (rowCid && String(rowCid) !== '0') {
+            p.customer_id = String(rowCid);
+            p.cust_id = p.customer_id;
+            break;
+          }
+        }
+      }
+      if (p.customer_id && p.customer_id !== '0') {
+        fillHeader(p);
+      }
       renderMessages(el, cachedRows);
       syncListChannelFromThread(p, cachedRows);
       return cachedRows;
@@ -1243,10 +1313,17 @@
     var textMsg = input ? String(input.value || '').trim() : '';
     var hasAttach = !!(pendingAttachment && pendingAttachment.file);
     if (!textMsg && !hasAttach) return;
-    if (!p.customer_id || p.customer_id === '0') {
+    if (hasAttach && (!p.customer_id || p.customer_id === '0')) {
       el.insertAdjacentHTML(
         'beforeend',
-        notice('error', tt('cannot_send'), hasAttach ? tt('select_customer_upload') : tt('missing_customer'))
+        notice('error', tt('cannot_send'), tt('select_customer_upload'))
+      );
+      return;
+    }
+    if ((!p.customer_id || p.customer_id === '0') && !p.messenger_meta_id) {
+      el.insertAdjacentHTML(
+        'beforeend',
+        notice('error', tt('cannot_send'), tt('missing_customer'))
       );
       return;
     }
@@ -1294,11 +1371,12 @@
       }
 
       var ch = channelFromValue(sendVia);
+      var effectiveCid = (p.customer_id && p.customer_id !== '0') ? p.customer_id : '0';
       var res = await App.sendCustomerMessage({
         message: finalMsg,
         msg: finalMsg,
-        customer_id: p.customer_id,
-        cust_id: p.customer_id,
+        customer_id: effectiveCid,
+        cust_id: effectiveCid,
         email: p.email || undefined,
         phone: p.phone || undefined,
         channel: sendVia,
@@ -1316,7 +1394,7 @@
             key: 'message.created',
             direction: 'out',
             channel: sendVia === 'biz1' ? 'web' : sendVia,
-            customer_id: p.customer_id,
+            customer_id: effectiveCid !== '0' ? effectiveCid : p.customer_id,
             messenger_meta_id: p.messenger_meta_id,
             message: finalMsg,
             time: sentClock

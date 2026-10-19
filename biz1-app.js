@@ -2836,10 +2836,14 @@
         ? p.cust_id
         : (p.contactus_id != null && p.contactus_id !== '' ? p.contactus_id : null));
     if (customerId == null) {
-      var e2 = new Error('חסר customer_id לשליחת הודעה');
-      e2.route = 'Chat.SendCustomer';
-      e2.code = 'MISSING_ID';
-      throw e2;
+      if (p.messenger_meta_id || p.messanger_meta_id || p.chat_id || p.meta_id || p.conversation_id) {
+        customerId = '0';
+      } else {
+        var e2 = new Error('חסר customer_id לשליחת הודעה');
+        e2.route = 'Chat.SendCustomer';
+        e2.code = 'MISSING_ID';
+        throw e2;
+      }
     }
     var fromVal = p.from ? String(p.from) : '';
     var isInternalNote = !fromVal || fromVal === 'send_notes' || fromVal === 'notes';

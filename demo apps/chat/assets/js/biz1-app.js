@@ -2077,11 +2077,16 @@
       ? raw.data
       : (raw && Array.isArray(raw.rows) ? raw.rows : []);
 
+    var resolvedCustomerId = (raw && (raw.customer_id || raw.contactus_id || raw.cust_id || raw.client_id)) || '';
     var rows = data.map(function (r) {
       var text = chatSnippet(r) || String(r.message || r.msg || r.note || '').trim();
       var type = String(r.type || r.channel || r.msg_type || 'whatsapp').toLowerCase();
       if (type === 'mision' || type === 'mission') type = 'biz1';
       var displayTime = chatWhen(r) || mongoDate(r.inserted_date) || mongoDate(r.create_date) || r.time;
+      var rowCid = chatCustomerId(r) || r.customer_id || r.cust_id || r.contactus_id || r.client_id || '';
+      if (!resolvedCustomerId && rowCid && String(rowCid) !== '0') {
+        resolvedCustomerId = String(rowCid);
+      }
       var row = {
         id: (r.id && (r.id.$oid || r.id)) || r.message_id || '',
         message: text,
@@ -2093,6 +2098,7 @@
         channel: type,
         user_id: r.user_id,
         messenger_meta_id: meta,
+        customer_id: rowCid ? String(rowCid) : '',
         raw: r
       };
       row.sort_ts = messageSortTs(row);
@@ -2113,7 +2119,7 @@
       count: Number(raw && raw.count != null ? raw.count : rows.length),
       total: Number(raw && raw.total != null ? raw.total : rows.length),
       messenger_meta_id: raw && (raw.messenger_meta_id || meta),
-      customer_id: raw && (raw.customer_id || raw.contactus_id),
+      customer_id: resolvedCustomerId || (raw && (raw.customer_id || raw.contactus_id)),
       raw: raw
     };
   }
@@ -2282,10 +2288,14 @@
       ? p.customer_id
       : (p.cust_id != null && p.cust_id !== '' ? p.cust_id : null);
     if (customerId == null) {
-      var e2 = new Error('חסר customer_id לשליחת הודעה');
-      e2.route = 'Chat.SendCustomer';
-      e2.code = 'MISSING_ID';
-      throw e2;
+      if (p.messenger_meta_id || p.messanger_meta_id || p.chat_id || p.meta_id || p.conversation_id) {
+        customerId = '0';
+      } else {
+        var e2 = new Error('חסר customer_id לשליחת הודעה');
+        e2.route = 'Chat.SendCustomer';
+        e2.code = 'MISSING_ID';
+        throw e2;
+      }
     }
     // API accepts 0 for unmatched email threads; still always send the field.
     var payload = {

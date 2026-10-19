@@ -260,10 +260,11 @@
 
   function chatHref(row) {
     var q = new URLSearchParams();
-    var cid = Number(row.customer_id || row.cust_id || 0);
-    if (cid) {
-      q.set('customer_id', String(cid));
-      q.set('cust_id', String(cid));
+    var rawCid = row.customer_id || row.cust_id || row.client_id || row.contactus_id ||
+      (row.raw && (row.raw.customer_id || row.raw.cust_id || row.raw.contactus_id || row.raw.client_id)) || '';
+    if (rawCid && String(rawCid) !== '0') {
+      q.set('customer_id', String(rawCid));
+      q.set('cust_id', String(rawCid));
     }
     if (row.name) q.set('name', row.name);
     if (row.email) q.set('email', row.email);
@@ -354,7 +355,8 @@
   }
 
   function rowHtml(row, idx) {
-    var cid = row.client_id || row.customer_id || row.cust_id;
+    var cid = row.client_id || row.customer_id || row.cust_id || row.contactus_id ||
+      (row.raw && (row.raw.customer_id || row.raw.cust_id || row.raw.contactus_id || row.raw.client_id)) || '';
     var label = row.name || row.email || ('Customer #' + (cid || idx));
     var snippet = row.subject || row.message || row.last_message || (window.t ? window.t('conversation') : 'Conversation');
     var when = formatConversationWhen(row.when || '');
@@ -657,6 +659,12 @@
       scheduleInboxReload(el);
     }
   });
+
+  window.MineralBarMessages = {
+    findRow: findRow,
+    getAllRows: function () { return allRows.slice(); },
+    loadMessages: loadMessages
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 50); });
