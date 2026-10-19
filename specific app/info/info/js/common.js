@@ -147,18 +147,36 @@ window.OrderApp = (function _commonSub1() {
     });
   }
 
+  function getStoredTheme() {
+    try {
+      var saved = localStorage.getItem(THEME_KEY);
+      if (saved === "dark" || saved === "light") return saved;
+    } catch (e) { }
+    var attr = document.documentElement.getAttribute("data-theme");
+    if (attr === "dark" || attr === "light") return attr;
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+    return "light";
+  }
+
   function setTheme(theme) {
-    var next = theme === "dark" ? "dark" : "light";
+    var next = (theme === "dark" || theme === "light") ? theme : getStoredTheme();
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem(THEME_KEY, next); } catch (e) { }
-    var icon = next === "dark" ? "☾" : "☀";
+
     ["themeBtn", "loginThemeBtn"].forEach(function _commonSub6(id) {
-      if ($(id)) $(id).textContent = icon;
+      var btn = $(id);
+      if (!btn) return;
+      if (btn.classList.contains("theme-switch-btn")) return;
+      btn.innerHTML = next === "dark"
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
     });
   }
 
   function toggleTheme() {
-    var cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    var cur = document.documentElement.getAttribute("data-theme") || getStoredTheme();
     setTheme(cur === "dark" ? "light" : "dark");
   }
 
@@ -1963,24 +1981,27 @@ window.OrderApp = (function _commonSub1() {
     var dir = isHe() ? "rtl" : "ltr";
     var align = dir === "rtl" ? "right" : "left";
     var count = (orders && orders.length) || 0;
-    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;max-width:720px;width:100%;direction:' + dir + ';font-family:Arial,Helvetica,sans-serif;">' +
-      '<tr><td style="padding:0;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">' +
-      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">' +
+    var tableAlign = dir === "rtl" ? "right" : "left";
+    var tableMargin = dir === "rtl" ? "margin-left:auto;margin-right:0;" : "margin-right:auto;margin-left:0;";
+
+    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" align="' + tableAlign + '" style="border-collapse:collapse;max-width:720px;width:100%;direction:' + dir + ';font-family:Arial,Helvetica,sans-serif;' + tableMargin + '">' +
+      '<tr><td style="padding:0;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;text-align:' + align + ';">' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" align="' + align + '" style="border-collapse:collapse;direction:' + dir + ';">' +
       '<tr><td style="padding:16px 18px;background:#0f172a;color:#f8fafc;font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;text-align:' + align + ';">' +
       escapeHtml(t("emailOrdersBlockTitle")) + "</td></tr>" +
-      '<tr><td style="padding:18px;">' +
+      '<tr><td style="padding:18px;text-align:' + align + ';">' +
       buildCustomerDetailHtml(customer) +
       "</td></tr>" +
       '<tr><td style="padding:0 18px 8px;text-align:' + align + ';">' +
-      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" align="' + align + '" style="border-collapse:collapse;direction:' + dir + ';">' +
       "<tr>" +
       '<td style="font-size:15px;font-weight:700;color:#0f172a;text-align:' + align + ';">' + escapeHtml(t("emailOrdersHeading")) + "</td>" +
       '<td style="text-align:' + (dir === "rtl" ? "left" : "right") + ';">' +
       '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;">' +
       escapeHtml(t("emailOrdersCount", { n: count })) + "</span></td>" +
       "</tr></table></td></tr>" +
-      '<tr><td style="padding:0 18px 18px;">' +
-      '<div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">' +
+      '<tr><td style="padding:0 18px 18px;text-align:' + align + ';">' +
+      '<div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;direction:' + dir + ';text-align:' + align + ';">' +
       buildOrdersTableHtml(orders || []) +
       "</div></td></tr>" +
       "</table></td></tr></table>";
@@ -2027,6 +2048,8 @@ window.OrderApp = (function _commonSub1() {
     if (preview) {
       if (opts.previewHtml) {
         preview.hidden = false;
+        preview.style.direction = isHe() ? "rtl" : "ltr";
+        preview.style.textAlign = isHe() ? "right" : "left";
         preview.innerHTML = opts.previewHtml;
       } else {
         preview.hidden = true;
@@ -2437,7 +2460,7 @@ window.OrderApp = (function _commonSub1() {
     state.page = opts.page || state.page;
     state.onRefresh = opts.onRefresh || null;
     state.onRender = opts.onRender || null;
-    setTheme(document.documentElement.getAttribute("data-theme"));
+    setTheme(getStoredTheme());
     if (window.OrderI18n) {
       window.OrderI18n.init({
         onChange: function _commonSub76() {

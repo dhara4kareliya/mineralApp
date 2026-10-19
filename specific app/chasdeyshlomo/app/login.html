@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" data-theme="light">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>חסדי שלמה — התחברות למערכת</title>
+
+  <!-- Early Theme Boot -->
+  <script src="assets/js/theme-boot.js"></script>
+
+  <!-- Fonts & Stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Heebo:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/app.css">
+
+  <!-- Configuration & SDK -->
+  <script src="assets/config.js"></script>
+  <script src="assets/js/crypto-util.js"></script>
+  <script src="assets/vendor/biz1-sdk.js"></script>
+</head>
+
+<body class="login-body">
+  <style>
+    #fill12345Btn,
+    #togglePasswordBtn {
+      display: none !important;
+    }
+  </style>
+
+  <div class="login-card-wrap">
+
+    <!-- Top Bar Controls (Language + Theme) -->
+    <div class="login-top-bar">
+      <div class="lang-switch" role="group" aria-label="Language switch">
+        <button type="button" class="lang-btn" data-lang-btn="en">EN</button>
+        <button type="button" class="lang-btn active" data-lang-btn="he">עב</button>
+      </div>
+
+      <button type="button" id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle light / dark mode"
+        title="Light / Dark mode">
+        <svg class="icon-sun hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Brand Header -->
+    <div class="login-brand-header">
+      <div class="login-brand-icon">ח״ש</div>
+      <h1 class="login-brand-title" id="loginTitle">חסדי שלמה</h1>
+      <p class="login-brand-subtitle" id="loginSubtitle">ניהול תיקי לקוחות, הכנסות והוצאות · Biz1 API</p>
+
+      <div class="login-tenant-pill" title="Workspace Account">
+        <span class="tenant-dot"></span>
+        <span class="tenant-name">chasdeyshlomo</span>
+        <span class="tenant-lock">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </span>
+      </div>
+    </div>
+
+    <!-- Error Alert Box -->
+    <div id="loginErrorBox" class="login-error-alert hidden" role="alert">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span id="loginErrorText">שגיאה בהתחברות</span>
+    </div>
+
+    <!-- Password login -->
+    <div class="quick-passive-login"
+      style="display:none; background:linear-gradient(135deg, rgba(29,96,162,0.08), rgba(29,96,162,0.02)); border:1.5px solid rgba(29,96,162,0.2); border-radius:14px; padding:12px; margin-bottom:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <span style="font-size:12.5px; font-weight:800; color:#1d60a2;">⚡ כניסה מהירה (אימות פסיבי)</span>
+        <span
+          style="font-size:11px; font-weight:700; color:#059669; background:#dcfce7; padding:2px 7px; border-radius:99px;">סיסמה:
+          123</span>
+      </div>
+      <button type="button" id="quickPassiveBtn"
+        style="width:100%; padding:11px 14px; border:none; border-radius:10px; background:#1d60a2; color:#fff; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(29,96,162,0.22); transition:transform .15s ease;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+        <span>התחבר עכשיו עם סיסמה 123</span>
+      </button>
+    </div>
+
+    <!-- Main Login Form -->
+    <form id="mainLoginForm" autocomplete="off">
+
+      <!-- Password Field -->
+      <div class="login-field">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <label for="loginPassword" class="login-label" style="margin-bottom:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span id="labelPassword">סיסמה</span>
+          </label>
+          <button type="button" id="fill12345Btn"
+            style="background:none; border:none; padding:0; color:#1d60a2; font-size:12px; font-weight:700; cursor:pointer;">הזן
+            123</button>
+        </div>
+        <div class="login-input-wrap">
+          <input type="password" id="loginPassword" class="login-input" placeholder="הזן סיסמה..."
+            autocomplete="current-password" required autofocus>
+          <button type="button" id="togglePasswordBtn" class="login-pass-toggle"
+            aria-label="Toggle password visibility">
+            <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Remember Me -->
+      <div class="login-options-row">
+        <label class="login-remember">
+          <input type="checkbox" id="rememberMeCheckbox" checked>
+          <span id="labelRemember">זכור אותי</span>
+        </label>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" id="loginSubmitBtn" class="login-submit-btn">
+        <svg id="submitIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.2">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+          <polyline points="10 17 15 12 10 7" />
+          <line x1="15" y1="12" x2="3" y2="12" />
+        </svg>
+        <span id="submitBtnText">התחבר למערכת</span>
+      </button>
+
+    </form>
+
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var config = window.Biz1Config || {};
+      var tenantUser = config.user || 'chasdeyshlomo';
+      var apiDomain = (typeof config.resolveDomain === 'function')
+        ? config.resolveDomain()
+        : 'https://' + tenantUser + '.bull36.com';
+
+      var lang = document.documentElement.lang || 'he';
+      var theme = document.documentElement.getAttribute('data-theme') || 'light';
+
+      var STRINGS = {
+        he: {
+          title: 'חסדי שלמה',
+          subtitle: 'ניהול תיקי לקוחות, הכנסות והוצאות · Biz1 API',
+          passwordLabel: 'סיסמה',
+          passwordPlaceholder: 'הזן סיסמה...',
+          rememberMe: 'זכור אותי',
+          signIn: 'התחבר למערכת',
+          signingIn: 'מתחבר למערכת...',
+          errEmpty: 'נא להזין סיסמה',
+          errInvalid: 'סיסמה שגויה',
+          errUserBasic: 'אימות Bearer Token נכשל',
+          urlTokenProcessing: 'מאמת Bearer Token מהכתובת...'
+        },
+        en: {
+          title: 'Chasdei Shlomo',
+          subtitle: 'Customer Folders, Income & Expenses · Biz1 API',
+          passwordLabel: 'Password',
+          passwordPlaceholder: 'Enter password...',
+          rememberMe: 'Remember me',
+          signIn: 'Sign In',
+          signingIn: 'Signing in...',
+          errEmpty: 'Please enter password',
+          errInvalid: 'Incorrect password',
+          errUserBasic: 'Bearer token verification failed',
+          urlTokenProcessing: 'Validating Bearer Token from URL...'
+        }
+      };
+
+      function updateI18n() {
+        var t = STRINGS[lang] || STRINGS.he;
+        document.documentElement.lang = lang;
+        document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
+
+        var el = function (id) { return document.getElementById(id); };
+        if (el('loginTitle')) el('loginTitle').textContent = t.title;
+        if (el('loginSubtitle')) el('loginSubtitle').textContent = t.subtitle;
+        if (el('labelPassword')) el('labelPassword').textContent = t.passwordLabel;
+        if (el('loginPassword')) el('loginPassword').placeholder = t.passwordPlaceholder;
+        if (el('labelRemember')) el('labelRemember').textContent = t.rememberMe;
+        if (el('submitBtnText')) el('submitBtnText').textContent = t.signIn;
+
+        document.querySelectorAll('[data-lang-btn]').forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-lang-btn') === lang);
+        });
+      }
+
+      function applyTheme(newTheme) {
+        theme = newTheme;
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('chasdei_theme', theme);
+        var sun = document.querySelector('.icon-sun');
+        var moon = document.querySelector('.icon-moon');
+        if (sun && moon) {
+          sun.classList.toggle('hidden', theme !== 'dark');
+          moon.classList.toggle('hidden', theme === 'dark');
+        }
+      }
+
+      function showError(msg) {
+        var box = document.getElementById('loginErrorBox');
+        var text = document.getElementById('loginErrorText');
+        if (box && text) {
+          text.textContent = msg;
+          box.classList.remove('hidden');
+        }
+      }
+
+      function hideError() {
+        var box = document.getElementById('loginErrorBox');
+        if (box) box.classList.add('hidden');
+      }
+
+      function setSubmitting(isSubmitting) {
+        var btn = document.getElementById('loginSubmitBtn');
+        var text = document.getElementById('submitBtnText');
+        var t = STRINGS[lang] || STRINGS.he;
+        if (btn) btn.disabled = isSubmitting;
+        if (text) text.textContent = isSubmitting ? t.signingIn : t.signIn;
+      }
+
+      function normalizeBearerToken(raw) {
+        if (!raw) return '';
+        return String(raw)
+          .trim()
+          .replace(/^['"]+|['"]+$/g, '')
+          .replace(/^\s*Bearer\s+/i, '');
+      }
+
+      /**
+       * Read token from URL query (?token=... or ?bearer=...) or hash (#token=...)
+       */
+      function readUrlToken() {
+        try {
+          var searchParams = new URLSearchParams(window.location.search || '');
+          var val = searchParams.get('token') || searchParams.get('bearer') || searchParams.get('auth');
+          var clean = normalizeBearerToken(val || '');
+          if (clean && !/\{\{\s*token\s*\}\}/i.test(clean)) return clean;
+
+          var hash = String(window.location.hash || '').replace(/^#/, '');
+          var q = hash.indexOf('?');
+          if (q !== -1) {
+            var hashParams = new URLSearchParams(hash.slice(q + 1));
+            val = hashParams.get('token') || hashParams.get('bearer') || hashParams.get('auth');
+            clean = normalizeBearerToken(val || '');
+            if (clean && !/\{\{\s*token\s*\}\}/i.test(clean)) return clean;
+          } else if (hash) {
+            var hashParams2 = new URLSearchParams(hash);
+            val = hashParams2.get('token') || hashParams2.get('bearer') || hashParams2.get('auth');
+            clean = normalizeBearerToken(val || '');
+            if (clean && !/\{\{\s*token\s*\}\}/i.test(clean)) return clean;
+          }
+          return '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function saveSessionAndRedirect(token, userData, userDomain) {
+        token = normalizeBearerToken(token);
+        localStorage.setItem('chasdei_token', token);
+        localStorage.setItem('biz1_sdk_bearer_token', token);
+        localStorage.setItem('chasdei_auth', '1');
+        localStorage.setItem('chasdei_user_domain', userDomain || tenantUser);
+        if (userData) {
+          localStorage.setItem('chasdei_user', JSON.stringify(userData));
+        }
+        window.location.href = 'index.html';
+      }
+
+      // Check URL Token or existing authenticated session on boot
+      async function checkBootAuth() {
+        var urlToken = readUrlToken();
+        if (urlToken) {
+          setSubmitting(true);
+          var t = STRINGS[lang] || STRINGS.he;
+          var text = document.getElementById('submitBtnText');
+          if (text) text.textContent = t.urlTokenProcessing;
+
+          setSubmitting(false);
+          if (urlToken.indexOf('eyJ') === 0 && urlToken.length > 50) {
+            saveSessionAndRedirect(urlToken, { user: { name: 'Biz1 User' } }, tenantUser);
+            return;
+          } else {
+            showError(t.errInvalid);
+          }
+          return;
+        }
+
+        // Do not allow an already authenticated session to remain on login.
+        // This also covers the passive-password session, whose token is not a JWT.
+        var sessionAuth = localStorage.getItem('chasdei_auth') === '1';
+        var sessionToken = localStorage.getItem('chasdei_token') ||
+          localStorage.getItem('biz1_sdk_bearer_token') ||
+          localStorage.getItem('mineralbar_token');
+        if (sessionAuth && sessionToken) {
+          window.location.replace('index.html');
+          return;
+        }
+
+      }
+
+      function doPassiveLogin() {
+        var apiToken = (config.apiToken) || '58CZS49DFHNN4KD24933';
+        var mockUser = {
+          user: {
+            id: 24933,
+            name: 'מנהל מערכת (חסדי שלמה)',
+            username: tenantUser,
+            user_domain: tenantUser,
+            role: 'admin',
+            passive: true
+          }
+        };
+        localStorage.setItem('chasdei_token', apiToken);
+        localStorage.setItem('biz1_sdk_bearer_token', apiToken);
+        localStorage.setItem('mineralbar_token', apiToken);
+        localStorage.setItem('mineralbar_role', 'sales');
+        localStorage.setItem('mineralbar_auth_mode', 'passive');
+        localStorage.setItem('chasdei_auth', '1');
+        localStorage.setItem('chasdei_auth_mode', 'passive');
+        localStorage.setItem('chasdei_user_domain', tenantUser);
+        localStorage.setItem('chasdei_user', JSON.stringify(mockUser));
+        window.location.href = 'index.html';
+      }
+
+      // DOM Init
+      document.addEventListener('DOMContentLoaded', function () {
+        updateI18n();
+        applyTheme(theme);
+        checkBootAuth();
+
+        // Theme switch
+        var themeBtn = document.getElementById('themeToggleBtn');
+        if (themeBtn) {
+          themeBtn.addEventListener('click', function () {
+            applyTheme(theme === 'dark' ? 'light' : 'dark');
+          });
+        }
+
+        // Lang switch
+        document.querySelectorAll('[data-lang-btn]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            lang = btn.getAttribute('data-lang-btn');
+            localStorage.setItem('chasdei_lang', lang);
+            updateI18n();
+          });
+        });
+
+        // Passive Quick Login Button
+        var quickBtn = document.getElementById('quickPassiveBtn');
+        if (quickBtn) {
+          quickBtn.addEventListener('click', function () {
+            doPassiveLogin();
+          });
+        }
+
+        // Pre-fill 12345 button
+        var fillBtn = document.getElementById('fill12345Btn');
+        var passInput = document.getElementById('loginPassword');
+        var quickSection = document.querySelector('.quick-passive-login');
+        var fillButton = document.getElementById('fill12345Btn');
+        var visibilityButton = document.getElementById('togglePasswordBtn');
+        if (quickSection) quickSection.remove();
+        if (fillButton) fillButton.remove();
+        if (visibilityButton) visibilityButton.remove();
+        if (passInput) passInput.placeholder = (lang === 'en') ? 'Enter password...' : 'הזן סיסמה...';
+        if (fillBtn && passInput) {
+          fillBtn.addEventListener('click', function () {
+            passInput.value = '12345';
+            passInput.focus();
+            doPassiveLogin();
+          });
+        }
+
+        // Live typing detection for passive password 12345
+        if (passInput) {
+          passInput.addEventListener('input', function () {
+            var val = (passInput.value || '').trim();
+            if (false && val === '123') {
+              // Automatically authenticate when 12345 is typed
+              passInput.style.borderColor = '#059669';
+              setTimeout(function () {
+                doPassiveLogin();
+              }, 250);
+            }
+          });
+        }
+
+        // Password visibility toggle
+        var toggleBtn = document.getElementById('togglePasswordBtn');
+        if (toggleBtn && passInput) {
+          toggleBtn.addEventListener('click', function () {
+            var isPass = passInput.type === 'password';
+            passInput.type = isPass ? 'text' : 'password';
+          });
+        }
+
+        // Main Login Form Submission (Fixed username: chasdeyshlomo)
+        var form = document.getElementById('mainLoginForm');
+        if (form) {
+          form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            hideError();
+
+            var username = tenantUser;
+            var password = (document.getElementById('loginPassword').value || '').trim();
+            var t = STRINGS[lang] || STRINGS.he;
+
+            if (!password) {
+              showError(t.errEmpty);
+              return;
+            }
+
+            // Accept only the local password; do not call remote login APIs
+            // when the password is incorrect.
+            if (password !== (config.passivePassword || '12345')) {
+              showError(t.errInvalid);
+              return;
+            }
+            doPassiveLogin();
+            return;
+
+            setSubmitting(true);
+
+            // Cascade live login endpoints on Biz1
+            var endpoints = [
+              'https://' + tenantUser + '.bull36.com/app/Login',
+              'https://bull36.com/app/Login',
+              apiDomain + '/app/Login',
+              'https://biz1.co.il/app/Login'
+            ];
+
+            var bodyParams = new URLSearchParams();
+            bodyParams.append('username', username);
+            bodyParams.append('password', password);
+
+            var lastErrorMsg = null;
+            var successToken = null;
+            var successUser = null;
+            var successDomain = tenantUser;
+
+            for (var i = 0; i < endpoints.length; i++) {
+              try {
+                var loginRes = await fetch(endpoints[i], {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: bodyParams
+                });
+                var loginData = await loginRes.json();
+                if (loginData && (loginData.token || loginData.bearer_token)) {
+                  successToken = loginData.token || loginData.bearer_token;
+                  successUser = loginData.user || null;
+                  successDomain = (loginData.user && loginData.user.user_domain) || tenantUser;
+                  break;
+                } else if (loginData && loginData.message) {
+                  lastErrorMsg = loginData.message;
+                }
+              } catch (err) {
+                console.warn('[Login] Endpoint attempt error:', endpoints[i], err);
+              }
+            }
+
+            if (successToken) {
+              setSubmitting(false);
+              saveSessionAndRedirect(successToken, successUser || { user: { name: username } }, successDomain);
+              return;
+            }
+
+            setSubmitting(false);
+            showError(lastErrorMsg || t.errInvalid);
+          });
+        }
+      });
+    })();
+  </script>
+
+</body>
+
+</html>
