@@ -114,6 +114,21 @@ const CalendarPage = (function () {
     return `${y}-${Utils.pad2(m)}-${Utils.pad2(d)}`;
   }
 
+  // Date inputs and leave ranges are calendar dates, not UTC timestamps.
+  // Calling toISOString() on a local midnight shifts the date backwards in
+  // positive-offset time zones (for example, 2026-10-24 00:00 in India
+  // becomes 2026-10-23T18:30:00.000Z). Keep the local date components.
+  function localDateIso(date) {
+    return isoFromParts(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  }
+
+  // The API combines this date with the full-day 00:00 time. A date-only
+  // value can therefore be interpreted as the previous UTC day. Use noon as
+  // the date anchor while keeping the actual attendance times 00:00–23:59.
+  function attendanceDateValue(iso) {
+    return `${iso} 12:00:00`;
+  }
+
   function sessionIso(row) {
     const parsed = parseDateString(row.date_iso || row.date || row.start_time || row.start);
     return parsed ? parsed.iso : '';
@@ -819,7 +834,7 @@ const CalendarPage = (function () {
     if (lockHint) lockHint.classList.add('hidden');
 
     const hasExistingEntryForDay = selectedIso && dayStateMap[selectedIso] && !['missing', 'future', 'today'].includes(dayStateMap[selectedIso].state);
-    
+
     const isLockedAddMode = !isEdit && hasExistingEntryForDay;
     const isTypeLocked = hasExistingEntryForDay || isEdit;
 
@@ -1266,7 +1281,7 @@ const CalendarPage = (function () {
         const endDate = new Date(endIso);
         let curr = new Date(startDate);
         while (curr <= endDate) {
-          const currIso = curr.toISOString().split('T')[0];
+          const currIso = localDateIso(curr);
           const entries = getSessionsForIso(currIso);
           if (entries.some(r => !editingExistingLog || r.selectionKey !== selectedLogKey)) {
             hasOverlap = true;
@@ -1305,8 +1320,11 @@ const CalendarPage = (function () {
       // In add mode or for sick/vacation/holiday, times are irrelevant
       let checkInInput, checkOutInput;
       if (isAddMode || isSick || isVacation || dayType === 'holiday') {
-        checkInInput = '00:00';
-        checkOutInput = (dayType === 'holiday') ? '00:00' : '23:59';
+        // Special days are full-day records in the UI. Use a midday API
+        // anchor so the backend does not turn 00:00 into the previous UTC
+        // date; the sick/vacation flag still represents the whole day.
+        checkInInput = '12:00';
+        checkOutInput = '12:01';
         if (dayType === 'holiday' && !notes.trim()) {
           notes = 'Holiday';
         }
@@ -1333,7 +1351,7 @@ const CalendarPage = (function () {
       else if (isVacation) sickDayVal = '2'; // vacation might still be supported internally even though hidden
 
       const payload = {
-        work_dairy_add_date: iso,
+        work_dairy_add_date: attendanceDateValue(iso),
         work_dairy_check_in: checkInInput || '00:00',
         work_dairy_check_out: checkOutInput || '23:59',
         work_dairy_notes: notes,
@@ -1353,9 +1371,9 @@ const CalendarPage = (function () {
         let cur = new Date(fromVal + 'T00:00:00');
         const endDate = new Date(toVal + 'T00:00:00');
         while (cur <= endDate) {
-          const curIso = cur.toISOString().split('T')[0];
+          const curIso = localDateIso(cur);
           const singlePayload = {
-            work_dairy_add_date: curIso,
+            work_dairy_add_date: attendanceDateValue(curIso),
             work_dairy_check_in: checkInInput || '00:00',
             work_dairy_check_out: checkOutInput || '23:59',
             work_dairy_notes: notes,
@@ -1367,7 +1385,7 @@ const CalendarPage = (function () {
       } else {
         // Single day OR Vacation multi-day (Backend automatically expands vacation_from_date & vacation_to_date)
         const singlePayload = {
-          work_dairy_add_date: iso,
+          work_dairy_add_date: attendanceDateValue(iso),
           work_dairy_check_in: checkInInput || '00:00',
           work_dairy_check_out: checkOutInput || '23:59',
           work_dairy_notes: notes,
@@ -1421,6 +1439,37 @@ const CalendarPage = (function () {
     const button = document.getElementById('day-delete');
     button.disabled = true;
     try {
+      // Special-day rows can share a backend team-hours/range identity.
+      // Delete only the selected calendar date instead of deleting that
+      // shared identity, which can also remove the adjacent day.
+      const selectedDayType = document.getElementById('day-type')?.value || '';
+      const isSpecialSelected = selectedDayType === 'sick'
+        || selectedDayType === 'vacation'
+        || selectedDayType === 'holiday'
+        || isSickRow(selectedEntryDetails)
+        || isVacationRow(selectedEntryDetails)
+        || isHolidayRow(selectedEntryDetails);
+
+      if (isSpecialSelected) {
+        const clearPayload = {
+          work_dairy_add_date: attendanceDateValue(iso),
+          work_dairy_check_in: '00:00',
+          work_dairy_check_out: '00:00',
+          work_dairy_notes: '',
+          sick_day: '0'
+        };
+        // Keep the record identity when the API supplied one. This clears
+        // the selected row rather than creating an unrelated blank row.
+        if (teamHoursId) clearPayload.team_hours_id = teamHoursId;
+        await Api.workdiaryAttendanceSave(clearPayload);
+        AppUI.flash(I18n.t('deletedEntry'), 'success');
+        selectedLogKey = 'new';
+        selectedEntryDetails = null;
+        await loadMonth();
+        selectDay(iso);
+        return;
+      }
+
       let deleteSuccess = false;
       if (teamHoursId) {
         try {
@@ -1433,7 +1482,7 @@ const CalendarPage = (function () {
 
       if (!deleteSuccess) {
         const fallbackPayload = {
-          work_dairy_add_date: iso,
+          work_dairy_add_date: attendanceDateValue(iso),
           work_dairy_check_in: '00:00',
           work_dairy_check_out: '00:00',
           work_dairy_notes: '',
@@ -1590,9 +1639,18 @@ const CalendarPage = (function () {
         client.on('Socket', CalendarPage.handleSocketEvent);
       }
       revealApp();
-    } catch (_) {
-      Api.logout();
-      window.location.replace('login.html');
+    } catch (err) {
+      const message = String(err?.message || '').toLowerCase();
+      const isAuthFailure = err?.status === 401
+        || /401|unauthorized|token expired|bearer token is missing/.test(message);
+      console.error('WorkDiary calendar bootstrap failed', err);
+      if (isAuthFailure) {
+        Api.logout();
+        window.location.replace('login.html');
+        return;
+      }
+      AppUI.flash(err?.message || 'Could not load the calendar. Please refresh again.', 'error');
+      revealApp();
     }
   })();
 })();

@@ -152,9 +152,18 @@
       await Timesheet.init();
       Realtime.connect((event) => Timesheet.handleSocketEvent(event));
       revealApp();
-    } catch (_) {
-      Api.logout();
-      window.location.replace('login.html');
+    } catch (err) {
+      const message = String(err?.message || '').toLowerCase();
+      const isAuthFailure = err?.status === 401
+        || /401|unauthorized|token expired|bearer token is missing/.test(message);
+      console.error('WorkDiary home bootstrap failed', err);
+      if (isAuthFailure) {
+        Api.logout();
+        window.location.replace('login.html');
+        return;
+      }
+      AppUI.flash(err?.message || 'Could not load the dashboard. Please refresh again.', 'error');
+      revealApp();
     }
   })();
 })();

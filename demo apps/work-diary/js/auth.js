@@ -42,7 +42,21 @@ const Auth = (function () {
     const domain = AppConfig.getDomain();
     await Api.init(domain);
     if (!Api.isLoggedIn()) return false;
-    userBasic = await Api.fetchUserBasic();
+    try {
+      userBasic = await Api.fetchUserBasic();
+    } catch (err) {
+      // Do not turn a temporary network/API failure during refresh into a
+      // logout. The SDK already clears the token for a real HTTP 401.
+      const message = String(err?.message || '').toLowerCase();
+      const isAuthFailure = err?.status === 401
+        || /401|unauthorized|token expired|bearer token is missing/.test(message);
+      if (isAuthFailure) {
+        Api.logout();
+        return false;
+      }
+      console.warn('Could not restore user profile; keeping the session', err);
+      userBasic = null;
+    }
     return true;
   }
 
