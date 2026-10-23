@@ -107,39 +107,6 @@ $CIPHER_KEY = "CHASDEY_SHLOMO_APP_SECRET_2026";
 $API_BASE_URL = "https://bull36.com/api";
 $API_TOKEN = "58CZS49DFHNN4KD24933";
 $CACHE_DIR = __DIR__ . '/cache';
-$CACHE_MAX_AGE = 5 * 3600; // 5 hours in seconds (18,000s)
-
-/**
- * Purge cache files older than max age (default: 5 hours).
- * Throttled to run at most once every 10 minutes to avoid disk I/O overhead.
- */
-function purgeExpiredCacheFiles($dir, $maxAge = 18000, $force = false) {
-    if (!is_dir($dir)) return;
-    $marker = $dir . '/.last_cleanup';
-    if (!$force && file_exists($marker)) {
-        $lastClean = @filemtime($marker);
-        if ($lastClean && (time() - $lastClean < 600)) {
-            return;
-        }
-    }
-    @touch($marker);
-
-    $files = @glob($dir . '/*.json');
-    if (!$files || !is_array($files)) return;
-
-    $now = time();
-    foreach ($files as $file) {
-        if (is_file($file)) {
-            $fileTime = @filemtime($file);
-            if ($fileTime && ($now - $fileTime >= $maxAge)) {
-                @unlink($file);
-            }
-        }
-    }
-}
-
-// Run periodic cleanup of cache older than 5 hours
-purgeExpiredCacheFiles($CACHE_DIR, $CACHE_MAX_AGE);
 
 /**
  * Decrypt XOR+Base64 encrypted payload
@@ -292,6 +259,71 @@ if ($action === 'get_folder_by_id' || $action === 'get_customers') {
     // Clean and filter empty customer IDs
     $customerIds = array_values(array_filter(array_map('trim', $customerIds), function($v) { return $v !== ''; }));
 
+    // NEW: If more than 40 customer IDs, chunk into groups of 40 and execute in parallel via curl_multi
+    // to strictly prevent HTTP 414 Request-URI Too Long errors on large customer lists.
+    if (count($customerIds) > 40 && function_exists('curl_multi_init')) {
+        $chunks = array_chunk($customerIds, 40);
+        $mh = curl_multi_init();
+        $handles = [];
+        foreach ($chunks as $idx => $chunk) {
+            $qs = "token=" . urlencode($activeToken) . "&entry_id=" . urlencode($entryId) . "&field_id=" . urlencode($fieldId);
+            foreach ($chunk as $cid) {
+                $qs .= "&customer_id[]=" . urlencode($cid);
+            }
+            $chunkUrl = $API_BASE_URL . '/get_customer_total_field_sum?' . $qs;
+            $ch = curl_init($chunkUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            curl_multi_add_handle($mh, $ch);
+            $handles[$idx] = $ch;
+        }
+
+        $running = null;
+        do {
+            curl_multi_exec($mh, $running);
+            curl_multi_select($mh);
+        } while ($running > 0);
+
+        $mergedData = [];
+        $baseResult = null;
+        foreach ($handles as $idx => $ch) {
+            $content = curl_multi_getcontent($ch);
+            $d = json_decode($content, true);
+            if ($d && isset($d['data']) && is_array($d['data'])) {
+                foreach ($d['data'] as $k => $v) {
+                    $mergedData[$k] = $v;
+                }
+                if (!$baseResult) $baseResult = $d;
+            }
+            curl_multi_remove_handle($mh, $ch);
+            curl_close($ch);
+        }
+        curl_multi_close($mh);
+
+        if (!$baseResult) {
+            $baseResult = ['success' => 1, 'entry_id' => $entryId, 'field_id' => $fieldId, 'data' => []];
+        }
+        $baseResult['data'] = $mergedData;
+        $finalJson = json_encode($baseResult, JSON_UNESCAPED_UNICODE);
+
+        // Cache the response
+        $cacheTTL = 120;
+        $cacheKey = md5('pagination-v2_' . $action . '_' . $entryId . '_' . $fieldId . '_' . count($customerIds));
+        $cacheFile = $CACHE_DIR . '/' . $cacheKey . '.json';
+        if (is_dir($CACHE_DIR) && is_writable($CACHE_DIR)) {
+            @file_put_contents($cacheFile, $finalJson, LOCK_EX);
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('X-Optimized: Chasdey-Chunked-Parallel');
+        http_response_code(200);
+        echo $finalJson;
+        exit;
+    }
+
     $queryString = "token=" . urlencode($activeToken) . "&entry_id=" . urlencode($entryId) . "&field_id=" . urlencode($fieldId);
     foreach ($customerIds as $cid) {
         $queryString .= "&customer_id[]=" . urlencode($cid);
@@ -324,11 +356,9 @@ $cacheTTL = ($action === 'get_entries_by_tab_id' || $action === 'get_customer_to
 $cacheKey = md5('pagination-v2_' . $action . '_' . $targetUrl);
 $cacheFile = $CACHE_DIR . '/' . $cacheKey . '.json';
 
-if (file_exists($cacheFile)) {
+if (!$bypassCache && file_exists($cacheFile)) {
     $mtime = @filemtime($cacheFile);
-    if ($mtime && (time() - $mtime >= $CACHE_MAX_AGE)) {
-        @unlink($cacheFile);
-    } elseif (!$bypassCache && $mtime && (time() - $mtime < $cacheTTL)) {
+    if ($mtime && (time() - $mtime < $cacheTTL)) {
         header('X-Cache: HIT');
         header('X-Optimized: Chasdey-Gateway-Slim');
         http_response_code(200);
@@ -402,103 +432,9 @@ if ($response === false || $requestError || $httpCode >= 400 || (is_string($resp
     exit;
 }
 
-// NEW: Handle Bull36 pagination and strip heavy unused fields.
-// REMOVED: Returning all auxiliary customer fields unchanged.
+// Pass original Bull36 response directly without stripping extra_fields or forcing multi-page loops
 $finalOutput = $response;
 
-if ($httpCode === 200 && ($action === 'get_folder_by_id' || $action === 'get_customers')) {
-    $decoded = json_decode($response, true);
-    if ($decoded && isset($decoded['data']) && is_array($decoded['data'])) {
-        $totalCustomers = isset($decoded['total']) ? (int)$decoded['total'] : (int)($decoded['count'] ?? count($decoded['data']));
-        $pageSize = count($decoded['data']);
-
-        // An explicit page/start request is already a paginated response.
-        // Do not append other pages to it; return the requested page exactly.
-        $explicitPage = isset($params['page']) || isset($params['start']);
-
-        // NEW: If Bull36 paginated the response and there are more pages, fetch
-        // them in parallel using curl_multi.
-        if (!$explicitPage && $totalCustomers > $pageSize && $pageSize > 0 && function_exists('curl_multi_init')) {
-            $mh = curl_multi_init();
-            $handles = [];
-            // Bull36 expects the page number for subsequent pages. Using only
-            // start=20/start=40 can return page 1 repeatedly, which leaves
-            // the frontend with only the first 20 unique customers.
-            $totalPages = (int)ceil($totalCustomers / $pageSize);
-            for ($pageNumber = 2; $pageNumber <= $totalPages; $pageNumber++) {
-                $pageUrl = $API_BASE_URL . "/get_folder_by_id?" . http_build_query([
-                    'token' => $API_TOKEN,
-                    'folder_id' => $folderId,
-                    'page' => $pageNumber,
-                    'limit' => $pageSize
-                ]);
-                $ch = curl_init($pageUrl);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 25);
-                curl_multi_add_handle($mh, $ch);
-                $handles[$pageNumber] = $ch;
-            }
-
-            $running = null;
-            do {
-                curl_multi_exec($mh, $running);
-                curl_multi_select($mh);
-            } while ($running > 0);
-
-            // Append all pages in order
-            ksort($handles);
-            foreach ($handles as $pageNumber => $ch) {
-                $content = curl_multi_getcontent($ch);
-                $d = json_decode($content, true);
-                if ($d && isset($d['data']) && is_array($d['data'])) {
-                    $decoded['data'] = array_merge($decoded['data'], $d['data']);
-                }
-                curl_multi_remove_handle($mh, $ch);
-                curl_close($ch);
-            }
-            curl_multi_close($mh);
-        }
-
-        // Set accurate count and total
-        $decoded['count'] = count($decoded['data']);
-        $decoded['total'] = count($decoded['data']);
-
-        // Remove extra_fields and bloated auxiliary fields (reduces size by 93%)
-        $unwantedFields = [
-            'extra_fields',
-            'user_forms_detail',
-            'chat_embed_meta',
-            'appointment_group',
-            'outgoing_payments',
-            'courses',
-            'sub_courses',
-            'commission_for_affiliate',
-            'messages',
-            'messages_delete',
-            'payment_balancing_pdf',
-            'pricing_list',
-            'notes_for_highlight_time',
-            'script_internal_use',
-            'payment_terms',
-            'lists',
-            'lists_removed'
-        ];
-
-        foreach ($decoded['data'] as &$item) {
-            foreach ($unwantedFields as $field) {
-                unset($item[$field]);
-            }
-        }
-        unset($item);
-
-        $sanitized = json_encode($decoded, JSON_UNESCAPED_UNICODE);
-        if ($sanitized !== false && strlen($sanitized) > 10) {
-            $finalOutput = $sanitized;
-        }
-    }
-}
 
 // NEW: Save successful responses to the local cache file.
 if ($httpCode === 200 && strlen($finalOutput) > 10) {
@@ -506,7 +442,6 @@ if ($httpCode === 200 && strlen($finalOutput) > 10) {
         @mkdir($CACHE_DIR, 0777, true);
     }
     @file_put_contents($cacheFile, $finalOutput);
-    purgeExpiredCacheFiles($CACHE_DIR, $CACHE_MAX_AGE);
 }
 
 header('X-Cache: MISS');

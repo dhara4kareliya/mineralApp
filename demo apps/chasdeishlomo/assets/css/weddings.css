@@ -1,0 +1,1334 @@
+/* ==========================================================================
+   Chasdei Shlomo — Hebrew Wedding Calendar & Monthly Income System
+   Aesthetic: Premium Jewish Charity / Wedding Celebration (Navy, Gold, Emerald)
+   RTL native, Heebo & Inter typography, responsive, print-optimized (A4)
+   ========================================================================== */
+
+:root {
+  --primary: #1e3a8a;
+  /* Rich Royal Navy */
+  --primary-light: #2563eb;
+  --primary-dark: #0f172a;
+  --primary-bg: #eff6ff;
+  --primary-border: #bfdbfe;
+  --primary-text: #1d4ed8;
+
+  --gold: #d97706;
+  /* Warm Celebration Gold */
+  --gold-light: #fef3c7;
+  --gold-dark: #b45309;
+
+  --income: #059669;
+  /* Vibrant Emerald */
+  --income-text: #065f46;
+  --income-bg: #ecfdf5;
+  --income-border: #a7f3d0;
+  --income-tag-bg: rgba(5, 150, 105, 0.12);
+  --income-tag-text: #047857;
+
+  --expense: #e11d48;
+  /* Refined Rose / Coral */
+  --expense-text: #9f1239;
+  --expense-bg: #fff1f2;
+  --expense-border: #fecdd3;
+  --expense-tag-bg: rgba(225, 29, 72, 0.12);
+  --expense-tag-text: #be123c;
+
+  --bg-page: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+
+  --font-hebrew: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --bg-page: #0b1120;
+  --bg-surface: #131d33;
+  --bg-card: #18233d;
+  --border-color: #243252;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+
+  --primary: #60a5fa;
+  --primary-light: #93c5fd;
+  --primary-bg: rgba(59, 130, 246, 0.14);
+  --primary-border: rgba(147, 197, 253, 0.32);
+  --primary-text: #93c5fd;
+
+  --income: #34d399;
+  /* Glowing mint emerald */
+  --income-text: #34d399;
+  --income-bg: rgba(16, 185, 129, 0.14);
+  --income-border: rgba(52, 211, 153, 0.35);
+  --income-tag-bg: rgba(16, 185, 129, 0.22);
+  --income-tag-text: #6ee7b7;
+
+  --expense: #fb7185;
+  /* Glowing soft rose / coral */
+  --expense-text: #fb7185;
+  --expense-bg: rgba(244, 63, 94, 0.14);
+  --expense-border: rgba(251, 113, 133, 0.35);
+  --expense-tag-bg: rgba(244, 63, 94, 0.22);
+  --expense-tag-text: #fda4af;
+
+  --gold: #fbbf24;
+  --gold-light: rgba(245, 158, 11, 0.18);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Reset & Base Setup */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  font-family: var(--font-hebrew);
+  background: var(--bg-page);
+  color: var(--text-main);
+  direction: rtl;
+  text-align: right;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  outline: none;
+}
+
+/* Container */
+.wedding-app-wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+/* Header & Navigation Bar */
+.top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 19px;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
+}
+
+.brand-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.year-chip {
+  background: var(--gold-light);
+  color: var(--gold-dark);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 11.5px;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  transition: var(--transition);
+}
+
+/* Language Switcher */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  gap: 2px;
+}
+
+.lang-btn {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.lang-btn:hover {
+  color: var(--text-main);
+}
+
+.lang-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(30, 58, 138, 0.25);
+}
+
+.btn-pill:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.btn-pill.primary {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 6px rgba(30, 58, 138, 0.25);
+}
+
+.btn-pill.primary:hover {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+}
+
+/* Statistics KPI Ribbon */
+.kpi-ribbon {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.kpi-icon-wrap {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon-wrap.income {
+  background: var(--income-bg);
+  color: var(--income);
+  border: 1px solid var(--income-border);
+}
+
+.kpi-icon-wrap.weddings {
+  background: #eff6ff;
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+}
+
+.kpi-icon-wrap.gold {
+  background: var(--gold-light);
+  color: var(--gold);
+  border: 1px solid #fde68a;
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+/* Utility hidden helper */
+.hidden,
+.view-container.hidden,
+#monthsGridContainer.hidden,
+#monthsListContainer.hidden {
+  display: none !important;
+}
+
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.section-heading {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-desc {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+/* View Mode Switcher (Grid Cards vs List Table) */
+.view-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  gap: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-toggle-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.btn-toggle-view:hover {
+  color: var(--text-main);
+}
+
+.btn-toggle-view.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(30, 58, 138, 0.25);
+}
+
+[data-theme="dark"] .btn-toggle-view.active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+
+/* 13 Months Overview Table (List View) */
+.months-overview-table {
+  width: 100%;
+}
+
+.months-overview-table tr {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.months-overview-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.05);
+}
+
+[data-theme="dark"] .months-overview-table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.months-overview-table th:nth-child(6),
+.months-overview-table td:nth-child(6),
+.months-overview-table th:nth-child(7),
+.months-overview-table td:nth-child(7) {
+  text-align: center !important;
+}
+
+.month-table-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-open-month-table {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  border: 1px solid var(--primary-border);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-open-month-table:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(30, 58, 138, 0.25);
+}
+
+html[dir="ltr"] .btn-open-month-table svg {
+  transform: rotate(180deg);
+}
+
+.months-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+}
+
+.month-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.month-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1e3a8a, #d97706);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.month-card:hover {
+  transform: translateY(-4px);
+  border-color: #3b82f6;
+  box-shadow: var(--shadow-lg);
+}
+
+.month-card:hover::before {
+  opacity: 1;
+}
+
+.month-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.month-name {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.month-order-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-page);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+}
+
+.month-card-body {
+  margin-bottom: 0;
+}
+
+.month-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border-color);
+  font-size: 13.5px;
+}
+
+.month-stat-row:last-child {
+  border-bottom: none;
+}
+
+.month-stat-label {
+  color: var(--text-muted);
+}
+
+.month-stat-val {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.month-stat-val.income {
+  color: var(--income);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* VIEW 2: Month Detail Page (PDF Sheet Layout) */
+.month-sheet-header {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.month-sheet-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #d97706, #059669);
+}
+
+.month-sheet-title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn-back {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  transition: var(--transition);
+}
+
+.btn-back:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary-light);
+  color: var(--primary);
+  transform: translateX(2px);
+}
+
+.month-sheet-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--text-main);
+}
+
+.month-sheet-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.sheet-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  gap: 8px;
+  min-width: 250px;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-main);
+  width: 100%;
+}
+
+/* Month Weddings Table Container */
+.sheet-table-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.wedding-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+  font-size: 14px;
+}
+
+.wedding-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 14px 18px;
+  border-bottom: 1.5px solid var(--border-color);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .wedding-table thead th {
+  background: #111c33;
+  color: #94a3b8;
+}
+
+.wedding-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s ease;
+}
+
+.wedding-table tbody tr:hover {
+  background: rgba(241, 245, 249, 0.6);
+}
+
+[data-theme="dark"] .wedding-table tbody tr:hover {
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.wedding-table td {
+  padding: 16px 18px;
+  vertical-align: middle;
+}
+
+.couple-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  text-align: right;
+}
+
+html[dir="ltr"] .couple-name-cell {
+  text-align: left;
+  align-items: flex-start;
+}
+
+.couple-name {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.couple-phone {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  direction: ltr;
+  text-align: left;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hebrew-date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  border: 1px solid var(--primary-border);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: var(--transition);
+}
+
+.greg-date {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* Income Clickable Badge (Opens Condensed Modal) */
+.income-clickable-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--income-bg);
+  color: var(--income-text);
+  border: 1px solid var(--income-border);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.income-clickable-pill:hover {
+  background: #059669;
+  color: #ffffff;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.income-clickable-pill .pill-tag {
+  font-size: 11px;
+  background: var(--income-tag-bg);
+  color: var(--income-tag-text);
+  border: 1px solid var(--income-border);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.income-clickable-pill:hover .pill-tag {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Expenses Clickable Badge (Matches Income badge) */
+.expense-clickable-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--expense-bg);
+  color: var(--expense-text);
+  border: 1px solid var(--expense-border);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.expense-clickable-pill:hover {
+  background: #e11d48;
+  color: #ffffff;
+  border-color: #e11d48;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.35);
+}
+
+.expense-clickable-pill .pill-tag {
+  font-size: 11px;
+  background: var(--expense-tag-bg);
+  color: var(--expense-tag-text);
+  border: 1px solid var(--expense-border);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.expense-clickable-pill:hover .pill-tag {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Bottom Month Total Box (Upgraded with Income, Expenses & Net) */
+.month-bottom-total-bar {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  color: #ffffff;
+  padding: 20px 28px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 8px 20px rgba(30, 58, 138, 0.22);
+  margin-top: 16px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.bottom-total-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  text-align: center;
+}
+
+.bottom-total-divider {
+  width: 1px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+  .bottom-total-divider {
+    display: none;
+  }
+}
+
+.bottom-total-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.bottom-total-amount {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #6ee7b7;
+  /* Emerald for Income */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.bottom-total-amount.expense {
+  color: #fca5a5;
+  /* Rose for Expense */
+}
+
+.bottom-total-amount.net {
+  color: #fef08a;
+  /* Gold for Net Balance */
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.modal-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from {
+    transform: scale(0.96) translateY(8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-icon-badge.income {
+  background: var(--income-bg);
+  color: var(--income);
+}
+
+.modal-icon-badge.expense {
+  background: var(--expense-bg);
+  color: var(--expense);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.modal-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: var(--transition);
+}
+
+.modal-close-btn:hover {
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.condensed-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.condensed-table th {
+  background: var(--bg-page);
+  padding: 11px 14px;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: 1.5px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.condensed-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+html[dir="rtl"] .condensed-table th,
+html[dir="rtl"] .condensed-table td {
+  text-align: right;
+}
+
+html[dir="ltr"] .condensed-table th,
+html[dir="ltr"] .condensed-table td {
+  text-align: left;
+}
+
+.condensed-table th:first-child,
+.condensed-table td:first-child {
+  width: 44%;
+}
+
+.condensed-table th:nth-child(2),
+.condensed-table td:nth-child(2) {
+  width: 32%;
+}
+
+.condensed-table th:last-child,
+.condensed-table td:last-child {
+  width: 24%;
+}
+
+html[dir="rtl"] .condensed-table th:last-child,
+html[dir="rtl"] .condensed-table td:last-child {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .condensed-table th:last-child,
+html[dir="ltr"] .condensed-table td:last-child {
+  text-align: right !important;
+}
+
+.condensed-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.dash-muted {
+  color: var(--text-muted);
+  opacity: 0.45;
+  font-weight: normal;
+}
+
+/* Expense Table styles */
+.expense-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.expense-table th {
+  background: var(--bg-page);
+  padding: 11px 14px;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: 1.5px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.expense-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+html[dir="rtl"] .expense-table th,
+html[dir="rtl"] .expense-table td {
+  text-align: right;
+}
+
+html[dir="ltr"] .expense-table th,
+html[dir="ltr"] .expense-table td {
+  text-align: left;
+}
+
+html[dir="rtl"] .expense-table th:last-child,
+html[dir="rtl"] .expense-table td:last-child {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .expense-table th:last-child,
+html[dir="ltr"] .expense-table td:last-child {
+  text-align: right !important;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-total-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.modal-total-val {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* Empty & Loader States */
+.loader-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(37, 99, 235, 0.15);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state-box {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+
+/* Print Optimization (A4 Clean Vector PDF & Print Layout) */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .header-actions,
+  .btn-pill,
+  .sheet-toolbar,
+  .btn-back,
+  .modal-overlay,
+  .theme-toggle-btn {
+    display: none !important;
+  }
+
+  .top-header {
+    border-bottom: 2px solid #1e293b !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 20px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .brand-badge {
+    background: #0f172a !important;
+    color: #ffffff !important;
+  }
+
+  .brand-title, .brand-subtitle, .year-chip {
+    color: #0f172a !important;
+  }
+
+  .wedding-app-wrap {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .kpi-ribbon {
+    margin-bottom: 20px !important;
+  }
+
+  .kpi-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+
+  .kpi-label, .kpi-value {
+    color: #0f172a !important;
+  }
+
+  .month-sheet-header {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 10px 0 !important;
+    margin-bottom: 15px !important;
+  }
+
+  .month-sheet-title, .month-sheet-subtitle {
+    color: #0f172a !important;
+  }
+
+  .sheet-table-card {
+    border: 1px solid #0f172a !important;
+    box-shadow: none !important;
+    page-break-inside: auto;
+  }
+
+  .wedding-table th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-bottom: 2px solid #0f172a !important;
+  }
+
+  .wedding-table td {
+    color: #0f172a !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  .wedding-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  .months-grid {
+    gap: 12px !important;
+  }
+
+  .month-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  .month-card-title, .month-card-num, .month-metric-label, .month-metric-val {
+    color: #0f172a !important;
+  }
+
+  .month-bottom-total-bar {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1.5px solid #0f172a !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  .bottom-total-amount {
+    color: #0f172a !important;
+  }
+}
+
+/* LTR Directional Overrides for English Mode */
+html[dir="ltr"],
+html[dir="ltr"] body {
+  direction: ltr;
+  text-align: left;
+}
+
+html[dir="ltr"] .wedding-table th,
+html[dir="ltr"] .wedding-table td {
+  text-align: left;
+}
+
+.wedding-table th:first-child,
+.wedding-table td:first-child {
+  text-align: center !important;
+}
+
+.wedding-table th:nth-child(3),
+.wedding-table td:nth-child(3),
+.wedding-table th:nth-child(4),
+.wedding-table td:nth-child(4),
+.wedding-table th:nth-child(5),
+.wedding-table td:nth-child(5) {
+  text-align: center !important;
+}
+
+html[dir="ltr"] .btn-back svg {
+  transform: rotate(180deg);
+}
+
+html[dir="ltr"] .month-card-action svg {
+  transform: rotate(180deg);
+}
+
+html[dir="ltr"] .month-bottom-total-bar {
+  flex-direction: row;
+}
+
+html[dir="ltr"] .modal-footer {
+  flex-direction: row;
+}

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" data-theme="light">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>חסדי שלמה — לוח חתונות חודשי והכנסות קרנות</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="assets/css/weddings.css?v=20261021-v2">
+
+  <!-- Configuration & Logic -->
+  <script src="assets/config.js"></script>
+  <script src="assets/js/crypto-util.js?v=1.0.0"></script>
+  <script defer src="assets/js/weddings.js?v=20261021-v3"></script>
+</head>
+
+<body>
+
+  <div class="wedding-app-wrap">
+
+    <!-- Top Bar -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="brand-badge">ח״ש</div>
+        <div>
+          <h1 class="brand-title" data-i18n="brandTitle">חסדי שלמה — לוח חתונות והכנסות</h1>
+          <div class="brand-subtitle">
+            <span data-i18n="brandSubtitle">דוח שנתי לפי חודשים עבריים (12 חודשים)</span>
+            <span class="year-chip" data-i18n="yearChip">שנת תשפ״ז</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+
+        <!-- Language Switcher (EN / עב) -->
+        <div class="lang-switch" role="group" aria-label="Language switch">
+          <button type="button" class="lang-btn" data-lang-btn="en">EN</button>
+          <button type="button" class="lang-btn active" data-lang-btn="he">עב</button>
+        </div>
+
+        <!-- Light / Dark Mode Toggle -->
+        <button type="button" id="themeToggleBtn" class="btn-pill" title="החלף מצב תצוגה (יום / לילה)"
+          data-i18n-title="themeTitle">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <span data-i18n="themeBtn">מצב תצוגה</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Global Annual KPI Ribbon -->
+    <section class="kpi-ribbon">
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap income">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
+        </div>
+        <div>
+          <div class="kpi-label" data-i18n="kpiIncomeLabel">סה״כ הכנסות קרנות (שנתי)</div>
+          <div id="kpiAnnualIncome" class="kpi-value">₪0</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap weddings">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        </div>
+        <div>
+          <div class="kpi-label" data-i18n="kpiWeddingsLabel">כמות חתונות בשנה</div>
+          <div id="kpiAnnualWeddings" class="kpi-value">0 חתונות</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap gold">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        </div>
+        <div>
+          <div class="kpi-label" data-i18n="kpiPeakMonthLabel">חודש השיא (הכי הרבה שמחות)</div>
+          <div id="kpiTopMonth" class="kpi-value">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Global Loader -->
+    <div id="globalLoader" class="loader-wrap">
+      <div class="spinner"></div>
+      <div data-i18n="loadingData">טוען נתוני חתונות וקרנות חיים מ-Bull36...</div>
+    </div>
+
+    <!-- =====================================================================
+         VIEW 1: MONTHS OVERVIEW GRID (Click a month to view weddings)
+         Supports all 13 Hebrew months (Tishrei through Adar I, Adar II, to Elul)
+         ===================================================================== -->
+    <main id="viewMonthsOverview" class="view-container">
+      <div class="section-title-bar">
+        <div>
+          <h2 class="section-heading">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span data-i18n="monthsGridHeading">חודשי השנה העברית (12 חודשים)</span>
+          </h2>
+          <div class="section-desc" data-i18n="monthsGridDesc">בחר חודש עברי לצפייה ברשימת החתונות המפורטת, הכנסות
+            הקרנות והוצאות השמחה</div>
+        </div>
+
+        <!-- View Switcher: Grid (Cards) vs List (Table) -->
+        <div class="view-mode-toggle" role="group" aria-label="View Switcher">
+          <button type="button" class="btn-toggle-view active" id="btnViewGrid" title="תצוגת כרטיסים"
+            data-i18n-title="viewGridTitle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            </svg>
+            <span data-i18n="viewGrid">כרטיסים</span>
+          </button>
+          <button type="button" class="btn-toggle-view" id="btnViewList" title="תצוגת רשימה / טבלה"
+            data-i18n-title="viewListTitle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            <span data-i18n="viewList">טבלה</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 13 Month Cards (Grid View) -->
+      <div id="monthsGridContainer" class="months-grid">
+        <!-- Rendered by weddings.js -->
+      </div>
+
+      <!-- 13 Month Table (List View) -->
+      <div id="monthsListContainer" class="sheet-table-card hidden">
+        <div class="table-responsive">
+          <table class="wedding-table months-overview-table">
+            <thead>
+              <tr>
+                <th style="width: 50px; text-align:center;">#</th>
+                <th data-i18n="thMonthName">שם החודש העברי</th>
+                <th data-i18n="thMonthWeddingsCount" style="text-align:center;">כמות שמחות</th>
+                <th data-i18n="thMonthTotalIncome" style="text-align:center;">סה״כ הכנסות קרנות</th>
+                <th data-i18n="thMonthTotalExpenses" style="text-align:center;">סה״כ הוצאות חתונה</th>
+                <th data-i18n="thMonthBalance" style="text-align:center;">מאזן נטו</th>
+                <th data-i18n="thActions" style="text-align:center; width: 140px;">פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="monthsTableBody">
+              <!-- Rendered by weddings.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- =====================================================================
+         VIEW 2: MONTH WEDDING SHEET (Matches PDF Requirements)
+         - Month name above the grid
+         - Weddings table with Hebrew date, income & expenses links
+         - Total monthly income at bottom box
+         ===================================================================== -->
+    <section id="viewMonthDetail" class="view-container hidden">
+
+      <!-- Month Header (Name above the grid) -->
+      <div class="month-sheet-header">
+        <div class="month-sheet-title-group">
+          <button type="button" id="btnBackToMonths" class="btn-back" title="חזרה לרשימת כל החודשים"
+            data-i18n-title="backBtnTitle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+          <div>
+            <h2 id="sheetMonthTitle" class="month-sheet-title">חודש תשרי</h2>
+            <div id="sheetMonthSubtitle" class="month-sheet-subtitle" data-i18n="sheetSubtitle">רשימת החתונות והכנסות
+              הקרנות</div>
+          </div>
+        </div>
+
+        <div class="sheet-toolbar">
+          <!-- Quick Search -->
+          <div class="search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="monthSearchInput" placeholder="חיפוש לפי שם חתן/כלה או טלפון..."
+              data-i18n-placeholder="searchPlaceholder" autocomplete="off">
+          </div>
+
+          <!-- Print Month Sheet Button -->
+         
+        </div>
+      </div>
+
+      <!-- Wedding Grid / Table Sheet -->
+      <div class="sheet-table-card">
+        <div class="table-responsive">
+          <table class="wedding-table">
+            <thead>
+              <tr>
+                <th style="width: 48px; text-align:center;">#</th>
+                <th data-i18n="thCoupleName">שם החתן והכלה</th>
+                <th data-i18n="thHebrewDate" style="text-align:center;">תאריך עברי</th>
+                <th data-i18n="thIncome" style="text-align:center;">סכום הכנסות (לחץ לפירוט)</th>
+                <th data-i18n="thExpenses" style="text-align:center;">סכום הוצאות (לחץ לפירוט)</th>
+              </tr>
+            </thead>
+            <tbody id="weddingTableBody">
+              <!-- Dynamically rendered rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bottom Box: Total Monthly Finance Breakdown -->
+      <div class="month-bottom-total-bar">
+        <div class="bottom-total-item income">
+          <div class="bottom-total-label">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
+            <span data-i18n="bottomIncomeLabel">סה״כ הכנסות החודש:</span>
+          </div>
+          <div id="bottomMonthTotalIncome" class="bottom-total-amount">₪0</div>
+        </div>
+
+        <div class="bottom-total-divider"></div>
+
+        <div class="bottom-total-item expense">
+          <div class="bottom-total-label">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+              <polyline points="17 18 23 18 23 12" />
+            </svg>
+            <span data-i18n="bottomExpenseLabel">סה״כ הוצאות החודש:</span>
+          </div>
+          <div id="bottomMonthTotalExpenses" class="bottom-total-amount expense">₪0</div>
+        </div>
+
+        <div class="bottom-total-divider"></div>
+
+        <div class="bottom-total-item net">
+          <div class="bottom-total-label">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+            <span data-i18n="bottomNetLabel">מאזן נטו חודשי:</span>
+          </div>
+          <div id="bottomMonthTotalNet" class="bottom-total-amount net">₪0</div>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================================================
+       MODAL 1: CONDENSED INCOME TAB (טאב הכנסות מצומצם)
+       Shows only 3 columns:
+       1. שם הקרן
+       2. שם קרן אחרת
+       3. הסכום שהתקבל
+       ===================================================================== -->
+  <div id="condensedIncomeModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge income">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
+          </div>
+          <div>
+            <h3 id="incomeModalTitle" class="modal-title" data-i18n="incomeModalTitle">פירוט הכנסות קרנות</h3>
+            <div id="incomeModalSubtitle" class="modal-subtitle" data-i18n="incomeModalSubtitle">טאב הכנסות מצומצם</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="condensedIncomeModal"
+          aria-label="סגור">×</button>
+      </div>
+
+      <div id="incomeModalBody" class="modal-body">
+        <!-- 3-column table populated here -->
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-total-label" data-i18n="incomeModalTotalLabel">סה״כ התקבל מקרנות:</span>
+        <span id="incomeModalTotal" class="modal-total-val" style="color:var(--income);">₪0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 2: FULL EXPENSES TAB (טאב הוצאות מלא)
+       Links to full expense details (Tabs 776 & 778)
+       ===================================================================== -->
+  <div id="fullExpensesModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge expense">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+              <polyline points="17 18 23 18 23 12" />
+            </svg>
+          </div>
+          <div>
+            <h3 id="expenseModalTitle" class="modal-title" data-i18n="expenseModalTitle">טאב הוצאות מלא</h3>
+            <div id="expenseModalSubtitle" class="modal-subtitle" data-i18n="expenseModalSubtitle">פירוט הוצאות חתן וכלה
+            </div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="fullExpensesModal" aria-label="סגור">×</button>
+      </div>
+
+      <div id="expenseModalBody" class="modal-body">
+        <!-- Full expenses table populated here -->
+      </div>
+
+      <div class="modal-footer">
+        <span class="modal-total-label" data-i18n="expenseModalTotalLabel">סה״כ הוצאות חתונה:</span>
+        <span id="expenseModalTotal" class="modal-total-val" style="color:var(--expense);">₪0</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>
