@@ -196,7 +196,49 @@
       docAmountLabel: 'סכום',
       docItemLabel: 'תיאור / פריט',
       cancelBtn: 'ביטול',
-      createDocOk: 'המסמך נוצר בהצלחה'
+      createDocOk: 'המסמך נוצר בהצלחה',
+      cardCvv: 'CVV',
+      cardNamePlaceholder: 'ישראל ישראלי',
+      errCheckFields: 'יש למלא מספר צ׳ק וסכום.',
+      errMasavFields: 'מס״ב דורש מספר חשבון, סניף, בנק, שם בעל חשבון ות״ז.',
+      errBitFields: 'יש להזין מזהה תשלום ביט.',
+      errPayByCreditFields: 'יש להזין מספר חשבונית לתשלום בזיכוי.',
+      createDocSub: 'בחר סוג מסמך ומלא את הפרטים הנדרשים.',
+      itemNameLabel: 'שם הפריט',
+      itemNamePlaceholder: 'לדוגמה: שירותי ייעוץ',
+      qtyLabel: 'כמות',
+      priceLabel: 'מחיר (₪)',
+      proposalTitleLabel: 'כותרת הצעה',
+      proposalPlaceholder: 'פרויקט אתר',
+      deliveryTypeLabel: 'סוג תעודה',
+      optDelivery: 'משלוח',
+      optReturn: 'החזרה',
+      relatedDocLabel: 'מזהה מסמך מקושר',
+      relatedDocPlaceholder: 'מזהה מסמך קיים לקישור/זיכוי',
+      docToPayLabel: 'מסמך לתשלום',
+      docToPayPlaceholder: 'מספר חשבונית/הזמנה לתשלום',
+      otherPayOptionLabel: 'אפשרות תשלום אחרת',
+      otherPayOptionPlaceholder: 'נדרש כאשר אמצעי תשלום=אחר',
+      noteLabel: 'הערה',
+      notePlaceholder: 'הערה למסמך (אופציונלי)',
+      langDocLabel: 'שפה',
+      optHebrew: 'עברית',
+      optEnglish: 'אנגלית',
+      optInvoice: 'חשבונית',
+      optCreditInvoice: 'חשבונית זיכוי',
+      optProforma: 'חשבונית עסקה',
+      optReceipt: 'קבלה',
+      optReceiptPartlyPaid: 'קבלה חלקית',
+      optReceiptTaxInvoice: 'חשבונית מס קבלה',
+      optGiIr: 'הכנסה / הוצאה כללית',
+      optOrderProposals: 'הצעות מחיר',
+      optPurchaseOrders: 'הזמנות רכש',
+      optDeliveryInvoice: 'תעודת משלוח',
+      optOrgReceipt: 'קבלת עמותה / מוסד',
+      errItemPrice: 'יש להזין סכום / מחיר פריט תקין.',
+      errItemName: 'יש להזין שם פריט.',
+      errRelatedDoc: 'נדרש מזהה מסמך מקושר.',
+      errOtherPayOption: 'נדרש פירוט כאשר אמצעי תשלום הוא אחר.'
     },
     en: {
       langLabel: 'Language',
@@ -375,7 +417,49 @@
       reviewBeforeSign: 'Review before signing',
       openFullDoc: 'Open full document',
       signPadHint: 'Draw your signature in the box below using your mouse or finger',
-      signBinding: 'Signature is legally binding and encrypted'
+      signBinding: 'Signature is legally binding and encrypted',
+      cardCvv: 'CVV',
+      cardNamePlaceholder: 'Alex Morgan',
+      errCheckFields: 'Check number and sum amount are required.',
+      errMasavFields: 'Masav requires account #, branch #, bank, account name, and TZ.',
+      errBitFields: 'Bit payment id is required.',
+      errPayByCreditFields: 'Invoice number is required for pay by credit.',
+      createDocSub: 'Choose document type and fill in the required fields.',
+      itemNameLabel: 'Item name',
+      itemNamePlaceholder: 'e.g. Consulting Services',
+      qtyLabel: 'Quantity',
+      priceLabel: 'Price (₪)',
+      proposalTitleLabel: 'Proposal title',
+      proposalPlaceholder: 'Website project',
+      deliveryTypeLabel: 'Delivery type',
+      optDelivery: 'Delivery',
+      optReturn: 'Return',
+      relatedDocLabel: 'Related document ID',
+      relatedDocPlaceholder: 'Existing document id to credit/link',
+      docToPayLabel: 'Document to pay',
+      docToPayPlaceholder: 'Invoice/order id to mark paid',
+      otherPayOptionLabel: 'Other payment option',
+      otherPayOptionPlaceholder: 'Required when payment_method=others',
+      noteLabel: 'Note',
+      notePlaceholder: 'Optional document note',
+      langDocLabel: 'Language',
+      optHebrew: 'Hebrew',
+      optEnglish: 'English',
+      optInvoice: 'Invoice',
+      optCreditInvoice: 'Credit invoice',
+      optProforma: 'Proforma invoice',
+      optReceipt: 'Receipt',
+      optReceiptPartlyPaid: 'Receipt partly paid',
+      optReceiptTaxInvoice: 'Receipt tax invoice',
+      optGiIr: 'GI / IR',
+      optOrderProposals: 'Order proposals',
+      optPurchaseOrders: 'Purchase orders',
+      optDeliveryInvoice: 'Delivery invoice',
+      optOrgReceipt: 'Organization receipt',
+      errItemPrice: 'Please enter a valid amount / item_price.',
+      errItemName: 'Please enter item name.',
+      errRelatedDoc: 'Related document ID is required.',
+      errOtherPayOption: 'Other payment option is required when payment_method=others.'
     }
   };
 
@@ -483,6 +567,18 @@
     return false;
   }
 
+  function formatDocTitle(title) {
+    if (!title) return '';
+    if (state.lang === 'he') {
+      return String(title)
+        .replace(/^Invoice\s*#/i, 'חשבונית #')
+        .replace(/^Order Proposal\s*#/i, 'הצעת מחיר #');
+    }
+    return String(title)
+      .replace(/^חשבונית\s*#/i, 'Invoice #')
+      .replace(/^הצעת מחיר\s*#/i, 'Order Proposal #');
+  }
+
   function applyI18n() {
     document.documentElement.lang = state.lang;
     document.documentElement.dir = state.lang === 'he' ? 'rtl' : 'ltr';
@@ -496,8 +592,18 @@
         el.textContent = key === 'brandName' ? brandName() : (brandName() + (state.lang === 'he' ? ' · פורטל לקוחות' : ' · Customer portal'));
         return;
       }
+      if (el.id === 'invDocTitle' && state.currentDoc) {
+        el.textContent = formatDocTitle(state.currentDoc.title) || t('invoiceTitle');
+        return;
+      }
       el.textContent = t(key);
     });
+    if (els.invDocTitle && state.currentDoc) {
+      els.invDocTitle.textContent = formatDocTitle(state.currentDoc.title) || t('invoiceTitle');
+    }
+    if (els.invCoin) {
+      els.invCoin.textContent = (state.currentDoc && state.currentDoc.coin) || (state.lang === 'he' ? '₪' : '$');
+    }
     var hint = document.getElementById('loginHint');
     if (hint) {
       hint.textContent = t('loginHint');
@@ -1526,8 +1632,9 @@
     options = options || {};
     var viewOnly = !!options.viewOnly;
     state.currentDoc = doc;
-    if (els.invDocTitle) els.invDocTitle.textContent = (doc && doc.title) || '—';
+    if (els.invDocTitle) els.invDocTitle.textContent = formatDocTitle(doc && doc.title) || t('invoiceTitle');
     if (els.invAmount) els.invAmount.textContent = doc && doc.amount != null ? String(doc.amount) : '';
+    if (els.invCoin) els.invCoin.textContent = (doc && doc.coin) || (state.lang === 'he' ? '₪' : '$');
     if (els.payError) els.payError.classList.add('hidden');
 
     var payPanel = document.querySelector('#screenInvoice .payment-card');
@@ -1734,7 +1841,9 @@
   function setPayMethod(method) {
     state.payMethod = method || 'cc';
     document.querySelectorAll('#payMethods .pay-method').forEach(function (btn) {
-      btn.classList.toggle('is-active', btn.getAttribute('data-method') === state.payMethod);
+      var active = btn.getAttribute('data-method') === state.payMethod;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     var map = {
       cc: 'payFieldsCc',
@@ -1766,7 +1875,7 @@
       var rows = (got && got.rows) || [];
       selects.forEach(function (sel) {
         var keep = sel.value;
-        sel.innerHTML = '<option value="">— Bank —</option>';
+        sel.innerHTML = '<option value="" data-i18n="selectBank">' + t('selectBank') + '</option>';
         rows.forEach(function (b) {
           var id = String(b.id || b.bank_id || b.bank_details_id || '');
           if (!id) return;
@@ -1799,22 +1908,22 @@
     }
     if (method === 'check' && (!val('checkNumber') || !val('checkSumAmount'))) {
       els.payError.classList.remove('hidden');
-      els.payErrorText.textContent = 'Check number and sum amount are required.';
+      els.payErrorText.textContent = t('errCheckFields');
       return;
     }
     if (method === 'masav' && (!val('masavAccNo') || !val('masavBranch') || !val('masavBank') || !val('masavAccName') || !val('masavTz'))) {
       els.payError.classList.remove('hidden');
-      els.payErrorText.textContent = 'Masav requires account #, branch #, bank, account name, and TZ.';
+      els.payErrorText.textContent = t('errMasavFields');
       return;
     }
     if (method === 'bit' && !val('bitPaymentId')) {
       els.payError.classList.remove('hidden');
-      els.payErrorText.textContent = 'Bit payment id is required.';
+      els.payErrorText.textContent = t('errBitFields');
       return;
     }
     if (method === 'payby_credit' && !val('payByCreditInvoice')) {
       els.payError.classList.remove('hidden');
-      els.payErrorText.textContent = 'Invoice number is required for pay by credit.';
+      els.payErrorText.textContent = t('errPayByCreditFields');
       return;
     }
 
@@ -2086,6 +2195,7 @@
       dashErrorText: $('dashErrorText'),
       invDocTitle: $('invDocTitle'),
       invAmount: $('invAmount'),
+      invCoin: $('invCoin'),
       pdfFrame: $('pdfFrame'),
       pdfFallback: $('pdfFallback'),
       pdfOpenLink: $('pdfOpenLink'),
@@ -2371,19 +2481,19 @@
           var total = receiptLike && receiptAmount > 0 ? receiptAmount : (qty * price);
 
           if (!receiptLike && !name) {
-            errBox.textContent = 'Please enter item_name.';
+            errBox.textContent = t('errItemName');
             errBox.classList.remove('hidden');
             return;
           }
           if (!(total > 0)) {
-            errBox.textContent = 'Please enter a valid amount / item_price.';
+            errBox.textContent = t('errItemPrice');
             errBox.classList.remove('hidden');
             return;
           }
           if (docType === 'credit_invoice' || docType === 'receipt_partly_paid') {
             var related = ((document.getElementById('createRelatedDocId') || {}).value || '').trim();
             if (!related) {
-              errBox.textContent = 'related_document_id is required for ' + docType + '.';
+              errBox.textContent = t('errRelatedDoc');
               errBox.classList.remove('hidden');
               return;
             }
@@ -2391,7 +2501,7 @@
           if (receiptLike && (document.getElementById('createPaymentMethod') || {}).value === 'others') {
             var otherOpt = ((document.getElementById('createOtherPaymentOption') || {}).value || '').trim();
             if (!otherOpt) {
-              errBox.textContent = 'other_payment_option is required when payment_method=others.';
+              errBox.textContent = t('errOtherPayOption');
               errBox.classList.remove('hidden');
               return;
             }
@@ -2399,7 +2509,7 @@
 
           errBox.classList.add('hidden');
           var origHtml = btn.innerHTML;
-          btn.innerHTML = 'Creating...';
+          btn.innerHTML = state.lang === 'he' ? 'יוצר מסמך...' : 'Creating...';
           btn.disabled = true;
 
           try {

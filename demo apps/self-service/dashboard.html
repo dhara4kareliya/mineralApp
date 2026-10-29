@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 — Customer Portal</title>
 <script src="assets/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/style.css?v=ss-30">
+<link rel="stylesheet" href="assets/style.css?v=ss-36">
 <script src="assets/config.js?v=ss-30"></script>
 <script src="assets/biz1-sdk.js?v=ss-30"></script>
 <script src="assets/biz1-app.js?v=ss-30"></script>
@@ -176,120 +176,114 @@
 <div id="modalCreate" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease;">
   <div class="modal-content glass-card" style="width:92%;max-width:520px;max-height:90vh;overflow:auto;padding:24px;border-radius:24px;position:relative;transform:translateY(20px);transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);background:var(--bg-card-solid);">
     <button type="button" id="btnCloseCreate" aria-label="Close" style="position:absolute;right:20px;top:20px;background:none;border:none;color:var(--text-muted);font-size:24px;line-height:1;cursor:pointer;padding:4px;transition:color 0.2s;">&times;</button>
-    <div style="font-size:20px;font-weight:700;margin-bottom:6px;color:var(--text);">Create Document</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Documents.Add — choose type and fill the fields for that document.</div>
+    <div data-i18n="createDocTitle" style="font-size:20px;font-weight:700;margin-bottom:6px;color:var(--text);">הוספת מסמך</div>
+    <div data-i18n="createDocSub" style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">בחר סוג מסמך ומלא את הפרטים הנדרשים.</div>
 
     <div style="margin-bottom:14px;">
-      <label for="createDocType" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Document type</label>
+      <label for="createDocType" data-i18n="docTypeLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">סוג מסמך</label>
       <select id="createDocType" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;cursor:pointer;">
-        <option value="invoice">Invoice</option>
-        <option value="credit_invoice">Credit invoice</option>
-        <option value="proforma_invoice">Proforma invoice</option>
-        <option value="receipt">Receipt</option>
-        <option value="receipt_partly_paid">Receipt partly paid</option>
-        <option value="receipt_tax_invoice">Receipt tax invoice</option>
-        <option value="gi_ir">GI / IR</option>
-        <option value="order_proposals">Order proposals</option>
-        <option value="purchase_orders">Purchase orders</option>
-        <option value="delivery_invoice">Delivery invoice</option>
-        <option value="organization_receipt">Organization receipt</option>
+        <option value="invoice" data-i18n="optInvoice">חשבונית</option>
+        <option value="credit_invoice" data-i18n="optCreditInvoice">חשבונית זיכוי</option>
+        <option value="proforma_invoice" data-i18n="optProforma">חשבונית עסקה</option>
+        <option value="receipt" data-i18n="optReceipt">קבלה</option>
+        <option value="receipt_partly_paid" data-i18n="optReceiptPartlyPaid">קבלה חלקית</option>
+        <option value="receipt_tax_invoice" data-i18n="optReceiptTaxInvoice">חשבונית מס קבלה</option>
+        <option value="gi_ir" data-i18n="optGiIr">הכנסה / הוצאה כללית</option>
+        <option value="order_proposals" data-i18n="optOrderProposals">הצעות מחיר</option>
+        <option value="purchase_orders" data-i18n="optPurchaseOrders">הזמנות רכש</option>
+        <option value="delivery_invoice" data-i18n="optDeliveryInvoice">תעודת משלוח</option>
+        <option value="organization_receipt" data-i18n="optOrgReceipt">קבלת עמותה / מוסד</option>
       </select>
     </div>
 
     <div id="createItemFields">
       <div style="margin-bottom:14px;">
-        <label for="createItemName" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Item name</label>
-        <input type="text" id="createItemName" placeholder="e.g. Consulting Services" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
+        <label for="createItemName" data-i18n="itemNameLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">שם הפריט</label>
+        <input type="text" id="createItemName" data-i18n-placeholder="itemNamePlaceholder" placeholder="לדוגמה: שירותי ייעוץ" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
         <div>
-          <label for="createItemQty" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Quantity</label>
+          <label for="createItemQty" data-i18n="qtyLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">כמות</label>
           <input type="number" id="createItemQty" value="1" min="1" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
         </div>
         <div>
-          <label for="createItemPrice" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Price (₪)</label>
+          <label for="createItemPrice" data-i18n="priceLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">מחיר (₪)</label>
           <input type="number" id="createItemPrice" placeholder="0.00" min="0" step="0.01" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
         </div>
       </div>
     </div>
 
     <div id="createProposalFields" class="hidden" style="margin-bottom:14px;">
-      <label for="createProposalTitle" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Proposal title</label>
-      <input type="text" id="createProposalTitle" placeholder="Website project" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
+      <label for="createProposalTitle" data-i18n="proposalTitleLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">כותרת הצעה</label>
+      <input type="text" id="createProposalTitle" data-i18n-placeholder="proposalPlaceholder" placeholder="פרויקט אתר" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
     </div>
 
     <div id="createDeliveryFields" class="hidden" style="margin-bottom:14px;">
-      <label for="createDeliveryType" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Delivery type</label>
+      <label for="createDeliveryType" data-i18n="deliveryTypeLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">סוג תעודה</label>
       <select id="createDeliveryType" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;cursor:pointer;">
-        <option value="delivery">Delivery</option>
-        <option value="return">Return</option>
+        <option value="delivery" data-i18n="optDelivery">משלוח</option>
+        <option value="return" data-i18n="optReturn">החזרה</option>
       </select>
     </div>
 
     <div id="createRelatedFields" class="hidden" style="margin-bottom:14px;">
-      <label for="createRelatedDocId" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Related document ID</label>
-      <input type="text" id="createRelatedDocId" placeholder="Existing document id to credit/link" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
+      <label for="createRelatedDocId" data-i18n="relatedDocLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">מזהה מסמך מקושר</label>
+      <input type="text" id="createRelatedDocId" data-i18n-placeholder="relatedDocPlaceholder" placeholder="מזהה מסמך קיים לקישור/זיכוי" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
     </div>
 
     <div id="createPayDocFields" class="hidden" style="margin-bottom:14px;">
-      <label for="createDocumentToPay" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Document to pay</label>
-      <input type="text" id="createDocumentToPay" placeholder="Invoice/order id to mark paid" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
+      <label for="createDocumentToPay" data-i18n="docToPayLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">מסמך לתשלום</label>
+      <input type="text" id="createDocumentToPay" data-i18n-placeholder="docToPayPlaceholder" placeholder="מספר חשבונית/הזמנה לתשלום" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
     </div>
 
     <div id="createReceiptFields" class="hidden">
       <div style="margin-bottom:14px;">
-        <label for="createPaymentMethod" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Payment method</label>
+        <label for="createPaymentMethod" data-i18n="payMethodLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">אמצעי תשלום</label>
         <select id="createPaymentMethod" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;cursor:pointer;">
-          <option value="cash">Cash</option>
-          <option value="cc">Credit card</option>
-          <option value="check">Check</option>
-          <option value="transference">Transfer</option>
-          <option value="masav">Masav</option>
-          <option value="bit">Bit</option>
-          <option value="payby_credit">Pay by credit</option>
-          <option value="others">Other</option>
+          <option value="cash" data-i18n="methodCash">מזומן</option>
+          <option value="cc" data-i18n="methodCc">כרטיס אשראי</option>
+          <option value="check" data-i18n="methodCheck">צ'ק</option>
+          <option value="transference" data-i18n="methodTransfer">העברה</option>
+          <option value="masav" data-i18n="methodMasav">מס״ב</option>
+          <option value="bit" data-i18n="methodBit">ביט</option>
+          <option value="payby_credit" data-i18n="methodPayByCredit">תשלום בזיכוי</option>
+          <option value="others" data-i18n="methodOther">אחר</option>
         </select>
       </div>
       <div id="createOtherPayOpt" class="hidden" style="margin-bottom:14px;">
-        <label for="createOtherPaymentOption" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Other payment option</label>
-        <input type="text" id="createOtherPaymentOption" placeholder="Required when payment_method=others" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
+        <label for="createOtherPaymentOption" data-i18n="otherPayOptionLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">אפשרות תשלום אחרת</label>
+        <input type="text" id="createOtherPaymentOption" data-i18n-placeholder="otherPayOptionPlaceholder" placeholder="נדרש כאשר אמצעי תשלום=אחר" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
       </div>
       <div style="margin-bottom:14px;">
-        <label for="createReceiptAmount" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Amount</label>
+        <label for="createReceiptAmount" data-i18n="sumAmount" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">סכום</label>
         <input type="number" id="createReceiptAmount" placeholder="0.00" min="0" step="0.01" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;">
       </div>
     </div>
 
     <div style="margin-bottom:14px;">
-      <label for="createNote" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Note</label>
-      <textarea id="createNote" rows="2" placeholder="Optional document note" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;resize:vertical;"></textarea>
+      <label for="createNote" data-i18n="noteLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">הערה</label>
+      <textarea id="createNote" rows="2" data-i18n-placeholder="notePlaceholder" placeholder="הערה למסמך (אופציונלי)" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;resize:vertical;"></textarea>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
       <div>
-        <label for="createDocLang" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">Language</label>
+        <label for="createDocLang" data-i18n="langDocLabel" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);">שפה</label>
         <select id="createDocLang" style="width:100%;box-sizing:border-box;background:var(--bg-page);border:1px solid var(--glass-border);color:var(--text);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;outline:none;cursor:pointer;">
-          <option value="he">Hebrew</option>
-          <option value="en">English</option>
+          <option value="he" data-i18n="optHebrew">עברית</option>
+          <option value="en" data-i18n="optEnglish">אנגלית</option>
         </select>
       </div>
-      <!-- <div style="display:flex;align-items:flex-end;padding-bottom:10px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;">
-          <input type="checkbox" id="createSaveDraft" style="width:16px;height:16px;">
-          Save as draft
-        </label>
-      </div> -->
     </div>
 
     <div id="createError" class="error-box hidden" style="margin-bottom:16px;"></div>
 
     <button type="button" id="btnSubmitCreate" style="width:100%;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.35);display:flex;align-items:center;justify-content:center;gap:8px;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      Create Document
+      <span data-i18n="createDocBtn">צור מסמך</span>
     </button>
   </div>
 </div>
 
-<script src="assets/app.js?v=ss-30"></script>
+<script src="assets/app.js?v=ss-36"></script>
 </body>
 </html> 

@@ -5,20 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 Showcase — Ticket</title>
 <script src="assets/js/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/css/app.css?v=ticket-31">
-<script src="assets/config.js?v=ticket-32"></script>
-<script src="assets/js/app.js?v=ticket-32"></script>
+<link rel="stylesheet" href="assets/css/app.css?v=ticket-47">
+<script src="assets/js/sweetalert2.all.min.js"></script>
+<script src="assets/config.js?v=ticket-47"></script>
+<script src="assets/js/app.js?v=ticket-47"></script>
 
     <script>
       (function(){try{var t=localStorage.getItem('biz1_fin_theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
     </script>
 </head>
 <body data-page="ticket">
-<div id="appRoot" dir="ltr" class="page-wrap">
-  <div class="phone-outer">
+<div id="appRoot" class="page-wrap">
+  <div class="phone-outer ticket-page-outer">
 
     <!-- TICKET -->
-    <div class="phone-inner app-view" data-view="ticket" style="position:relative;">
+    <div class="phone-inner app-view ticket-page-inner" data-view="ticket" style="position:relative;">
       <div class="ticket-header">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
           <div class="lang-bar-left">
@@ -54,39 +55,145 @@
       </div>
       <div id="ticketBody" class="dc-scroll ticket-body">
         <div id="ticketMissing" class="hidden card" style="color:#8a93a3;font-weight:700;" data-i18n="data_not_found">Data not found</div>
-        <div id="ticketContent" class="hidden ticket-layout">
-          <div class="card ticket-panel ticket-panel--client">
-            <div class="ticket-client-heading">
-              <span class="ticket-client-kicker" data-i18n="client">Client</span>
-              <span class="ticket-client-dot"></span>
-            </div>
-            <div id="ticketClientLine" class="ticket-value ticket-client-name"></div>
-            <div class="ticket-client-grid">
-              <div class="ticket-client-field">
-                <div class="ticket-label" data-i18n="address">Address</div>
-                <div id="ticketAddressLine" class="ticket-value--sm"></div>
+        <div id="ticketContent" class="hidden ticket-layout-split">
+          
+          <!-- LEFT COLUMN: User Information & All Ticket Details -->
+          <div class="ticket-col-info">
+
+            <!-- 1. Customer & User Information Card -->
+            <div class="card ticket-panel ticket-panel--client">
+              <div class="ticket-panel-head">
+                <div class="ticket-panel-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <span data-i18n="client">Customer Information</span>
+                </div>
+                <span id="ticketCustomerIdBadge" class="ticket-badge-pill">ID: —</span>
               </div>
-              <div class="ticket-client-field">
-                <div class="ticket-label" data-i18n="status">Status</div>
-                <select id="ticketStatusSelect" class="ds-input input ticket-status-select">
-                  <option value="opened">Opened</option>
-                  <option value="assigned">Assigned</option>
-                  <option value="closed">Closed</option>
-                </select>
+              
+              <div class="ticket-client-profile-row">
+                <div class="ticket-client-avatar" id="ticketClientAvatar">?</div>
+                <div class="ticket-client-intro">
+                  <div id="ticketClientLine" class="ticket-value ticket-client-name">—</div>
+                  <div class="ticket-client-sub" id="ticketContactPerson">—</div>
+                </div>
+              </div>
+
+              <div class="ticket-details-grid">
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="phone">Phone</div>
+                  <div class="ticket-val-row">
+                    <a id="ticketPhoneLink" href="#" class="ticket-val-link">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      <span id="ticketPhoneLine">—</span>
+                    </a>
+                  </div>
+                </div>
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="email_label">Email</div>
+                  <div class="ticket-val-row">
+                    <a id="ticketEmailLink" href="#" class="ticket-val-link">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                      <span id="ticketEmailLine">—</span>
+                    </a>
+                  </div>
+                </div>
+                <div class="ticket-detail-item" style="grid-column: 1 / -1;">
+                  <div class="ticket-label" data-i18n="address">Service Address</div>
+                  <div class="ticket-val-row">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span id="ticketAddressLine" class="ticket-value--sm">—</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="ticket-panel ticket-panel--work">
-            <div class="card" style="margin-bottom:12px;">
-              <div class="ticket-section-title" data-i18n="history">Service history</div>
-              <div id="ticketHistory"></div>
+
+            <!-- 2. Ticket Details Card (All Ticket Details) -->
+            <div class="card ticket-panel ticket-panel--ticket-info">
+              <div class="ticket-panel-head">
+                <div class="ticket-panel-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                  <span data-i18n="ticket_details">Ticket Details</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span id="ticketStatusBadge" class="status-chip status-chip--opened" data-i18n="status_opened">Opened</span>
+                  <select id="ticketStatusSelect" class="ds-input input ticket-status-select" title="Change Status">
+                    <option value="opened" data-i18n="status_opened">Opened</option>
+                    <option value="assigned" data-i18n="status_assigned">Assigned</option>
+                    <option value="closed" data-i18n="status_closed">Closed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="ticket-subject-banner">
+                <div class="ticket-label" data-i18n="subject">Subject / Issue</div>
+                <div id="ticketSubjectLine" class="ticket-subject-text">—</div>
+              </div>
+
+              <div class="ticket-details-grid">
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="ticket_num_label">Ticket #</div>
+                  <div id="ticketDetailNumber" class="ticket-value--sm" style="font-weight:700;">—</div>
+                </div>
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="scheduled_date">Scheduled Date</div>
+                  <div id="ticketDateLine" class="ticket-value--sm">—</div>
+                </div>
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="time_window">Time Window</div>
+                  <div id="ticketTimeLine" class="ticket-value--sm" dir="ltr" style="text-align:start;">—</div>
+                </div>
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="estimated_duration">Estimated Duration</div>
+                  <div id="ticketDurationLine" class="ticket-value--sm">—</div>
+                </div>
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="priority_rating">Priority / Rating</div>
+                  <div id="ticketPriorityLine" class="ticket-value--sm">—</div>
+                </div>
+                <div class="ticket-detail-item">
+                  <div class="ticket-label" data-i18n="technician">Technician</div>
+                  <div id="ticketTechLine" class="ticket-value--sm">Demo (Technician)</div>
+                </div>
+              </div>
+
+              <div id="ticketDescriptionWrap" class="ticket-desc-box">
+                <div class="ticket-label" data-i18n="desc_summary">Description &amp; Problem Summary</div>
+                <div id="ticketDescriptionLine" class="ticket-desc-content">—</div>
+              </div>
             </div>
-            <div class="card" style="margin-bottom:12px;">
-              <div class="ticket-section-title" data-i18n="checklist">Checklist</div>
+
+            <!-- 3. Checklist Card -->
+            <div class="card ticket-panel" style="margin-bottom:14px;">
+              <div class="ticket-panel-head">
+                <div class="ticket-panel-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  <span data-i18n="checklist">Checklist</span>
+                </div>
+                <span id="ticketChecklistProgress" class="ticket-badge-pill">Tasks</span>
+              </div>
               <div id="ticketChecklist"></div>
             </div>
-            <div id="ticketCompletedWork" class="card hidden" style="margin-bottom:12px;">
-              <div class="ticket-section-title" data-i18n="completed_work">Completed work</div>
+
+            <!-- 4. Service History Card (Past tickets only, NO chat messages!) -->
+            <div class="card ticket-panel" style="margin-bottom:14px;">
+              <div class="ticket-panel-head">
+                <div class="ticket-panel-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span data-i18n="history">Service History</span>
+                </div>
+                <span class="ticket-badge-pill" data-i18n="previous_tickets">Previous Tickets</span>
+              </div>
+              <div id="ticketHistory" class="history-tickets-list"></div>
+            </div>
+
+            <!-- 5. Completed Work Card -->
+            <div id="ticketCompletedWork" class="card ticket-panel hidden" style="margin-bottom:14px;">
+              <div class="ticket-panel-head">
+                <div class="ticket-panel-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span data-i18n="completed_work">Completed Work</span>
+                </div>
+              </div>
               <div class="completed-field">
                 <div class="ticket-label" data-i18n="work_summary">Work summary</div>
                 <div id="ticketCompletedSummary" class="completed-summary"></div>
@@ -113,53 +220,81 @@
                 <img id="ticketCompletedSignature" class="completed-signature" alt="Signature">
               </div>
             </div>
+
             <div id="ticketFormError" class="hidden" style="margin-bottom:12px;color:#c0392b;font-size:13px;font-weight:700;text-align:center;"></div>
-          </div>
-          <div class="ticket-actions ticket-actions--bar">
-            <button type="button" id="ticketNavMaps" class="btn-ghost ticket-action-btn" data-i18n="navigate">Navigate</button>
-            <a id="ticketWaBtn" class="btn-ghost ticket-action-btn ticket-action-btn--wa" href="#" role="button" rel="noopener">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-              <span id="ticketWaBtnText" data-i18n="wa_on_way_btn">I'm on my way</span>
-            </a>
-            <button type="button" id="ticketChatToggleBtn" class="btn-ghost ticket-action-btn ticket-action-btn--chat" aria-label="Open chat">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span data-i18n="ticket_chat_btn">Chat</span>
-              <span id="ticketChatUnreadBadge" class="ticket-chat-count-badge hidden">0</span>
-            </button>
-            <button type="button" id="ticketCompleteBtn" class="btn-primary btn-green ticket-action-btn ticket-action-btn--complete">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>
-              <span data-i18n="go_complete">Complete & Sign-Off</span>
-            </button>
+
+            <!-- Primary Actions (Navigate & Complete) -->
+            <div class="ticket-actions ticket-actions--bar">
+              <button type="button" id="ticketNavMaps" class="btn-ghost ticket-action-btn" data-i18n="navigate">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                <span data-i18n="navigate">Navigate</span>
+              </button>
+              <button type="button" id="ticketCompleteBtn" class="btn-primary btn-green ticket-action-btn ticket-action-btn--complete">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>
+                <span data-i18n="go_complete">Complete &amp; Sign-Off</span>
+              </button>
+            </div>
+
           </div>
 
-          <!-- CHAT & WHATSAPP SECTION (Opens beneath action bar on click) -->
-          <div id="ticketChatSection" class="ticket-chat-section hidden">
-            <div class="ticket-chat-header">
-              <div class="ticket-chat-header-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                <span>WhatsApp &amp; Customer Chat</span>
+          <!-- RIGHT COLUMN: WhatsApp & Customer Chat (Always visible on right) -->
+          <div class="ticket-col-chat" id="ticketChatSection">
+            <div class="card ticket-chat-card">
+              <div class="ticket-chat-header">
+                <div class="ticket-chat-header-main">
+                  <div class="ticket-chat-header-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:#25d366;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+                    <span data-i18n="chat_title">WhatsApp &amp; Customer Chat</span>
+                  </div>
+                  <div class="ticket-chat-header-sub">
+                    <span id="ticketChatCustomerName" class="ticket-chat-customer-label">—</span>
+                    <span class="chat-online-indicator"><span class="chat-online-dot"></span> <span data-i18n="online">Online</span></span>
+                  </div>
+                </div>
+                <div class="ticket-chat-header-meta">
+                  <a id="ticketChatExternalWaLink" class="ticket-chat-wa-ext" href="#" target="_blank" rel="noopener noreferrer" data-i18n-title="open_whatsapp" title="Open in WhatsApp Web">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+                    <span class="wa-btn-label" data-i18n="open_web">Open Web</span>
+                  </a>
+                </div>
               </div>
-              <div class="ticket-chat-header-meta">
-                <span id="ticketChatCustomerName" class="ticket-chat-badge">—</span>
-                <a id="ticketChatExternalWaLink" class="ticket-chat-wa-ext hidden" href="#" target="_blank" rel="noopener noreferrer" title="Open in WhatsApp Web / App">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
-                </a>
-                <button type="button" id="ticketChatCloseBtn" class="ticket-chat-close-btn" aria-label="Close chat">×</button>
+
+              <!-- Message list -->
+              <div id="ticketChatMessages" class="ticket-chat-messages dc-scroll"></div>
+
+              <!-- Customer Typing indicator -->
+              <div id="ticketChatTyping" class="ticket-chat-typing hidden">
+                <span class="ticket-chat-typing-dots"><span></span><span></span><span></span></span>
+                <span id="ticketChatTypingText" data-i18n="typing_customer">Customer is typing...</span>
+              </div>
+
+              <!-- Chat Input & 3 Send Options -->
+              <div class="ticket-chat-compose">
+                <div id="ticketChatError" class="ticket-chat-error-banner hidden" role="alert" style="display:none !important;">
+                  <div class="ticket-chat-error-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <div id="ticketChatErrorText" class="ticket-chat-error-text"></div>
+                  <button type="button" class="ticket-chat-error-close" id="ticketChatErrorClose" aria-label="Close">×</button>
+                </div>
+                <textarea id="ticketChatInput" class="ds-input ticket-chat-textarea" rows="2" data-i18n-placeholder="chat_placeholder" placeholder="Type a message or internal note..." autocomplete="off"></textarea>
+                
+                <div class="chat-send-actions">
+                  <button type="button" id="chatBtnInternal" class="btn-chat-send btn-chat-internal" data-i18n-title="chat_btn_internal_title" title="Send as internal team note">
+                    <span data-i18n="chat_btn_internal">Internal Chat</span>
+                  </button>
+                  <button type="button" id="chatBtnClient" class="btn-chat-send btn-chat-client" data-i18n-title="chat_btn_client_title" title="Send message to client">
+                    <span data-i18n="chat_btn_client">Send to client</span>
+                  </button>
+                  <button type="button" id="chatBtnWhatsApp" class="btn-chat-send btn-chat-wa" data-i18n-title="chat_btn_wa_title" title="Send message via WhatsApp">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+                    <span data-i18n="chat_btn_whatsapp">Send WhatsApp</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <div id="ticketChatMessages" class="ticket-chat-messages dc-scroll"></div>
-            <div id="ticketChatTyping" class="ticket-chat-typing hidden">
-              <span class="ticket-chat-typing-dots"><span></span><span></span><span></span></span>
-              <span id="ticketChatTypingText">Customer is typing...</span>
-            </div>
-            <form id="ticketChatForm" class="ticket-chat-input-bar">
-              <input type="text" id="ticketChatInput" class="ds-input ticket-chat-input" placeholder="Type a message or WhatsApp update..." autocomplete="off">
-              <button type="submit" id="ticketChatSendBtn" class="btn-primary ticket-chat-send-btn">
-                <span>Send</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </button>
-            </form>
           </div>
+
         </div>
       </div>
     </div>

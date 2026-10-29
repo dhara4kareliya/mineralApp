@@ -2196,7 +2196,8 @@
     'whatsapp.message.received': 1,
     'whatsapp.inbox.refresh': 1,
     'rooms.chat.message': 1,
-    'ticket.whatsapp': 1
+    'ticket.whatsapp': 1,
+    'ticket.reply': 1
   };
   var MISSION_EVENT_KEYS = {
     'mission.reminder': 1,
@@ -2627,7 +2628,38 @@
       no_products: 'No products found',
       tap_sign: 'Sign here',
       photos: 'Photos',
-      required: '*'
+      required: '*',
+      phone: 'Phone',
+      contact: 'Contact',
+      ticket_details: 'Ticket Details',
+      ticket_num_label: 'Ticket #',
+      scheduled_date: 'Scheduled Date',
+      time_window: 'Time Window',
+      estimated_duration: 'Estimated Duration',
+      priority_rating: 'Priority / Rating',
+      standard_priority: 'Standard Priority',
+      rating_label: 'Rating {r} / 5 ★',
+      technician: 'Technician',
+      desc_summary: 'Description & Problem Summary',
+      previous_tickets: 'Previous Tickets',
+      chat_title: 'WhatsApp & Customer Chat',
+      open_web: 'Open Web',
+      online: 'Online',
+      chat_placeholder: 'Type a message or internal note...',
+      chat_btn_internal: 'Internal Chat',
+      chat_btn_client: 'Send to client',
+      chat_btn_whatsapp: 'Send WhatsApp',
+      chat_btn_internal_title: 'Send as internal team note',
+      chat_btn_client_title: 'Send message to client',
+      chat_btn_wa_title: 'Send message via WhatsApp',
+      chat_tag_internal: 'Internal Note',
+      chat_tag_client: 'To Customer',
+      chat_tag_whatsapp: 'WhatsApp',
+      chat_tag_customer: 'Customer',
+      typing_customer: 'Customer is typing...',
+      today: 'Today',
+      yesterday: 'Yesterday',
+      mins: 'mins'
     },
     he: {
       brand: 'תצוגת Biz1',
@@ -2768,7 +2800,38 @@
       no_products: 'לא נמצאו מוצרים',
       tap_sign: 'חתום כאן',
       photos: 'תמונות',
-      required: '*'
+      required: '*',
+      phone: 'טלפון',
+      contact: 'איש קשר',
+      ticket_details: 'פרטי קריאת שירות',
+      ticket_num_label: 'מס׳ קריאה',
+      scheduled_date: 'תאריך מתוכנן',
+      time_window: 'חלון זמן',
+      estimated_duration: 'משך משוער',
+      priority_rating: 'עדיפות / דירוג',
+      standard_priority: 'עדיפות רגילה',
+      rating_label: 'דירוג {r} / 5 ★',
+      technician: 'טכנאי',
+      desc_summary: 'תיאור ותקציר התקלה',
+      previous_tickets: 'קריאות קודמות',
+      chat_title: 'צ׳אט וואטסאפ ולקוח',
+      open_web: 'פתח וואטסאפ',
+      online: 'מחובר',
+      chat_placeholder: 'הקלד הודעה או הערה פנימית...',
+      chat_btn_internal: 'צ׳אט פנימי',
+      chat_btn_client: 'שלח ללקוח',
+      chat_btn_whatsapp: 'שלח וואטסאפ',
+      chat_btn_internal_title: 'שלח כהערה פנימית לצוות',
+      chat_btn_client_title: 'שלח הודעה ישירות ללקוח',
+      chat_btn_wa_title: 'שלח הודעה בוואטסאפ',
+      chat_tag_internal: 'הערה פנימית',
+      chat_tag_client: 'ללקוח',
+      chat_tag_whatsapp: 'וואטסאפ',
+      chat_tag_customer: 'לקוח',
+      typing_customer: 'הלקוח מקליד...',
+      today: 'היום',
+      yesterday: 'אתמול',
+      mins: 'דק׳'
     }
   };
 
@@ -2861,6 +2924,12 @@
 
     var demoBox = document.getElementById('demo-users');
     if (demoBox) demoBox.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+
+    var chatInput = document.getElementById('ticketChatInput');
+    if (chatInput) {
+      chatInput.style.direction = dir;
+      chatInput.style.textAlign = lang === 'he' ? 'right' : 'left';
+    }
 
     document.querySelectorAll('[data-set-lang]').forEach(function (btn) {
       var active = btn.getAttribute('data-set-lang') === lang;
@@ -5123,6 +5192,9 @@
 
   function showView(page) {
     currentPage = page;
+    if (page !== 'ticket') {
+      stopTicketChatSync();
+    }
     var brand = (global.MineralBarApp && MineralBarApp.getBrandName && MineralBarApp.getBrandName()) || 'Biz1 Showcase';
     var titles = {
       login: tr('page_login_title'),
@@ -5942,28 +6014,35 @@
   function renderTicketHistory() {
     var root = global.document.getElementById('ticketHistory');
     if (!root) return;
-    var items = ticketState.history || [];
+    var rawItems = ticketState.history || [];
+    // User requirement: Chat message not display in service history
+    var items = rawItems.filter(function (h) {
+      if (!h) return false;
+      // Exclude messages (items that have text and no ticket number/id/subject)
+      if (h.text && !h.number && !h.id && !h.ticket_id) return false;
+      return true;
+    });
     if (!items.length) {
-      root.innerHTML = '<div class="empty-inline">' + tr('no_history') + '</div>';
+      root.innerHTML = '<div class="empty-inline" style="padding:14px;text-align:center;color:var(--text-muted);font-size:13px;">' + tr('no_history') + '</div>';
       return;
     }
     root.innerHTML = items.map(function (h) {
-      if (h.text) {
-        var message = cleanHistoryMessage(h.text);
-        if (!message) return '';
-        return '<div class="history-row history-row--message">' +
-          '<div class="history-title">' + (h.name || h.who || tr('data_not_found')) + '</div>' +
-          '<div class="history-meta">' + (h.time || '') + '</div>' +
-          '<div class="history-message">' + message.replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; }) + '</div>' +
-        '</div>';
-      }
-      var when = h.dateAt ? new Date(h.dateAt).toLocaleDateString() : (h.time || '');
-      var status = tr(FieldApp.statusLabelKey(h.status));
-      return '<div class="history-row">' +
-        '<div class="history-main">' +
-          '<div class="history-title">#' + (h.number || h.id) + ' · ' + (h.subject || tr('data_not_found')) + '</div>' +
-          '<div class="history-meta">' + when + (status ? ' · ' + status : '') + '</div>' +
-        '</div></div>';
+      var when = h.dateAt ? new Date(h.dateAt).toLocaleDateString() : (h.time || h.open_date || 'Past service');
+      var statusRaw = FieldApp.migrateStatus(h.status);
+      var status = tr(FieldApp.statusLabelKey(statusRaw)) || statusRaw;
+      var num = h.number || h.id || h.ticket_id || '—';
+      var subj = h.subject || h.title || tr('data_not_found');
+      return '<div class="history-ticket-row">' +
+        '<div class="history-ticket-meta-left">' +
+          '<span class="history-ticket-num">#' + escapeChatHtml(String(num)) + '</span>' +
+          '<span class="status-chip status-chip--' + statusRaw + '">' + escapeChatHtml(status) + '</span>' +
+        '</div>' +
+        '<div class="history-ticket-subj">' + escapeChatHtml(subj) + '</div>' +
+        '<div class="history-ticket-date">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
+          '<span>' + escapeChatHtml(when) + '</span>' +
+        '</div>' +
+      '</div>';
     }).join('');
   }
 
@@ -6434,116 +6513,148 @@
   }
 
   var ticketChatSyncTimer = null;
+  var isSyncingTicketChat = false;
+  var lastTicketChatSyncTime = 0;
 
   async function fetchTicketLiveChat(ticket) {
     if (!ticket) return [];
-    var customerId = ticket.customerId || (ticket.raw && ticket.raw.cust_id) || FieldApp.ticketCustomerId(ticket.raw) || 0;
-    var phone = String(ticket.phone || ticket.mobile || '').replace(/\D/g, '');
+    var tId = String(ticket.id || ticket.number || ticketState.id || '').trim();
+    if (!tId) return [];
+
     var client = (global.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient()) || null;
     if (!client || !client.getToken || !client.getToken()) {
       return [];
     }
 
     var apiRows = [];
-    var metaId = ticket.__messenger_meta_id || '';
+    var seenRowIds = {};
 
-    // Step 0: Direct Ticket.Messages and Ticket.Get (data.chat) from official docs
-    if (ticket.id) {
-      try {
-        var tRes = await client.request('Ticket.Messages', { ticket_id: ticket.id, id: ticket.id });
-        var tData = (tRes && (tRes.data || tRes.rows || tRes.messages || tRes.chat)) || [];
-        if (Array.isArray(tData)) {
-          tData.forEach(function (r) {
-            if (r && (r.message || r.msg || r.text)) apiRows.push(r);
-          });
-        }
-      } catch (eTm) {}
-
-      try {
-        var getRes = await client.request('Ticket.Get', { id: ticket.id, ticket_id: ticket.id });
-        var chatRows = getRes && ((getRes.data && getRes.data.chat) || (getRes.ticket && getRes.ticket.chat));
-        if (Array.isArray(chatRows)) {
-          chatRows.forEach(function (r) {
-            if (r && (r.message || r.msg || r.text)) apiRows.push(r);
-          });
-        }
-      } catch (eTg) {}
+    function collectRows(arr) {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function (r) {
+        if (!r) return;
+        var text = String(r.text || r.message || r.msg || '').trim();
+        if (!text) return;
+        var key = r.id != null && String(r.id) !== '' ? ('id:' + r.id) : (text + '|' + (r.time || ''));
+        if (seenRowIds[key]) return;
+        seenRowIds[key] = true;
+        apiRows.push(r);
+      });
     }
 
-    // Step 1: Find messenger_meta_id via Chat.Conversations if not resolved yet
-    if (!metaId && MineralBarApp.listChatConversations) {
-      try {
-        var convs = await MineralBarApp.listChatConversations({ limit: 50 });
-        var rows = (convs && convs.rows) || [];
-        for (var i = 0; i < rows.length; i++) {
-          var c = rows[i];
-          var matchCust = customerId && String(c.customer_id || c.cust_id) === String(customerId);
-          var matchPhone = phone && String(c.phone || '').replace(/\D/g, '').indexOf(phone) !== -1;
-          var matchName = ticket.client && c.name && String(c.name).toLowerCase() === String(ticket.client).toLowerCase();
-          if (matchCust || matchPhone || matchName) {
-            metaId = c.messenger_meta_id || (c.raw && (c.raw._id && (c.raw._id.$oid || c.raw._id))) || c.id || '';
-            ticket.__messenger_meta_id = metaId;
-            break;
-          }
-        }
-      } catch (eConv) {
-        console.warn('[TicketChat] listChatConversations warning:', eConv);
+    // Single direct API call: Ticket.Messages
+    try {
+      var tRes = await client.request('Ticket.Messages', { ticket_id: tId });
+      if (tRes) {
+        collectRows(tRes.data);
+        collectRows(tRes.messages);
+        collectRows(tRes.chat);
+        collectRows(tRes.rows);
       }
+    } catch (eTm) {
+      console.warn('[TicketChat] Ticket.Messages fetch error:', eTm);
     }
 
-    // Step 2: Query Chat.SingleConversations if metaId resolved
-    if (metaId && MineralBarApp.listSingleConversations) {
+    // Fallback: check if ticket.raw contains ticket-specific chat or messages
+    if (!apiRows.length && ticket.raw) {
+      var rawChat = ticket.raw.chat || ticket.raw.messages || (ticket.raw.data && ticket.raw.data.chat);
+      collectRows(rawChat);
+    }
+
+    // Strictly filter: only keep messages that belong to this ticket
+    if (!apiRows.length && ticket.__messenger_meta_id && MineralBarApp.listSingleConversations) {
       try {
-        var singleRes = await MineralBarApp.listSingleConversations(metaId, {
-          customer_id: customerId || undefined,
+        var singleRes = await MineralBarApp.listSingleConversations(ticket.__messenger_meta_id, {
+          customer_id: ticket.customerId || undefined,
           limit: 100
         });
-        if (singleRes && Array.isArray(singleRes.rows) && singleRes.rows.length) {
-          apiRows = apiRows.concat(singleRes.rows);
+        if (singleRes && Array.isArray(singleRes.rows)) {
+          singleRes.rows.forEach(function (r) {
+            var rawTId = String(r.ticket_id || (r.raw && (r.raw.ticket_id || r.raw.ticket)) || '');
+            var text = String(r.message || r.msg || r.text || '');
+            var hasTicketRef = text.indexOf('#' + tId) !== -1 || text.indexOf('ticket ' + tId) !== -1;
+            if (rawTId === tId || hasTicketRef) {
+              collectRows([r]);
+            }
+          });
         }
-      } catch (eSingle) {
-        console.warn('[TicketChat] listSingleConversations warning:', eSingle);
-      }
-    }
-
-    // Step 3: Also try Chat.CustomerMessages if no rows from SingleConversations
-    if (!apiRows.length && customerId && MineralBarApp.listCustomerMessages) {
-      try {
-        var custRes = await MineralBarApp.listCustomerMessages(customerId, { limit: 100 });
-        if (custRes && Array.isArray(custRes.rows) && custRes.rows.length) {
-          apiRows = apiRows.concat(custRes.rows);
-        }
-      } catch (eCust) {
-        console.warn('[TicketChat] listCustomerMessages warning:', eCust);
-      }
+      } catch (eSingle) {}
     }
 
     if (!apiRows.length) return [];
 
     var mapped = apiRows.map(function (r) {
-      var text = String(r.message || r.msg || r.text || '').trim();
+      var text = String(r.text || r.message || r.msg || '').trim();
       if (!text) return null;
       text = cleanHistoryMessage(text);
       if (!text) return null;
 
-      // In WhatsApp / Biz1 Chat:
-      // direction 1 / '1' / 'in' = incoming message from customer (e.g. UT)
-      // direction 0 / '0' / 'out' / staff = outbound message from technician
-      // Also handles data.chat rows where type=whatsapp, role=WhatsApp
+      var roleStr = String(r.role || (r.raw && r.raw.role) || '').trim().toLowerCase();
+      var whoStr = String(r.who || (r.raw && r.raw.who) || '').trim().toLowerCase();
+
       var isCustomer = (
+        roleStr === 'customer' ||
+        whoStr === 'customer' ||
         r.direction === 1 || r.direction === '1' || r.direction === 'in' ||
         r.from_customer === 1 || r.from_customer === '1' || r.from_customer === true ||
         r.is_customer === 1 || r.is_customer === '1' || r.is_customer === true ||
-        r.incoming === 1 || r.incoming === '1' || r.incoming === true ||
-        (r.user_name && ticket.client && String(r.user_name).trim().toLowerCase() === String(ticket.client).trim().toLowerCase())
+        r.incoming === 1 || r.incoming === '1' || r.incoming === true
       );
-      var who = r.user_name || r.from_name || r.name;
+
+      // Channel mapping: check role first, then fallback to type/channel
+      var channel = 'whatsapp';
+      if (roleStr.indexOf('internal') !== -1 || roleStr.indexOf('note') !== -1) {
+        channel = 'internal';
+      } else if (
+        roleStr.indexOf('to customer') !== -1 ||
+        roleStr.indexOf('to_customer') !== -1 ||
+        roleStr.indexOf('client') !== -1
+      ) {
+        channel = 'client';
+      } else if (roleStr.indexOf('whatsapp') !== -1) {
+        channel = 'whatsapp';
+      } else {
+        var rawType = String(r.channel || r.type || (r.raw && (r.raw.channel || r.raw.type)) || '').toLowerCase();
+        if (rawType.indexOf('internal') !== -1 || rawType.indexOf('note') !== -1) {
+          channel = 'internal';
+        } else if (rawType.indexOf('client') !== -1 || rawType.indexOf('email') !== -1) {
+          channel = 'client';
+        } else if (rawType.indexOf('whatsapp') !== -1) {
+          channel = 'whatsapp';
+        } else {
+          // If agent sent it and no channel was specified, default to client
+          channel = isCustomer ? 'whatsapp' : 'client';
+        }
+      }
+
+      var who = r.name || r.user_name || r.from_name;
       if (!who) {
-        who = isCustomer ? (ticket.client || 'Demo') : 'Demo (Technician)';
+        if (isCustomer) {
+          who = ticket.client || 'Customer';
+        } else if (channel === 'internal') {
+          who = 'Demo (Internal Note)';
+        } else if (channel === 'client') {
+          who = 'Demo (Technician)';
+        } else {
+          who = 'Demo';
+        }
+      } else {
+        if (channel === 'internal' && who.indexOf('Internal') === -1) {
+          who = who + ' (Internal Note)';
+        } else if (channel === 'client' && !isCustomer && who.indexOf('Technician') === -1 && who.indexOf('Client') === -1 && who.indexOf('Customer') === -1) {
+          who = who + ' (Technician)';
+        }
       }
 
       var timeStr = r.time || 'Today';
-      if (/^\d{4}-\d{2}-\d{2}/.test(timeStr)) {
+      var ddmmyyyy = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/.exec(timeStr);
+      if (ddmmyyyy) {
+        var dH = parseInt(ddmmyyyy[4], 10);
+        var dM = ddmmyyyy[5];
+        var dAmpm = dH >= 12 ? 'pm' : 'am';
+        var dH12 = dH % 12 || 12;
+        timeStr = ddmmyyyy[1] + '.' + ddmmyyyy[2] + '.' + ddmmyyyy[3] + ' ' + dH12 + ':' + dM + ' ' + dAmpm;
+      } else if (/^\d{4}-\d{2}-\d{2}/.test(timeStr)) {
         try {
           var d = new Date(timeStr);
           if (!isNaN(d.getTime())) {
@@ -6561,16 +6672,27 @@
         text: text,
         who: who,
         time: timeStr,
-        direction: isCustomer ? 'in' : 'out'
+        direction: isCustomer ? 'in' : 'out',
+        channel: channel,
+        role: r.role || ''
       };
     }).filter(Boolean);
 
     return mapped;
   }
 
-  async function syncTicketChatLive(silent) {
+  async function syncTicketChatLive(silent, force) {
     var ticket = ticketState.ticket;
     if (!ticket) return;
+    if (currentPage !== 'ticket') return;
+
+    var now = Date.now();
+    // Throttle: don't sync more frequently than once every 3 seconds unless forced
+    if (!force && (now - lastTicketChatSyncTime < 3000)) return;
+    if (isSyncingTicketChat) return;
+
+    isSyncingTicketChat = true;
+    lastTicketChatSyncTime = now;
     try {
       var live = await fetchTicketLiveChat(ticket);
       if (live && live.length) {
@@ -6582,13 +6704,34 @@
       }
     } catch (e) {
       console.warn('[TicketChat] syncTicketChatLive failed', e);
+    } finally {
+      isSyncingTicketChat = false;
+    }
+  }
+
+  function startTicketChatSync() {
+    if (ticketChatSyncTimer) return;
+    ticketChatSyncTimer = setInterval(function () {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (currentPage !== 'ticket') {
+        stopTicketChatSync();
+        return;
+      }
+      syncTicketChatLive(true, false);
+    }, 15000); // Poll once every 15 seconds as a quiet fallback
+  }
+
+  function stopTicketChatSync() {
+    if (ticketChatSyncTimer) {
+      clearInterval(ticketChatSyncTimer);
+      ticketChatSyncTimer = null;
     }
   }
 
   function getTicketChatMessages() {
     var ticket = ticketState.ticket;
-    var tId = String(ticketState.id || (ticket && ticket.id) || '');
-    var cId = String((ticket && (ticket.customerId || ticket.cust_id)) || '');
+    var tId = String(ticketState.id || (ticket && (ticket.id || ticket.number)) || '');
+    if (!tId) return [];
 
     var liveMsgs = ticketState.liveChatMessages || [];
     var localKey = 'ticket_chat_messages_' + tId;
@@ -6598,11 +6741,10 @@
       if (raw) localMsgs = JSON.parse(raw) || [];
     } catch (e) {}
 
+    // ONLY load seed messages for this specific ticket ID (never fall back to cId)
     var seedMsgs = [];
     if (DEFAULT_WHATSAPP_THREADS[tId]) {
       seedMsgs = DEFAULT_WHATSAPP_THREADS[tId].slice();
-    } else if (cId && DEFAULT_WHATSAPP_THREADS[cId]) {
-      seedMsgs = DEFAULT_WHATSAPP_THREADS[cId].slice();
     }
 
     var combined = [];
@@ -6613,7 +6755,11 @@
       var clean = String(m.text).trim();
       if (!clean) return;
       if (clean === 'Ticket photo attached.' || clean === 'ww' || clean === 'TJHUOU5') return;
-      var key = clean.toLowerCase() + '|' + (m.direction || '');
+      // Do not display authentication/login verification codes from general customer chats
+      if (/Biz1 Login Code|קוד אימות ביז1/i.test(clean)) return;
+      var key = m.id && !String(m.id).startsWith('live-') && !String(m.id).startsWith('msg-')
+        ? ('id:' + m.id)
+        : (clean.toLowerCase() + '|' + (m.direction || '') + '|' + (m.channel || ''));
       if (seenText[key]) return;
       seenText[key] = true;
       combined.push(m);
@@ -6648,45 +6794,262 @@
     list.innerHTML = '';
 
     if (!msgs.length) {
-      list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No WhatsApp messages yet. Send an update below!</div>';
+      list.innerHTML = '<div style="padding:18px 12px;text-align:center;color:var(--text-muted);font-size:13px;">No messages yet for this ticket. Use the buttons below to send a message or internal note!</div>';
       return;
     }
 
+    var isHe = (typeof getLang === 'function' ? getLang() : 'en') === 'he';
+    var tagInternal = isHe ? 'הערה פנימית' : 'Internal Note';
+    var tagClient = isHe ? 'ללקוח' : 'To Customer';
+    var tagWa = isHe ? 'וואטסאפ' : 'WhatsApp';
+    var tagCustomer = isHe ? 'לקוח' : 'Customer';
+
     msgs.forEach(function (m) {
       var isOut = m.direction === 'out';
+      var channel = m.channel || 'whatsapp';
       var bubble = global.document.createElement('div');
-      bubble.className = 'ticket-chat-bubble ' + (isOut ? 'ticket-chat-bubble--out' : 'ticket-chat-bubble--in');
+      
+      var bubbleMod = '';
+      var channelTag = '';
 
-      var senderName = m.who || (isOut ? 'Demo (Technician)' : (ticket.client || 'Customer'));
+      if (isOut) {
+        if (channel === 'internal') {
+          bubbleMod = ' ticket-chat-bubble--internal';
+          channelTag = '<span class="chat-channel-tag chat-channel-tag--internal"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> ' + tagInternal + '</span>';
+        } else if (channel === 'client') {
+          bubbleMod = ' ticket-chat-bubble--client';
+          channelTag = '<span class="chat-channel-tag chat-channel-tag--client"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> ' + tagClient + '</span>';
+        } else {
+          bubbleMod = ' ticket-chat-bubble--wa';
+          channelTag = '<span class="chat-channel-tag chat-channel-tag--wa"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg> ' + tagWa + '</span>';
+        }
+      } else {
+        if (channel === 'whatsapp') {
+          channelTag = '<span class="chat-channel-tag" style="background:rgba(37,211,102,0.15);color:#16a34a;border:1px solid rgba(37,211,102,0.3);"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg> ' + tagWa + '</span>';
+        } else {
+          channelTag = '<span class="chat-channel-tag" style="background:var(--bg-muted);color:var(--text-muted);border:1px solid var(--border-soft);">' + tagCustomer + '</span>';
+        }
+      }
+
+      bubble.className = 'ticket-chat-bubble ' + (isOut ? ('ticket-chat-bubble--out' + bubbleMod) : 'ticket-chat-bubble--in');
+
+      var defaultTech = isHe ? 'דמו (טכנאי)' : 'Demo (Technician)';
+      var defaultCustomer = ticket.client || (isHe ? 'לקוח' : 'Customer');
+      var senderName = m.who || (isOut ? defaultTech : defaultCustomer);
+      if (isHe) {
+        senderName = senderName
+          .replace('(Internal Note)', '(הערה פנימית)')
+          .replace('(Technician)', '(טכנאי)');
+      } else {
+        senderName = senderName
+          .replace('(הערה פנימית)', '(Internal Note)')
+          .replace('(טכנאי)', '(Technician)');
+      }
+
+      var displayTime = m.time || (isHe ? 'היום' : 'Today');
+      if (isHe) {
+        displayTime = displayTime.replace(/^Today/i, 'היום').replace(/^Yesterday/i, 'אתמול');
+      } else {
+        displayTime = displayTime.replace(/^היום/i, 'Today').replace(/^אתמול/i, 'Yesterday');
+      }
+
+      var errorIconHtml = '';
+      if (m.failed) {
+        bubble.classList.add('ticket-chat-bubble--failed');
+        var errText = m.error || (isHe ? 'שליחה נכשלה' : 'Failed to send');
+        errorIconHtml =
+          '<button type="button" class="ticket-chat-fail-icon" data-error="' + escapeChatHtml(errText) + '" title="' + escapeChatHtml(errText) + '" aria-label="' + escapeChatHtml(errText) + '">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+              '<circle cx="12" cy="12" r="10" fill="#ef4444" stroke="#ef4444"/>' +
+              '<line x1="12" y1="8" x2="12" y2="12" stroke="#ffffff" stroke-width="2.4"/>' +
+              '<circle cx="12" cy="16" r="1" fill="#ffffff" stroke="#ffffff"/>' +
+            '</svg>' +
+          '</button>';
+      }
+
       bubble.innerHTML =
-        '<div class="ticket-chat-bubble-sender">' + escapeChatHtml(senderName) + '</div>' +
+        '<div class="ticket-chat-bubble-top">' +
+          '<span class="ticket-chat-bubble-sender">' + escapeChatHtml(senderName) + '</span>' +
+          channelTag +
+        '</div>' +
         '<div class="ticket-chat-bubble-text">' + formatChatText(m.text) + '</div>' +
-        '<div class="ticket-chat-bubble-time">' + escapeChatHtml(m.time || 'Today') + '</div>';
+        '<div class="ticket-chat-bubble-bottom">' +
+          '<span class="ticket-chat-bubble-time">' + escapeChatHtml(displayTime) + '</span>' +
+          errorIconHtml +
+        '</div>';
+
+      var failBtn = bubble.querySelector('.ticket-chat-fail-icon');
+      if (failBtn) {
+        failBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var err = this.getAttribute('data-error');
+          showTicketChatError(err);
+        });
+      }
 
       list.appendChild(bubble);
     });
 
+    if (!list.__failDelegated) {
+      list.__failDelegated = true;
+      list.addEventListener('click', function (e) {
+        var btn = e.target.closest('.ticket-chat-fail-icon');
+        if (btn) {
+          e.preventDefault();
+          e.stopPropagation();
+          var err = btn.getAttribute('data-error') || 'Ticket is closed';
+          showTicketChatError(err);
+        }
+      });
+    }
+
     list.scrollTop = list.scrollHeight;
   }
 
-  async function sendTicketChatMessage(text) {
+  var ticketNotifyTimer = null;
+
+  function showTicketChatError(msg) {
+    if (!msg || typeof global.document === 'undefined') return;
+
+    var banner = global.document.getElementById('ticketChatError');
+    if (banner) banner.classList.add('hidden');
+
+    if (global.Swal && typeof global.Swal.close === 'function') {
+      try { global.Swal.close(); } catch (eSwal) {}
+    }
+
+    var container = global.document.getElementById('ticketNotifyContainer');
+    if (!container) {
+      container = global.document.createElement('div');
+      container.id = 'ticketNotifyContainer';
+      container.className = 'ticket-notify-container';
+      global.document.body.appendChild(container);
+    }
+
+    if (ticketNotifyTimer) {
+      clearTimeout(ticketNotifyTimer);
+      ticketNotifyTimer = null;
+    }
+    container.innerHTML = '';
+
+    var card = global.document.createElement('div');
+    card.className = 'ticket-notify-card';
+    card.setAttribute('role', 'alert');
+    card.innerHTML =
+      '<div class="ticket-notify-content">' +
+        '<span class="ticket-notify-text">' + escapeChatHtml(msg) + '</span>' +
+        '<button type="button" class="ticket-notify-close-btn" id="ticketNotifyCloseBtn" aria-label="Close">×</button>' +
+      '</div>' +
+      '<div class="ticket-notify-bar"></div>';
+
+    function dismissNotify() {
+      if (ticketNotifyTimer) {
+        clearTimeout(ticketNotifyTimer);
+        ticketNotifyTimer = null;
+      }
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(-10px) scale(0.96)';
+      setTimeout(function () {
+        if (card.parentNode) {
+          card.parentNode.removeChild(card);
+        }
+      }, 220);
+    }
+
+    var closeBtn = card.querySelector('.ticket-notify-close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dismissNotify();
+      };
+    }
+
+    container.appendChild(card);
+
+    // Guaranteed auto-hide after exactly 5 seconds
+    ticketNotifyTimer = setTimeout(function () {
+      dismissNotify();
+    }, 5000);
+  }
+
+  function hideTicketChatError() {
+    var banner = global.document.getElementById('ticketChatError');
+    if (banner) banner.classList.add('hidden');
+    var container = global.document.getElementById('ticketNotifyContainer');
+    if (container) container.innerHTML = '';
+    if (ticketNotifyTimer) {
+      clearTimeout(ticketNotifyTimer);
+      ticketNotifyTimer = null;
+    }
+    if (global.Swal && typeof global.Swal.close === 'function') {
+      try { global.Swal.close(); } catch (eSwal2) {}
+    }
+  }
+
+  function showAppToast(msg, type) {
+    if (!msg || typeof global.document === 'undefined') return;
+    var container = global.document.getElementById('appToastContainer');
+    if (!container) {
+      container = global.document.createElement('div');
+      container.id = 'appToastContainer';
+      container.className = 'app-toast-container';
+      global.document.body.appendChild(container);
+    }
+    var toast = global.document.createElement('div');
+    toast.className = 'app-toast app-toast--' + (type || 'error');
+    toast.innerHTML =
+      '<div class="app-toast-body">' + escapeChatHtml(msg) + '</div>' +
+      '<button type="button" class="app-toast-close" aria-label="Close">×</button>';
+
+    var closeBtn = toast.querySelector('.app-toast-close');
+    if (closeBtn) {
+      closeBtn.onclick = function () {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 220);
+      };
+    }
+
+    container.appendChild(toast);
+
+    setTimeout(function () {
+      if (toast.parentNode) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 220);
+      }
+    }, 5000);
+  }
+
+  async function sendTicketChatMessage(text, channel) {
+    hideTicketChatError();
+    channel = channel || 'whatsapp';
     var ticket = ticketState.ticket;
     var tId = String(ticketState.id || (ticket && ticket.id) || '');
     var localKey = 'ticket_chat_messages_' + tId;
 
+    var isHe = (typeof getLang === 'function' ? getLang() : 'en') === 'he';
     var now = new Date();
     var hours = now.getHours();
     var ampm = hours >= 12 ? 'pm' : 'am';
     var h12 = hours % 12 || 12;
     var mins = String(now.getMinutes()).padStart(2, '0');
-    var timeStr = 'Today ' + h12 + ':' + mins + ' ' + ampm;
+    var timeStr = (isHe ? 'היום ' : 'Today ') + h12 + ':' + mins + ' ' + ampm;
+
+    var whoName = isHe ? 'דמו (טכנאי)' : 'Demo (Technician)';
+    if (channel === 'internal') {
+      whoName = isHe ? 'דמו (הערה פנימית)' : 'Demo (Internal Note)';
+    }
 
     var newMsg = {
       id: 'msg-' + Date.now(),
       text: text,
-      who: 'Demo (Technician)',
+      who: whoName,
       time: timeStr,
-      direction: 'out'
+      direction: 'out',
+      channel: channel
     };
 
     var localMsgs = [];
@@ -6702,48 +7065,202 @@
 
     renderTicketChat();
 
-    // Send via official Ticket.Whatsapp or Chat.SendCustomer
+    // Send via API depending on selected option
+    var sendOk = false;
+    var errorMsg = null;
+
     try {
+      var currentStatus = (ticketState.ticket && ticketState.ticket.status) || '';
+      var statusSelect = global.document.getElementById('ticketStatusSelect');
+      if (statusSelect && statusSelect.value) {
+        currentStatus = statusSelect.value;
+      }
+      if (String(currentStatus).toLowerCase() === 'closed') {
+        errorMsg = isHe ? 'הקריאה סגורה' : 'Ticket is closed';
+      }
+
       var client = (global.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient()) || null;
-      var sentOk = false;
-      if (client && ticket && ticket.id) {
-        try {
-          var res = await client.request('Ticket.Whatsapp', {
-            ticket_id: ticket.id,
-            id: ticket.id,
-            message: text
-          });
-          if (res && (res.success === 1 || res.success === true || res.success === '1')) {
-            sentOk = true;
+      var customerId = ticket && (ticket.customerId || (ticket.raw && ticket.raw.cust_id) || FieldApp.ticketCustomerId(ticket.raw));
+      var phone = ticket && (ticket.phone || ticket.mobile);
+
+      if (!errorMsg && channel === 'whatsapp') {
+        if (client && ticket && ticket.id) {
+          try {
+            // Documented endpoint: Ticket.SendWhatsapp (aliases: Ticket.Whatsapp)
+            var res = await client.request('Ticket.SendWhatsapp', {
+              ticket_id: ticket.id,
+              id: ticket.id,
+              message: text
+            });
+            if (res && (Number(res.success) === 1 || res.success === true || res.success === '1' || res.chat || res.id)) {
+              sendOk = true;
+            } else if (res && (res.message || res.error)) {
+              errorMsg = res.message || res.error;
+            } else {
+              errorMsg = 'Failed to send WhatsApp message';
+            }
+          } catch (eTw) {
+            errorMsg = (eTw && (eTw.message || (eTw.raw && eTw.raw.message))) || null;
+            if (!errorMsg) {
+              try {
+                var resAlt = await client.request('Ticket.Whatsapp', {
+                  ticket_id: ticket.id,
+                  message: text
+                });
+                if (resAlt && (Number(resAlt.success) === 1 || resAlt.success === true || resAlt.chat || resAlt.id)) {
+                  sendOk = true;
+                  errorMsg = null;
+                } else if (resAlt && (resAlt.message || resAlt.error)) {
+                  errorMsg = resAlt.message || resAlt.error;
+                }
+              } catch (eTw2) {
+                errorMsg = (eTw2 && (eTw2.message || (eTw2.raw && eTw2.raw.message))) || 'Failed to send WhatsApp message';
+              }
+            }
           }
-        } catch (eTw) {
-          console.warn('[Chat] Ticket.Whatsapp fallback to SendCustomer:', eTw);
+        } else if (!sendOk && !errorMsg && customerId && global.MineralBarApp && MineralBarApp.sendCustomerMessage) {
+          try {
+            var resCust = await MineralBarApp.sendCustomerMessage({
+              customer_id: customerId,
+              cust_id: customerId,
+              message: text,
+              from: 'send_whatsapp',
+              phone: phone || undefined,
+              ticket_id: ticket && ticket.id
+            });
+            if (resCust && (resCust.success === 1 || resCust.success === true || resCust.ok)) {
+              sendOk = true;
+              errorMsg = null;
+            } else if (resCust && (resCust.message || resCust.error)) {
+              errorMsg = resCust.message || resCust.error;
+            }
+          } catch (eCust) {
+            errorMsg = (eCust && (eCust.message || (eCust.raw && eCust.raw.message))) || errorMsg;
+          }
+        }
+      } else if (!errorMsg && channel === 'client') {
+        if (client && ticket && ticket.id) {
+          try {
+            // Documented endpoint: Ticket.Reply with data_type: 'public'
+            var resClient = await client.request('Ticket.Reply', {
+              ticket_id: ticket.id,
+              id: ticket.id,
+              message: text,
+              data_type: 'public'
+            });
+            if (resClient && (Number(resClient.success) === 1 || resClient.success === true || resClient.id || resClient.chat)) {
+              sendOk = true;
+            } else if (resClient && (resClient.message || resClient.error)) {
+              errorMsg = resClient.message || resClient.error;
+            } else {
+              errorMsg = 'Failed to send message to client';
+            }
+          } catch (eCa) {
+            errorMsg = (eCa && (eCa.message || (eCa.raw && eCa.raw.message))) || 'Failed to send message to client';
+          }
+        } else if (!sendOk && !errorMsg && customerId && global.MineralBarApp && MineralBarApp.sendCustomerMessage) {
+          try {
+            var resQuick = await MineralBarApp.sendCustomerMessage({
+              customer_id: customerId,
+              cust_id: customerId,
+              message: text,
+              from: 'send_email_quick',
+              phone: phone || undefined,
+              ticket_id: ticket && ticket.id
+            });
+            if (resQuick && (resQuick.success === 1 || resQuick.success === true || resQuick.ok)) {
+              sendOk = true;
+              errorMsg = null;
+            } else if (resQuick && (resQuick.message || resQuick.error)) {
+              errorMsg = resQuick.message || resQuick.error;
+            }
+          } catch (eQuick) {
+            errorMsg = (eQuick && (eQuick.message || (eQuick.raw && eQuick.raw.message))) || errorMsg;
+          }
+        }
+      } else if (!errorMsg && channel === 'internal') {
+        if (client && ticket && ticket.id) {
+          try {
+            // Documented endpoint: Ticket.Reply with data_type: 'only_member'
+            var resInt = await client.request('Ticket.Reply', {
+              ticket_id: ticket.id,
+              id: ticket.id,
+              message: text,
+              data_type: 'only_member'
+            });
+            if (resInt && (Number(resInt.success) === 1 || resInt.success === true || resInt.id || resInt.chat)) {
+              sendOk = true;
+            } else if (resInt && (resInt.message || resInt.error)) {
+              errorMsg = resInt.message || resInt.error;
+            } else {
+              errorMsg = 'Failed to save internal note';
+            }
+          } catch (eIa) {
+            errorMsg = (eIa && (eIa.message || (eIa.raw && eIa.raw.message))) || 'Failed to save internal note';
+          }
+        } else if (!sendOk && !errorMsg && customerId && global.MineralBarApp && MineralBarApp.sendCustomerMessage) {
+          try {
+            var resNote = await MineralBarApp.sendCustomerMessage({
+              customer_id: customerId,
+              cust_id: customerId,
+              message: '[Internal Note] ' + text,
+              from: 'send_notes',
+              ticket_id: ticket && ticket.id
+            });
+            if (resNote && (resNote.success === 1 || resNote.success === true || resNote.ok)) {
+              sendOk = true;
+              errorMsg = null;
+            } else if (resNote && (resNote.message || resNote.error)) {
+              errorMsg = resNote.message || resNote.error;
+            }
+          } catch (eNote) {
+            errorMsg = (eNote && (eNote.message || (eNote.raw && eNote.raw.message))) || errorMsg;
+          }
         }
       }
 
-      if (!sentOk) {
-        var customerId = ticket && (ticket.customerId || (ticket.raw && ticket.raw.cust_id) || FieldApp.ticketCustomerId(ticket.raw));
-        var phone = ticket && (ticket.phone || ticket.mobile);
-        if (customerId && global.MineralBarApp && MineralBarApp.sendCustomerMessage) {
-          await MineralBarApp.sendCustomerMessage({
-            customer_id: customerId,
-            cust_id: customerId,
-            message: text,
-            from: 'send_whatsapp',
-            phone: phone || undefined
-          });
+      if (!sendOk && !errorMsg) {
+        var isDemoTicket = String(tId) === '22290' || !client || !client.getToken || !client.getToken();
+        if (isDemoTicket) {
+          sendOk = true;
         }
       }
 
-      setTimeout(function () { syncTicketChatLive(true); }, 350);
+      if (sendOk) {
+        setTimeout(function () { syncTicketChatLive(true, true); }, 500);
+      } else if (errorMsg) {
+        showTicketChatError(errorMsg);
+        newMsg.failed = true;
+        newMsg.error = errorMsg;
+        try {
+          global.localStorage.setItem(localKey, JSON.stringify(localMsgs));
+        } catch (eLs) {}
+        renderTicketChat();
+        var chatInput = global.document.getElementById('ticketChatInput');
+        if (chatInput && !chatInput.value) {
+          chatInput.value = text;
+        }
+      }
     } catch (eApi) {
       console.warn('[Chat] API send warning:', eApi);
+      var apiMsg = (eApi && (eApi.message || (eApi.raw && eApi.raw.message))) || 'Failed to send message';
+      showTicketChatError(apiMsg);
+      newMsg.failed = true;
+      newMsg.error = apiMsg;
+      try {
+        global.localStorage.setItem(localKey, JSON.stringify(localMsgs));
+      } catch (eLs2) {}
+      renderTicketChat();
+      var chatInput = global.document.getElementById('ticketChatInput');
+      if (chatInput && !chatInput.value) {
+        chatInput.value = text;
+      }
     }
 
-    // Interactive response in demo mode so the user can test chat right away
+    // Interactive response in demo mode (only if sentOk)
     var client = (global.MineralBarApp && MineralBarApp.getClient && MineralBarApp.getClient()) || null;
     var isDemoTicket = String(tId) === '22290' || !client || !client.getToken || !client.getToken();
-    if (isDemoTicket) {
+    if (sendOk && isDemoTicket && channel !== 'internal') {
       var typingEl = global.document.getElementById('ticketChatTyping');
       setTimeout(function () {
         if (typingEl) typingEl.classList.remove('hidden');
@@ -6751,7 +7268,12 @@
 
       setTimeout(function () {
         if (typingEl) typingEl.classList.add('hidden');
-        var replies = [
+        var replies = isHe ? [
+          'תודה על העדכון!',
+          'הבנתי, נתראה בקרוב.',
+          'מצוין, אני בבית.',
+          'בסדר, תודה רבה!'
+        ] : [
           'Thanks for the update!',
           'Got it, see you shortly.',
           'Sounds great, I am at home.',
@@ -6761,9 +7283,10 @@
         var replyMsg = {
           id: 'msg-reply-' + Date.now(),
           text: replyText,
-          who: (ticket && ticket.client) || 'Customer',
-          time: 'Today',
-          direction: 'in'
+          who: (ticket && ticket.client) || (isHe ? 'לקוח' : 'Customer'),
+          time: isHe ? 'היום' : 'Today',
+          direction: 'in',
+          channel: channel
         };
         var stored = [];
         try { stored = JSON.parse(global.localStorage.getItem(localKey) || '[]'); } catch (er) {}
@@ -6789,41 +7312,185 @@
     }
     global.document.getElementById('ticketMissing').classList.add('hidden');
     global.document.getElementById('ticketContent').classList.remove('hidden');
+    
+    // Header ticket number
     global.document.getElementById('ticketNum').textContent = ticket.number || ticketId;
-    global.document.getElementById('ticketClientLine').textContent =
-      FieldApp.clientDisplay(ticket) + (ticket.contact ? ' (' + ticket.contact + ')' : '');
-    global.document.getElementById('ticketAddressLine').textContent = ticket.address || tr('data_not_found');
-    global.document.getElementById('ticketStatusSelect').value = FieldApp.migrateStatus(ticket.status);
 
-    var nav = global.document.getElementById('ticketNavMaps');
-    if (ticket.address || (ticket.lat != null && ticket.lng != null)) {
-      nav.style.display = '';
-      nav.style.opacity = '1';
-      nav.textContent = tr('navigate');
-      nav.onclick = function (e) {
-        e.preventDefault();
-        FieldApp.openInAppMap(ticket);
-      };
-    } else {
-      nav.style.opacity = '0.55';
-      nav.textContent = tr('data_not_found');
-      nav.onclick = null;
+    var isHe = (typeof getLang === 'function' ? getLang() : 'en') === 'he';
+
+    // ── All Ticket & User Details on Left Side ──
+    var clientName = FieldApp.clientDisplay(ticket);
+    var contactName = ticket.contact || (ticket.raw && (ticket.raw.contact || ticket.raw.contact_name)) || clientName;
+    var phoneVal = ticket.phone || ticket.mobile || (ticket.raw && (ticket.raw.phone || ticket.raw.mobile)) || '';
+    var emailVal = ticket.email || (ticket.raw && ticket.raw.email) || '';
+    var custIdVal = ticket.customerId || (ticket.raw && (ticket.raw.cust_id || ticket.raw.customer_id)) || '';
+
+    var clientLineEl = global.document.getElementById('ticketClientLine');
+    if (clientLineEl) clientLineEl.textContent = clientName;
+
+    var avatarEl = global.document.getElementById('ticketClientAvatar');
+    if (avatarEl) {
+      avatarEl.textContent = (clientName.charAt(0) || 'C').toUpperCase();
     }
 
-    var wa = global.document.getElementById('ticketWaBtn');
-    wa.removeAttribute('href');
-    wa.setAttribute('role', 'button');
-    wa.style.opacity = '1';
-    wa.style.pointerEvents = 'auto';
+    var contactEl = global.document.getElementById('ticketContactPerson');
+    if (contactEl) {
+      contactEl.textContent = contactName ? ((isHe ? 'איש קשר: ' : 'Contact: ') + contactName) : '';
+    }
 
-    var chatSec = global.document.getElementById('ticketChatSection');
-    var closeBtn = global.document.getElementById('ticketChatCloseBtn');
-    var chatForm = global.document.getElementById('ticketChatForm');
-    var chatToggleBtn = global.document.getElementById('ticketChatToggleBtn');
+    var idBadgeEl = global.document.getElementById('ticketCustomerIdBadge');
+    if (idBadgeEl) {
+      idBadgeEl.textContent = custIdVal ? (isHe ? ('לקוח #' + custIdVal) : ('Customer #' + custIdVal)) : (isHe ? 'לקוח' : 'Customer');
+    }
+
+    var phoneLineEl = global.document.getElementById('ticketPhoneLine');
+    var phoneLinkEl = global.document.getElementById('ticketPhoneLink');
+    if (phoneLineEl) phoneLineEl.textContent = phoneVal || tr('data_not_found');
+    if (phoneLinkEl) {
+      if (phoneVal) {
+        phoneLinkEl.href = 'tel:' + String(phoneVal).replace(/\D/g, '');
+        phoneLinkEl.style.pointerEvents = 'auto';
+        phoneLinkEl.style.opacity = '1';
+      } else {
+        phoneLinkEl.removeAttribute('href');
+        phoneLinkEl.style.pointerEvents = 'none';
+        phoneLinkEl.style.opacity = '0.6';
+      }
+    }
+
+    var emailLineEl = global.document.getElementById('ticketEmailLine');
+    var emailLinkEl = global.document.getElementById('ticketEmailLink');
+    if (emailLineEl) emailLineEl.textContent = emailVal || tr('data_not_found');
+    if (emailLinkEl) {
+      if (emailVal) {
+        emailLinkEl.href = 'mailto:' + emailVal;
+        emailLinkEl.style.pointerEvents = 'auto';
+        emailLinkEl.style.opacity = '1';
+      } else {
+        emailLinkEl.removeAttribute('href');
+        emailLinkEl.style.pointerEvents = 'none';
+        emailLinkEl.style.opacity = '0.6';
+      }
+    }
+
+    var addressLineEl = global.document.getElementById('ticketAddressLine');
+    if (addressLineEl) addressLineEl.textContent = ticket.address || tr('data_not_found');
+
+    var detailNumEl = global.document.getElementById('ticketDetailNumber');
+    if (detailNumEl) detailNumEl.textContent = '#' + (ticket.number || ticketId);
+
+    var subjLineEl = global.document.getElementById('ticketSubjectLine');
+    if (subjLineEl) subjLineEl.textContent = ticket.subject || tr('data_not_found');
+
+    var curStatus = FieldApp.migrateStatus(ticket.status);
+    var statusSelect = global.document.getElementById('ticketStatusSelect');
+    if (statusSelect) {
+      statusSelect.value = curStatus;
+      if (!statusSelect.__boundChange) {
+        statusSelect.__boundChange = true;
+        statusSelect.addEventListener('change', function () {
+          var newSt = statusSelect.value;
+          var badge = global.document.getElementById('ticketStatusBadge');
+          if (badge) {
+            badge.textContent = tr(FieldApp.statusLabelKey(newSt)) || newSt;
+            badge.className = 'status-chip status-chip--' + newSt;
+          }
+        });
+      }
+    }
+
+    var statusBadge = global.document.getElementById('ticketStatusBadge');
+    if (statusBadge) {
+      statusBadge.textContent = tr(FieldApp.statusLabelKey(curStatus)) || curStatus;
+      statusBadge.className = 'status-chip status-chip--' + curStatus;
+    }
+
+    // Scheduled Date
+    var dateEl = global.document.getElementById('ticketDateLine');
+    if (dateEl) {
+      var dStr = '';
+      var locale = isHe ? 'he-IL' : undefined;
+      if (ticket.dateAt) {
+        dStr = new Date(ticket.dateAt).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      } else if (ticket.open_date) {
+        try { dStr = new Date(ticket.open_date).toLocaleDateString(locale); } catch(eDate) { dStr = ticket.open_date; }
+      }
+      dateEl.textContent = dStr || (isHe ? 'היום' : 'Today');
+    }
+
+    // Time window
+    var timeEl = global.document.getElementById('ticketTimeLine');
+    if (timeEl) {
+      var tStr = ticket.time || '';
+      if (!tStr && ticket.raw && (ticket.raw.ticket_from_time || ticket.raw.ticket_to_time)) {
+        var fromT = (ticket.raw.ticket_from_time || '').slice(0, 5);
+        var toT = (ticket.raw.ticket_to_time || '').slice(0, 5);
+        tStr = fromT + (toT ? ' - ' + toT : '');
+      }
+      timeEl.textContent = tStr || '11:00 - 11:30';
+    }
+
+    // Estimated duration
+    var durEl = global.document.getElementById('ticketDurationLine');
+    if (durEl) {
+      var durRaw = ticket.dur || '30 mins';
+      durEl.textContent = isHe ? durRaw.replace(/mins?/i, 'דק׳') : durRaw;
+    }
+
+    // Priority / Rating
+    var prioEl = global.document.getElementById('ticketPriorityLine');
+    if (prioEl) {
+      var rating = ticket.raw && ticket.raw.rating;
+      prioEl.textContent = rating ? ((isHe ? 'דירוג ' : 'Rating ') + rating + ' / 5 ★') : (isHe ? 'עדיפות רגילה' : 'Standard Priority');
+    }
+
+    // Technician
+    var techEl = global.document.getElementById('ticketTechLine');
+    if (techEl) {
+      var techName = (ticket.raw && (ticket.raw.technician_name || ticket.raw.technician || ticket.raw.member)) || 'Demo (Technician)';
+      if (isHe) {
+        techName = techName.replace('Demo (Technician)', 'דמו (טכנאי)').replace('(Technician)', '(טכנאי)');
+      } else {
+        techName = techName.replace('דמו (טכנאי)', 'Demo (Technician)').replace('(טכנאי)', '(Technician)');
+      }
+      techEl.textContent = techName;
+    }
+
+    // Description / Notes
+    var descEl = global.document.getElementById('ticketDescriptionLine');
+    if (descEl) {
+      var descText = ticket.summary || (ticket.raw && (ticket.raw.description || ticket.raw.note || ticket.raw.problem)) || ticket.subject || '';
+      descEl.textContent = descText || (isHe ? 'בוקשה תחזוקה שוטפת ובדיקה.' : 'Routine maintenance and inspection requested.');
+    }
+
+    // Checklist progress badge
+    var checkProgress = global.document.getElementById('ticketChecklistProgress');
+    if (checkProgress) {
+      var clItems = ticket.checklist || [];
+      var doneCount = clItems.filter(function (it) { return it.done; }).length;
+      checkProgress.textContent = clItems.length ? (doneCount + ' / ' + clItems.length + (isHe ? ' הושלמו' : ' Done')) : (isHe ? 'משימות' : 'Tasks');
+    }
+
+    // Navigation button
+    var nav = global.document.getElementById('ticketNavMaps');
+    if (nav) {
+      if (ticket.address || (ticket.lat != null && ticket.lng != null)) {
+        nav.style.display = '';
+        nav.style.opacity = '1';
+        nav.onclick = function (e) {
+          e.preventDefault();
+          FieldApp.openInAppMap(ticket);
+        };
+      } else {
+        nav.style.opacity = '0.55';
+        nav.onclick = null;
+      }
+    }
+
+    // External WhatsApp Web Link in Chat Header
     var extWa = global.document.getElementById('ticketChatExternalWaLink');
-
     if (extWa) {
-      var ph = String((ticket && (ticket.phone || ticket.mobile)) || '').replace(/\D/g, '');
+      var ph = String(phoneVal || '').replace(/\D/g, '');
       if (ph) {
         extWa.href = 'https://wa.me/' + ph;
         extWa.classList.remove('hidden');
@@ -6832,123 +7499,66 @@
       }
     }
 
-    var tId = String(ticket.id || ticketState.id || '');
-    var waSentKey = 'ticket_wa_on_way_sent_' + tId;
-    var waAlreadySent = false;
-    try { waAlreadySent = global.localStorage.getItem(waSentKey) === '1'; } catch (e0) {}
-    var waBtnText = global.document.getElementById('ticketWaBtnText');
-    if (waBtnText && waAlreadySent) {
-      waBtnText.textContent = tr('wa_on_way_sent') || 'WhatsApp Sent';
-    }
+    // ── 3 Send Options in Chat ──
+    var btnInternal = global.document.getElementById('chatBtnInternal');
+    var btnClient = global.document.getElementById('chatBtnClient');
+    var btnWhatsApp = global.document.getElementById('chatBtnWhatsApp');
+    var chatInput = global.document.getElementById('ticketChatInput');
 
-    function toggleTicketChat(forceOpen) {
-      if (!chatSec) return;
-      var isHidden = chatSec.classList.contains('hidden');
-      var open = typeof forceOpen === 'boolean' ? forceOpen : isHidden;
-      chatSec.classList.toggle('hidden', !open);
-      showFormError('ticketFormError', '');
-
-      // Clear unread badge when chat is opened
-      if (open) {
-        var unreadBadge = global.document.getElementById('ticketChatUnreadBadge');
-        if (unreadBadge) {
-          unreadBadge.classList.add('hidden');
-          unreadBadge.textContent = '0';
-        }
-        renderTicketChat();
-        syncTicketChatLive(false);
-
-        // Start live polling every 2.5 seconds while chat is open
-        if (ticketChatSyncTimer) clearInterval(ticketChatSyncTimer);
-        ticketChatSyncTimer = setInterval(function () {
-          var sec = global.document.getElementById('ticketChatSection');
-          if (sec && !sec.classList.contains('hidden')) {
-            syncTicketChatLive(true);
-          } else {
-            clearInterval(ticketChatSyncTimer);
-            ticketChatSyncTimer = null;
-          }
-        }, 2500);
-
-        setTimeout(function () {
-          chatSec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          var inp = global.document.getElementById('ticketChatInput');
-          if (inp) inp.focus();
-        }, 80);
-      } else {
-        if (ticketChatSyncTimer) {
-          clearInterval(ticketChatSyncTimer);
-          ticketChatSyncTimer = null;
-        }
+    function handleChatSend(channel) {
+      if (!chatInput) return;
+      var text = (chatInput.value || '').trim();
+      if (!text) {
+        chatInput.focus();
+        return;
       }
+      chatInput.value = '';
+      sendTicketChatMessage(text, channel);
     }
 
-    if (chatToggleBtn) {
-      chatToggleBtn.onclick = function (e) {
+    if (btnInternal && !btnInternal.__bound) {
+      btnInternal.__bound = true;
+      btnInternal.onclick = function (e) {
         e.preventDefault();
-        toggleTicketChat();
+        handleChatSend('internal');
       };
     }
 
-    wa.onclick = async function (e) {
-      e.preventDefault();
-      showFormError('ticketFormError', '');
-
-      var tId = String(ticket.id || ticketState.id || '');
-      var waSentKey = 'ticket_wa_on_way_sent_' + tId;
-      var waAlreadySent = false;
-      try { waAlreadySent = global.localStorage.getItem(waSentKey) === '1'; } catch (e0) {}
-
-      // If not yet sent and not ticket 22290 (which already exists in WhatsApp history):
-      if (!waAlreadySent && tId !== '22290') {
-        var onTheWayText = onTheWayMessage(ticket);
-        try {
-          if (FieldApp.sendOnTheWayWhatsApp) {
-            await FieldApp.sendOnTheWayWhatsApp(ticket);
-          }
-        } catch (sendErr) {
-          console.warn('[Ticket] sendOnTheWayWhatsApp warning:', sendErr);
-        }
-        try { global.localStorage.setItem(waSentKey, '1'); } catch (e1) {}
-        if (waBtnText) waBtnText.textContent = tr('wa_on_way_sent') || 'WhatsApp Sent';
-
-        var localKey = 'ticket_chat_messages_' + tId;
-        var now = new Date();
-        var hours = now.getHours();
-        var ampm = hours >= 12 ? 'pm' : 'am';
-        var h12 = hours % 12 || 12;
-        var mins = String(now.getMinutes()).padStart(2, '0');
-        var timeStr = 'Today ' + h12 + ':' + mins + ' ' + ampm;
-        var existing = [];
-        try { existing = JSON.parse(global.localStorage.getItem(localKey) || '[]'); } catch (e2) {}
-        existing.push({
-          id: 'msg-' + Date.now(),
-          text: onTheWayText,
-          who: 'Demo (Technician)',
-          time: timeStr,
-          direction: 'out'
-        });
-        try { global.localStorage.setItem(localKey, JSON.stringify(existing)); } catch (e3) {}
-      }
-
-      toggleTicketChat(true);
-    };
-
-    if (closeBtn) {
-      closeBtn.onclick = function () {
-        toggleTicketChat(false);
+    if (btnClient && !btnClient.__bound) {
+      btnClient.__bound = true;
+      btnClient.onclick = function (e) {
+        e.preventDefault();
+        handleChatSend('client');
       };
     }
 
-    if (chatForm && !chatForm.__bound) {
-      chatForm.__bound = true;
-      chatForm.onsubmit = function (e) {
+    if (btnWhatsApp && !btnWhatsApp.__bound) {
+      btnWhatsApp.__bound = true;
+      btnWhatsApp.onclick = function (e) {
         e.preventDefault();
-        var input = global.document.getElementById('ticketChatInput');
-        var text = (input && input.value || '').trim();
-        if (!text) return;
-        input.value = '';
-        sendTicketChatMessage(text);
+        handleChatSend('whatsapp');
+      };
+    }
+
+    if (chatInput && !chatInput.__bound) {
+      chatInput.__bound = true;
+      chatInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleChatSend('whatsapp');
+        }
+      });
+      chatInput.addEventListener('input', function () {
+        hideTicketChatError();
+      });
+    }
+
+    var errCloseBtn = global.document.getElementById('ticketChatErrorClose');
+    if (errCloseBtn && !errCloseBtn.__bound) {
+      errCloseBtn.__bound = true;
+      errCloseBtn.onclick = function (e) {
+        e.preventDefault();
+        hideTicketChatError();
       };
     }
 
@@ -6956,7 +7566,11 @@
     renderTicketChecklist();
     renderCompletedWork();
     updateTicketCompleteBtnVisibility(ticket);
-    syncTicketChatLive(true);
+
+    // Initial render of chat & live sync timer
+    renderTicketChat();
+    syncTicketChatLive(false, false);
+    startTicketChatSync();
   }
 
   function renderComplete() {
@@ -7420,6 +8034,18 @@
     } else if (!options.loadHistory) {
       ticketState.history = ticketState.history || [];
     }
+    // Fallback if empty: load customer tickets from DEFAULT_RAW_TICKETS
+    if (options.loadHistory && (!ticketState.history || !ticketState.history.length) && ticketState.ticket) {
+      var cId = ticketState.ticket.customerId || (ticketState.ticket.raw && ticketState.ticket.raw.cust_id);
+      if (cId) {
+        var demoHistory = DEFAULT_RAW_TICKETS.filter(function (t) {
+          return String(t.cust_id) === String(cId) && String(t.ticket_id) !== String(ticketState.id);
+        }).map(mapTicket).filter(Boolean);
+        if (demoHistory.length) {
+          ticketState.history = demoHistory.slice(0, 5);
+        }
+      }
+    }
     if (options.loadProducts && global.MineralBarApp && MineralBarApp.listProducts) {
       try {
         var customerId = ticketState.ticket && (ticketState.ticket.customerId || FieldApp.ticketCustomerId(ticketState.ticket.raw));
@@ -7442,21 +8068,7 @@
   async function activateTicket(params) {
     initTicket();
     await loadTicketContext(params, { loadHistory: true });
-    if (ticketState.ticket && ticketState.id && MineralBarApp.listTicketMessages) {
-      try {
-        var chat = await MineralBarApp.listTicketMessages(ticketState.id);
-        ticketState.history = (chat.rows || []).map(function (row) {
-          return {
-            text: row.text || '',
-            name: row.name || row.who || '',
-            who: row.who || '',
-            time: row.time || ''
-          };
-        });
-      } catch (e) {
-        console.warn('[Ticket] MessagesList failed; keeping ticket history fallback', e);
-      }
-    }
+    // User requirement: chat messages not display in service history
     renderTicket();
   }
 

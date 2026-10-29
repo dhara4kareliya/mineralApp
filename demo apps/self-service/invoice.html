@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Biz1 — Invoice & Payment</title>
 <script src="assets/theme-boot.js"></script>
-<link rel="stylesheet" href="assets/style.css?v=ss-31">
+<link rel="stylesheet" href="assets/style.css?v=ss-36">
 <script src="assets/config.js?v=ss-30"></script>
 <script src="assets/biz1-sdk.js?v=ss-30"></script>
 <script src="assets/biz1-app.js?v=ss-30"></script>
@@ -98,7 +98,7 @@
       </div>
       <div class="amount">
         <div class="amount-label" data-i18n="amountDue">Total amount due</div>
-        <div class="amount-value"><span>$</span><span id="invAmount">0.00</span></div>
+        <div class="amount-value"><span id="invCoin">$</span><span id="invAmount">0.00</span></div>
       </div>
     </section>
 
@@ -174,7 +174,7 @@
             <div id="payFieldsCc" class="pay-fields">
               <div class="field">
                 <label for="cardName" data-i18n="cardName">Name on card</label>
-                <input id="cardName" class="input ds-input" autocomplete="cc-name" placeholder="Alex Morgan" />
+                <input id="cardName" class="input ds-input" autocomplete="cc-name" data-i18n-placeholder="cardNamePlaceholder" placeholder="Alex Morgan" />
               </div>
               <div class="field">
                 <label for="cardNumber" data-i18n="cardNumber">Card number</label>
@@ -191,146 +191,146 @@
                   <input id="cardExp" class="input ds-input input--ltr" autocomplete="cc-exp" placeholder="MM-YYYY" />
                 </div>
                 <div class="field">
-                  <label for="cardCvv">CVV</label>
+                  <label for="cardCvv" data-i18n="cardCvv">CVV</label>
                   <input id="cardCvv" class="input ds-input input--ltr" inputmode="numeric" autocomplete="cc-csc" placeholder="123" />
                 </div>
               </div>
             </div>
 
             <div id="payFieldsCash" class="pay-fields hidden">
-              <p class="payment-intro" style="margin:0;">Cash payment — no extra details required.</p>
+              <p class="payment-intro" style="margin:0;" data-i18n="cashIntro">Cash payment — no extra details required.</p>
             </div>
 
             <div id="payFieldsCheck" class="pay-fields hidden">
               <div class="field-row">
                 <div class="field">
-                  <label for="checkNumber">Check number</label>
+                  <label for="checkNumber" data-i18n="checkNumber">Check number</label>
                   <input id="checkNumber" class="input ds-input input--ltr" />
                 </div>
                 <div class="field">
-                  <label for="checkDate">Date</label>
+                  <label for="checkDate" data-i18n="date">Date</label>
                   <input id="checkDate" type="date" class="input ds-input input--ltr" />
                 </div>
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="checkSumAmount">Sum amount</label>
+                  <label for="checkSumAmount" data-i18n="sumAmount">Sum amount</label>
                   <input id="checkSumAmount" class="input ds-input input--ltr" type="number" step="0.01" min="0" />
                 </div>
                 <div class="field" style="display:flex;align-items:flex-end;padding-bottom:8px;">
                   <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                    <input type="checkbox" id="checkMonthly" /> Monthly payment
+                    <input type="checkbox" id="checkMonthly" /> <span data-i18n="monthlyPayment">Monthly payment</span>
                   </label>
                 </div>
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="checkAddress">Address</label>
+                  <label for="checkAddress" data-i18n="address">Address</label>
                   <input id="checkAddress" class="input ds-input" />
                 </div>
                 <div class="field">
-                  <label for="checkEmail">Email</label>
+                  <label for="checkEmail" data-i18n="email">Email</label>
                   <input id="checkEmail" type="email" class="input ds-input input--ltr" />
                 </div>
               </div>
               <div class="field">
-                <label for="checkTz">TZ</label>
+                <label for="checkTz" data-i18n="idNum">TZ</label>
                 <input id="checkTz" class="input ds-input input--ltr" />
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="checkBank">Bank</label>
-                  <select id="checkBank" class="input ds-input"><option value="">— Bank —</option></select>
+                  <label for="checkBank" data-i18n="bank">Bank</label>
+                  <select id="checkBank" class="input ds-input"><option value="" data-i18n="selectBank">— Bank —</option></select>
                 </div>
                 <div class="field">
-                  <label for="checkAccNumber">Account #</label>
+                  <label for="checkAccNumber" data-i18n="accountNum">Account #</label>
                   <input id="checkAccNumber" class="input ds-input input--ltr" />
                 </div>
               </div>
               <div class="field">
-                <label for="checkBranchNo">Branch #</label>
+                <label for="checkBranchNo" data-i18n="branchNum">Branch #</label>
                 <input id="checkBranchNo" class="input ds-input input--ltr" />
               </div>
             </div>
 
             <div id="payFieldsTransfer" class="pay-fields hidden">
               <div class="field">
-                <label for="transferRef">Bank transfer identification number</label>
+                <label for="transferRef" data-i18n="transferRef">Bank transfer identification number</label>
                 <input id="transferRef" class="input ds-input input--ltr" />
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="transferAcc">Account #</label>
+                  <label for="transferAcc" data-i18n="accountNum">Account #</label>
                   <input id="transferAcc" class="input ds-input input--ltr" />
                 </div>
                 <div class="field">
-                  <label for="transferBranch">Branch #</label>
+                  <label for="transferBranch" data-i18n="branchNum">Branch #</label>
                   <input id="transferBranch" class="input ds-input input--ltr" />
                 </div>
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="transferBank">Bank</label>
-                  <select id="transferBank" class="input ds-input"><option value="">— Bank —</option></select>
+                  <label for="transferBank" data-i18n="bank">Bank</label>
+                  <select id="transferBank" class="input ds-input"><option value="" data-i18n="selectBank">— Bank —</option></select>
                 </div>
                 <div class="field">
-                  <label for="transferDate">Date</label>
+                  <label for="transferDate" data-i18n="date">Date</label>
                   <input id="transferDate" type="date" class="input ds-input input--ltr" />
                 </div>
               </div>
               <div class="field">
-                <label for="transferDeposit">Bank to deposit</label>
-                <input id="transferDeposit" class="input ds-input" placeholder="Company account" />
+                <label for="transferDeposit" data-i18n="bankDeposit">Bank to deposit</label>
+                <input id="transferDeposit" class="input ds-input" data-i18n-placeholder="companyAccount" placeholder="Company account" />
               </div>
             </div>
 
             <div id="payFieldsMasav" class="pay-fields hidden">
               <div class="field-row">
                 <div class="field">
-                  <label for="masavAccNo">Account #</label>
+                  <label for="masavAccNo" data-i18n="accountNum">Account #</label>
                   <input id="masavAccNo" class="input ds-input input--ltr" />
                 </div>
                 <div class="field">
-                  <label for="masavBranch">Branch #</label>
+                  <label for="masavBranch" data-i18n="branchNum">Branch #</label>
                   <input id="masavBranch" class="input ds-input input--ltr" />
                 </div>
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="masavBank">Bank name</label>
-                  <select id="masavBank" class="input ds-input"><option value="">— Bank Name —</option></select>
+                  <label for="masavBank" data-i18n="bankName">Bank name</label>
+                  <select id="masavBank" class="input ds-input"><option value="" data-i18n="selectBank">— Bank Name —</option></select>
                 </div>
                 <div class="field">
-                  <label for="masavAccName">Account name</label>
+                  <label for="masavAccName" data-i18n="accountName">Account name</label>
                   <input id="masavAccName" class="input ds-input" />
                 </div>
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="masavTz">TZ</label>
+                  <label for="masavTz" data-i18n="idNum">TZ</label>
                   <input id="masavTz" class="input ds-input input--ltr" />
                 </div>
                 <div class="field">
-                  <label for="masavPayments">Payments</label>
+                  <label for="masavPayments" data-i18n="paymentsCount">Payments</label>
                   <input id="masavPayments" class="input ds-input input--ltr" type="number" min="1" value="1" />
                 </div>
               </div>
               <div class="field" style="display:flex;gap:16px;flex-wrap:wrap;">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="masavUnlimited" /> Unlimited</label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="masavBiMonthly" /> Bi monthly</label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="masavUnlimited" /> <span data-i18n="unlimited">Unlimited</span></label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="masavBiMonthly" /> <span data-i18n="biMonthly">Bi monthly</span></label>
               </div>
             </div>
 
             <div id="payFieldsBit" class="pay-fields hidden">
               <div class="field">
-                <label for="bitPaymentId">Payment Id</label>
+                <label for="bitPaymentId" data-i18n="paymentId">Payment Id</label>
                 <input id="bitPaymentId" class="input ds-input input--ltr" />
               </div>
             </div>
 
             <div id="payFieldsPayByCredit" class="pay-fields hidden">
               <div class="field">
-                <label for="payByCreditInvoice">Invoice number</label>
+                <label for="payByCreditInvoice" data-i18n="creditInvoiceNum">Invoice number</label>
                 <input id="payByCreditInvoice" class="input ds-input input--ltr" />
               </div>
             </div>
@@ -361,13 +361,7 @@
     </div><!-- /workspace -->
   </div><!-- /inv-scroll -->
 
-  <!-- ── FOOTER ── -->
-  <footer class="inv-footer">
-    <span data-i18n="footerCopy">© 2026 Biz1 Showcase</span>
-    <span><a href="#" id="helpLink" data-i18n="needHelp">Need help?</a> &nbsp;·&nbsp; <span data-i18n="secureCheckout">Secure checkout</span></span>
-  </footer>
-
 </div>
-<script src="assets/app.js?v=ss-31"></script>
+<script src="assets/app.js?v=ss-36"></script>
 </body>
 

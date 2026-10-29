@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script>document.write('<script src="./asset-version.js?_='+Date.now()+'"><\/script>');</script>
+<script>
+mbScripts([
+  './support.js',
+  './biz1-sdk.js',
+  './biz1-app.js',
+  './page-boot.js',
+  './live-sync.js',
+  './i18n-translations.js',
+  './common-header-footer.js'
+]);
+mbCss('./common.css');
+</script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Heebo', sans-serif; -webkit-font-smoothing: antialiased; }
+  input, select, button, textarea { font-family: 'Heebo', sans-serif; }
+  select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237b8595' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-inline-end: 36px !important; }
+  html[dir="rtl"] select { background-position: left 13px center; }
+  html[dir="ltr"] select { background-position: right 13px center; }
+  .select-wrap { position: relative; }
+  .select-wrap select { background-image: none !important; padding-inline-end: 40px !important; }
+  .select-wrap .select-chevron { position: absolute; inset-inline-end: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #7b8595; display: flex; align-items: center; justify-content: center; }
+  .gv-input::placeholder { color: #aab2bf; }
+  .gv-scroll::-webkit-scrollbar { width: 0; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#e6e8ec; display:flex; align-items:flex-start; justify-content:center; padding:26px 16px;">
+<div style="width:412px; max-width:100%; background:#0f1828; border-radius:30px; padding:10px; box-shadow:0 24px 60px rgba(15,24,40,.34);">
+<div style="background:#eef0f3; border-radius:22px; overflow:hidden;">
+<!-- grabber -->
+<div style="display:flex; justify-content:center; padding:9px 0 4px;">
+<div style="width:44px; height:5px; border-radius:99px; background:#c7ccd5;"></div>
+</div>
+<!-- navy header -->
+<div style="background:#16223a; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; border-radius:14px 14px 0 0; margin:0 0 0;">
+<button onclick="{{ onClose }}" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="m15 18-6-6 6-6"></path></svg></button>
+<div style="font-size:19px; font-weight:800; color:#fff;">collection</div>
+<div style="width:34px;"></div>
+</div>
+<div class="gv-scroll" style="background:#fff; max-height:78vh; min-height:520px; overflow-y:auto;">
+<div style="padding:18px 18px 26px;">
+<!-- customer row -->
+<div style="display:flex; align-items:center; gap:11px; justify-content:flex-start; padding-bottom:16px; border-bottom:1px solid #eef1f5;">
+<div style="width:46px; height:46px; border-radius:50%; background:#dbe7f8; color:#2f6aa6; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none;">{{ initials }}</div>
+<div style="flex:1;">
+<div style="font-size:17px; font-weight:800; color:#1f2a3a;">{{ customerName }}</div>
+<div style="font-size:13px; color:#7b8595; margin-top:2px;">Total collection: <span style="color:#2e8a63; font-weight:800;">{{ totalMonthlyText }}</span></div>
+</div>
+</div>
+<div style="margin-top:12px; margin-bottom:2px;">
+<label style="display:block; font-size:12.5px; color:#7b8595; font-weight:600; margin-bottom:6px;">Document for collection</label>
+<div class="select-wrap">
+<select onchange="{{ onDocChange }}" style="width:100%; padding:11px 36px 11px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:14px; color:#1f2a3a; text-align:left; background-color:#fff;" value="{{ selectedDocId }}">
+<sc-for as="d" hint-placeholder-count="3" list="{{ documentOptions }}">
+<option value="{{ d.value }}">{{ d.label }}</option>
+</sc-for>
+</select>
+<span class="select-chevron" aria-hidden="true">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="16">
+<polyline points="6 9 12 15 18 9"></polyline>
+</svg>
+</span>
+</div>
+<div style="margin-top:6px; font-size:12.5px; color:#7b8595;">Final amount: <span style="font-weight:800; color:#2e8a63;">{{ amountText }}</span></div>
+</div>
+<!-- payment method selector -->
+<div style="padding-top:18px;">
+<div style="font-size:13px; color:#7b8595; font-weight:600; margin-bottom:11px;">Payment method <span style="color:#c0392b;">*</span></div>
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+<button onclick="{{ pickStanding }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border-radius:13px; cursor:pointer; background:{{ standingBg }}; border:1.6px solid {{ standingBorder }}; color:{{ standingColor }};">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="22"><path d="M3 9 12 4 21 9"></path><path d="M4 9v9M20 9v9M8 9v7M12 9v7M16 9v7"></path><path d="M3 18h18"></path></svg>
+<span style="font-size:13px; font-weight:700;">Standing order</span>
+</button>
+<button onclick="{{ pickCard }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border-radius:13px; cursor:pointer; background:{{ cardBg }}; border:1.6px solid {{ cardBorder }}; color:{{ cardColor }};">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="22"><rect height="14" rx="2.5" width="19" x="2.5" y="5"></rect><path d="M2.5 9.5h19"></path></svg>
+<span style="font-size:13px; font-weight:700;">credit card</span>
+</button>
+<button onclick="{{ pickTransfer }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border-radius:13px; cursor:pointer; background:{{ transferBg }}; border:1.6px solid {{ transferBorder }}; color:{{ transferColor }};">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="22"><path d="M3 8h13l-3-3M21 16H8l3 3"></path></svg>
+<span style="font-size:13px; font-weight:700;">Bank transfer</span>
+</button>
+<button onclick="{{ pickBit }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border-radius:13px; cursor:pointer; background:{{ bitBg }}; border:1.6px solid {{ bitBorder }}; color:{{ bitColor }};">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="22"><rect height="19" rx="3" width="15" x="4.5" y="2.5"></rect><path d="M9 6h4.5a2.5 2.5 0 0 1 0 5H9zM9 11h5a2.5 2.5 0 0 1 0 5H9zM9 6v10"></path></svg>
+<span style="font-size:13px; font-weight:700;">Bit</span>
+</button>
+<button onclick="{{ pickCheck }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border-radius:13px; cursor:pointer; background:{{ checkBg }}; border:1.6px solid {{ checkBorder }}; color:{{ checkColor }};">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="22"><rect height="12" rx="2" width="17" x="3.5" y="6"></rect><path d="M3.5 10h17"></path><path d="M7 14.5c1.2-1.6 2.2 1.4 3.3 0"></path></svg>
+<span style="font-size:13px; font-weight:700;">Checks</span>
+</button>
+<button onclick="{{ pickCash }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border-radius:13px; cursor:pointer; background:{{ cashBg }}; border:1.6px solid {{ cashBorder }}; color:{{ cashColor }};">
+<svg fill="none" height="22" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="22"><rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect><circle cx="12" cy="12" r="2.4"></circle><path d="M6 10v4M18 10v4"></path></svg>
+<span style="font-size:13px; font-weight:700;">cash</span>
+</button>
+</div>
+</div>
+<!-- entry mode toggle (card / standing) -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showLinkToggle }}">
+<div style="display:flex; gap:0; margin-top:16px; background:#f1f3f6; border-radius:12px; padding:4px;">
+<button onclick="{{ setManual }}" style="flex:1; padding:10px; border:none; border-radius:9px; cursor:pointer; font-size:14px; font-weight:700; background:{{ manualBg }}; color:{{ manualColor }}; box-shadow:{{ manualShadow }}; display:flex; align-items:center; justify-content:center; gap:6px;">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="16"><rect height="14" rx="2" width="16" x="4" y="5"></rect><path d="M8 9h8M8 13h5"></path></svg>
+                Manual feed
+              </button>
+<button onclick="{{ setLink }}" style="flex:1; padding:10px; border:none; border-radius:9px; cursor:pointer; font-size:14px; font-weight:700; background:{{ linkBg }}; color:{{ linkColor }}; box-shadow:{{ linkShadow }}; display:flex; align-items:center; justify-content:center; gap:6px;">
+<svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="16"><path d="M5 12 19 12"></path><path d="M14 7l5 5-5 5"></path></svg>
+                Send a link to the customer
+              </button>
+</div>
+</sc-if>
+<!-- ============ CARD FORM ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showCardForm }}">
+<div style="margin-top:20px;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="18"><rect height="14" rx="2.5" width="19" x="2.5" y="5"></rect><path d="M2.5 9.5h19"></path></svg>
+                Credit card details
+              </div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">card number</label>
+<input class="gv-input" placeholder="0000 0000 0000 0000" value="{{ cardNumber }}" oninput="{{ onCardNumber }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; letter-spacing:2px;"/>
+</div>
+<div style="display:flex; gap:12px; margin-bottom:15px;">
+<div style="flex:1;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">validity</label>
+<input class="gv-input" placeholder="MM/YY" value="{{ cardExpiry }}" oninput="{{ onCardExpiry }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">CVV</label>
+<input class="gv-input" placeholder="•••" value="{{ cardCvv }}" oninput="{{ onCardCvv }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:center;"/>
+</div>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Name of the cardholder</label>
+<input class="gv-input" placeholder="as shown on the card" value="{{ cardHolder }}" oninput="{{ onCardHolder }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;"/>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">T.Z. the cardholder <span style="color:#c0392b;">*</span></label>
+<input id="mb-card-tz" class="gv-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12" placeholder="ID number (digits)" value="{{ cardTz }}" oninput="{{ onCardTz }}" onchange="{{ onCardTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#fff;"/>
+</div>
+<div style="margin-bottom:6px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">number of payments <span style="color:#c0392b;">*</span></label>
+<select value="{{ installments }}" onchange="{{ onInstallments }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="1">One payment</option>
+<option value="2">2 payments</option>
+<option value="3">3 payments</option>
+<option value="6">6 payments</option>
+<option value="12">12 payments</option>
+</select>
+</div>
+<div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
+<svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
+                Secure through Patch — PCI Compliant
+              </div>
+</div>
+</sc-if>
+<!-- ============ STANDING ORDER FORM ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showStandingForm }}">
+<div style="margin-top:20px;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="18"><path d="M3 9 12 4 21 9"></path><path d="M4 9v9M20 9v9M8 9v7M12 9v7M16 9v7"></path><path d="M3 18h18"></path></svg>
+                Account debit authorization
+              </div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">bank <span style="color:#c0392b;">*</span></label>
+<select value="{{ standingBank }}" onchange="{{ onStandingBank }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="">{{ bankPlaceholder }}</option>
+<sc-for as="b" hint-placeholder-count="8" list="{{ bankOptions }}">
+<option value="{{ b.value }}">{{ b.label }}</option>
+</sc-for>
+</select>
+</div>
+<div style="display:flex; gap:12px; margin-bottom:15px;">
+<div style="flex:1;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">branch <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onStandingBranch }}" placeholder="Branch number" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;" value="{{ standingBranch }}"/>
+</div>
+<div style="flex:1.4;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Account number <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onStandingAccNo }}" placeholder="Account number" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;" value="{{ standingAccNo }}"/>
+</div>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Name of the account holder <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onStandingAccName }}" placeholder="as shown in the bank" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;" value="{{ standingAccName }}"/>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">T.Z. the account holder <span style="color:#c0392b;">*</span></label>
+<input id="mb-standing-tz" class="gv-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12" placeholder="ID number (digits)" oninput="{{ onStandingTz }}" onchange="{{ onStandingTz }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#fff;" value="{{ standingTz }}"/>
+</div>
+<div style="display:flex; gap:12px; margin-bottom:16px;">
+<div style="flex:1;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Billing day per month</label>
+<select value="{{ standingBillingDay }}" onchange="{{ onStandingBillingDay }}" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="1">The 1st of the month</option>
+<option value="10">The 10th of the month</option>
+<option value="15">The 15th of the month</option>
+</select>
+</div>
+<div style="flex:1;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">monthly amount</label>
+<input readonly="" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#2e8a63; font-weight:800; text-align:left; background:#eaf7ef;" value="{{ amountText }}"/>
+</div>
+</div>
+<div style="background:#fdf6e8; border:1px solid #f2e2bd; border-radius:12px; padding:13px 14px; display:flex; gap:11px; align-items:flex-start;">
+<div style="width:22px; height:22px; border-radius:6px; border:1.6px solid #c99a3a; background:#fff; flex:none; display:flex; align-items:center; justify-content:center; color:#c99a3a; font-weight:800; font-size:14px;">?</div>
+<div>
+<div style="font-size:14px; font-weight:700; color:#1f2a3a;">Account debit authorization</div>
+<div style="font-size:12.5px; color:#9a7d3a; margin-top:2px; line-height:1.5;">The customer approves a fixed monthly charge of {{ amountText }} until further notice</div>
+</div>
+</div>
+<div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
+<svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
+                Secure digital authorization · Can be revoked at any time
+              </div>
+</div>
+</sc-if>
+<!-- ============ CASH FORM ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showCashForm }}">
+<div style="margin-top:20px;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+<svg fill="none" height="18" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="18"><rect height="11" rx="2" width="19" x="2.5" y="6.5"></rect><circle cx="12" cy="12" r="2.4"></circle><path d="M6 10v4M18 10v4"></path></svg>
+                Cash payment
+              </div>
+<div style="background:#f6f8fa; border-radius:12px; padding:13px 15px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+<span style="font-size:14px; color:#7b8595; font-weight:600;">collection amount</span>
+<span style="font-size:18px; color:#2e8a63; font-weight:800;">{{ amountText }}</span>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Payment date <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ onCashDate }}" type="date" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; font-weight:700; color:#1f2a3a; text-align:start; background:#fff;" value="{{ cashPaymentDate }}"/>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount received <span style="color:#c0392b;">*</span></label>
+<div style="position:relative;">
+<input class="gv-input" inputmode="numeric" oninput="{{ onCash }}" placeholder="0" style="width:100%; padding:12px 13px; padding-inline-end:36px; border:1.5px solid #dde2ea; border-radius:11px; font-size:16px; font-weight:700; color:#1f2a3a; text-align:start;" value="{{ cashReceived }}"/>
+<span style="position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
+</div>
+</div>
+<sc-if hint-placeholder-val="{{ true }}" value="{{ changeShow }}">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-radius:10px; background:{{ changeBg }}; margin-bottom:15px;">
+<span style="font-size:13.5px; font-weight:700; color:{{ changeColor }}; flex-shrink:0;">{{ changeLabel }}</span>
+<span style="font-size:15px; font-weight:800; color:{{ changeColor }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; text-align:end;">{{ changeAmount }}</span>
+</div>
+</sc-if>
+<div style="margin-bottom:14px;">
+<div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Internal payment notes</div>
+<textarea oninput="{{ onNoteInternal }}" placeholder="Note" value="{{ noteInternal }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
+</div>
+<div style="margin-bottom:14px;">
+<div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Notes For Header</div>
+<textarea oninput="{{ onNoteHeader }}" placeholder="Note" value="{{ noteHeader }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
+</div>
+<div style="margin-bottom:12px;">
+<div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Notes For Footer</div>
+<textarea oninput="{{ onNoteFooter }}" placeholder="Note" value="{{ noteFooter }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
+</div>
+<div style="display:flex; gap:12px; align-items:center; margin-bottom:14px; font-size:12.5px; color:#5f6978;">
+<label style="display:flex; align-items:center; gap:5px;"><input onchange="{{ onSendMail }}" type="checkbox" checked="{{ sendMail }}"/>Send by mail</label>
+<label style="display:flex; align-items:center; gap:5px;"><input onchange="{{ onSendWhatsapp }}" type="checkbox" checked="{{ sendWhatsapp }}"/>Send by whatsapp</label>
+</div>
+<div style="background:#f8fafc; border:1px solid #e6ebf1; border-radius:12px; padding:12px;">
+<div style="font-size:16px; font-weight:800; color:#2f5ea4; margin-bottom:9px;">Receipt Details</div>
+<div style="font-size:13px; color:#1f2a3a; font-weight:700;">password</div>
+<div style="font-size:14px; color:#8a93a3; margin-bottom:8px;">000000</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 12px;">
+<div><div style="font-size:12px; color:#7b8595;">Client name</div><div style="font-size:14px; color:#1f2a3a; font-weight:700;">{{ customerName }}</div></div>
+<div><div style="font-size:12px; color:#7b8595;">Email</div><div style="font-size:14px; color:#1f2a3a; font-weight:700;">{{ customerEmail }}</div></div>
+<div><div style="font-size:12px; color:#7b8595;">Mobile</div><div style="font-size:14px; color:#1f2a3a; font-weight:700;">{{ customerPhone }}</div></div>
+<div><div style="font-size:12px; color:#7b8595;">phone</div><div style="font-size:14px; color:#1f2a3a; font-weight:700;">{{ customerPhone }}</div></div>
+<div><div style="font-size:12px; color:#7b8595;">#Company ID</div><div style="font-size:14px; color:#1f2a3a; font-weight:700;">{{ companyId }}</div></div>
+<div><div style="font-size:12px; color:#7b8595;">Address</div><div style="font-size:14px; color:#1f2a3a; font-weight:700;">{{ customerAddress }}</div></div>
+</div>
+</div>
+</div>
+</sc-if>
+<!-- ============ CHECKS FORM ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showCheckForm }}">
+<div style="margin-top:20px;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="18"><rect height="12" rx="2" width="17" x="3.5" y="6"></rect><path d="M3.5 10h17"></path><path d="M7 14.5c1.2-1.6 2.2 1.4 3.3 0"></path></svg>
+                Details of checks
+              </div>
+<sc-for as="chk" hint-placeholder-count="1" list="{{ checks }}">
+<div style="border:1.5px solid #e4e8ee; border-radius:14px; padding:14px; margin-bottom:13px;">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:13px;">
+<div style="font-size:14px; font-weight:800; color:#1f2a3a;">check {{ chk.num }}</div>
+<button onclick="{{ chk.remove }}" style="width:26px; height:26px; border-radius:50%; border:none; background:#f4f0f0; color:#c0392b; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;">?</button>
+</div>
+<div style="margin-bottom:12px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">bank <span style="color:#c0392b;">*</span></label>
+<select value="{{ chk.bank }}" onchange="{{ chk.onBank }}" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left; background-color:#fff;">
+<option value="">{{ bankPlaceholder }}</option>
+<sc-for as="b" hint-placeholder-count="8" list="{{ bankOptions }}">
+<option value="{{ b.value }}">{{ b.label }}</option>
+</sc-for>
+</select>
+</div>
+<div style="display:flex; gap:10px; margin-bottom:12px;">
+<div style="flex:1;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">branch <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onBranch }}" placeholder="branch" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;" value="{{ chk.branch }}"/>
+</div>
+<div style="flex:1.3;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Account number <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onAccount }}" placeholder="Account number" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;" value="{{ chk.account }}"/>
+</div>
+</div>
+<div style="display:flex; gap:10px; margin-bottom:12px;">
+<div style="flex:1;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Check No <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onNumber }}" placeholder="number" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:left;" value="{{ chk.number }}"/>
+</div>
+<div style="flex:1.3;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Maturity date <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" oninput="{{ chk.onDate }}" type="date" style="width:100%; padding:11px 13px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; color:#1f2a3a; text-align:center;" value="{{ chk.date }}"/>
+</div>
+</div>
+<div>
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">amount <span style="color:#c0392b;">*</span></label>
+<div style="position:relative;">
+<input class="gv-input" inputmode="numeric" oninput="{{ chk.onAmount }}" placeholder="0" style="width:100%; padding:11px 13px; padding-inline-end:34px; border:1.5px solid #dde2ea; border-radius:10px; font-size:14.5px; font-weight:700; color:#1f2a3a; text-align:start;" value="{{ chk.amount }}"/>
+<span style="position:absolute; inset-inline-end:13px; top:50%; transform:translateY(-50%); color:#8a93a3; font-weight:700; pointer-events:none;">₪</span>
+</div>
+</div>
+</div>
+</sc-for>
+<button onclick="{{ addCheck }}" style="width:100%; padding:13px; border:1.5px dashed #aebfd6; border-radius:12px; background:#f4f8fd; color:#1d60a2; font-size:14.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;">
+<span style="font-size:18px; line-height:1;">+</span> Add another check
+              </button>
+<div style="display:flex; align-items:center; justify-content:space-between; background:#f6f8fa; border-radius:12px; padding:13px 15px; margin-top:14px;">
+<span style="font-size:14px; color:#7b8595; font-weight:600;">{{ checkCountLabel }}</span>
+<span style="font-size:14px; color:#2e8a63; font-weight:800;">Total collection: {{ amountText }}</span>
+</div>
+<div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
+<svg fill="none" height="14" stroke="#c99a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+                Make sure all checks are signed and in good order before depositing
+              </div>
+</div>
+</sc-if>
+<!-- ============ BANK TRANSFER FORM ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showTransferForm }}">
+<div style="margin-top:20px;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="18"><path d="M3 8h13l-3-3M21 16H8l3 3"></path></svg>
+                Account details for credit
+              </div>
+<div style="background:#f6f8fa; border-radius:12px; padding:13px 15px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+<span style="font-size:14px; color:#7b8595; font-weight:600;">Amount to be transferred</span>
+<span style="font-size:18px; color:#2e8a63; font-weight:800;">{{ amountText }}</span>
+</div>
+<div style="background:#eef4fb; border:1px solid #d4e3f4; border-radius:13px; padding:14px; margin-bottom:16px;">
+<div style="font-size:13px; color:#4a7bad; font-weight:700; margin-bottom:11px;">Transfer to the water bar account:</div>
+<div style="display:flex; flex-direction:column; gap:9px;">
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">Bank Hapoalim (12)</span>
+<span style="font-size:12.5px; color:#7b8595;">bank</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">632</span>
+<span style="font-size:12.5px; color:#7b8595;">branch</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">12-458-390021</span>
+<span style="font-size:12.5px; color:#7b8595;">invoice</span>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<span style="font-size:14px; font-weight:700; color:#1f2a3a;">Mineral Bar Ltd</span>
+<span style="font-size:12.5px; color:#7b8595;">better</span>
+</div>
+</div>
+<button style="width:100%; margin-top:13px; padding:11px; border:1.4px solid #1d60a2; border-radius:11px; background:#fff; color:#1d60a2; font-size:13.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;">
+<svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="15"><rect height="11" rx="2" width="11" x="9" y="9"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copy account details
+                </button>
+</div>
+<div style="margin-bottom:15px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">Reference / transfer number <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" placeholder="Enter a reference number" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left;"/>
+</div>
+<div style="margin-bottom:16px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">date of transfer</label>
+<input readonly="" style="width:100%; padding:12px 13px; border:1.5px solid #dde2ea; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#f6f8fa;" value="{{ currentDate }}"/>
+</div>
+<div style="background:#fdf6e8; border:1px solid #f2e2bd; border-radius:12px; padding:13px 14px; display:flex; gap:11px; align-items:flex-start;">
+<div style="width:22px; height:22px; border-radius:6px; border:1.6px solid #c99a3a; background:#fff; flex:none; display:flex; align-items:center; justify-content:center; color:#c99a3a; font-weight:800; font-size:14px;">?</div>
+<div>
+<div style="font-size:14px; font-weight:700; color:#1f2a3a;">Mark as "awaiting verification"</div>
+<div style="font-size:12.5px; color:#9a7d3a; margin-top:2px; line-height:1.5;">The collection will be finally approved after the transfer is recognized in the account</div>
+</div>
+</div>
+<div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
+<svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
+                You can send the account details to the customer on WhatsApp
+              </div>
+</div>
+</sc-if>
+<!-- ============ BIT FORM ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showBitForm }}">
+<div style="margin-top:20px;">
+<div style="font-size:15px; font-weight:800; color:#1f2a3a; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+<svg fill="none" height="18" stroke="#1d60a2" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24" width="18"><rect height="19" rx="3" width="15" x="4.5" y="2.5"></rect><path d="M9 6h4.5a2.5 2.5 0 0 1 0 5H9zM9 11h5a2.5 2.5 0 0 1 0 5H9zM9 6v10"></path></svg>
+                Payment in Bit
+              </div>
+<div style="background:#f6f8fa; border-radius:12px; padding:13px 15px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+<span style="font-size:14px; color:#7b8595; font-weight:600;">Amount to be paid</span>
+<span style="font-size:18px; color:#2e8a63; font-weight:800;">{{ amountText }}</span>
+</div>
+<div style="margin-bottom:16px;">
+<label style="display:block; font-size:13px; color:#7b8595; font-weight:600; margin-bottom:7px;">The customer's phone number for a payment request <span style="color:#c0392b;">*</span></label>
+<input class="gv-input" inputmode="tel" style="width:100%; padding:12px 13px; border:1.5px solid #b9e2cb; border-radius:11px; font-size:15px; color:#1f2a3a; text-align:left; background:#eaf7ef;" value="{{ customerPhone }}"/>
+</div>
+<div style="text-align:center; background:#faf6ff; border:1px solid #ead9fb; border-radius:14px; padding:18px 14px; margin-bottom:14px;">
+<div style="width:148px; height:148px; margin:0 auto 12px; border-radius:14px; background:#fff; border:1px solid #ece3f6; display:flex; align-items:center; justify-content:center;">
+<svg height="118" shape-rendering="crispEdges" viewbox="0 0 116 116" width="118"><rect fill="#fff" height="116" width="116"></rect><g fill="#2a2150"><rect height="28" width="28" x="8" y="8"></rect><rect fill="#fff" height="16" width="16" x="14" y="14"></rect><rect height="8" width="8" x="18" y="18"></rect><rect height="28" width="28" x="80" y="8"></rect><rect fill="#fff" height="16" width="16" x="86" y="14"></rect><rect height="8" width="8" x="90" y="18"></rect><rect height="28" width="28" x="8" y="80"></rect><rect fill="#fff" height="16" width="16" x="14" y="86"></rect><rect height="8" width="8" x="18" y="90"></rect><rect height="8" width="8" x="44" y="8"></rect><rect height="8" width="8" x="60" y="8"></rect><rect height="8" width="8" x="44" y="20"></rect><rect height="8" width="8" x="56" y="16"></rect><rect height="8" width="8" x="68" y="20"></rect><rect height="8" width="8" x="44" y="44"></rect><rect height="8" width="8" x="56" y="44"></rect><rect height="8" width="8" x="68" y="48"></rect><rect height="8" width="8" x="80" y="44"></rect><rect height="8" width="8" x="96" y="44"></rect><rect height="8" width="8" x="44" y="56"></rect><rect height="8" width="8" x="60" y="60"></rect><rect height="8" width="8" x="80" y="60"></rect><rect height="8" width="8" x="100" y="56"></rect><rect height="8" width="8" x="44" y="68"></rect><rect height="8" width="8" x="56" y="72"></rect><rect height="8" width="8" x="72" y="68"></rect><rect height="8" width="8" x="88" y="72"></rect><rect height="8" width="8" x="100" y="68"></rect><rect height="8" width="8" x="48" y="84"></rect><rect height="8" width="8" x="64" y="84"></rect><rect height="8" width="8" x="80" y="84"></rect><rect height="8" width="8" x="96" y="84"></rect><rect height="8" width="8" x="44" y="96"></rect><rect height="8" width="8" x="60" y="100"></rect><rect height="8" width="8" x="76" y="96"></rect><rect height="8" width="8" x="92" y="100"></rect><rect height="8" width="8" x="104" y="96"></rect></g></svg>
+</div>
+<div style="font-size:13.5px; color:#6a4f8f; font-weight:700;">Scan the code in the Bit app</div>
+<div style="font-size:12px; color:#9a86b8; margin-top:3px;">Or send a payment request directly to the phone</div>
+</div>
+<button style="width:100%; padding:14px; border:none; border-radius:13px; background:#5b2b8a; color:#fff; font-size:15px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M5 12 19 12"></path><path d="M14 7l5 5-5 5"></path></svg>
+                Submit a payment request in Bit
+              </button>
+<div style="display:flex; align-items:center; gap:6px; color:#8a93a3; font-size:12.5px; margin-top:14px; justify-content:flex-start;">
+<svg fill="none" height="14" stroke="#6aa888" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="14"><path d="M12 3 5 6v5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6z"></path></svg>
+                The collection confirmation will be updated automatically when the payment is completed
+              </div>
+</div>
+</sc-if>
+<!-- ============ LINK PREVIEW (card / standing) ============ -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showPreview }}">
+<div style="margin-top:20px;">
+<div style="font-size:13px; color:#7b8595; font-weight:600; margin-bottom:9px; display:flex; align-items:center; gap:7px;">
+<svg fill="none" height="15" stroke="#7b8595" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="15"><path d="M21 11.5a8.4 8.4 0 0 1-1.1 4.2A8.5 8.5 0 0 1 8.5 19L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"></path></svg>
+                Preview
+              </div>
+<div style="background:#f6f8fa; border:1px solid #e8ebef; border-radius:14px; padding:14px;">
+<div style="background:#fff; border-radius:11px; padding:13px 14px; box-shadow:0 1px 3px rgba(0,0,0,.05); line-height:1.6; font-size:14px; color:#1f2a3a;">
+                  Hello {{ firstName }} ??<br/>
+                  Thank you for signing the quote!<br/>
+                  Click to enter secure payment details:<br/>
+<span style="color:#1d60a2; font-weight:700;">{{ paymentLink }}</span>
+<div style="display:flex; align-items:center; gap:5px; color:#8a93a3; font-size:12px; margin-top:8px;">
+<svg fill="none" height="12" stroke="#c99a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="12"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+                    Secure — Validity: 48 hours
+                  </div>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between; margin-top:13px;">
+<span style="font-size:13.5px; color:#7b8595; font-weight:600;">number of payments</span>
+<select onchange="{{ onInstallments }}" style="padding:8px 32px 8px 14px; border:1.5px solid #dde2ea; border-radius:10px; background-color:#fff; font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:left;" value="{{ installments }}">
+<option value="1">One payment</option>
+<option value="2">2 payments</option>
+<option value="3">3 payments</option>
+<option value="4">4 payments</option>
+<option value="5">5 payments</option>
+<option value="6">6 payments</option>
+<option value="7">7 payments</option>
+<option value="8">8 payments</option>
+<option value="9">9 payments</option>
+<option value="10">10 payments</option>
+<option value="11">11 payments</option>
+<option value="12">12 payments</option>
+</select>
+</div>
+</div>
+<button type="button" onclick="{{ onSendWaLink }}" style="width:100%; margin-top:13px; padding:14px; border:none; border-radius:13px; background:#25b35e; color:#fff; font-size:15.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+<svg fill="none" height="18" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M21 11.5a8.4 8.4 0 0 1-1.1 4.2A8.5 8.5 0 0 1 8.5 19L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"></path></svg>
+                Send on WhatsApp
+              </button>
+<button type="button" onclick="{{ onSendSmsLink }}" style="width:100%; margin-top:9px; padding:13px; border:1.5px solid #dde2ea; border-radius:13px; background:#fff; color:#1f2a3a; font-size:14.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+<svg fill="none" height="17" stroke="#1f2a3a" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24" width="17"><path d="M21 11.5a8.4 8.4 0 0 1-1.1 4.2A8.5 8.5 0 0 1 8.5 19L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"></path></svg>
+                Send by SMS
+              </button>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ linkStatusMsg }}">
+<div style="margin-top:10px; font-size:12.5px; color:#6f7786; text-align:center;">{{ linkStatusMsg }}</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+<!-- submit -->
+<sc-if hint-placeholder-val="{{ true }}" value="{{ showSubmit }}">
+<div style="position:sticky; bottom:0; background:linear-gradient(to top, #fff 72%, rgba(255,255,255,0)); padding:14px 18px 20px;">
+<button onclick="{{ onSubmit }}" disabled="{{ busy }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:linear-gradient(#33a571,#2c8a60); color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(44,138,96,.32); opacity:{{ submitOpacity }};">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><rect height="11" rx="2" width="16" x="4" y="10"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+              {{ submitLabel }}
+            </button>
+<sc-if hint-placeholder-val="{{ false }}" value="{{ statusMsg }}">
+<div style="margin-top:10px; font-size:12.5px; color:#6f7786; text-align:center;">{{ statusMsg }}</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script="" data-props='{"$preview": {"width": 444, "height": 940}}' type="text/x-dc">
+class Component extends DCLogic {
+  state = {
+    method: 'standing',
+    entry: 'manual',
+    checks: [{ id: 1, bank: '', branch: '', account: '', number: '', date: '', amount: '' }],
+    cashReceived: '',
+    cashPaymentDate: '',
+    installments: '1',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardHolder: '',
+    cardTz: '',
+    standingBank: '',
+    standingBranch: '',
+    standingAccNo: '',
+    standingAccName: '',
+    standingTz: '',
+    standingBillingDay: '1',
+    banks: [],
+    docs: [],
+    selectedDocId: '',
+    customerName: 'Customer',
+    customerPhone: '',
+    customerEmail: '',
+    customerAddress: '',
+    companyId: '',
+    customerCorporation: '',
+    invoiceSettingId: '',
+    paymentDetailId: '',
+    amount: 0,
+    currentDate: '',
+    statusMsg: '',
+    noteInternal: '',
+    noteHeader: '',
+    noteFooter: '',
+    sendMail: false,
+    sendWhatsapp: false,
+    busy: false
+  };
+
+  componentDidMount() {
+    this.loadData();
+    window.addEventListener('mineralbar:ready', () => this.loadData());
+    if (window.LiveSync && typeof LiveSync.bind === 'function') {
+      LiveSync.bind(() => this.loadData({ silent: true }), { retries: true, keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
+    } else if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
+      MineralBarApp.bindLiveReload(() => this.loadData({ silent: true }), { keys: /document|payment|customer|socket\.nudge/i, delay: 400 });
+    }
+    window.addEventListener('mineralbar:page-refresh', () => this.loadData({ silent: true }));
+  }
+
+  getCustomerId() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var id = p.get('customer_id') || p.get('cust_id') || p.get('id') || '';
+      if (!id) id = sessionStorage.getItem('mb_customer_id') || localStorage.getItem('mb_customer_id') || '';
+      return String(id || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  fmtAmount(v) {
+    var n = Number(v);
+    if (Number.isNaN(n)) n = 0;
+    var rounded = Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100;
+    if (Math.abs(rounded - Math.round(rounded)) < 0.001) return Math.round(rounded) + '₪';
+    return rounded.toFixed(2) + '₪';
+  }
+
+  /** Documents.Add expects month_year like 12-2028; accept MM/YY or MM/YYYY. */
+  normalizeCardExp(exp) {
+    var raw = String(exp || '').trim().replace(/\s+/g, '');
+    var m = raw.match(/^(\d{1,2})[\/\-](\d{2}|\d{4})$/);
+    if (!m) return raw;
+    var mm = m[1].length === 1 ? '0' + m[1] : m[1];
+    var year = m[2].length === 4 ? m[2] : ('20' + m[2]);
+    return mm + '-' + year;
+  }
+
+  mapPaymentMethod(uiMethod) {
+    var map = {
+      cash: 'cash',
+      card: 'cc',
+      check: 'check',
+      transfer: 'transference',
+      masav: 'masav',
+      bit: 'others',
+      // Standing order (הוראת קבע) = masav bank debit — not cc / standing_order.
+      standing: 'masav'
+    };
+    return map[uiMethod] || 'cash';
+  }
+
+  preferHeBanks() {
+    try {
+      var dir = String(document.documentElement.getAttribute('dir') || '').toLowerCase();
+      if (dir === 'rtl') return true;
+      var lang = String(document.documentElement.getAttribute('lang') || localStorage.getItem('mb_lang') || '').toLowerCase();
+      return lang.indexOf('he') === 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  bankOptionsList() {
+    var preferHe = this.preferHeBanks();
+    var rows = Array.isArray(this.state.banks) ? this.state.banks : [];
+    return rows.map(function (b) {
+      var code = String((b && b.code) || '').trim();
+      var id = String((b && b.id) || '').trim();
+      // Documents.Add masav expects Banks.List id (dashboard dropdown value).
+      var value = id || code;
+      var label = '';
+      if (window.MineralBarApp && typeof MineralBarApp.bankDisplayLabel === 'function') {
+        label = MineralBarApp.bankDisplayLabel(b, preferHe);
+      } else if (preferHe) {
+        label = (b && (b.labelHe || b.label_he || b.labelEn || b.label)) || value;
+      } else {
+        label = (b && (b.labelEn || b.label || b.labelHe || b.label_he)) || value;
+      }
+      return { value: value, id: id, code: code, label: label };
+    }).filter(function (o) { return !!o.value; });
+  }
+
+  /** Resolve selected bank value to Banks.List id (accepts id or clearing code). */
+  resolveBankId(selected) {
+    var s = String(selected || '').trim();
+    if (!s) return '';
+    var rows = Array.isArray(this.state.banks) ? this.state.banks : [];
+    for (var i = 0; i < rows.length; i++) {
+      var b = rows[i] || {};
+      var id = String(b.id || '').trim();
+      var code = String(b.code || '').trim();
+      if (s === id || s === code) return id || code || s;
+    }
+    return s;
+  }
+
+  async loadBanks() {
+    if (!window.MineralBarApp || typeof MineralBarApp.listBanks !== 'function') return;
+    try {
+      var res = await MineralBarApp.listBanks({ limit: 100 });
+      var banks = (res && res.banks) || [];
+      this.setState({ banks: banks });
+    } catch (e) {
+      console.warn('[collection] Banks.List failed', e);
+    }
+  }
+
+  async loadInvoiceSettingId() {
+    if (this.state.invoiceSettingId) return this.state.invoiceSettingId;
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return '';
+    try {
+      var client = MineralBarApp.getClient();
+      var coRes = await client.request('InvoiceSettings.List', { limit: 25 });
+      var coData = coRes && (coRes.data || coRes.output || coRes);
+      var coRows = Array.isArray(coData) ? coData : ((coData && (coData.rows || coData.list)) || []);
+      var co = null;
+      if (coRows && coRows.length) {
+        co = coRows.find(function (r) {
+          return r && (r.is_default || Number(r.default_settings) === 1 || Number(r.is_default) === 1);
+        }) || coRows[0];
+      }
+      var id = co ? String(co.id || co.invoice_setting_id || co.invoice_settings_id || '').trim() : '';
+      if (id) this.setState({ invoiceSettingId: id });
+      return id;
+    } catch (e) {
+      console.warn('[collection] InvoiceSettings.List failed', e);
+      return '';
+    }
+  }
+
+  attachStandingPaymentFields(payload) {
+    var bank = this.resolveBankId(this.state.standingBank);
+    var branch = String(this.state.standingBranch || '').trim();
+    var accNo = String(this.state.standingAccNo || '').trim();
+    var accName = String(this.state.standingAccName || '').trim();
+    var tzEl = typeof document !== 'undefined' ? document.getElementById('mb-standing-tz') : null;
+    var tzDom = tzEl && tzEl.value != null ? String(tzEl.value) : '';
+    var tz = String(this.state.standingTz || tzDom || '').replace(/\D/g, '');
+    var billingDay = String(this.state.standingBillingDay || '1').trim() || '1';
+    var amount = Number(payload.final_amount || this.state.amount || 0);
+    if (tz && tz !== String(this.state.standingTz || '')) {
+      this.setState({ standingTz: tz });
+    }
+    if (!bank) throw new Error('Bank is required');
+    if (!branch) throw new Error('Branch is required');
+    if (!accNo) throw new Error('Account number is required');
+    if (!accName) throw new Error('Account holder name is required');
+    if (!tz) throw new Error('Account holder ID (TZ) is required');
+    // Documents.Add standing (הוראת קבע) = payment_method=masav.
+    // Nest masav fields in multiple_receipt_detail — top-level bank/branch_no/acc_no/
+    // acc_name/tz are rejected as unknown_parameter on this API.
+    // Do not send c_type_pay=standing_order (that is credit-card standing).
+    // Do not send billing_day (unknown); use one_day_month.
+    payload.payment_method = 'masav';
+    payload.call_multi_receipt_fun = 1;
+    payload.c_type_pay = 'regular';
+    payload.multiple_receipt_detail = JSON.stringify([{
+      payment_method: 'masav',
+      pay_amount: amount,
+      payment_date: payload.payment_date || '',
+      masav_id: 0,
+      bank: bank,
+      branch_no: branch,
+      acc_no: accNo,
+      acc_name: accName,
+      tz: tz,
+      no_of_payment: 1,
+      unlimited: 0,
+      bi_monthly: 0,
+      one_day_month: billingDay
+    }]);
+    // Documents.Add: "Company id is required" → corporation (customer tax/TZ).
+    this.attachDocumentCompanyFields(payload, tz);
+    return payload;
+  }
+
+  normalizeCheckDate(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return '';
+    var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return iso[0];
+    var dmy = s.match(/^(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2}|\d{4})$/);
+    if (dmy) {
+      var dd = dmy[1].length === 1 ? '0' + dmy[1] : dmy[1];
+      var mm = dmy[2].length === 1 ? '0' + dmy[2] : dmy[2];
+      var yy = dmy[3].length === 2 ? '20' + dmy[3] : dmy[3];
+      return yy + '-' + mm + '-' + dd;
+    }
+    return s;
+  }
+
+  attachCheckPaymentFields(payload, amount) {
+    var self = this;
+    var checks = Array.isArray(this.state.checks) ? this.state.checks : [];
+    if (!checks.length) throw new Error('At least one check is required');
+    // Documents.Add rejects top-level check_* (unknown_parameter). Put method fields
+    // inside multiple_receipt_detail. Prefer parallel arrays (dashboard/PHP form shape);
+    // indexed "0" rows were accepted but validated against pay_amount=0.
+    var numbers = [];
+    var dates = [];
+    var sums = [];
+    var banks = [];
+    var accounts = [];
+    var branches = [];
+    var payTotal = 0;
+    checks.forEach(function (chk) {
+      var bank = self.resolveBankId(chk && chk.bank);
+      var branch = String((chk && chk.branch) || '').trim();
+      var account = String((chk && chk.account) || '').trim();
+      var number = String((chk && chk.number) || '').trim();
+      var date = self.normalizeCheckDate(chk && chk.date);
+      var sum = String((chk && chk.amount) != null ? chk.amount : '').replace(/[^0-9.]/g, '');
+      if (!sum && checks.length === 1 && amount > 0) sum = String(amount);
+      if (!bank) throw new Error('Check bank is required');
+      if (!branch) throw new Error('Check branch is required');
+      if (!account) throw new Error('Check account number is required');
+      if (!number) throw new Error('Check number is required');
+      if (!date) throw new Error('Check date is required');
+      if (!(Number(sum) > 0)) throw new Error('Check amount is required');
+      payTotal += Number(sum) || 0;
+      numbers.push(number);
+      dates.push(date);
+      sums.push(sum);
+      banks.push(bank);
+      accounts.push(account);
+      branches.push(branch);
+    });
+    if (!(payTotal > 0)) throw new Error('Check amount is required');
+    var block = {
+      payment_method: 'check',
+      pay_amount: payTotal,
+      check_number: numbers.length === 1 ? numbers[0] : numbers,
+      check_date: dates.length === 1 ? dates[0] : dates,
+      check_sumamount: sums.length === 1 ? sums[0] : sums,
+      check_bank_details: banks.length === 1 ? banks[0] : banks,
+      check_acc_number: accounts.length === 1 ? accounts[0] : accounts,
+      check_branch_no: branches.length === 1 ? branches[0] : branches
+    };
+    // Omit top-level payment_method when multiple_receipt_detail carries the loop.
+    // Do not send payment_amount (unknown_parameter on Documents.Add).
+    delete payload.payment_method;
+    payload.call_multi_receipt_fun = 1;
+    payload.final_amount = payTotal;
+    payload.multiple_receipt_detail = JSON.stringify([block]);
+    return payload;
+  }
+
+  attachCardPaymentFields(payload) {
+    var cardNo = String(this.state.cardNumber || '').replace(/\D/g, '');
+    var cardName = String(this.state.cardHolder || '').trim();
+    var monthYear = this.normalizeCardExp(this.state.cardExpiry);
+    var cvc = String(this.state.cardCvv || '').replace(/\D/g, '');
+    var tz = String(this.state.cardTz || '').replace(/\D/g, '');
+    if (!cardNo || cardNo.length < 12) throw new Error('Card number is required');
+    if (!monthYear) throw new Error('Card expiry is required');
+    if (!cvc) throw new Error('CVV is required');
+    if (!cardName) throw new Error('Cardholder name is required');
+    payload.payment_method = 'cc';
+    payload.card_no = cardNo;
+    payload.card_name = cardName;
+    payload.month_year = monthYear;
+    payload.cvc = cvc;
+    if (tz) payload.corporation = tz;
+    return payload;
+  }
+
+  /** Customer tax / Company id for Documents.Add (Invoice Israel / company settings). */
+  resolveCorporation(preferred) {
+    var fromPref = String(preferred || '').replace(/\D/g, '');
+    if (fromPref) return fromPref;
+    var fromState = String(this.state.customerCorporation || '').replace(/\D/g, '');
+    if (fromState) return fromState;
+    var display = String(this.state.companyId || '').replace(/^#/, '').replace(/\D/g, '');
+    return display || '';
+  }
+
+  attachDocumentCompanyFields(payload, preferredCorp) {
+    var corp = this.resolveCorporation(preferredCorp);
+    if (corp) payload.corporation = corp;
+    var inv = String(this.state.invoiceSettingId || '').trim();
+    if (inv) payload.invoice_setting_id = inv;
+    var payId = String(this.state.paymentDetailId || '').trim();
+    if (payId) payload.payment_detail_id = payId;
+    return payload;
+  }
+
+  isKesherGateway(row) {
+    if (!row) return false;
+    var blob = [
+      row.payment_method, row.payment, row.method, row.provider, row.name, row.label
+    ].map(function (x) { return String(x == null ? '' : x).toLowerCase(); }).join(' ');
+    return /kesher|keser|קשר/.test(blob);
+  }
+
+  pickPaymentGatewayRow(rows) {
+    rows = Array.isArray(rows) ? rows : [];
+    if (!rows.length) return null;
+    // Account often requires Kesher (keser) for document payments.
+    var kesher = rows.find(function (r) { return this.isKesherGateway(r); }.bind(this));
+    if (kesher) return kesher;
+    var def = rows.find(function (r) {
+      return r && (r.is_default || Number(r.default_payment) === 1);
+    });
+    return def || rows[0];
+  }
+
+  async loadPaymentDetailId(forceReload) {
+    if (!forceReload && this.state.paymentDetailId) return this.state.paymentDetailId;
+    if (!window.MineralBarApp || typeof MineralBarApp.getClient !== 'function') return '';
+    try {
+      var client = MineralBarApp.getClient();
+      var res = await client.request('PaymentGateways.List', { limit: 25 }).catch(function () { return null; });
+      var data = res && (res.data || res.output || res);
+      var rows = Array.isArray(data) ? data : ((data && (data.rows || data.list || data.data)) || []);
+      if (!rows.length) {
+        res = await client.request('PaymentGateways.List', { limit: 25, default_only: 1 }).catch(function () { return null; });
+        data = res && (res.data || res.output || res);
+        rows = Array.isArray(data) ? data : ((data && (data.rows || data.list || data.data)) || []);
+      }
+      var pick = this.pickPaymentGatewayRow(rows);
+      var id = pick
+        ? String(pick.id || pick.payment_detail_id || pick.payment_gatway || pick.payment_gateway_id || '').trim()
+        : '';
+      if (id) this.setState({ paymentDetailId: id });
+      return id;
+    } catch (e) {
+      console.warn('[collection] PaymentGateways.List failed', e);
+      return '';
+    }
+  }
+
+  getQueryAmount() {
+    try {
+      var p = new URLSearchParams(window.location.search || '');
+      var raw = p.get('amount') || p.get('total') || p.get('final_amount') || p.get('totalPayable') || '';
+      var n = Number(raw);
+      if (isFinite(n) && n > 0) return n;
+      var stored = sessionStorage.getItem('mb_collection_amount') || localStorage.getItem('mb_collection_amount') || '';
+      n = Number(stored);
+      return (isFinite(n) && n > 0) ? n : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  moneyDiff(a, b) {
+    var x = Number(a) || 0;
+    var y = Number(b) || 0;
+    return Math.round((Math.abs(x - y) + Number.EPSILON) * 100) / 100;
+  }
+
+  getInitials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'CU';
+    var first = parts[0] ? parts[0].charAt(0) : '';
+    var second = parts[1] ? parts[1].charAt(0) : '';
+    return (first + second).toUpperCase();
+  }
+
+  todayText() {
+    var d = new Date();
+    var dd = String(d.getDate()).padStart(2, '0');
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var yy = String(d.getFullYear()).slice(-2);
+    return dd + '/' + mm + '/' + yy;
+  }
+
+  todayInputValue() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  /**
+   * payment_date as UTC "Y-m-d H:i:s".
+   * Uses the picked calendar day (not always now). Time = current UTC clock when
+   * the picked day is today; otherwise 12:00:00 so the day stays stable.
+   */
+  formatPaymentDateUtc(ymd) {
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var now = new Date();
+    var m = String(ymd || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var y = m ? Number(m[1]) : now.getFullYear();
+    var mo = m ? Number(m[2]) : (now.getMonth() + 1);
+    var d = m ? Number(m[3]) : now.getDate();
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) {
+      y = now.getUTCFullYear();
+      mo = now.getUTCMonth() + 1;
+      d = now.getUTCDate();
+    }
+    var todayLocal =
+      now.getFullYear() === y &&
+      (now.getMonth() + 1) === mo &&
+      now.getDate() === d;
+    var hh = todayLocal ? now.getUTCHours() : 12;
+    var mm = todayLocal ? now.getUTCMinutes() : 0;
+    var ss = todayLocal ? now.getUTCSeconds() : 0;
+    return y + '-' + pad(mo) + '-' + pad(d) + ' ' + pad(hh) + ':' + pad(mm) + ':' + pad(ss);
+  }
+
+  async loadData() {
+    this.setState({
+      currentDate: this.todayText(),
+      cashPaymentDate: this.state.cashPaymentDate || this.todayInputValue()
+    });
+    if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) return;
+    this.loadBanks();
+    this.loadInvoiceSettingId();
+    this.loadPaymentDetailId();
+    var cid = this.getCustomerId();
+    var queryAmount = this.getQueryAmount();
+    if (queryAmount > 0) {
+      this.setState({
+        amount: queryAmount,
+        cashReceived: this.state.cashReceived || String(Math.round(queryAmount))
+      });
+    }
+    if (!cid) {
+      if (queryAmount > 0) {
+        this.setState({
+          docs: [{
+            id: 'from-order',
+            amount: queryAmount,
+            label: 'Order total — ' + this.fmtAmount(queryAmount)
+          }],
+          selectedDocId: 'from-order',
+          amount: queryAmount
+        });
+      }
+      return;
+    }
+    try {
+      var customerName = 'Customer';
+      var customerPhone = '';
+      var customerEmail = '';
+      var customerAddress = '';
+      var companyId = '';
+      var customerCorporation = '';
+      if (typeof MineralBarApp.getCustomer === 'function') {
+        var cRes = await MineralBarApp.getCustomer(cid).catch(() => null);
+        var c = cRes && cRes.customer;
+        if (c && c.data && typeof c.data === 'object') c = c.data;
+        customerName = (c && c.name) || customerName;
+        customerPhone = (c && (c.mobile || c.phone)) || '';
+        customerEmail = (c && c.email) || customerEmail;
+        var street = (c && (c.exact_address || c.street || c.address || c.full_address || '')) || '';
+        var city = (c && (c.city || c.city_name || '')) || '';
+        customerAddress = [street, city].filter(Boolean).join(', ').trim() || customerAddress;
+        customerCorporation = String(
+          (c && (c.corporation || c.company_id || c.id_number || c.vat_number || c.tz || c.identity || '')) || ''
+        ).trim();
+        companyId = customerCorporation ? ('#' + customerCorporation.replace(/^#/, '')) : companyId;
+        if (c && (c.tz || c.id_number || c.identity) && !this.state.cardTz) {
+          this.setState({ cardTz: String(c.tz || c.id_number || c.identity || '') });
+        }
+        if (c && !this.state.standingTz) {
+          var tzPrefill = String(c.tz || c.id_number || c.identity || '').replace(/\D/g, '');
+          if (tzPrefill) this.setState({ standingTz: tzPrefill });
+        }
+        if (c && !this.state.standingAccName && customerName && customerName !== 'Customer') {
+          this.setState({ standingAccName: customerName });
+        }
+      }
+
+      var dRes = await MineralBarApp.getClient().request('Documents.List', {
+        customer_id: cid,
+        length: 25,
+        start: 0,
+        draw: 1
+      }).catch(() => null);
+      var rows = (dRes && (dRes.rows || dRes.data || dRes.output)) || [];
+      var docs = rows.filter((r) => {
+        var pv = r && r.paid;
+        return (pv === 0 || pv === '0' || pv === false || pv == null);
+      }).map((r) => {
+        var amount = Number(r.final_amount != null ? r.final_amount : (r.amount != null ? r.amount : (r.price || 0))) || 0;
+        return {
+          id: String(r.id || r.number || r.doc_no || Math.random()),
+          amount: amount,
+          label: '#' + (r.number || r.doc_no || r.id || '-') + ' — ' + (r.type || r.doc_type || 'Document') + ' — ' + this.fmtAmount(amount)
+        };
+      });
+
+      // Prefer amount coming from the order form (Continue collection)
+      if (queryAmount > 0) {
+        docs.unshift({
+          id: 'from-order',
+          amount: queryAmount,
+          label: 'Order total — ' + this.fmtAmount(queryAmount)
+        });
+      }
+
+      var selectedDocId = docs[0] ? docs[0].id : '';
+      var amount = queryAmount > 0 ? queryAmount : (docs[0] ? docs[0].amount : 0);
+      var cashReceived = this.state.cashReceived;
+      if ((!cashReceived || cashReceived === '0') && amount > 0) cashReceived = String(Math.round(amount));
+      this.setState({ docs, selectedDocId, amount, cashReceived, customerName, customerPhone, customerEmail, customerAddress, companyId, customerCorporation });
+    } catch (e) {
+      this.setState({ statusMsg: 'Unable to load customer payment data' });
+    }
+  }
+
+  pick(m) { this.setState({ method: m }); }
+  setEntry(e) { this.setState({ entry: e }); }
+
+  phoneDigits(raw) {
+    var s = String(raw || '').replace(/\D/g, '');
+    if (!s) return '';
+    if (s.indexOf('972') === 0) return s;
+    if (s.charAt(0) === '0') return '972' + s.slice(1);
+    return s;
+  }
+
+  getPaymentLink() {
+    try {
+      var q = new URLSearchParams(window.location.search || '');
+      var fromQuery = String(q.get('payment_link') || q.get('pay_link') || q.get('link') || '').trim();
+      if (fromQuery) return fromQuery;
+    } catch (e0) { /* ignore */ }
+    var docs = this.state.docs || [];
+    var sel = docs.find(function (d) { return String(d.id) === String(this.state.selectedDocId); }.bind(this));
+    if (sel && (sel.payment_link || sel.pay_link || sel.link)) {
+      return String(sel.payment_link || sel.pay_link || sel.link);
+    }
+    var ref = '';
+    if (sel && sel.label) {
+      var m = String(sel.label).match(/#([A-Za-z0-9_-]+)/);
+      if (m) ref = m[1];
+    }
+    if (!ref && this.state.selectedDocId && this.state.selectedDocId !== 'from-order') {
+      ref = String(this.state.selectedDocId);
+    }
+    if (!ref) ref = 'PAY-' + String(Math.round(Number(this.state.amount) || 0) || Date.now()).slice(-6);
+    return 'https://aquacrm.co.il/pay/' + encodeURIComponent(ref);
+  }
+
+  buildPaymentMessage() {
+    var first = String(this.state.customerName || 'Customer').trim().split(/\s+/)[0] || 'Customer';
+    var link = this.getPaymentLink();
+    var amount = this.fmtAmount(this.state.amount);
+    var installments = Number(this.state.installments || 1) || 1;
+    var payLine = installments > 1
+      ? (amount + ' · ' + installments + ' payments')
+      : amount;
+    return (
+      'Hello ' + first + '!\n' +
+      'Thank you for signing the quote!\n' +
+      'Click to enter secure payment details:\n' +
+      link + '\n' +
+      '🔒 Secure — Validity: 48 hours\n' +
+      'Amount: ' + payLine
+    );
+  }
+
+  openExternal(url) {
+    if (!url) return;
+    try {
+      var a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      try { window.open(url, '_blank'); } catch (e2) { window.location.href = url; }
+    }
+  }
+
+  async sendPaymentWhatsApp() {
+    var phone = this.state.customerPhone || '';
+    var digits = this.phoneDigits(phone);
+    var msg = this.buildPaymentMessage();
+    if (!digits) {
+      this.setState({ statusMsg: 'Customer phone is required to send WhatsApp' });
+      return;
+    }
+    this.setState({ busy: true, statusMsg: 'Sending WhatsApp…' });
+    var customerId = this.getCustomerId();
+    try {
+      if (customerId && window.MineralBarApp && typeof MineralBarApp.sendCustomerMessage === 'function') {
+        await MineralBarApp.sendCustomerMessage({
+          customer_id: customerId,
+          cust_id: customerId,
+          message: msg,
+          msg: msg,
+          from: 'send_whatsapp',
+          phone: phone,
+          mobile: phone,
+          chart_selected_phone_no: phone
+        });
+        this.setState({ statusMsg: 'Payment link sent on WhatsApp' });
+        return;
+      }
+    } catch (err) {
+      // Fall through to wa.me (API window/template failures are common)
+      console.warn('[collection-payment] Chat.SendCustomer WhatsApp failed — opening WhatsApp app', err);
+    } finally {
+      this.setState({ busy: false });
+    }
+    this.openExternal('https://wa.me/' + digits + '?text=' + encodeURIComponent(msg));
+    this.setState({ statusMsg: 'Opened WhatsApp with payment link' });
+  }
+
+  sendPaymentSms() {
+    var phone = String(this.state.customerPhone || '').trim();
+    var digits = this.phoneDigits(phone);
+    var msg = this.buildPaymentMessage();
+    if (!digits && !phone) {
+      this.setState({ statusMsg: 'Customer phone is required to send SMS' });
+      return;
+    }
+    var to = phone || ('+' + digits);
+    // sms: URI — works on mobile; body param supported on iOS / Android
+    var href = 'sms:' + encodeURIComponent(to).replace(/%2B/gi, '+') +
+      '?&body=' + encodeURIComponent(msg);
+    this.openExternal(href);
+    this.setState({ statusMsg: 'Opened SMS with payment link' });
+  }
+
+  addCheck() {
+    this.setState(s => ({
+      checks: [...s.checks, { id: Date.now(), bank: '', branch: '', account: '', number: '', date: '', amount: '' }]
+    }));
+  }
+  removeCheck(id) {
+    this.setState(s => ({ checks: s.checks.length > 1 ? s.checks.filter(c => c.id !== id) : s.checks }));
+  }
+
+  updateCheck(id, field, value) {
+    this.setState(s => ({
+      checks: s.checks.map(function (c) {
+        if (c.id !== id) return c;
+        var next = Object.assign({}, c);
+        next[field] = value;
+        return next;
+      })
+    }));
+  }
+
+  onCash(e) {
+    var raw = (e && e.target && e.target.value != null) ? e.target.value : e;
+    this.setState({ cashReceived: String(raw == null ? '' : raw).replace(/[^0-9.]/g, '') });
+  }
+
+  onCashDate(e) {
+    var raw = this.noteValue(e);
+    var m = String(raw || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    this.setState({ cashPaymentDate: m ? m[0] : (this.state.cashPaymentDate || this.todayInputValue()) });
+  }
+
+  noteValue(e) {
+    if (e == null) return '';
+    if (typeof e === 'string' || typeof e === 'number') return String(e);
+    if (e.target && e.target.value != null) return String(e.target.value);
+    if (e.value != null) return String(e.value);
+    return '';
+  }
+
+  tzDigitsFromEvent(e) {
+    var raw = '';
+    try {
+      if (e && e.currentTarget && e.currentTarget.value != null) raw = String(e.currentTarget.value);
+      else if (e && e.target && e.target.value != null) raw = String(e.target.value);
+      else raw = this.noteValue(e);
+    } catch (err) {
+      raw = this.noteValue(e);
+    }
+    // ASCII + common Unicode digits (Hebrew/Arabic keyboards sometimes emit these)
+    return String(raw || '')
+      .replace(/[\u0660-\u0669]/g, function (ch) { return String(ch.charCodeAt(0) - 0x0660); })
+      .replace(/[\u06F0-\u06F9]/g, function (ch) { return String(ch.charCodeAt(0) - 0x06F0); })
+      .replace(/[\uFF10-\uFF19]/g, function (ch) { return String(ch.charCodeAt(0) - 0xFF10); })
+      .replace(/\D/g, '')
+      .slice(0, 12);
+  }
+
+  onStandingTzInput(e) {
+    var digits = this.tzDigitsFromEvent(e);
+    if (digits === String(this.state.standingTz || '')) return;
+    this.setState({ standingTz: digits });
+  }
+
+  onCardTzInput(e) {
+    var digits = this.tzDigitsFromEvent(e);
+    if (digits === String(this.state.cardTz || '')) return;
+    this.setState({ cardTz: digits });
+  }
+
+  findPdfUrl(value, depth) {
+    if (!value || depth > 5) return '';
+    if (typeof value === 'string') {
+      var text = value.trim();
+      if (/^(https?:)?\/\//i.test(text) || /^\//.test(text) || /\.pdf(?:$|[?#])/i.test(text)) return text;
+      return '';
+    }
+    if (Array.isArray(value)) {
+      for (var i = 0; i < value.length; i++) {
+        var u = this.findPdfUrl(value[i], depth + 1);
+        if (u) return u;
+      }
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+    var preferred = ['pdf_url', 'pdfUrl', 'document_link', 'download_url', 'downloadUrl', 'file_url', 'url'];
+    for (var p = 0; p < preferred.length; p++) {
+      if (value[preferred[p]] != null) {
+        var found = this.findPdfUrl(value[preferred[p]], depth + 1);
+        if (found) return found;
+      }
+    }
+    return '';
+  }
+
+  buildReceiptMessage(amount, pdfUrl) {
+    var lines = [];
+    lines.push('Receipt for ' + (this.state.customerName || 'customer'));
+    lines.push('Amount: ' + this.fmtAmount(amount));
+    if (this.state.noteHeader) lines.push(String(this.state.noteHeader));
+    if (this.state.noteInternal) lines.push(String(this.state.noteInternal));
+    if (this.state.noteFooter) lines.push(String(this.state.noteFooter));
+    if (pdfUrl) lines.push(String(pdfUrl));
+    return lines.filter(Boolean).join('\n');
+  }
+
+  async sendReceiptMessages(amount, pdfUrl) {
+    if (!window.MineralBarApp || typeof MineralBarApp.sendCustomerMessage !== 'function') return;
+    var customerId = this.getCustomerId();
+    if (!customerId) return;
+    var message = this.buildReceiptMessage(amount, pdfUrl);
+    var email = this.state.customerEmail || '';
+    var phone = this.state.customerPhone || '';
+    var jobs = [];
+    if (this.state.sendMail) {
+      jobs.push(MineralBarApp.sendCustomerMessage({
+        customer_id: customerId,
+        cust_id: customerId,
+        message: message,
+        msg: message,
+        from: 'send_email_quick',
+        email: email,
+        chart_selected_email: email
+      }));
+    }
+    if (this.state.sendWhatsapp) {
+      jobs.push(MineralBarApp.sendCustomerMessage({
+        customer_id: customerId,
+        cust_id: customerId,
+        message: message,
+        msg: message,
+        from: 'send_whatsapp',
+        phone: phone,
+        mobile: phone,
+        chart_selected_phone_no: phone
+      }));
+    }
+    if (!jobs.length) return;
+    var results = await Promise.allSettled(jobs);
+    var failed = results.filter(function (r) { return r.status === 'rejected'; });
+    if (failed.length) {
+      var msg = (failed[0].reason && failed[0].reason.message) || 'Message send failed';
+      throw new Error(msg);
+    }
+  }
+
+  goBack() {
+    var cid = this.getCustomerId();
+    var fallback = cid
+      ? ('service-customer-card.html?customer_id=' + encodeURIComponent(cid) + '&cust_id=' + encodeURIComponent(cid))
+      : 'customers.html';
+    if (typeof window.mbGoEntryBack === 'function') {
+      window.mbGoEntryBack(null, { fallback: fallback, selfRe: /collection-payment/i });
+      return;
+    }
+    try {
+      var q = new URLSearchParams(window.location.search || '');
+      var back = q.get('back') || q.get('from') || q.get('return') || '';
+      if (back) {
+        try { back = decodeURIComponent(back); } catch (eDec) { /* keep */ }
+        back = String(back || '').trim().replace(/^\//, '');
+        if (back && back.indexOf('..') < 0 && !/^javascript:/i.test(back)) {
+          window.location.href = back;
+          return;
+        }
+      }
+    } catch (e0) { /* ignore */ }
+    try {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    } catch (e) {
+      /* ignore and use fallback */
+    }
+    window.location.href = fallback;
+  }
+
+  buildOrderDocumentUrl(customerId, amount, paymentSnap) {
+    var cur = new URLSearchParams(window.location.search || '');
+    var nextQs = new URLSearchParams();
+    if (customerId) nextQs.set('customer_id', customerId);
+    if (amount) nextQs.set('amount', String(amount));
+    ['product_ids', 'name', 'phone', 'address', 'tz', 'document_id', 'doc_id'].forEach(function (key) {
+      var val = cur.get(key);
+      if (val) nextQs.set(key, val);
+    });
+    if (paymentSnap) {
+      if (paymentSnap.method) nextQs.set('payment_method', paymentSnap.method);
+      if (paymentSnap.installments) nextQs.set('installments', String(paymentSnap.installments));
+      if (paymentSnap.cardLast4) nextQs.set('card_last4', paymentSnap.cardLast4);
+      if (paymentSnap.receiptId) nextQs.set('receipt_id', paymentSnap.receiptId);
+      if (paymentSnap.pdfUrl) nextQs.set('pdf_url', paymentSnap.pdfUrl);
+      if (paymentSnap.advance > 0) nextQs.set('advance', String(paymentSnap.advance));
+    }
+    try {
+      var cid = nextQs.get('customer_id') || nextQs.get('cust_id') || '';
+      var productIds = '';
+      if (window.MineralBarApp && typeof MineralBarApp.getSelectedProductIds === 'function') {
+        productIds = MineralBarApp.getSelectedProductIds(cid) || '';
+      } else {
+        productIds = sessionStorage.getItem('mb_selected_product_ids') || localStorage.getItem('mb_selected_product_ids') || '';
+      }
+      if (productIds && !nextQs.get('product_ids')) nextQs.set('product_ids', productIds);
+      var quoteDoc = sessionStorage.getItem('mb_quote_document_id') || '';
+      if (quoteDoc && !nextQs.get('document_id')) nextQs.set('document_id', quoteDoc);
+    } catch (e) { /* ignore */ }
+    return 'order-document.html' + (nextQs.toString() ? ('?' + nextQs.toString()) : '');
+  }
+
+  sel(on) {
+    return {
+      bg: on ? '#eaf2fb' : '#fff',
+      border: on ? '#1d60a2' : '#e4e8ee',
+      color: on ? '#1d60a2' : '#5a6473',
+    };
+  }
+
+  renderVals() {
+    const m = this.state.method;
+    const entry = this.state.entry;
+    const isCard = m === 'card', isStanding = m === 'standing', isCash = m === 'cash', isCheck = m === 'check', isTransfer = m === 'transfer', isBit = m === 'bit';
+    const showLinkToggle = isCard || isStanding;
+    const showPreview = showLinkToggle && entry === 'link';
+
+    const st = this.sel(isStanding), cd = this.sel(isCard), ck = this.sel(isCheck), cs = this.sel(isCash), tr = this.sel(isTransfer), bt = this.sel(isBit);
+
+    const manualOn = entry === 'manual';
+    const segOn = { bg: '#fff', color: '#1d60a2', shadow: '0 1px 3px rgba(0,0,0,.12)' };
+    const segOff = { bg: 'transparent', color: '#8a93a3', shadow: 'none' };
+    const manual = manualOn ? segOn : segOff;
+    const link = manualOn ? segOff : segOn;
+
+    // cash change
+    const total = Number(this.state.amount || 0);
+    const recRaw = this.state.cashReceived;
+    const rec = parseFloat(recRaw);
+    const changeShow = recRaw !== '' && !isNaN(rec);
+    let changeLabel = '', changeAmount = '', changeColor = '#2e8a63', changeBg = '#eaf7ef';
+    if (changeShow) {
+      if (rec >= total) {
+        changeLabel = 'Excess payment';
+        changeAmount = this.fmtAmount(this.moneyDiff(rec, total));
+        changeColor = '#2e8a63';
+        changeBg = '#eaf7ef';
+      } else {
+        changeLabel = 'Missing payment';
+        changeAmount = this.fmtAmount(this.moneyDiff(total, rec));
+        changeColor = '#c0392b';
+        changeBg = '#fbeceb';
+      }
+    }
+
+    const checks = this.state.checks.map((c, i) => ({
+      ...c,
+      num: i + 1,
+      bank: c.bank || '',
+      branch: c.branch || '',
+      account: c.account || '',
+      number: c.number || '',
+      date: c.date || '',
+      amount: c.amount || '',
+      remove: () => this.removeCheck(c.id),
+      onBank: (e) => this.updateCheck(c.id, 'bank', this.noteValue(e)),
+      onBranch: (e) => this.updateCheck(c.id, 'branch', this.noteValue(e)),
+      onAccount: (e) => this.updateCheck(c.id, 'account', this.noteValue(e)),
+      onNumber: (e) => this.updateCheck(c.id, 'number', this.noteValue(e)),
+      onDate: (e) => this.updateCheck(c.id, 'date', this.noteValue(e)),
+      onAmount: (e) => this.updateCheck(c.id, 'amount', this.noteValue(e).replace(/[^0-9.]/g, '')),
+    }));
+
+    let submitLabel = 'Confirm collection and send order';
+    if (this.state.busy) submitLabel = 'Saving…';
+    else if (isCash) submitLabel = 'Confirm cash receipt';
+    else if (isCheck) submitLabel = 'Confirm collection and deposit checks';
+    else if (isTransfer) submitLabel = 'Confirm collection and send account details';
+    else if (isBit) submitLabel = 'Confirm collection and send Bit request';
+
+    return {
+      busy: !!this.state.busy,
+      submitOpacity: this.state.busy ? '0.7' : '1',
+      onClose: () => this.goBack(),
+      onSubmit: async () => {
+        if (this.state.busy) return;
+        this.setState({ busy: true, statusMsg: 'Saving collection...' });
+        try {
+          var uiMethod = this.state.method || 'cash';
+          var amount = Number(this.state.amount || 0);
+          if (!(amount > 0) && uiMethod === 'cash') {
+            amount = Number(this.state.cashReceived || 0);
+          }
+          if (!(amount > 0)) throw new Error('Amount is required');
+          var customerId = this.getCustomerId();
+          if (!customerId) throw new Error('Customer is required');
+          var docId = this.state.selectedDocId || '';
+          if (docId === 'from-order') docId = '';
+          var noteInternal = this.noteValue(this.state.noteInternal);
+          var noteHeader = this.noteValue(this.state.noteHeader);
+          var noteFooter = this.noteValue(this.state.noteFooter);
+          var installments = Number(this.state.installments || 1) || 1;
+          var payload = {
+            customer_id: customerId,
+            name: this.state.customerName || '',
+            email: this.state.customerEmail || '',
+            mobile: this.state.customerPhone || '',
+            phone: this.state.customerPhone || '',
+            address: this.state.customerAddress && this.state.customerAddress !== '-' ? this.state.customerAddress : '',
+            document_type: 'receipt',
+            type: 'receipt',
+            final_amount: amount,
+            payment_method: this.mapPaymentMethod(uiMethod),
+            payment_date: this.formatPaymentDateUtc(
+              uiMethod === 'cash'
+                ? (this.state.cashPaymentDate || this.todayInputValue())
+                : this.todayInputValue()
+            ),
+            number_of_payments: installments,
+            // Standing (masav) must not use c_type_pay=standing_order (that is CC standing).
+            c_type_pay: installments > 1 ? 'installments' : 'regular',
+            // Required for receipt payment blocks (Documents.Add).
+            call_multi_receipt_fun: 1,
+            items: '[]',
+            note: [noteInternal, noteFooter].filter(Boolean).join('\n'),
+            note_header: noteHeader,
+            send_email: this.state.sendMail ? 1 : 0,
+            send_whatsapp: this.state.sendWhatsapp ? 1 : 0,
+            source: 'collection-payment-ui'
+          };
+          if (docId) {
+            payload.document_to_pay = docId;
+            // Prefer document_to_pay for receipts; related_document_id can spawn another invoice.
+          }
+          // payment_method=cc requires card fields (Biz1: "Please fill required fields").
+          if (uiMethod === 'card') {
+            this.attachCardPaymentFields(payload);
+          } else if (uiMethod === 'standing' || uiMethod === 'masav') {
+            this.attachStandingPaymentFields(payload);
+          } else if (uiMethod === 'check') {
+            this.attachCheckPaymentFields(payload, amount);
+          }
+          // Company id = customer corporation (tax/TZ). Invoice company = invoice_setting_id.
+          if (!payload.corporation) {
+            this.attachDocumentCompanyFields(payload, this.state.standingTz || this.state.cardTz || '');
+          } else if (!payload.invoice_setting_id) {
+            this.attachDocumentCompanyFields(payload, payload.corporation);
+          }
+          if (!payload.invoice_setting_id) {
+            var invId = await this.loadInvoiceSettingId();
+            if (invId) payload.invoice_setting_id = invId;
+          }
+          // Prefer Kesher gateway when account requires "payment method keser".
+          var payId = await this.loadPaymentDetailId(true);
+          if (payId) payload.payment_detail_id = payId;
+          if ((uiMethod === 'standing' || uiMethod === 'masav') && !payload.corporation) {
+            throw new Error('Company id (TZ / corporation) is required');
+          }
+          if ((uiMethod === 'standing' || uiMethod === 'masav') && !payload.payment_detail_id) {
+            throw new Error('Please add/configure Kesher (keser) in Biz1 Settings → Payments, mark it Default, then try again');
+          }
+          var created = await MineralBarApp.getClient().request('Documents.Add', payload);
+          var pdfUrl = this.findPdfUrl(created, 0) || '';
+          var createdId = '';
+          try {
+            var createdData = created && (created.data || created.output || created);
+            if (createdData && typeof createdData === 'object') {
+              createdId = String(createdData.document_id || createdData.inserted_documents_id || createdData.id || createdData.number || '');
+            }
+            if (!createdId && created && typeof created === 'object') {
+              createdId = String(created.document_id || created.inserted_documents_id || created.id || '');
+            }
+          } catch (idErr) { createdId = ''; }
+
+          var cardDigits = String(this.state.cardNumber || '').replace(/\D/g, '');
+          var cardLast4 = cardDigits.length >= 4 ? cardDigits.slice(-4) : '';
+          var paymentSnap = {
+            method: uiMethod,
+            installments: Number(this.state.installments || 1) || 1,
+            cardLast4: cardLast4,
+            amount: amount,
+            paidAt: (uiMethod === 'cash'
+              ? this.formatPaymentDateUtc(this.state.cashPaymentDate || this.todayInputValue())
+              : new Date().toISOString()),
+            receiptId: createdId,
+            pdfUrl: pdfUrl || '',
+            advance: Number(new URLSearchParams(window.location.search).get('advance') || sessionStorage.getItem('mb_install_advance') || 0) || 0
+          };
+          try {
+            sessionStorage.setItem('mb_order_payment', JSON.stringify(paymentSnap));
+            if (createdId) sessionStorage.setItem('mb_receipt_document_id', createdId);
+            if (pdfUrl) sessionStorage.setItem('mb_quote_pdf_url', pdfUrl);
+          } catch (snapErr) { /* ignore */ }
+
+          // Automatically update customer status to "Order Placed"
+          if (customerId && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+            try {
+              var cClient = MineralBarApp.getClient();
+              if (cClient && typeof cClient.request === 'function') {
+                await cClient.request('Customer.Edit', {
+                  customer_id: customerId,
+                  id: customerId,
+                  cust_id: customerId,
+                  status: 'בוצעה הזמנה',
+                  status_id: '10195',
+                  sub_list_data: '10195',
+                  sub_list_data_name: 'בוצעה הזמנה'
+                });
+              }
+            } catch (eStat) {
+              console.warn('[collection] failed to update status to Order Placed', eStat);
+            }
+          }
+
+          // Explicit Biz1 channel send when checkboxes are checked
+          if (this.state.sendMail || this.state.sendWhatsapp) {
+            this.setState({ statusMsg: 'Sending receipt message...' });
+            try {
+              await this.sendReceiptMessages(amount, pdfUrl);
+            } catch (sendErr) {
+              console.warn('[collection] Biz1 message send failed', sendErr);
+              this.setState({
+                statusMsg: 'Receipt saved, but message failed: ' + ((sendErr && sendErr.message) || 'unknown error')
+              });
+              // Still continue to next screen after a short delay
+              var fromOrderSoft = false;
+              try { fromOrderSoft = new URLSearchParams(window.location.search).get('from') === 'order'; } catch (eSoft) {}
+              setTimeout(() => {
+                window.location.href = fromOrderSoft ? this.buildOrderDocumentUrl(customerId, amount, paymentSnap) : 'document-issuance.html';
+              }, 1200);
+              return;
+            }
+          }
+
+          this.setState({ statusMsg: 'Collection saved successfully' });
+          var fromOrder = false;
+          try { fromOrder = new URLSearchParams(window.location.search).get('from') === 'order'; } catch (e) {}
+          var nextBase = fromOrder ? this.buildOrderDocumentUrl(customerId, amount, paymentSnap) : 'document-issuance.html';
+          setTimeout(() => { window.location.href = nextBase; }, 350);
+        } catch (err) {
+          var msg = String((err && err.message) || 'unknown error');
+          if (/keser|kesher|קשר/i.test(msg) || /select payment method/i.test(msg)) {
+            msg = 'Please configure Kesher (keser) in Biz1 Settings → Payments and set it as Default Payment, then try again';
+          }
+          this.setState({ statusMsg: 'Failed to save collection: ' + msg });
+        } finally {
+          this.setState({ busy: false });
+        }
+      },
+      onDocChange: (e) => {
+        var id = (e && e.target && e.target.value) || '';
+        var found = (this.state.docs || []).find(d => d.id === id);
+        this.setState({ selectedDocId: id, amount: found ? found.amount : this.state.amount });
+      },
+      pickStanding: () => this.pick('standing'),
+      pickCard: () => this.pick('card'),
+      pickCheck: () => this.pick('check'),
+      pickCash: () => this.pick('cash'),
+      pickTransfer: () => this.pick('transfer'),
+      pickBit: () => this.pick('bit'),
+      setManual: () => this.setEntry('manual'),
+      setLink: () => this.setEntry('link'),
+      addCheck: () => this.addCheck(),
+      onCash: (e) => this.onCash(e),
+      onNoteInternal: (e) => this.setState({ noteInternal: this.noteValue(e) }),
+      onNoteHeader: (e) => this.setState({ noteHeader: this.noteValue(e) }),
+      onNoteFooter: (e) => this.setState({ noteFooter: this.noteValue(e) }),
+      onSendMail: (e) => this.setState({ sendMail: !!(e && e.target ? e.target.checked : e) }),
+      onSendWhatsapp: (e) => this.setState({ sendWhatsapp: !!(e && e.target ? e.target.checked : e) }),
+      noteInternal: this.noteValue(this.state.noteInternal),
+      noteHeader: this.noteValue(this.state.noteHeader),
+      noteFooter: this.noteValue(this.state.noteFooter),
+      sendMail: !!this.state.sendMail,
+      sendWhatsapp: !!this.state.sendWhatsapp,
+      installments: this.state.installments,
+      onInstallments: (e) => this.setState({ installments: e.target.value }),
+      cardNumber: this.state.cardNumber || '',
+      cardExpiry: this.state.cardExpiry || '',
+      cardCvv: this.state.cardCvv || '',
+      cardHolder: this.state.cardHolder || '',
+      cardTz: this.state.cardTz || '',
+      onCardNumber: (e) => this.setState({ cardNumber: this.noteValue(e).replace(/[^\d\s]/g, '') }),
+      onCardExpiry: (e) => this.setState({ cardExpiry: this.noteValue(e) }),
+      onCardCvv: (e) => this.setState({ cardCvv: this.noteValue(e).replace(/\D/g, '').slice(0, 4) }),
+      onCardHolder: (e) => this.setState({ cardHolder: this.noteValue(e) }),
+      onCardTz: (e) => this.onCardTzInput(e),
+      documentOptions: (this.state.docs && this.state.docs.length ? this.state.docs : [{ id: '', label: 'No documents found' }]).map(d => ({ value: d.id, label: d.label })),
+      selectedDocId: this.state.selectedDocId,
+      customerName: this.state.customerName,
+      initials: this.getInitials(this.state.customerName),
+      customerPhone: this.state.customerPhone,
+      customerEmail: this.state.customerEmail,
+      customerAddress: this.state.customerAddress,
+      companyId: this.state.companyId,
+      firstName: String(this.state.customerName || 'Customer').split(' ')[0],
+      paymentLink: this.getPaymentLink().replace(/^https?:\/\//i, ''),
+      onSendWaLink: () => this.sendPaymentWhatsApp(),
+      onSendSmsLink: () => this.sendPaymentSms(),
+      amountText: this.fmtAmount(this.state.amount),
+      totalMonthlyText: this.fmtAmount(this.state.amount) + '/month',
+      currentDate: this.state.currentDate || this.todayText(),
+      statusMsg: this.state.statusMsg,
+
+      standingBg: st.bg, standingBorder: st.border, standingColor: st.color,
+      cardBg: cd.bg, cardBorder: cd.border, cardColor: cd.color,
+      checkBg: ck.bg, checkBorder: ck.border, checkColor: ck.color,
+      cashBg: cs.bg, cashBorder: cs.border, cashColor: cs.color,
+      transferBg: tr.bg, transferBorder: tr.border, transferColor: tr.color,
+      bitBg: bt.bg, bitBorder: bt.border, bitColor: bt.color,
+
+      manualBg: manual.bg, manualColor: manual.color, manualShadow: manual.shadow,
+      linkBg: link.bg, linkColor: link.color, linkShadow: link.shadow,
+
+      showLinkToggle,
+      showCardForm: isCard && !showPreview,
+      showStandingForm: isStanding && !showPreview,
+      showCashForm: isCash,
+      showCheckForm: isCheck,
+      showTransferForm: isTransfer,
+      showBitForm: isBit,
+      showPreview,
+  showSubmit: !showPreview,
+      linkStatusMsg: showPreview ? (this.state.statusMsg || '') : '',
+
+      checks,
+      checkCountLabel: this.state.checks.length + ' checks',
+      bankOptions: this.bankOptionsList(),
+      bankPlaceholder: this.preferHeBanks() ? 'בחר בנק' : 'Select a bank',
+      standingBank: this.state.standingBank || '',
+      standingBranch: this.state.standingBranch || '',
+      standingAccNo: this.state.standingAccNo || '',
+      standingAccName: this.state.standingAccName || '',
+      standingTz: this.state.standingTz || '',
+      standingBillingDay: this.state.standingBillingDay || '1',
+      onStandingBank: (e) => this.setState({ standingBank: this.noteValue(e) }),
+      onStandingBranch: (e) => this.setState({ standingBranch: this.noteValue(e) }),
+      onStandingAccNo: (e) => this.setState({ standingAccNo: this.noteValue(e) }),
+      onStandingAccName: (e) => this.setState({ standingAccName: this.noteValue(e) }),
+      onStandingTz: (e) => this.onStandingTzInput(e),
+      onStandingBillingDay: (e) => this.setState({ standingBillingDay: this.noteValue(e) || '1' }),
+      cashReceived: this.state.cashReceived,
+      cashPaymentDate: this.state.cashPaymentDate || this.todayInputValue(),
+      onCash: (e) => this.onCash(e),
+      onCashDate: (e) => this.onCashDate(e),
+      changeShow, changeLabel, changeAmount, changeColor, changeBg,
+      submitLabel,
+    };
+  }
+}
+</script>
+</body>
+</html>

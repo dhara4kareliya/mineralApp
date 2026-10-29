@@ -1584,14 +1584,36 @@ img, svg { display: block; }
 }
 .pay-method {
   border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   font: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.pay-method:hover:not(.is-active) {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand);
+  transform: translateY(-1px);
+}
+.pay-method.is-active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+}
+[data-theme="dark"] .pay-method.is-active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #040914;
+  box-shadow: 0 0 14px rgba(96, 165, 250, 0.45);
 }
 .pay-fields { margin-top: 8px; display: flex; flex-direction: column; gap: 12px; }
 .workspace.is-view-only {
@@ -1963,6 +1985,100 @@ img, svg { display: block; }
   direction: ltr !important;
 }
 
+.input--ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+/* ─── Hebrew & RTL text and placeholder alignment ─── */
+[dir="rtl"] input:not(.input--otp),
+[dir="rtl"] textarea,
+[dir="rtl"] select,
+[dir="rtl"] .input:not(.input--otp),
+[dir="rtl"] .ds-input:not(.input--otp),
+[dir="rtl"] .input--ltr:not(.input--otp),
+[dir="rtl"] .payment-card input:not(.input--otp),
+[dir="rtl"] .payment-card textarea,
+[dir="rtl"] .login-card input:not(.input--otp),
+[dir="rtl"] #modalCreate input,
+[dir="rtl"] #modalCreate select,
+[dir="rtl"] #modalCreate textarea {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+[dir="rtl"] input:not(.input--otp)::placeholder,
+[dir="rtl"] textarea::placeholder,
+[dir="rtl"] .input:not(.input--otp)::placeholder,
+[dir="rtl"] .ds-input:not(.input--otp)::placeholder,
+[dir="rtl"] .input--ltr:not(.input--otp)::placeholder,
+[dir="rtl"] .payment-card input:not(.input--otp)::placeholder,
+[dir="rtl"] .payment-card textarea::placeholder,
+[dir="rtl"] .login-card input:not(.input--otp)::placeholder,
+[dir="rtl"] #modalCreate input::placeholder,
+[dir="rtl"] #modalCreate textarea::placeholder,
+[dir="rtl"] input:not(.input--otp)::-webkit-input-placeholder,
+[dir="rtl"] textarea::-webkit-input-placeholder,
+[dir="rtl"] input:not(.input--otp)::-moz-placeholder,
+[dir="rtl"] textarea::-moz-placeholder {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Card Number wrap and icon in RTL */
+[dir="rtl"] .card-icon {
+  left: auto !important;
+  right: 13px !important;
+}
+
+[dir="rtl"] .card-input {
+  padding-right: 44px !important;
+  padding-left: 14px !important;
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+[dir="rtl"] .card-input::placeholder,
+[dir="rtl"] .card-input::-webkit-input-placeholder,
+[dir="rtl"] .card-input::-moz-placeholder {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Specific payment inputs highlighted for Hebrew RTL */
+[dir="rtl"] #cardNumber,
+[dir="rtl"] #cardNumber::placeholder,
+[dir="rtl"] #cardNumber::-webkit-input-placeholder,
+[dir="rtl"] #cardNumber::-moz-placeholder,
+[dir="rtl"] #cardExp,
+[dir="rtl"] #cardExp::placeholder,
+[dir="rtl"] #cardExp::-webkit-input-placeholder,
+[dir="rtl"] #cardExp::-moz-placeholder,
+[dir="rtl"] #cardCvv,
+[dir="rtl"] #cardCvv::placeholder,
+[dir="rtl"] #cardCvv::-webkit-input-placeholder,
+[dir="rtl"] #cardCvv::-moz-placeholder {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+[dir="rtl"] #btnInvBack svg {
+  transform: rotate(180deg);
+}
+
+[dir="rtl"] #btnPay svg {
+  transform: rotate(180deg);
+}
+
+[dir="rtl"] #modalCreate label {
+  text-align: right;
+}
+
+[dir="rtl"] #btnCloseCreate {
+  right: auto !important;
+  left: 20px !important;
+}
+
 /* Tablet Layout (641px - 899px) */
 @media (max-width: 899px) and (min-width: 641px) {
   #screenLogin,
@@ -2119,6 +2235,7 @@ img, svg { display: block; }
   .workspace, .dash-two-col { grid-template-columns: 1fr; }
   .hero { align-items: flex-start; }
   .amount { padding-top: 10px; text-align: left; }
+  [dir="rtl"] .amount { text-align: right !important; }
 }
 
 @media (max-width: 560px) {
@@ -2127,6 +2244,7 @@ img, svg { display: block; }
   .brand small { font-size: 9px; }
   .hero { padding: 22px 20px; display: block; }
   .amount { text-align: left; margin-top: 18px; }
+  [dir="rtl"] .amount { text-align: right !important; }
   .workspace { gap: 16px; }
   .section-head { padding: 16px; }
   .payment-inner { padding: 20px 16px; }
