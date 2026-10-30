@@ -401,15 +401,15 @@
     applySendChannelStyles();
   }
 
-  function appendLocalMessage(msg, pending) {
-    var row = {
+  function appendLocalMessage(msg, pending, extra) {
+    var row = Object.assign({
       message: msg,
       type: mapSendChannelToType(selectedSendChannel.channel_type),
       direction: 0,
       time: nowTime(),
       _localId: 'local-' + Date.now(),
       _pending: !!pending
-    };
+    }, extra || {});
     currentMessages.push(row);
     renderMessages('mb-live-chat', currentMessages, currentParams);
     return row._localId;
@@ -461,32 +461,54 @@
   }
 
   function resolveChatHref(href) {
-    var out = String(href || '');
-    if (/^biz1upload\//i.test(out) && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
-      out = MineralBarApp.resolveFileUrl(out) || out;
+    var out = String(href || '').trim();
+    if (!out) return '';
+    if (/^(https?:)?\/\//i.test(out) || /^data:/i.test(out) || /^blob:/i.test(out)) return out;
+    if (window.MineralBarApp && typeof window.MineralBarApp.resolveFileUrl === 'function') {
+      return window.MineralBarApp.resolveFileUrl(out) || out;
     }
     return out;
   }
 
   function hrefMediaKind(href) {
-    var h = String(href || '');
-    if (/\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(h)) return 'image';
-    if (/\.pdf(\?|$)/i.test(h)) return 'pdf';
-    if (/\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba)(\?|$)/i.test(h) ||
-        /(^|[\/._-])voice[-_].+\.(webm|ogg|m4a|mp3)(\?|$)/i.test(h) ||
+    var h = String(href || '').split('?')[0].split('#')[0].toLowerCase();
+    if (/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(h)) return 'image';
+    if (/\.pdf$/i.test(h)) return 'pdf';
+    if (/\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba)$/i.test(h) ||
+        /(^|[\/._-])voice[-_].+\.(webm|ogg|m4a|mp3)$/i.test(h) ||
         /(?:^|[\/._-])(?:audio|ptt|voice)[\/._-]/i.test(h)) {
       return 'audio';
     }
-    if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(h)) return 'video';
+    if (/\.(mp4|webm|mov|m4v)$/i.test(h)) return 'video';
+    if (/\.(docx?|xlsx?|pptx?|csv|txt)$/i.test(h)) return 'doc';
+    if (/order-document\.html/i.test(h)) return 'order_doc';
+    if (/signature-alert\.html|final-quote\.html/i.test(h)) return 'quote_doc';
+    if (/document-issue-form\.html|all-documents\.html/i.test(h)) return 'receipt_doc';
     return '';
+  }
+
+  function looksLikeImageFileName(text) {
+    var t = String(text || '').trim();
+    if (!t) return false;
+    try { t = decodeURIComponent(t); } catch (e0) { /* keep raw */ }
+    t = t.replace(/\\/g, '/').split('/').pop().split('?')[0];
+    return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(t);
+  }
+
+  function looksLikeDocumentFileName(text) {
+    var t = String(text || '').trim();
+    if (!t) return false;
+    try { t = decodeURIComponent(t); } catch (e0) { /* keep raw */ }
+    t = t.replace(/\\/g, '/').split('/').pop().split('?')[0];
+    return /\.(pdf|docx?|xlsx?|pptx?|csv|txt)$/i.test(t);
   }
 
   function looksLikeMediaFileName(text) {
     var t = String(text || '').trim();
     if (!t) return false;
     try { t = decodeURIComponent(t); } catch (e0) { /* keep raw */ }
-    t = t.replace(/\\/g, '/').split('/').pop();
-    return /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba|mp4|webm|mov|m4v|png|jpe?g|gif|webp|bmp|pdf)$/i.test(t);
+    t = t.replace(/\\/g, '/').split('/').pop().split('?')[0];
+    return /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba|mp4|webm|mov|m4v|png|jpe?g|gif|webp|bmp|svg|pdf|docx?|xlsx?)$/i.test(t);
   }
 
   function stripMediaFileNameLines(text) {
@@ -658,58 +680,307 @@
     return parts.join('\x1e');
   }
 
-  function formatMessageBody(text) {
-    var raw = String(text == null ? '' : text);
-    if (!raw) return '';
-    var urlRe = /(https?:\/\/[^\s<>"']+|biz1upload\/[^\s<>"']+)/gi;
-    var parts = [];
-    var last = 0;
-    var m;
-    while ((m = urlRe.exec(raw)) !== null) {
-      if (m.index > last) parts.push({ type: 'text', value: raw.slice(last, m.index) });
-      parts.push({ type: 'url', value: m[0] });
-      last = m.index + m[0].length;
+  function renderImageHtml(imgItem) {
+    var safeUrl = esc(imgItem.url);
+    var safeName = esc(imgItem.name || 'image');
+    var isHe = document.documentElement.lang === 'he' || (window.MineralBarI18n && typeof MineralBarI18n.getLanguage === 'function' && MineralBarI18n.getLanguage() === 'he');
+    return (
+      '<div class="mb-chat-image-wrap" style="margin:6px 0; border-radius:12px; overflow:hidden; max-width:280px; box-shadow:0 2px 8px rgba(15,24,40,.07); background:#f0f4f8;">' +
+        '<a href="' + safeUrl + '" target="_blank" rel="noopener" style="display:block; text-decoration:none; cursor:pointer;">' +
+          '<img src="' + safeUrl + '" alt="' + safeName + '" loading="lazy" style="width:100%; height:auto; max-height:260px; object-fit:contain; display:block; border-radius:12px;" onerror="this.onerror=null; this.parentElement.innerHTML=\'<div style=\\\'padding:10px 14px; color:#6a7888; font-size:13px; display:flex; align-items:center; gap:6px;\\\'>🖼️ ' + (isHe ? 'תמונה' : 'Image') + ': ' + safeName + '</div>\';" />' +
+        '</a>' +
+      '</div>'
+    );
+  }
+
+  window.mbOpenDocumentView = async function (docId, fallbackUrl, mode) {
+    var url = fallbackUrl || '';
+    if (docId && window.MineralBarApp && typeof window.MineralBarApp.viewDocument === 'function') {
+      try {
+        var res = await window.MineralBarApp.viewDocument(docId);
+        if (res && (res.file_url || res.output)) {
+          url = res.file_url || res.output;
+        }
+      } catch (err) {
+        console.warn('[chat-live] Documents.View lookup failed', err);
+      }
     }
-    if (last < raw.length) parts.push({ type: 'text', value: raw.slice(last) });
-    if (!parts.length) parts.push({ type: 'text', value: raw });
+    if (!url) return;
+    if (mode === 'download') {
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = (docId ? ('document-' + docId + '.pdf') : 'document.pdf');
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      window.open(url, '_blank', 'noopener');
+    }
+  };
 
-    var hasMedia = parts.some(function (part) {
-      if (part.type !== 'url') return false;
-      var kind = hrefMediaKind(resolveChatHref(part.value));
-      return kind === 'audio' || kind === 'video' || kind === 'image';
-    });
+  function renderDocCardHtml(docItem, rawText, isOut) {
+    var isHe = document.documentElement.lang === 'he' || (window.MineralBarI18n && typeof MineralBarI18n.getLanguage === 'function' && MineralBarI18n.getLanguage() === 'he');
+    var url = docItem.url || '';
+    var name = docItem.name || 'document.pdf';
+    var kind = docItem.kind || 'pdf';
 
-    return parts.map(function (part) {
-      if (part.type !== 'url') {
-        var shown = hasMedia ? stripMediaFileNameLines(part.value) : part.value;
-        return shown ? esc(shown) : '';
+    var isOrder = kind === 'order_doc' || /הזמנה|order/i.test(name) || /order document|מסמך הזמנה/i.test(rawText);
+    var isReceipt = kind === 'receipt_doc' || /קבלה|receipt/i.test(name) || /receipt for|קבלה לתשלום/i.test(rawText);
+    var isQuote = kind === 'quote_doc' || /הצעת מחיר|quote|quotation/i.test(name) || /הצעת מחיר|quote/i.test(rawText);
+
+    var title = isHe ? 'מסמך' : 'Document';
+    var iconSvg = '';
+    var badgeColor = '#1d60a2';
+    var badgeBg = '#e8f1fd';
+
+    // Extract document number if in text (e.g. #QT-0041 or #1002)
+    var numMatch = /#([A-Za-z0-9_-]+)/.exec(rawText || '');
+    var docNumStr = numMatch ? (' #' + numMatch[1]) : '';
+
+    var docId = (docItem && docItem.document_id) || '';
+    if (!docId) {
+      var idMatch = /(?:document_id|file_id|doc_id)=([0-9]+)/i.exec(url || '') ||
+                    /#([0-9]+)/.exec(rawText || '') ||
+                    /(?:מסמך|order|receipt|invoice|הזמנה|קבלה)[^\d]*([0-9]+)/i.exec(rawText || '');
+      if (idMatch) docId = idMatch[1];
+    }
+
+    if (isOrder) {
+      title = (isHe ? 'מסמך הזמנה' : 'Order document') + docNumStr;
+      badgeColor = '#2e8a63';
+      badgeBg = '#e8f7ee';
+      iconSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
+    } else if (isReceipt) {
+      title = (isHe ? 'קבלה לתשלום' : 'Payment receipt') + docNumStr;
+      badgeColor = '#25b35e';
+      badgeBg = '#e6f8ee';
+      iconSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>';
+    } else if (isQuote) {
+      title = (isHe ? 'הצעת מחיר' : 'Price quotation') + docNumStr;
+      badgeColor = '#d97706';
+      badgeBg = '#fef3c7';
+      iconSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
+    } else {
+      title = (isHe ? 'מסמך PDF' : 'PDF Document') + docNumStr;
+      iconSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    }
+
+    var safeUrl = esc(url);
+    var safeName = esc(name);
+    var downloadUrl = safeUrl;
+    var viewUrl = safeUrl;
+    var safeDocId = esc(docId);
+
+    var viewClickAttr = safeDocId
+      ? 'onclick="event.preventDefault(); window.mbOpenDocumentView(\'' + safeDocId + '\', \'' + safeUrl + '\', \'view\');"'
+      : '';
+    var downloadClickAttr = safeDocId
+      ? 'onclick="event.preventDefault(); window.mbOpenDocumentView(\'' + safeDocId + '\', \'' + safeUrl + '\', \'download\');"'
+      : '';
+
+    return (
+      '<div class="mb-chat-doc-card" style="margin:8px 0; border:1.5px solid #dce5ef; border-radius:14px; background:#f9fbfe; padding:12px; box-shadow:0 1px 4px rgba(15,24,40,.04); display:flex; flex-direction:column; gap:10px; min-width:230px; max-width:100%;">' +
+        '<div style="display:flex; align-items:center; gap:10px;">' +
+          '<div style="width:38px; height:38px; border-radius:10px; background:' + badgeBg + '; color:' + badgeColor + '; display:flex; align-items:center; justify-content:center; flex-shrink:0;">' +
+            iconSvg +
+          '</div>' +
+          '<div style="flex:1; min-width:0; text-align:start;">' +
+            '<div style="font-size:13.5px; font-weight:700; color:#152238; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(title) + '</div>' +
+            '<div style="font-size:11.5px; color:#6b798b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;">' + safeName + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex; align-items:center; gap:8px; border-top:1px solid #e7edf5; padding-top:8px;">' +
+          '<a href="' + viewUrl + '" ' + viewClickAttr + ' target="_blank" rel="noopener" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:7px 10px; border-radius:9px; background:#1d60a2; color:#fff; text-decoration:none; font-size:12px; font-weight:700; cursor:pointer;">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+            '<span>' + (isHe ? 'צפה במסמך' : 'View document') + '</span>' +
+          '</a>' +
+          '<a href="' + downloadUrl + '" download="' + safeName + '" ' + downloadClickAttr + ' target="_blank" rel="noopener" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:7px 10px; border-radius:9px; background:#fff; border:1.5px solid #d5e0ee; color:#1d60a2; text-decoration:none; font-size:12px; font-weight:700; cursor:pointer;">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+            '<span>' + (isHe ? 'הורד' : 'Download') + '</span>' +
+          '</a>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function extractMessageMedia(text, row) {
+    var rawText = String(text == null ? '' : text).trim();
+    var found = {
+      images: [],
+      docs: [],
+      audios: [],
+      videos: [],
+      cleanText: rawText
+    };
+
+    var seenUrls = {};
+    function addUrl(url, explicitKind, name) {
+      if (!url) return;
+      var clean = String(url).trim();
+      if (!clean) return;
+      var resolved = resolveChatHref(clean);
+      if (seenUrls[resolved]) return;
+      seenUrls[resolved] = true;
+
+      var kind = explicitKind || hrefMediaKind(resolved);
+      if (!kind) {
+        if (looksLikeImageFileName(clean)) kind = 'image';
+        else if (looksLikeDocumentFileName(clean)) kind = 'pdf';
       }
-      var href = resolveChatHref(part.value);
-      var safeHref = esc(href);
-      var kind = hrefMediaKind(href);
-      if (kind === 'image') {
-        return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:block; margin:4px 0;">' +
-          '<img src="' + safeHref + '" alt="" style="max-width:100%; max-height:220px; border-radius:12px; display:block;"/>' +
-          '</a>';
+      var docId = (row && (row.document_id || row.id || (row.raw && (row.raw.document_id || row.raw.inserted_documents_id || row.raw.file_id)))) || '';
+      var item = { url: resolved, name: name || clean.split('/').pop().split('?')[0], kind: kind, document_id: docId };
+      if (kind === 'image') found.images.push(item);
+      else if (kind === 'audio') found.audios.push(item);
+      else if (kind === 'video') found.videos.push(item);
+      else if (kind === 'pdf' || kind === 'doc' || kind === 'order_doc' || kind === 'receipt_doc' || kind === 'quote_doc') {
+        found.docs.push(item);
       }
-      if (kind === 'pdf') {
-        return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:8px; margin:6px 0; padding:10px 12px; border:1.5px solid #dbe7f5; border-radius:12px; background:#f4f8fd; color:#1d60a2; text-decoration:none; font-weight:800; font-size:13.5px;">' +
-          '<span style="font-size:18px; line-height:1;">📄</span>' +
-          '<span style="word-break:break-word;">' + chatT('Open service form PDF', 'פתח טופס שירות PDF') + '</span>' +
-          '</a>';
+    }
+
+    // 1. From row properties / preview
+    if (row) {
+      if (row._previewUrl) {
+        addUrl(row._previewUrl, 'image', row._fileName || 'image.png');
       }
-      // Audio / voice: player only — no filename, no CDN URL, no black video frame
-      if (kind === 'audio') {
-        return audioPlayerHtml(safeHref);
+      var rowFile = row.file_url || row.file || row.media_url || row.attachment || row.url;
+      if (rowFile && typeof rowFile === 'string') addUrl(rowFile);
+
+      if (row.raw && typeof row.raw === 'object') {
+        var r = row.raw;
+        var rFile = r.file_url || r.file || r.file_path || r.media_url || r.attachment || r.attachment_url || r.url || r.image || r.image_url || r.document_url || r.pdf_url || r.pdf;
+        if (typeof rFile === 'string') addUrl(rFile);
+        else if (rFile && typeof rFile === 'object') {
+          if (rFile.file_url || rFile.file_path || rFile.url) {
+            addUrl(rFile.file_url || rFile.file_path || rFile.url);
+          }
+        }
+        if (Array.isArray(r.files)) {
+          r.files.forEach(function (f) {
+            if (typeof f === 'string') addUrl(f);
+            else if (f && (f.file_url || f.url || f.file_path || f.path)) {
+              addUrl(f.file_url || f.url || f.file_path || f.path, null, f.name || f.file_name);
+            }
+          });
+        }
+        if (Array.isArray(r.attachments)) {
+          r.attachments.forEach(function (a) {
+            if (typeof a === 'string') addUrl(a);
+            else if (a && (a.file_url || a.url || a.path || a.file_path)) {
+              addUrl(a.file_url || a.url || a.path || a.file_path, null, a.name || a.file_name);
+            }
+          });
+        }
       }
-      if (kind === 'video') {
-        return '<div class="mb-chat-audio-wrap" style="margin:4px 0;">' +
+    }
+
+    // 2. URLs in text
+    var urlRe = /(https?:\/\/[^\s<>"']+|biz1upload\/[^\s<>"']+|\/(?:uploads|orders|documents|receipts)\/[^\s<>"']+)/gi;
+    var m;
+    while ((m = urlRe.exec(rawText)) !== null) {
+      addUrl(m[0]);
+    }
+
+    // 3. Lines in text that are standalone filenames or links
+    var lines = rawText.split(/\r?\n/);
+    var keptLines = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) {
+        keptLines.push('');
+        continue;
+      }
+      if (looksLikeImageFileName(line)) {
+        addUrl(line, 'image', line);
+        continue;
+      }
+      if (looksLikeDocumentFileName(line)) {
+        addUrl(line, 'pdf', line);
+        continue;
+      }
+      if (/^(https?:\/\/[^\s<>"']+|biz1upload\/[^\s<>"']+)$/i.test(line)) {
+        continue;
+      }
+      if (/^(לצפייה והורדת|view and download)/i.test(line)) {
+        continue;
+      }
+      keptLines.push(lines[i]);
+    }
+
+    found.cleanText = keptLines.join('\n').replace(/^\s+|\s+$/g, '');
+    return found;
+  }
+
+  function formatMessageBody(text, row) {
+    var raw = String(text == null ? '' : text);
+    if (!raw && !row) return '';
+
+    var media = extractMessageMedia(raw, row);
+    var outHtml = '';
+
+    // If there is clean text (caption, order summary, notes)
+    if (media.cleanText) {
+      outHtml += '<div style="font-size:14.5px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:start;">' +
+        esc(media.cleanText) +
+        '</div>';
+    }
+
+    // Render Images
+    if (media.images && media.images.length) {
+      media.images.forEach(function (img) {
+        outHtml += renderImageHtml(img);
+      });
+    }
+
+    // Render Audio players
+    if (media.audios && media.audios.length) {
+      media.audios.forEach(function (aud) {
+        outHtml += audioPlayerHtml(esc(aud.url));
+      });
+    }
+
+    // Render Videos
+    if (media.videos && media.videos.length) {
+      media.videos.forEach(function (vid) {
+        var safeHref = esc(vid.url);
+        outHtml += '<div class="mb-chat-audio-wrap" style="margin:4px 0;">' +
           '<video class="mb-chat-maybe-audio" controls loop playsinline preload="auto" src="' + safeHref +
           '" style="width:100%; max-width:260px; height:40px; display:block; border-radius:10px; background:transparent;"></video></div>';
+      });
+    }
+
+    // Render Document Cards
+    if (media.docs && media.docs.length) {
+      media.docs.forEach(function (doc) {
+        outHtml += renderDocCardHtml(doc, raw, isOutgoing(row));
+      });
+    } else {
+      // Check if message is an Order or Receipt without a direct document link
+      var isOrderMsg = /מסמך הזמנה|order document/i.test(raw);
+      var isReceiptMsg = /קבלה לתשלום|receipt for|קבלה/i.test(raw);
+      if (isOrderMsg || isReceiptMsg) {
+        var cid = (row && (row.customer_id || (row.raw && (row.raw.customer_id || row.raw.contactus_id)))) || resolveChatCustomerId(currentParams);
+        var fallbackUrl = isOrderMsg
+          ? ('order-document.html?customer_id=' + encodeURIComponent(cid || ''))
+          : ('all-documents.html?customer_id=' + encodeURIComponent(cid || ''));
+        var docItem = {
+          url: fallbackUrl,
+          name: isOrderMsg ? 'order-document.html' : 'receipt.pdf',
+          kind: isOrderMsg ? 'order_doc' : 'receipt_doc'
+        };
+        outHtml += renderDocCardHtml(docItem, raw, isOutgoing(row));
       }
-      var label = esc(part.value);
-      return '<a href="' + safeHref + '" target="_blank" rel="noopener" style="color:#1d60a2; text-decoration:underline; word-break:break-all;">' + label + '</a>';
-    }).join('');
+    }
+
+    // Fallback if empty
+    if (!outHtml) {
+      outHtml = '<div style="font-size:14.5px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:start;">' +
+        esc(raw) +
+        '</div>';
+    }
+
+    return outHtml;
   }
 
   function bindMaybeAudioVideo(vid) {
@@ -756,23 +1027,23 @@
     for (var j = 0; j < audios.length; j++) enableChatAudioLoop(audios[j]);
   }
 
-  function bubbleIn(text, time, who, badgeHtml) {
+  function bubbleIn(text, time, who, badgeHtml, row) {
     var badge = badgeHtml || '';
     return (
       '<div style="align-self:flex-start; width:100%; max-width:85%; background:#fff; border:1.5px solid #e7eaef; border-radius:18px; padding:14px 16px; box-shadow:0 1px 3px rgba(15,24,40,.04); display:flex; flex-direction:column; gap:4px;">' +
       badge +
-      '<div style="font-size:15px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:left;">' + formatMessageBody(text) + '</div>' +
+      '<div style="text-align:left;">' + formatMessageBody(text, row) + '</div>' +
       '<div style="font-size:11px; color:#8a96a3; text-align:right; margin-top:2px; font-weight:600;">' + esc(time) + '</div>' +
       '</div>'
     );
   }
 
-  function bubbleOut(text, time, pending, who, badgeHtml) {
+  function bubbleOut(text, time, pending, who, badgeHtml, row) {
     var badge = badgeHtml || '';
     return (
       '<div style="align-self:flex-end; width:100%; max-width:85%; background:#fff; border:1.5px solid #e7eaef; border-radius:18px; padding:14px 16px; box-shadow:0 1px 3px rgba(15,24,40,.04); display:flex; flex-direction:column; gap:4px;">' +
       badge +
-      '<div style="font-size:15px; color:#1f2a3a; line-height:1.5; white-space:pre-wrap; word-break:break-word; text-align:left;">' + formatMessageBody(text) + '</div>' +
+      '<div style="text-align:left;">' + formatMessageBody(text, row) + '</div>' +
       '<div style="display:flex; align-items:center; justify-content:space-between; margin-top:2px;">' +
       (pending
         ? '<span style="font-size:11px; color:#bd8324; font-weight:600;">שולח…</span>'
@@ -1050,9 +1321,9 @@
 
         var badge = getMessageBadgeHtml(row);
         if (isOutgoing(row)) {
-          html += bubbleOut(text, timeStr, !!row._pending, row.user_name || '', badge);
+          html += bubbleOut(text, timeStr, !!row._pending, row.user_name || '', badge, row);
         } else {
-          html += bubbleIn(text, timeStr, row.user_name || '', badge);
+          html += bubbleIn(text, timeStr, row.user_name || '', badge, row);
         }
       });
     }
@@ -1226,7 +1497,7 @@
     return cid ? String(cid) : '';
   }
 
-  function buildSendPayload(p, msg) {
+  function buildSendPayload(p, msg, extra) {
     var fromVal = selectedSendChannel.from || 'send_notes';
     var channelType = selectedSendChannel.channel_type || 'notes';
     var customerId = resolveChatCustomerId(p);
@@ -1567,6 +1838,7 @@
     lastAttachToken = '';
 
     var localId = null;
+    var uploadedUrl = '';
     try {
       var finalMsg = textMsg;
       if (attachSnapshot) {
@@ -1574,14 +1846,26 @@
         var isAudioFile = isVoice ||
           (attachSnapshot.file && /^audio\//i.test(attachSnapshot.file.type || '')) ||
           /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba)$/i.test(attachSnapshot.name || '');
+        var isImgFile = attachSnapshot.kind === 'image' ||
+          (attachSnapshot.file && /^image\//i.test(attachSnapshot.file.type || '')) ||
+          looksLikeImageFileName(attachSnapshot.name);
+
         showToast(isVoice
           ? chatT('Sending voice message…', 'שולח הודעה קולית…')
           : chatT('Uploading file…', 'מעלה קובץ…'));
+
+        var extraOpt = {};
+        if (isImgFile && attachSnapshot.previewUrl) {
+          extraOpt._previewUrl = attachSnapshot.previewUrl;
+          extraOpt._fileName = attachSnapshot.name;
+        }
+
         localId = appendLocalMessage(
           isAudioFile
             ? ((textMsg ? (textMsg + '\n') : '') + '…')
-            : ((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n…'),
-          true
+            : (textMsg || (attachSnapshot.name || 'file')),
+          true,
+          extraOpt
         );
         if (!window.MineralBarApp || typeof MineralBarApp.uploadCustomerFile !== 'function') {
           throw new Error(chatT('File upload failed', 'העלאת הקובץ נכשלה'));
@@ -1597,12 +1881,15 @@
           url = MineralBarApp.resolveFileUrl(url);
         }
         if (!url) throw new Error(chatT('File upload failed', 'העלאת הקובץ נכשלה'));
-        finalMsg = isAudioFile
-          ? ((textMsg ? (textMsg + '\n') : '') + url)
-          : ((attachSnapshot.name || 'file') + (textMsg ? ('\n' + textMsg) : '') + '\n' + url);
+        uploadedUrl = url;
+        finalMsg = textMsg ? (textMsg + '\n' + url) : url;
         currentMessages = currentMessages.map(function (row) {
           if (row._localId !== localId) return row;
-          return Object.assign({}, row, { message: finalMsg });
+          return Object.assign({}, row, {
+            message: finalMsg,
+            file_url: url,
+            _previewUrl: isImgFile ? (attachSnapshot.previewUrl || url) : undefined
+          });
         });
         renderMessages('mb-live-chat', currentMessages, p);
       } else {
@@ -2176,7 +2463,7 @@
   // Wire UI early; boot once when auth is ready (or already authenticated).
   wireChatBackButton();
   initHorizontalDrags();
-  if (window.MineralBarApp && MineralBarApp.isAuthenticated && MineralBarApp.isAuthenticated()) {
+  if (window.MineralBarApp && typeof window.MineralBarApp.isAuthenticated === 'function' && window.MineralBarApp.isAuthenticated()) {
     setTimeout(start, 40);
   } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
@@ -2202,8 +2489,8 @@
     window.addEventListener('mineralbar:messages', function (ev) {
       applySocketChatEvent((ev && ev.detail) || {});
     });
-    if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(function (detail) {
+    if (window.MineralBarApp && window.MineralBarApp.bindLiveReload) {
+      window.MineralBarApp.bindLiveReload(function (detail) {
         var key = String((detail && detail.key) || '').toLowerCase();
         if (!key || /socket\.nudge/i.test(key)) return;
         applySocketChatEvent(detail);

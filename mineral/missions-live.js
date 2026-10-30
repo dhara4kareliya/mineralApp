@@ -66,6 +66,31 @@
     return when.split('-').reverse().join('/');
   }
 
+  function missionCreationTimestamp(m) {
+    if (!m) return 0;
+    var raw = String(m.date_created_format || m.date_created || m.created_at || m.date_create || m.last_update || '').trim();
+    if (raw && raw !== '—' && raw !== '-') {
+      var ymd = raw.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (ymd) {
+        var d = new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]), Number(ymd[4] || 0), Number(ymd[5] || 0), Number(ymd[6] || 0));
+        var t = d.getTime();
+        if (!Number.isNaN(t) && t > 0) return t;
+      }
+      var dmy = raw.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (dmy) {
+        var d2 = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]), Number(dmy[4] || 0), Number(dmy[5] || 0), Number(dmy[6] || 0));
+        var t2 = d2.getTime();
+        if (!Number.isNaN(t2) && t2 > 0) return t2;
+      }
+      var parsed = new Date(raw.indexOf('T') !== -1 ? raw : raw.replace(' ', 'T'));
+      var tp = parsed.getTime();
+      if (!Number.isNaN(tp) && tp > 0) return tp;
+    }
+    var numId = Number(m.mission_id || m.id);
+    if (!Number.isNaN(numId) && numId > 0) return numId;
+    return 0;
+  }
+
   function priorityFromMission(mission, today) {
     if (!mission) return 'none';
     var color = String(mission.color || mission.appoinment_color1 || '').trim().toLowerCase();
@@ -98,16 +123,19 @@
     var when = formatWhen(m, today);
     var desc = m.note || m.description || '';
     
+    var rawColor = String((m && (m.color || m.appoinment_color1 || m.priority)) || '').trim().toLowerCase();
+    var isTransparent = !rawColor || rawColor === 'transparent';
+    var yellowColor = '#f59e0b';
     var color = String(m.color || '').toLowerCase();
     var pri = priorityFromMission(m, today);
     
     var priLabel = '--';
     var priBg = 'var(--bg-panel)';
     var priColor = 'var(--text-sub)';
-    var dotColor = m.color || (isOverdue(m, today) ? '#c0392b' : '#1d60a2');
+    var dotColor = isTransparent ? yellowColor : (m.color || (isOverdue(m, today) ? '#c0392b' : '#1d60a2'));
 
-    if (color === '#f59e0b' || color === '#eab308' || color === '#f1c40f' || color === 'yellow') {
-      dotColor = m.color || '#f59e0b';
+    if (isTransparent || color === '#f59e0b' || color === '#eab308' || color === '#f1c40f' || color === 'yellow') {
+      dotColor = yellowColor;
       priBg = '#fef3c7';
       priColor = '#b45309';
       priLabel = isEn ? 'Medium' : 'בינוני';
@@ -128,7 +156,9 @@
       dotColor = m.color || '#1d60a2';
     }
 
-    var groupColor = m.color || (isOverdue(m, today) ? '#c0392b' : dotColor);
+    var groupColor = isTransparent ? yellowColor : (m.color || (isOverdue(m, today) ? '#c0392b' : dotColor));
+    if (groupColor === 'transparent' || groupColor === 'yellow') groupColor = yellowColor;
+    if (dotColor === 'transparent' || dotColor === 'yellow') dotColor = yellowColor;
     var badgeBg = isOverdue(m, today) ? '#fbeeed' : '#eaf2fb';
     var badgeColor = isOverdue(m, today) ? '#c0392b' : '#1d60a2';
 
@@ -423,6 +453,9 @@
           title: title,
           mission: title,
           note: title,
+          color: 'yellow',
+          priority: 'yellow',
+          appoinment_color1: 'yellow',
           member_id: memberId ? [Number(memberId) || memberId] : undefined,
           assigned_to: memberId || undefined,
           customer_id: customerId || undefined
@@ -500,6 +533,21 @@
       var today = todayKey();
       var groups = result.groups || [];
       var flatRows = result.rows || [];
+
+      function sortMissionsDesc(list) {
+        return (list || []).slice().sort(function (a, b) {
+          var ta = missionCreationTimestamp(a);
+          var tb = missionCreationTimestamp(b);
+          if (ta !== tb) return tb - ta;
+          var ida = Number(a && (a.mission_id || a.id)) || 0;
+          var idb = Number(b && (b.mission_id || b.id)) || 0;
+          return idb - ida;
+        });
+      }
+      flatRows = sortMissionsDesc(flatRows);
+      groups.forEach(function (g) {
+        if (g.rows) g.rows = sortMissionsDesc(g.rows);
+      });
       
       if (totalEl) {
         var total = result.total || flatRows.length || 0;

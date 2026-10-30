@@ -160,8 +160,6 @@
       '<div style="margin-top:16px; border-top:1px solid #eceff4; padding-top:14px; position:relative;">' +
       '<button type="button" style="position:absolute; right:0; top:14px; background:#163553; color:#fff; border:none; border-radius:12px; padding:6px 10px; font-size:12px; font-weight:700;">+ Add payment gate</button>' +
       '<div style="margin-bottom:10px;"><div style="font-size:28px; font-weight:700; color:#1f2a3a;">Internal payment notes</div><textarea id="mb-note-internal" placeholder="Note" style="width:100%;max-width:520px;height:36px;padding:8px;border:1px solid #e3e7ee;border-radius:6px;"></textarea></div>' +
-      '<div style="margin-bottom:10px;"><div style="font-size:28px; font-weight:700; color:#1f2a3a;">Notes For Header</div><textarea id="mb-note-header" placeholder="Note" style="width:100%;max-width:520px;height:36px;padding:8px;border:1px solid #e3e7ee;border-radius:6px;"></textarea></div>' +
-      '<div style="margin-bottom:8px;"><div style="font-size:28px; font-weight:700; color:#1f2a3a;">Notes For Footer</div><textarea id="mb-note-footer" placeholder="Note" style="width:100%;max-width:520px;height:36px;padding:8px;border:1px solid #e3e7ee;border-radius:6px;"></textarea></div>' +
       '<div style="display:flex; gap:12px; margin:8px 0 16px;"><label><input type="checkbox" id="mb-send-mail">Send by mail</label><label><input type="checkbox" id="mb-send-wa">Send by whatsapp</label></div>' +
       '</div>' +
 

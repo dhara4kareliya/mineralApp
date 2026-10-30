@@ -119,13 +119,13 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
-      LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
+      LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 500 });
     }
 
     this.initData();
-    window.addEventListener('mineralbar:ready', () => this.initData());
+    window.addEventListener('mineralbar:ready', () => this.initData({ silent: true }));
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
-      MineralBarApp.bindLiveReload(() => this.initData(), { keys: /product|customer|ticket|socket\.nudge/i, delay: 400 });
+      MineralBarApp.bindLiveReload(() => this.initData({ silent: true }), { keys: /product|customer|ticket|socket\.nudge/i, delay: 600 });
     }
   }
 
@@ -152,13 +152,38 @@ class Component extends DCLogic {
 
   async autoUpdateProposalApproved(customerId) {
     if (!customerId || !window.MineralBarApp) return;
+    if (this._statusUpdated || this._isUpdatingStatus) return;
+    var sessionKey = 'mb_proposal_approved_updated:' + customerId;
+    try {
+      if (sessionStorage.getItem(sessionKey)) {
+        this._statusUpdated = true;
+        return;
+      }
+    } catch (e) { /* ignore */ }
+
+    this._isUpdatingStatus = true;
     try {
       var client = (typeof MineralBarApp.getClient === 'function') ? MineralBarApp.getClient() : null;
       if (!client || typeof client.request !== 'function') return;
 
+      // Check current customer status first to avoid redundant status write
+      try {
+        if (typeof MineralBarApp.getCustomer === 'function') {
+          var custRes = await MineralBarApp.getCustomer(customerId);
+          var c = (custRes && (custRes.customer || custRes.data)) || {};
+          if (c.data && typeof c.data === 'object') c = c.data;
+          var curStatus = String(c.status || c.status_id || c.sub_list_data || '');
+          if (curStatus === '10194') {
+            this._statusUpdated = true;
+            try { sessionStorage.setItem(sessionKey, '1'); } catch (e) {}
+            return;
+          }
+        }
+      } catch (eCheck) { /* continue */ }
+
       var hasInvoice = false;
       try {
-        var docsRes = await client.request('Documents.List', { customer_id: customerId, limit: 50 });
+        var docsRes = await client.request('Documents.List', { customer_id: customerId, limit: 10 });
         var docs = (docsRes && (docsRes.data || docsRes.output || docsRes)) || [];
         if (Array.isArray(docs)) {
           hasInvoice = docs.some(function(d) {
@@ -186,29 +211,40 @@ class Component extends DCLogic {
         } catch (eF) { /* ignore */ }
       }
 
-      var editPayload = {
-        customer_id: customerId,
-        id: customerId,
-        cust_id: customerId,
-        status: 'נחתמה הצעה',
-        status_id: '10194',
-        sub_list_data: '10194',
-        sub_list_data_name: 'נחתמה הצעה'
-      };
-      if (colFolder) {
-        editPayload.folder_id = colFolder;
+      if (typeof MineralBarApp.updateCustomerStatus === 'function') {
+        await MineralBarApp.updateCustomerStatus(customerId, '10194', 'הצעה אושרה', colFolder);
+      } else {
+        var editPayload = {
+          customer_id: customerId,
+          id: customerId,
+          cust_id: customerId,
+          status: '10194',
+          status_id: '10194',
+          sub_list_data: '10194',
+          sub_list_data_name: 'הצעה אושרה'
+        };
+        if (colFolder) {
+          editPayload.folder_id = colFolder;
+        }
+        await client.request('Customer.Edit', editPayload);
       }
-      await client.request('Customer.Edit', editPayload);
+      this._statusUpdated = true;
+      try { sessionStorage.setItem(sessionKey, '1'); } catch (e) {}
     } catch (err) {
       console.warn('[signature-alert] autoUpdateProposalApproved error', err);
+    } finally {
+      this._isUpdatingStatus = false;
     }
   }
 
-  async initData() {
+  async initData(soft) {
+    if (this._initDataRunning) return;
+    this._initDataRunning = true;
     try {
+      var isSoft = !!(soft && (soft.silent || soft.soft));
       var q = new URLSearchParams(window.location.search);
       var customerId = this.getCustomerId();
-      if (customerId) {
+      if (customerId && !isSoft && !this._statusUpdated) {
         this.autoUpdateProposalApproved(customerId);
       }
       var name = q.get('name') || '';
@@ -228,6 +264,64 @@ class Component extends DCLogic {
         }
       }
       var discount = Number(q.get('discount') || 0);
+
+      var passedAmount = Number(q.get('amount') || q.get('total') || q.get('final_amount') || 0);
+      if (!passedAmount) {
+        try {
+          var stAmt = (customerId ? sessionStorage.getItem('mb_quote_amount:' + customerId) : null) ||
+            sessionStorage.getItem('mb_quote_amount') ||
+            sessionStorage.getItem('mb_collection_amount');
+          if (stAmt) passedAmount = Number(stAmt) || 0;
+        } catch (eA) { /* ignore */ }
+      }
+
+      var quoteTotals = null;
+      try {
+        var tRaw = (customerId ? sessionStorage.getItem('mb_quote_totals:' + customerId) : null) ||
+          sessionStorage.getItem('mb_quote_totals');
+        if (tRaw) quoteTotals = JSON.parse(tRaw);
+      } catch (eT) { quoteTotals = null; }
+
+      var productsFromParam = [];
+      try {
+        var rawP = q.get('products_json');
+        if (rawP) productsFromParam = JSON.parse(rawP);
+      } catch (ePr) { productsFromParam = []; }
+      if (!productsFromParam || !productsFromParam.length) {
+        try {
+          var storedP = (customerId ? sessionStorage.getItem('mb_quote_products:' + customerId) : null) ||
+            sessionStorage.getItem('mb_quote_products');
+          if (storedP) productsFromParam = JSON.parse(storedP);
+        } catch (eSp) { productsFromParam = []; }
+      }
+
+      // If document ID is present, try reading items and amount from the quote document
+      if (documentId && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        try {
+          var clientDoc = MineralBarApp.getClient();
+          var docPayload = { document_id: documentId, doc_id: documentId, id: documentId, customer_id: customerId };
+          var docRes = null;
+          try { docRes = await clientDoc.request('Documents.View', docPayload); }
+          catch (eDv) { docRes = await clientDoc.request('Documents.Get', docPayload); }
+          var docData = (docRes && (docRes.data || docRes.output || docRes)) || {};
+          if (docData.final_amount && !passedAmount) {
+            passedAmount = Number(docData.final_amount) || 0;
+          }
+          var docItems = docData.items || (docData.data && docData.data.items) || [];
+          if (Array.isArray(docItems) && docItems.length && !productsFromParam.length) {
+            productsFromParam = docItems.map(function(it, idx) {
+              var pVal = Number(it.item_price || it.price || 0);
+              var pDisc = Number(it.item_discount || it.discount || 0);
+              return {
+                id: String(it.iteeeem_id || it.item_id || it.product_id || it.id || ('doc-' + idx)),
+                name: it.item_name || it.name || 'מוצר',
+                priceNum: pVal,
+                discountAmt: pDisc
+              };
+            });
+          }
+        } catch (eDoc) { /* ignore */ }
+      }
 
       // Current formatted time for "Signed at"
       var now = new Date();
@@ -261,6 +355,10 @@ class Component extends DCLogic {
       if (documentId) params.set('document_id', documentId);
       if (productIdsStr) params.set('product_ids', productIdsStr);
       if (quoteNum) params.set('quote_num', quoteNum);
+      if (passedAmount > 0) {
+        params.set('amount', String(passedAmount));
+        params.set('total', String(passedAmount));
+      }
       var paramsStr = params.toString();
 
       stateUpdate.backUrl = 'final-quote.html' + (paramsStr ? ('?' + paramsStr) : '');
@@ -272,10 +370,11 @@ class Component extends DCLogic {
 
       // Load products list if needed
       var productsList = [];
-      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      var needCatalog = (!productsFromParam || !productsFromParam.length) && (!this.state.products || !this.state.products.length || !isSoft);
+      if (needCatalog && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
         try {
           var client = MineralBarApp.getClient();
-          var res = await client.request('Products.List', { limit: 25 });
+          var res = await client.request('Products.List', { limit: 200 });
           var data = res && (res.data || res.output || res);
           if (Array.isArray(data) && data.length > 0) {
             productsList = data.map(function(item) {
@@ -310,7 +409,23 @@ class Component extends DCLogic {
       }
 
       var finalProducts = [];
-      if (productIdsStr) {
+      if (productsFromParam && productsFromParam.length > 0) {
+        finalProducts = productsFromParam.map(function(p) {
+          var isDroplet = /filter|سائل|סנן|מים/i.test(p.name || '');
+          var isShield = /insurance|coverage|ביטוח|אחריות/i.test(p.name || '');
+          var pVal = Number(p.priceNum != null ? p.priceNum : (p.price != null ? String(p.price).replace(/[^\d.]/g, '') : 0)) || 0;
+          var dVal = Number(p.discountAmt != null ? p.discountAmt : (p.discountVal || 0)) || 0;
+          return {
+            id: String(p.id || '').trim(),
+            name: p.name || 'מוצר',
+            priceNum: pVal,
+            discountAmt: dVal,
+            isDroplet: p.isDroplet != null ? !!p.isDroplet : (isDroplet || !isShield),
+            isShield: p.isShield != null ? !!p.isShield : isShield,
+            isGeneric: p.isGeneric != null ? !!p.isGeneric : (!isDroplet && !isShield)
+          };
+        });
+      } else if (productIdsStr) {
         var ids = String(productIdsStr).split(',').map(function (id) { return String(id || '').trim(); }).filter(Boolean);
         ids.forEach(function(productId) {
           var found = productsList.find(function(p) { return String(p.id).trim() === productId; });
@@ -319,22 +434,68 @@ class Component extends DCLogic {
           }
         });
       }
-      productsList = finalProducts;
 
-      var subTotal = productsList.reduce((sum, p) => sum + (p.priceNum || 0), 0);
-      var discountAmt = productsList.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
+      var subTotal = finalProducts.reduce((sum, p) => sum + (p.priceNum || 0), 0);
+      var discountAmt = finalProducts.reduce((sum, p) => sum + (p.discountAmt || 0), 0);
       var beforeVat = Math.max(0, subTotal - discountAmt - (Number(discount) || 0));
       var vatAmt = Math.round(beforeVat * 0.18);
       var totalPayableVal = beforeVat + vatAmt;
-      var totalPayable = totalPayableVal + ' NIS/month';
+
+      if (totalPayableVal === 0 && passedAmount > 0) {
+        totalPayableVal = passedAmount;
+        beforeVat = quoteTotals && quoteTotals.beforeVat ? quoteTotals.beforeVat : Math.round(passedAmount / 1.18);
+        vatAmt = quoteTotals && quoteTotals.vatAmt ? quoteTotals.vatAmt : (passedAmount - beforeVat);
+      }
+      if (finalProducts.length === 0 && totalPayableVal > 0) {
+        finalProducts = [{
+          id: (productIdsStr ? productIdsStr.split(',')[0] : 'quote-1'),
+          name: 'הצעה מאושרת #' + quoteNum,
+          priceNum: beforeVat,
+          discountAmt: discountAmt || 0,
+          isDroplet: true,
+          isShield: false,
+          isGeneric: false
+        }];
+      }
+      var totalPayable = totalPayableVal + ' ₪';
+
+      try {
+        sessionStorage.setItem('mb_collection_amount', String(totalPayableVal));
+        localStorage.setItem('mb_collection_amount', String(totalPayableVal));
+      } catch (eAmt) { /* ignore */ }
+
+      var orderParams = new URLSearchParams(q.toString());
+      if (customerId) {
+        orderParams.set('customer_id', customerId);
+        orderParams.set('cust_id', customerId);
+      }
+      if (documentId) orderParams.set('document_id', documentId);
+      if (productIdsStr) orderParams.set('product_ids', productIdsStr);
+      if (quoteNum) orderParams.set('quote_num', quoteNum);
+      if (totalPayableVal > 0) {
+        orderParams.set('amount', String(totalPayableVal));
+        orderParams.set('total', String(totalPayableVal));
+      }
+      if (beforeVat > 0) orderParams.set('before_vat', String(beforeVat));
+      if (vatAmt > 0) orderParams.set('vat', String(vatAmt));
+      if (discountAmt > 0 || discount > 0) orderParams.set('discount', String(discountAmt || discount));
+      if (finalProducts && finalProducts.length) {
+        try {
+          orderParams.set('products_json', JSON.stringify(finalProducts));
+        } catch (ePj) { /* ignore */ }
+      }
+      var orderParamsStr = orderParams.toString();
+      var orderFormUrl = 'service-order-form.html' + (orderParamsStr ? ('?' + orderParamsStr) : '');
 
       this.setState({
-        products: productsList,
-        totalPayable: totalPayable
+        products: finalProducts,
+        totalPayable: totalPayable,
+        orderFormUrl: orderFormUrl
       });
 
-      // Load customer from API if id is available
-      if (customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+      // Load customer from API if id is available and not already loaded
+      var needCustomer = (!this.state.name || !isSoft);
+      if (needCustomer && customerId && window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
         try {
           var res2 = await MineralBarApp.getCustomer(customerId);
           var c = res2 && res2.customer;
@@ -356,6 +517,8 @@ class Component extends DCLogic {
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      this._initDataRunning = false;
     }
   }
 

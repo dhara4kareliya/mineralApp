@@ -155,7 +155,7 @@ mbCss('./common.css');
       <!-- <div style="font-size:11px; color:#a3b8d6; margin-top:2px; font-weight:600;">24 month commitment</div> -->
     </div>
     <div style="text-align:end; margin-left:12px; margin-right:12px;">
-      <div style="font-size:24px; font-weight:900; color:#fff; line-height:1; white-space:nowrap;">{{ totalPayable }}₪<span style="font-size:13.5px; font-weight:700; color:#a3b8d6; margin-left:2px; margin-right:2px;">/month</span></div>
+      <div style="font-size:24px; font-weight:900; color:#fff; line-height:1; white-space:nowrap;">{{ totalPayable }}₪</div>
     </div>
   </div>
 </div>
@@ -492,7 +492,7 @@ mbCss('./common.css');
             console.warn('[MineralBar] failed to fetch invoice settings', coErr);
           }
 
-          var res = await client.request('Products.List', { limit: 25 });
+          var res = await client.request('Products.List', { limit: 200 });
           var data = res && (res.data || res.output || res);
           if (Array.isArray(data) && data.length > 0) {
             productsList = data.map(function(item) {
@@ -519,7 +519,7 @@ mbCss('./common.css');
                 id: String(item.id || item.product_id || '').trim(),
                 name: pname,
                 sub: desc,
-                price: priceVal + '₪/month',
+                price: priceVal + ' ₪',
                 priceNum: priceVal,
                 discountVal: discountVal,
                 discountAmt: discountAmt,
@@ -537,17 +537,45 @@ mbCss('./common.css');
         productsList = [];
       }
 
+
+      var productsFromParam = [];
+      try {
+        var rawP = q.get('products_json');
+        if (rawP) productsFromParam = JSON.parse(rawP);
+      } catch (ePr) { productsFromParam = []; }
+      if (!productsFromParam || !productsFromParam.length) {
+        try {
+          var storedP = (customerId ? sessionStorage.getItem('mb_quote_products:' + customerId) : null) ||
+            sessionStorage.getItem('mb_quote_products');
+          if (storedP) productsFromParam = JSON.parse(storedP);
+        } catch (eSp) { productsFromParam = []; }
+      }
+
       var finalProducts = [];
       if (productIdsStr) {
         var ids = String(productIdsStr).split(',').map(function (id) { return String(id || '').trim(); }).filter(Boolean);
         ids.forEach(function(productId) {
           var found = productsList.find(function(p) { return String(p.id).trim() === productId; });
+          if (!found && Array.isArray(productsFromParam)) {
+            found = productsFromParam.find(function(p) { return String(p.id).trim() === productId; });
+          }
           if (found) {
             finalProducts.push(JSON.parse(JSON.stringify(found)));
           }
         });
       }
-      productsList = finalProducts;
+      if (finalProducts.length === 0 && Array.isArray(productsFromParam) && productsFromParam.length > 0) {
+        finalProducts = productsFromParam.map(function (p) { return JSON.parse(JSON.stringify(p)); });
+      }
+      productsList = finalProducts.map(function (p) {
+        if (p && p.price) {
+          p.price = String(p.price).replace(/\/month|\/חודש|לחודש|\/ח['׳]|per month/gi, '').trim();
+          if (p.price && !/[₪$€]|NIS/i.test(p.price)) {
+            p.price = p.price + ' ₪';
+          }
+        }
+        return p;
+      });
 
       this.setState({ products: productsList });
 
@@ -767,6 +795,13 @@ mbCss('./common.css');
       if (documentId) sessionStorage.setItem('mb_quote_document_id', documentId);
       if (pdfUrl) sessionStorage.setItem('mb_quote_pdf_url', pdfUrl);
     } catch (e4) { /* ignore */ }
+    if (s.customer_id && window.MineralBarApp && typeof MineralBarApp.updateCustomerStatus === 'function') {
+      try {
+        await MineralBarApp.updateCustomerStatus(s.customer_id, '10190', 'נשלחה הצעה');
+      } catch (eStat) {
+        console.warn('[final-quote] status update to Offer sent failed', eStat);
+      }
+    }
     return { documentId: documentId, pdfUrl: pdfUrl };
   }
 
@@ -815,6 +850,21 @@ mbCss('./common.css');
     if (s.documentId) q.set('document_id', s.documentId);
     if (s.pdfUrl) q.set('pdf_url', s.pdfUrl);
     if (s.quoteNum) q.set('quote_num', s.quoteNum);
+
+    var totals = this.calcTotals();
+    q.set('amount', String(totals.totalPayable || 0));
+    q.set('total', String(totals.totalPayable || 0));
+    q.set('subtotal', String(totals.subTotal || 0));
+    q.set('sub_total', String(totals.subTotal || 0));
+    q.set('before_vat', String(totals.beforeVat || 0));
+    q.set('vat', String(totals.vatAmt || 0));
+    q.set('discount', String(totals.discountAmt || s.discount || 0));
+    if (s.products && s.products.length) {
+      try {
+        q.set('products_json', JSON.stringify(s.products));
+      } catch (ePr) { /* ignore */ }
+    }
+
     if (extra && typeof extra === 'object') {
       Object.keys(extra).forEach(function (k) {
         if (extra[k] != null && extra[k] !== '') q.set(k, String(extra[k]));
@@ -853,19 +903,23 @@ mbCss('./common.css');
         } catch (eF) { /* ignore */ }
       }
 
-      var editPayload = {
-        customer_id: customerId,
-        id: customerId,
-        cust_id: customerId,
-        status: 'נחתמה הצעה',
-        status_id: '10194',
-        sub_list_data: '10194',
-        sub_list_data_name: 'נחתמה הצעה'
-      };
-      if (colFolder) {
-        editPayload.folder_id = colFolder;
+      if (typeof MineralBarApp.updateCustomerStatus === 'function') {
+        await MineralBarApp.updateCustomerStatus(customerId, '10194', 'הצעה אושרה', colFolder);
+      } else {
+        var editPayload = {
+          customer_id: customerId,
+          id: customerId,
+          cust_id: customerId,
+          status: '10194',
+          status_id: '10194',
+          sub_list_data: '10194',
+          sub_list_data_name: 'הצעה אושרה'
+        };
+        if (colFolder) {
+          editPayload.folder_id = colFolder;
+        }
+        await client.request('Customer.Edit', editPayload);
       }
-      await client.request('Customer.Edit', editPayload);
     } catch (err) {
       console.warn('[final-quote] autoUpdateProposalApproved error', err);
     }
@@ -876,10 +930,44 @@ mbCss('./common.css');
     this.setState({ busy: true });
     try {
       var customerId = this.state.customer_id;
+      var totals = this.calcTotals();
+      var productIds = (this.state.products || []).map(function (p) { return p.id; }).filter(Boolean).join(',');
+
+      try {
+        if (window.MineralBarApp && typeof MineralBarApp.setSelectedProductIds === 'function') {
+          MineralBarApp.setSelectedProductIds(customerId, productIds);
+        }
+        sessionStorage.setItem('mb_selected_product_ids', productIds);
+        localStorage.setItem('mb_selected_product_ids', productIds);
+        if (customerId) {
+          sessionStorage.setItem('mb_selected_product_ids:' + customerId, productIds);
+          localStorage.setItem('mb_selected_product_ids:' + customerId, productIds);
+          sessionStorage.setItem('mb_quote_totals:' + customerId, JSON.stringify(totals));
+          localStorage.setItem('mb_quote_totals:' + customerId, JSON.stringify(totals));
+          sessionStorage.setItem('mb_quote_products:' + customerId, JSON.stringify(this.state.products || []));
+          localStorage.setItem('mb_quote_products:' + customerId, JSON.stringify(this.state.products || []));
+          sessionStorage.setItem('mb_quote_amount:' + customerId, String(totals.totalPayable || 0));
+        }
+        sessionStorage.setItem('mb_quote_totals', JSON.stringify(totals));
+        sessionStorage.setItem('mb_quote_products', JSON.stringify(this.state.products || []));
+        sessionStorage.setItem('mb_quote_amount', String(totals.totalPayable || 0));
+        sessionStorage.setItem('mb_collection_amount', String(totals.totalPayable || 0));
+        localStorage.setItem('mb_collection_amount', String(totals.totalPayable || 0));
+      } catch (eStore) { /* ignore */ }
+
       if (customerId) {
         await this.autoUpdateProposalApproved(customerId);
+        try {
+          sessionStorage.setItem('mb_proposal_approved_updated:' + customerId, '1');
+        } catch (eAp) { /* ignore */ }
       }
       var doc = await this.ensureQuoteDocument();
+      if (doc && doc.documentId) {
+        try {
+          sessionStorage.setItem('mb_quote_document_id', String(doc.documentId));
+          if (doc.pdfUrl) sessionStorage.setItem('mb_quote_pdf_url', String(doc.pdfUrl));
+        } catch (eD) { /* ignore */ }
+      }
       var q = this.buildNextQuery({
         document_id: doc.documentId,
         pdf_url: doc.pdfUrl,
@@ -922,9 +1010,9 @@ mbCss('./common.css');
       companyEmail: s.companyEmail || '',
       backUrl: s.backUrl,
       products: s.products || [],
-      subTotal: totals.beforeVat + ' NIS/month',
+      subTotal: totals.beforeVat + ' NIS',
       discountAmt: totals.discountAmt + '₪',
-      vatAmt: totals.vatAmt + ' NIS/month',
+      vatAmt: totals.vatAmt + ' NIS',
       totalPayable: totals.totalPayable,
       quoteNum: s.quoteNum || 'QT-0041',
       busy: !!s.busy,

@@ -155,10 +155,10 @@ mbCss('./common.css');
 </div>
 <div style="display:flex; align-items:center; justify-content:space-between; padding:13px 16px; background:#16223a; border-radius:15px;">
 <div style="text-align:left;">
-<div style="font-size:23px; font-weight:900; color:#fff; line-height:1;">{{ totalPayable }}₪<span style="font-size:13px; font-weight:600; color:#9fb6d4;">/month</span></div>
+<div style="font-size:23px; font-weight:900; color:#fff; line-height:1;">{{ totalPayable }}₪</div>
 </div>
 <div style="text-align:left;">
-<div style="font-size:14.5px; font-weight:800; color:#fff;">Total monthly</div>
+<div style="font-size:14.5px; font-weight:800; color:#fff;">Total payable</div>
 <div style="font-size:11.5px; color:#9fb6d4; margin-top:1px;">including VAT</div>
 </div>
 </div>
@@ -176,11 +176,23 @@ mbCss('./common.css');
 <div style="font-size:12px; color:#9aa3b0; margin-top:2px; direction:ltr; text-align:left;">{{ cardMask }}</div>
 </sc-if>
 </div>
-<span style="flex:none; display:inline-flex; align-items:center; gap:4px; background:#e8f3ec; color:#2e8a63; font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:99px;">
-<svg fill="none" height="12" stroke="#2e8a63" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" viewbox="0 0 24 24" width="12"><path d="M20 6 9 17l-5-5"></path></svg>
+<span style="flex:none; display:inline-flex; align-items:center; gap:4px; background:{{ paymentStatusBg }}; color:{{ paymentStatusColor }}; font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:99px;">
+<svg fill="none" height="12" stroke="{{ paymentStatusColor }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" viewbox="0 0 24 24" width="12"><path d="M20 6 9 17l-5-5"></path></svg>
               {{ paymentStatus }}
             </span>
 </div>
+<sc-if value="{{ isPartial }}">
+<div style="margin-top:10px; padding:10px 14px; background:#fbeceb; border:1px solid #fad2cf; border-radius:12px; display:flex; flex-direction:column; gap:6px;">
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <span style="font-size:12.5px; color:#5a6473; font-weight:600;">{{ paidLabel }}</span>
+    <span style="font-size:13.5px; font-weight:800; color:#2e8a63;">{{ paidAmountText }}</span>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px dashed #fad2cf; padding-top:6px;">
+    <span style="font-size:12.5px; color:#c0392b; font-weight:700;">{{ balanceLabel }}</span>
+    <span style="font-size:13.5px; font-weight:800; color:#c0392b;">{{ balanceAmountText }}</span>
+  </div>
+</div>
+</sc-if>
 <sc-if value="{{ showAdvance }}">
 <div style="display:flex; align-items:center; justify-content:space-between; padding:13px 2px 0;">
 <span style="font-size:13px; color:#8a93a3; font-weight:600;">{{ advanceLabel }}</span>
@@ -349,6 +361,9 @@ class Component extends DCLogic {
       snap = JSON.parse(sessionStorage.getItem('mb_order_payment') || 'null');
     } catch (e) { snap = null; }
     snap = snap && typeof snap === 'object' ? snap : {};
+    var isPartial = q.get('is_partial') === '1' || !!snap.isPartial;
+    var paidAmount = Number(q.get('paid_amount') != null ? q.get('paid_amount') : (snap.amount != null ? snap.amount : 0)) || 0;
+    var balanceDue = Number(q.get('balance_due') != null ? q.get('balance_due') : (snap.balanceDue != null ? snap.balanceDue : 0)) || 0;
     return {
       method: q.get('payment_method') || snap.method || '',
       installments: Number(q.get('installments') || snap.installments || 1) || 1,
@@ -356,7 +371,11 @@ class Component extends DCLogic {
       advance: Number(q.get('advance') || snap.advance || sessionStorage.getItem('mb_install_advance') || 0) || 0,
       receiptId: q.get('receipt_id') || snap.receiptId || sessionStorage.getItem('mb_receipt_document_id') || '',
       paidAt: snap.paidAt || '',
-      pdfUrl: q.get('pdf_url') || snap.pdfUrl || ''
+      pdfUrl: q.get('pdf_url') || snap.pdfUrl || '',
+      isPartial: isPartial,
+      paidAmount: paidAmount,
+      balanceDue: balanceDue,
+      totalOrderAmount: Number(snap.totalOrderAmount || 0) || 0
     };
   }
 
@@ -364,10 +383,20 @@ class Component extends DCLogic {
     try {
       var q = new URLSearchParams(window.location.search || '');
       var customerId = this.getCustomerId();
-      var amount = Number(q.get('amount') || q.get('total') || sessionStorage.getItem('mb_collection_amount') || 0) || 0;
-      var documentId = q.get('document_id') || q.get('doc_id') || sessionStorage.getItem('mb_quote_document_id') || '';
       var payment = this.readPaymentSnap(q);
+      var amount = Number(q.get('amount') || q.get('total') || sessionStorage.getItem('mb_collection_amount') || payment.totalOrderAmount || 0) || 0;
+      var documentId = q.get('document_id') || q.get('doc_id') || sessionStorage.getItem('mb_quote_document_id') || '';
       var pdfUrl = payment.pdfUrl || q.get('pdf_url') || sessionStorage.getItem('mb_quote_pdf_url') || '';
+      var isPartial = !!payment.isPartial;
+      var paidAmount = Number(payment.paidAmount) || 0;
+      var balanceDue = Number(payment.balanceDue) || 0;
+      if (!isPartial && paidAmount > 0 && amount > paidAmount) {
+        isPartial = true;
+        balanceDue = amount - paidAmount;
+      }
+      if (isPartial && !(balanceDue > 0) && amount > paidAmount) {
+        balanceDue = amount - paidAmount;
+      }
       var productIdsStr = q.get('product_ids') || '';
       if (!productIdsStr) {
         if (window.MineralBarApp && typeof MineralBarApp.getSelectedProductIds === 'function') {
@@ -395,6 +424,9 @@ class Component extends DCLogic {
         installments: payment.installments,
         cardLast4: payment.cardLast4,
         advance: payment.advance,
+        isPartial: isPartial,
+        paidAmount: paidAmount,
+        balanceDue: balanceDue,
         statusLabel: (payment.method || amount > 0) ? 'The order has been confirmed' : 'Pending payment'
       };
 
@@ -445,6 +477,19 @@ class Component extends DCLogic {
       }
 
       var products = [];
+      var productsFromParam = [];
+      try {
+        var rawP = q.get('products_json');
+        if (rawP) productsFromParam = JSON.parse(rawP);
+      } catch (ePr) { productsFromParam = []; }
+      if (!productsFromParam || !productsFromParam.length) {
+        try {
+          var storedP = (customerId ? sessionStorage.getItem('mb_quote_products:' + customerId) : null) ||
+            sessionStorage.getItem('mb_quote_products');
+          if (storedP) productsFromParam = JSON.parse(storedP);
+        } catch (eSp) { productsFromParam = []; }
+      }
+
       if (window.MineralBarApp && MineralBarApp.getClient && productIdsStr) {
         try {
           var res = await MineralBarApp.getClient().request('Products.List', { limit: 200 });
@@ -463,13 +508,47 @@ class Component extends DCLogic {
               id: id,
               name: item.product_name || item.name || 'Product',
               sub: item.description || item.discription || item.desc || '',
-              price: priceVal + '₪/month',
+              price: priceVal + ' ₪',
               priceNum: priceVal,
               discountAmt: discountAmt
             });
           }.bind(this));
         } catch (pErr) { /* ignore */ }
       }
+      if (products.length === 0 && Array.isArray(productsFromParam) && productsFromParam.length > 0) {
+        products = productsFromParam.map(function(item) {
+          var pVal = Number(item.priceNum != null ? item.priceNum : (item.price != null ? String(item.price).replace(/[^\d.]/g, '') : 0)) || 0;
+          var dVal = Number(item.discountAmt != null ? item.discountAmt : (item.discountVal || 0)) || 0;
+          return {
+            id: String(item.id || ''),
+            name: item.name || 'Product',
+            sub: item.sub || '',
+            price: pVal + ' ₪',
+            priceNum: pVal,
+            discountAmt: dVal
+          };
+        });
+      }
+      if (products.length === 0 && stateUpdate.amount > 0) {
+        var beforeVatEstimate = Math.round(stateUpdate.amount / 1.18);
+        products = [{
+          id: (productIdsStr ? productIdsStr.split(',')[0] : '1'),
+          name: 'Order item',
+          sub: 'Approved proposal',
+          price: beforeVatEstimate + ' ₪',
+          priceNum: beforeVatEstimate,
+          discountAmt: 0
+        }];
+      }
+      products = products.map(function (p) {
+        if (p && p.price) {
+          p.price = String(p.price).replace(/\/month|\/חודש|לחודש|\/ח['׳]|per month/gi, '').trim();
+          if (p.price && !/[₪$€]|NIS/i.test(p.price)) {
+            p.price = p.price + ' ₪';
+          }
+        }
+        return p;
+      });
       stateUpdate.products = products;
 
       if (!(stateUpdate.amount > 0) && products.length) {
@@ -488,19 +567,23 @@ class Component extends DCLogic {
       this.pinActionBar();
 
       // Automatically update customer status to "Order Placed"
-      if (customerId && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+      if (customerId && window.MineralBarApp) {
         try {
-          var cClient = MineralBarApp.getClient();
-          if (cClient && typeof cClient.request === 'function') {
-            await cClient.request('Customer.Edit', {
-              customer_id: customerId,
-              id: customerId,
-              cust_id: customerId,
-              status: 'בוצעה הזמנה',
-              status_id: '10195',
-              sub_list_data: '10195',
-              sub_list_data_name: 'בוצעה הזמנה'
-            });
+          if (typeof MineralBarApp.updateCustomerStatus === 'function') {
+            await MineralBarApp.updateCustomerStatus(customerId, '10195', 'בוצעה הזמנה');
+          } else if (typeof MineralBarApp.getClient === 'function') {
+            var cClient = MineralBarApp.getClient();
+            if (cClient && typeof cClient.request === 'function') {
+              await cClient.request('Customer.Edit', {
+                customer_id: customerId,
+                id: customerId,
+                cust_id: customerId,
+                status: '10195',
+                status_id: '10195',
+                sub_list_data: '10195',
+                sub_list_data_name: 'בוצעה הזמנה'
+              });
+            }
           }
         } catch (eStat) {
           console.warn('[order-document] failed to update status to Order Placed', eStat);
@@ -541,21 +624,23 @@ class Component extends DCLogic {
     this.setState({ downloading: true });
     try {
       var url = this.state.pdfUrl || '';
-      if (!url && this.state.documentId && window.MineralBarApp && MineralBarApp.getClient) {
-        var payload = {
-          document_id: this.state.documentId,
-          doc_id: this.state.documentId,
-          id: this.state.documentId,
-          customer_id: this.getCustomerId()
-        };
-        var response = null;
+      if (!url && this.state.documentId && window.MineralBarApp) {
         try {
-          response = await MineralBarApp.getClient().request('Documents.View', payload);
-        } catch (e1) {
-          response = await MineralBarApp.getClient().request('Documents.Get', payload);
+          var viewRes = typeof MineralBarApp.viewDocument === 'function'
+            ? await MineralBarApp.viewDocument(this.state.documentId, { customer_id: this.getCustomerId() })
+            : await MineralBarApp.getClient().request('Documents.View', {
+                document_id: this.state.documentId,
+                file_id: this.state.documentId,
+                customer_id: this.getCustomerId()
+              });
+          url = (viewRes && (viewRes.file_url || viewRes.output)) || this.findPdfUrl(viewRes, 0) || '';
+          if (url && !/^https?:\/\//i.test(url) && typeof MineralBarApp.resolveFileUrl === 'function') {
+            url = MineralBarApp.resolveFileUrl(url);
+          }
+          if (url) this.setState({ pdfUrl: url });
+        } catch (eView) {
+          console.warn('[order-document] Documents.View failed', eView);
         }
-        url = this.findPdfUrl(response, 0) || '';
-        if (url) this.setState({ pdfUrl: url });
       }
       if (url) {
         var link = document.createElement('a');
@@ -619,23 +704,29 @@ class Component extends DCLogic {
 
   async resolvePdfUrl() {
     var url = this.state.pdfUrl || '';
-    if (url) return url;
-    if (!this.state.documentId || !window.MineralBarApp || !MineralBarApp.getClient) return '';
-    try {
-      var payload = {
-        document_id: this.state.documentId,
-        doc_id: this.state.documentId,
-        id: this.state.documentId,
-        customer_id: this.getCustomerId()
-      };
-      var response = null;
-      try {
-        response = await MineralBarApp.getClient().request('Documents.View', payload);
-      } catch (e1) {
-        response = await MineralBarApp.getClient().request('Documents.Get', payload);
+    if (url) {
+      if (!/^https?:\/\//i.test(url) && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
+        url = MineralBarApp.resolveFileUrl(url);
       }
-      url = this.findPdfUrl(response, 0) || '';
-      if (url) this.setState({ pdfUrl: url });
+      return url;
+    }
+    if (!this.state.documentId || !window.MineralBarApp) return '';
+    try {
+      var viewRes = typeof MineralBarApp.viewDocument === 'function'
+        ? await MineralBarApp.viewDocument(this.state.documentId, { customer_id: this.getCustomerId() })
+        : await MineralBarApp.getClient().request('Documents.View', {
+            document_id: this.state.documentId,
+            file_id: this.state.documentId,
+            id: this.state.documentId,
+            customer_id: this.getCustomerId()
+          });
+      url = (viewRes && (viewRes.file_url || viewRes.output)) || this.findPdfUrl(viewRes, 0) || '';
+      if (url) {
+        if (!/^https?:\/\//i.test(url) && typeof MineralBarApp.resolveFileUrl === 'function') {
+          url = MineralBarApp.resolveFileUrl(url);
+        }
+        this.setState({ pdfUrl: url });
+      }
     } catch (e) { /* ignore */ }
     return url;
   }
@@ -643,11 +734,20 @@ class Component extends DCLogic {
   buildOrderMessage(pdfUrl) {
     var s = this.state;
     var lines = [
-      this.t('Order document', 'מסמך הזמנה') + ' #' + (s.orderNum || ''),
+      this.t('Order document', 'מסמך הזמנה') + (s.orderNum ? (' #' + s.orderNum) : ''),
       this.t('Customer', 'לקוח') + ': ' + (s.name || this.t('customer', 'לקוח')),
       this.t('Total', 'סה״כ') + ': ' + (s.amount || 0) + '₪'
     ];
-    if (pdfUrl) lines.push(pdfUrl);
+    if (s.isPartial && s.paidAmount > 0) {
+      lines.push(this.t('Amount received', 'סכום שהתקבל') + ': ' + s.paidAmount + '₪');
+      if (s.balanceDue > 0) {
+        lines.push(this.t('Missing payment', 'חסר לתשלום') + ': ' + s.balanceDue + '₪');
+      }
+    }
+    if (pdfUrl) {
+      lines.push(this.t('View and download order document:', 'לצפייה והורדת מסמך ההזמנה:'));
+      lines.push(pdfUrl);
+    }
     return lines.join('\n');
   }
 
@@ -689,6 +789,9 @@ class Component extends DCLogic {
     this.setState({ sending: true, sendToast: '', sendToastKind: '' });
     try {
       var pdfUrl = await this.resolvePdfUrl();
+      if (!pdfUrl) {
+        pdfUrl = window.location.href;
+      }
       var msg = this.buildOrderMessage(pdfUrl);
       var phone = this.phoneForWhatsApp();
       var extraPhone = phone
@@ -703,6 +806,11 @@ class Component extends DCLogic {
           msg: msg,
           from: 'send_whatsapp'
         }, extraPhone));
+        if (window.MineralBarApp && typeof MineralBarApp.updateCustomerStatus === 'function') {
+          try {
+            await MineralBarApp.updateCustomerStatus(customerId, '10195', 'בוצעה הזמנה');
+          } catch (eUpd) { /* ignore */ }
+        }
         this.showSendToast('ok', this.t('Document sent by WhatsApp', 'המסמך נשלח ב-WhatsApp'));
         var selfOk = this;
         setTimeout(function () { selfOk.goMain(); }, 1200);
@@ -750,6 +858,16 @@ class Component extends DCLogic {
       vat = Math.max(0, total - beforeVat);
     }
     var advance = Number(s.advance) || 0;
+    var isPartial = !!s.isPartial;
+    var paidAmount = Number(s.paidAmount) || 0;
+    var balanceDue = Number(s.balanceDue) || 0;
+    if (!isPartial && paidAmount > 0 && total > paidAmount) {
+      isPartial = true;
+      balanceDue = total - paidAmount;
+    }
+    if (isPartial && !(balanceDue > 0) && total > paidAmount) {
+      balanceDue = total - paidAmount;
+    }
     var backQs = new URLSearchParams();
     if (s.customerId) backQs.set('customer_id', s.customerId);
     if (s.amount) backQs.set('amount', String(s.amount));
@@ -770,13 +888,22 @@ class Component extends DCLogic {
       orderDate: s.orderDate || this.formatDate(),
       statusLabel: s.statusLabel || 'The order has been confirmed',
       products: products,
-      subTotal: beforeVat + ' NIS/month',
+      subTotal: beforeVat + ' NIS',
       discountAmt: discount + '₪',
-      vatAmt: vat + ' NIS/month',
+      vatAmt: vat + ' NIS',
       vatLabel: 'VAT ' + vatRate + '%',
       totalPayable: total,
       paymentTitle: this.paymentLabel(s.paymentMethod, s.installments),
-      paymentStatus: (s.paymentMethod || s.amount > 0) ? 'charged' : 'pending',
+      paymentStatus: isPartial
+        ? this.t('Partially charged', 'חויב חלקית')
+        : ((s.paymentMethod || s.amount > 0) ? this.t('charged', 'חויב') : this.t('pending', 'ממתין')),
+      paymentStatusBg: isPartial ? '#fef4e8' : '#e8f3ec',
+      paymentStatusColor: isPartial ? '#bd8324' : '#2e8a63',
+      isPartial: isPartial,
+      paidLabel: this.t('Amount received', 'סכום שהתקבל'),
+      balanceLabel: this.t('Missing payment', 'חסר לתשלום'),
+      paidAmountText: paidAmount + '₪',
+      balanceAmountText: balanceDue + '₪',
       showCardMask: !!(s.cardLast4 && (s.paymentMethod === 'card' || s.paymentMethod === 'standing' || s.paymentMethod === 'cc')),
       cardMask: s.cardLast4 ? ('•••• •••• •••• ' + s.cardLast4) : '',
       showAdvance: advance > 0,

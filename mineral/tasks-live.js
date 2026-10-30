@@ -46,6 +46,31 @@
     return '';
   }
 
+  function missionCreationTimestamp(m) {
+    if (!m) return 0;
+    var raw = String(m.date_created_format || m.date_created || m.created_at || m.date_create || m.last_update || '').trim();
+    if (raw && raw !== '—' && raw !== '-') {
+      var ymd = raw.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (ymd) {
+        var d = new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]), Number(ymd[4] || 0), Number(ymd[5] || 0), Number(ymd[6] || 0));
+        var t = d.getTime();
+        if (!Number.isNaN(t) && t > 0) return t;
+      }
+      var dmy = raw.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (dmy) {
+        var d2 = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]), Number(dmy[4] || 0), Number(dmy[5] || 0), Number(dmy[6] || 0));
+        var t2 = d2.getTime();
+        if (!Number.isNaN(t2) && t2 > 0) return t2;
+      }
+      var parsed = new Date(raw.indexOf('T') !== -1 ? raw : raw.replace(' ', 'T'));
+      var tp = parsed.getTime();
+      if (!Number.isNaN(tp) && tp > 0) return tp;
+    }
+    var numId = Number(m.mission_id || m.id);
+    if (!Number.isNaN(numId) && numId > 0) return numId;
+    return 0;
+  }
+
   function isOverdue(m, today) {
     if (isMissionDone(m)) return false;
     var when = missionDayKey(m);
@@ -166,9 +191,22 @@
     var priLabel = tag ? tag.label : '--';
     var priBg = tag ? tag.bg : 'var(--bg-panel)';
     var priColor = tag ? tag.color : 'var(--text-sub)';
-    var dotColor = tag ? tag.dot : (m.color || (overdue ? '#c0392b' : '#1d60a2'));
+    var rawColor = String((m && (m.color || m.appoinment_color1 || m.priority)) || '').trim().toLowerCase();
+    var isTransparent = !rawColor || rawColor === 'transparent';
+    var yellowColor = '#f59e0b';
+    var displayColor = isTransparent
+      ? yellowColor
+      : (rawColor === 'yellow' ? yellowColor
+        : (rawColor === 'green' ? '#2e8a63'
+          : (rawColor === 'red' ? '#c0392b'
+            : (rawColor === 'blue' ? '#1d60a2'
+              : (m.color || yellowColor)))));
 
-    var groupColor = m.color || (overdue ? '#c0392b' : dotColor);
+    var dotColor = isTransparent ? yellowColor : ((tag && tag.dot) ? tag.dot : displayColor);
+    var groupColor = isTransparent ? yellowColor : (m.color || (overdue ? '#c0392b' : dotColor));
+    if (groupColor === 'transparent' || groupColor === 'yellow') groupColor = yellowColor;
+    if (dotColor === 'transparent' || dotColor === 'yellow') dotColor = yellowColor;
+
     var dueBg = overdue ? '#fbeeed' : '#eaf2fb';
     var dueColor = overdue ? '#c0392b' : '#1d60a2';
     var statusBg = isMissionDone(m) ? '#e6f4ec' : '#f1f3f6';
@@ -438,8 +476,8 @@
     association: 'all',     // all | my | <userId>
     renewal: 'all',         // all | insurance | filter_renew | softener | warranty_expired
     missionType: 'all',     // all | insurance_renewal | warranty_renewal | filter_replacement
-    sortBy: 'date_to_do',   // date_to_do | priority | date_created
-    sortDir: 'asc'          // asc | desc
+    sortBy: 'date_created', // date_to_do | priority | date_created
+    sortDir: 'desc'         // asc | desc
   };
   var draftFilters = null;
   var missionStepsCache = null;
@@ -509,8 +547,8 @@
       association: 'all',
       renewal: 'all',
       missionType: 'all',
-      sortBy: 'date_to_do',
-      sortDir: 'asc'
+      sortBy: 'date_created',
+      sortDir: 'desc'
     };
   }
 
@@ -519,8 +557,8 @@
       advancedFilters.association !== 'all' ||
       advancedFilters.renewal !== 'all' ||
       advancedFilters.missionType !== 'all' ||
-      advancedFilters.sortBy !== 'date_to_do' ||
-      advancedFilters.sortDir !== 'asc';
+      advancedFilters.sortBy !== 'date_created' ||
+      advancedFilters.sortDir !== 'desc';
   }
 
   function missionTitleText(m) {
@@ -634,7 +672,7 @@
     if (advancedFilters.association !== 'all') n += 1;
     if (advancedFilters.renewal !== 'all') n += 1;
     if (advancedFilters.missionType !== 'all') n += 1;
-    if (advancedFilters.sortBy !== 'date_to_do' || advancedFilters.sortDir !== 'asc') n += 1;
+    if (advancedFilters.sortBy !== 'date_created' || advancedFilters.sortDir !== 'desc') n += 1;
     return n;
   }
 
@@ -1174,6 +1212,9 @@
           title: title,
           mission: title,
           note: title,
+          color: 'yellow',
+          priority: 'yellow',
+          appoinment_color1: 'yellow',
           member_id: memberId ? [Number(memberId) || memberId] : undefined,
           assigned_to: memberId || undefined,
           customer_id: customerId || undefined
@@ -1271,26 +1312,35 @@
       }
 
       function sortRows(rows) {
-        var key = advancedFilters.sortBy || 'date_to_do';
-        var dir = advancedFilters.sortDir === 'desc' ? -1 : 1;
+        var key = advancedFilters.sortBy || 'date_created';
+        var dir = advancedFilters.sortDir === 'asc' ? 1 : -1;
         return rows.slice().sort(function (a, b) {
-          var av = '';
-          var bv = '';
           if (key === 'date_created') {
-            av = String(a.date_created || a.created_at || '');
-            bv = String(b.date_created || b.created_at || '');
+            var ta = missionCreationTimestamp(a);
+            var tb = missionCreationTimestamp(b);
+            if (ta !== tb) return (ta - tb) * dir;
+            var ida = Number(a && (a.mission_id || a.id)) || 0;
+            var idb = Number(b && (b.mission_id || b.id)) || 0;
+            return (ida - idb) * dir;
           } else if (key === 'priority') {
             var rank = { urgent: 3, regular: 2, none: 1, low: 0 };
-            av = rank[priorityFromMission(a, today)] || 0;
-            bv = rank[priorityFromMission(b, today)] || 0;
-            return (av - bv) * dir;
+            var av = rank[priorityFromMission(a, today)] || 0;
+            var bv = rank[priorityFromMission(b, today)] || 0;
+            if (av !== bv) return (av - bv) * dir;
+            var ta2 = missionCreationTimestamp(a);
+            var tb2 = missionCreationTimestamp(b);
+            if (ta2 !== tb2) return (tb2 - ta2);
+            return (Number(b && (b.mission_id || b.id)) || 0) - (Number(a && (a.mission_id || a.id)) || 0);
           } else {
-            av = missionDayKey(a) || '9999-99-99';
-            bv = missionDayKey(b) || '9999-99-99';
+            var av = missionDayKey(a) || '9999-99-99';
+            var bv = missionDayKey(b) || '9999-99-99';
+            if (av < bv) return -1 * dir;
+            if (av > bv) return 1 * dir;
+            var ta3 = missionCreationTimestamp(a);
+            var tb3 = missionCreationTimestamp(b);
+            if (ta3 !== tb3) return (tb3 - ta3);
+            return (Number(b && (b.mission_id || b.id)) || 0) - (Number(a && (a.mission_id || a.id)) || 0);
           }
-          if (av < bv) return -1 * dir;
-          if (av > bv) return 1 * dir;
-          return 0;
         });
       }
 

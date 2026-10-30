@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
@@ -53,7 +53,7 @@ mbCss('./common.css');
 <a aria-label="חזרה" href="#" onclick="{{ goBack }}" style="width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.1); text-decoration:none; flex:none;">
 <svg fill="none" height="22" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="22"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
 </a>
-<div style="font-size:19px; font-weight:800; color:#fff; white-space:nowrap;">New lead</div>
+<div style="font-size:19px; font-weight:800; color:#fff; white-space:nowrap;">{{ pageTitle }}</div>
 <div style="width:38px; height:38px; flex:none;"></div>
 </div>
 <div class="dc-scroll" style="flex:1; overflow-y:auto;">
@@ -184,11 +184,16 @@ mbCss('./common.css');
 <div style="flex:none; background:#fff; border-top:1px solid #eceef1; padding:13px 16px 20px;">
 <button onclick="{{ submit }}" style="width:100%; padding:15px; border:none; border-radius:14px; background:#1d60a2; color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(29,96,162,.28); opacity:{{ submitting ? 0.6 : 1 }};">
 <sc-if hint-placeholder-val="{{ false }}" value="{{ submitting }}">
-<span style="font-size:16px;">Submitting...</span>
+<span style="font-size:16px;">{{ submittingLabel }}</span>
 </sc-if>
 <sc-if hint-placeholder-val="{{ true }}" value="{{ !submitting }}">
+<sc-if value="{{ isEdit }}">
+<svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="17"><polyline points="20 6 9 17 4 12"></polyline></svg>
+</sc-if>
+<sc-if value="{{ !isEdit }}">
 <svg fill="none" height="17" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="17"><path d="M5 12h14M12 5v14"></path></svg>
-          Add a lead
+</sc-if>
+          {{ submitBtnLabel }}
 </sc-if>
         </button>
 </div>
@@ -199,6 +204,9 @@ mbCss('./common.css');
 <script data-dc-script="" data-props='{"$preview": {"width": 424, "height": 880}}' type="text/x-dc">
 class Component extends DCLogic {
   state = {
+    leadId: '',
+    isEdit: false,
+    loading: false,
     name: '', phone: '', email: '',
     city: '', street: '', building: '', floor: '', apartment: '', entrance: '', area: '',
     source: 'site', status: '', statusesData: [],
@@ -255,6 +263,17 @@ class Component extends DCLogic {
     }) || (team && team[0]) || null;
   }
   goBack() {
+    var q = new URLSearchParams(window.location.search);
+    var back = q.get('back');
+    if (back) {
+      window.location.href = back;
+      return;
+    }
+    if (this.state.isEdit && this.state.leadId) {
+      window.location.href = 'lead-card.html?customer_id=' + encodeURIComponent(this.state.leadId) +
+        '&cust_id=' + encodeURIComponent(this.state.leadId) + '&id=' + encodeURIComponent(this.state.leadId);
+      return;
+    }
     if (typeof window.mbGoEntryBack === 'function') {
       window.mbGoEntryBack(null, { fallback: 'leads-list.html', selfRe: /sales-add-lead/i });
       return;
@@ -263,15 +282,27 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    var q = new URLSearchParams(window.location.search);
+    var leadId = q.get('customer_id') || q.get('cust_id') || q.get('id') || q.get('lead_id') || '';
+    if (leadId) {
+      this.setState({ leadId: leadId, isEdit: true, loading: true });
+    }
+
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
       LiveSync.bind(() => { var soft = { silent: true }; if (typeof this.initData === 'function') this.initData(soft); else if (typeof this.load === 'function') this.load(soft); }, { retries: true, keys: /ticket|mission|task|customer|lead|product|socket\.nudge/i, delay: 350 });
     }
 
     this.loadStatuses();
     this.loadTeamMembers();
+    if (leadId) {
+      this.loadExistingLead(leadId);
+    }
     window.addEventListener('mineralbar:ready', () => {
       this.loadStatuses();
       this.loadTeamMembers();
+      if (leadId && !this.state.name) {
+        this.loadExistingLead(leadId);
+      }
     });
     if (window.MineralBarApp && MineralBarApp.bindLiveReload) {
       MineralBarApp.bindLiveReload(() => this.loadStatuses(), { keys: /status|lead|customer|socket\.nudge/i, delay: 400 });
@@ -280,6 +311,72 @@ class Component extends DCLogic {
       this.loadStatuses();
       this.loadTeamMembers();
     });
+  }
+
+  async loadExistingLead(leadId) {
+    if (!leadId) return;
+    try {
+      var c = null;
+      if (window.MineralBarApp && typeof MineralBarApp.getCustomer === 'function') {
+        var res = await MineralBarApp.getCustomer(leadId);
+        c = res && (res.customer || res.data || res);
+      } else if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        var raw = await MineralBarApp.getClient().request('Customer.Get', {
+          customer_id: leadId,
+          cust_id: leadId,
+          id: leadId
+        });
+        c = (raw && (raw.output || raw.data || raw)) || null;
+      }
+      if (c && c.data && typeof c.data === 'object' && (c.data.name || c.data.customer_id)) c = c.data;
+      if (!c) return;
+
+      var name = c.name || c.customer_name || '';
+      var phone = c.mobile || c.phone || '';
+      var email = c.email || c.second_email || '';
+      var city = c.city || c.city_name || '';
+      var fullAddr = c.address || c.full_address || c.exact_address || '';
+      var street = c.street || '';
+      var building = c.building || c.house_num || '';
+      var floor = c.floor || '';
+      var apartment = c.apartment || c.apt || '';
+      var entrance = c.entrance || '';
+      var area = c.area || c.region || '';
+
+      if (!street && fullAddr) {
+        street = fullAddr;
+      }
+
+      var source = String(c.source || c.affiliate || c.lead_source || '').toLowerCase().trim();
+      if (!source || !this.SOURCES.find(s => s.id === source)) {
+        source = 'site';
+      }
+
+      var status = String(c.status_id || c.status || c.sub_list_data || '').trim();
+      var spId = String(c.user_id || c.customer_manager || c.team_member_id || '').trim();
+      var comments = c.note || c.notes || '';
+
+      this.setState({
+        name: name,
+        phone: phone,
+        email: email,
+        city: city,
+        street: street,
+        building: building,
+        floor: floor,
+        apartment: apartment,
+        entrance: entrance,
+        area: area,
+        source: source,
+        status: status,
+        salespersonId: spId,
+        comments: comments,
+        loading: false
+      });
+    } catch (err) {
+      console.warn('[sales-add-lead] loadExistingLead failed', err);
+      this.setState({ loading: false });
+    }
   }
 
   SOURCES = [
@@ -402,6 +499,16 @@ class Component extends DCLogic {
       : this.t('Loading team members...', 'טוען אנשי צוות...');
 
     return {
+      pageTitle: this.state.isEdit
+        ? this.t('Edit lead', 'עריכת ליד')
+        : this.t('New lead', 'ליד חדש'),
+      isEdit: !!this.state.isEdit,
+      submitBtnLabel: this.state.isEdit
+        ? this.t('Save changes', 'שמור שינויים')
+        : this.t('Add a lead', 'הוסף ליד'),
+      submittingLabel: this.state.isEdit
+        ? this.t('Saving…', 'שומר…')
+        : this.t('Submitting…', 'שולח…'),
       name: this.state.name || '',
       phone: this.state.phone || '',
       email: this.state.email || '',
@@ -565,6 +672,53 @@ class Component extends DCLogic {
       var statusId = String(this.state.status || '').trim();
       var city = String(this.state.city || '').trim();
       var address = this.composedAddress(isEn);
+
+      if (this.state.isEdit && this.state.leadId) {
+        var editPayload = {
+          customer_id: this.state.leadId,
+          id: this.state.leadId,
+          cust_id: this.state.leadId,
+          name: this.state.name,
+          phone: this.state.phone,
+          mobile: this.state.phone,
+          email: this.state.email || '',
+          address: address,
+          city: city,
+          source: this.state.source || '',
+          note: this.state.comments || '',
+          folder_id: folderId,
+          user_id: /^\d+$/.test(salespersonId) ? Number(salespersonId) : salespersonId,
+          customer_manager: salespersonId,
+          team_member_id: salespersonId
+        };
+        if (statusId) {
+          editPayload.status_id = /^\d+$/.test(statusId) ? Number(statusId) : statusId;
+          editPayload.status = editPayload.status_id;
+          editPayload.sub_list_data = editPayload.status_id;
+        }
+
+        if (window.MineralBarApp && typeof MineralBarApp.updateCustomer === 'function') {
+          await MineralBarApp.updateCustomer(this.state.leadId, editPayload);
+        } else if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+          var client = MineralBarApp.getClient();
+          try {
+            await client.request('Customer.Edit', editPayload);
+          } catch (eEdit) {
+            await client.request('Customer.Update', editPayload);
+          }
+        }
+
+        var backTarget = 'lead-card.html?customer_id=' + encodeURIComponent(this.state.leadId) +
+          '&cust_id=' + encodeURIComponent(this.state.leadId) +
+          '&id=' + encodeURIComponent(this.state.leadId) +
+          '&refresh=' + Date.now();
+        var qBack = new URLSearchParams(window.location.search).get('back');
+        if (qBack && qBack.indexOf('lead-card') !== -1) {
+          backTarget = qBack + (qBack.indexOf('?') === -1 ? '?' : '&') + 'refresh=' + Date.now();
+        }
+        window.location.href = backTarget;
+        return;
+      }
 
       var payload = {
         name: this.state.name,

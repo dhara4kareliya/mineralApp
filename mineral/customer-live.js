@@ -264,6 +264,25 @@
     return 'https://wa.me/' + s;
   }
 
+  var KNOWN_STATUS_LABELS = {
+    '1': { name_en: 'New', name_he: 'חדש' },
+    '10085': { name_en: 'New', name_he: 'חדש' },
+    '10190': { name_en: 'Offer sent', name_he: 'נשלחה הצעה' },
+    '10191': { name_en: 'Follow up', name_he: 'פולואפ' },
+    '10192': { name_en: 'No Response', name_he: 'אין מענה' },
+    '10193': { name_en: 'Irrelevant', name_he: 'לא רלוונטי' },
+    '10194': { name_en: 'Proposal Approved', name_he: 'הצעה אושרה' },
+    '10195': { name_en: 'Order Placed', name_he: 'בוצעה הזמנה' },
+    '10092': { name_en: 'Price', name_he: 'מחיר' },
+    '10093': { name_en: 'Product size', name_he: 'גודל מוצר' },
+    '10094': { name_en: 'Preference for competitors', name_he: 'עדיפות למתחרים' },
+    '10095': { name_en: 'Kitchen not ready', name_he: 'מטבח לא מוכן' },
+    '10096': { name_en: 'Blocked by standing order', name_he: 'נחסם בהוראת קבע' },
+    '10097': { name_en: 'Insured by a competing company', name_he: 'מבוטח בחברה מתחרה' },
+    '10098': { name_en: 'Wrong number', name_he: 'מספר שגוי' },
+    '1399': { name_en: 'Paid', name_he: 'שולם' }
+  };
+
   var statusMapById = {};
   var statusMapByName = {};
   var statusMapsPromise = null;
@@ -283,6 +302,17 @@
         ? (row.name_en || row.name || row.name_he || row.name_for || row.status_name || row.label)
         : (row.name_he || row.name || row.name_en || row.name_for || row.status_name || row.label)
     );
+  }
+
+  function seedKnownStatusLabels() {
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    Object.keys(KNOWN_STATUS_LABELS).forEach(function (id) {
+      if (statusMapById[id]) return;
+      var row = KNOWN_STATUS_LABELS[id];
+      var name = isEn ? (row.name_en || row.name_he) : (row.name_he || row.name_en);
+      statusMapById[id] = { name: name, color: '#1d60a2' };
+      if (name) statusMapByName[name.toLowerCase()] = statusMapById[id];
+    });
   }
 
   function ingestStatusRows(rows) {
@@ -318,6 +348,7 @@
   }
 
   async function ensureStatusMaps() {
+    seedKnownStatusLabels();
     if (statusMapsPromise) return statusMapsPromise;
     statusMapsPromise = (async function () {
       try {
@@ -330,6 +361,8 @@
         }
       } catch (e) {
         console.warn('[CustomerLive] Statuses.List failed', e);
+      } finally {
+        seedKnownStatusLabels();
       }
     })();
     return statusMapsPromise;
@@ -338,6 +371,7 @@
   /** Same resolution as customers list: Customer.Get/List `status` → Statuses.List name */
   function resolveStatus(c) {
     c = c || {};
+    var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
     var rawStatus = stripHtmlText(c.status);
     var named = stripHtmlText(
       c.sub_list_data_name ||
@@ -377,19 +411,72 @@
           bg: ''
         };
       }
+      if (KNOWN_STATUS_LABELS[sid]) {
+        var kn = KNOWN_STATUS_LABELS[sid];
+        var knName = isEn ? (kn.name_en || kn.name_he) : (kn.name_he || kn.name_en);
+        return {
+          label: localizeCustomerStatus(knName),
+          color: '#1d60a2',
+          bg: ''
+        };
+      }
+    }
+
+    var isLeadContext = false;
+    try {
+      var mountEl = liveMountEl();
+      isLeadContext = (mountEl && mountEl.getAttribute('data-kind') === 'lead') ||
+        location.pathname.indexOf('lead') !== -1 ||
+        location.href.indexOf('lead') !== -1 ||
+        document.body.getAttribute('data-active-tab') === 'leads';
+    } catch (eCtx) {}
+
+    if (isLeadContext) {
+      return {
+        label: t('New', 'חדש'),
+        color: '#1d60a2',
+        bg: ''
+      };
     }
 
     return { label: '', color: '#1d60a2', bg: '' };
   }
 
+  function leadStatusKey(statusLabel) {
+    var s = String(statusLabel || '').toLowerCase();
+    if (/proposal.?approved|approved|נחתמה הצעה|הצעה נחתמה|אושרה הצעה|הצעה אושרה|proposal.?signed/i.test(s)) return 'approved';
+    if (/order.?placed|בוצעה הזמנה|הזמנה בוצעה/i.test(s)) return 'order_placed';
+    if (/follow|פולוא/i.test(s)) return 'followup';
+    if (/offer|quote|הצע|sent|proposal/i.test(s)) return 'sent';
+    if (/no.?response|no.?answer|מענה|לא ענה/i.test(s)) return 'noanswer';
+    if (/irrelevant|לא רלוונט|not relevant/i.test(s)) return 'irrelevant';
+    if (/closed|won|נסגר|שולם/i.test(s)) return 'closed';
+    if (/new|חדש/i.test(s)) return 'new';
+    return 'other';
+  }
+
   function statusMeta(c) {
     var resolved = resolveStatus(c);
-    if (!resolved.label) {
+    var label = resolved.label;
+    if (!label) {
       return { label: '', bg: '#f1f3f6', color: '#5a6473' };
     }
-    var color = resolved.color || '#1d60a2';
-    var bg = color.charAt(0) === '#' ? (color + '22') : '#eaf2fb';
-    return { label: resolved.label, bg: bg, color: color };
+    var key = leadStatusKey(label);
+    var palette = {
+      new: { color: '#1d60a2', bg: '#eaf2fb' },
+      followup: { color: '#bd8324', bg: '#fdf1dd' },
+      sent: { color: '#50439d', bg: '#eef0fb' },
+      approved: { color: '#8e3a59', bg: '#fbf0f4' },
+      order_placed: { color: '#1f8a5b', bg: '#eaf7ef' },
+      noanswer: { color: '#c0392b', bg: '#fbeeed' },
+      closed: { color: '#2e8a63', bg: '#eaf7ef' },
+      irrelevant: { color: '#7b8595', bg: '#f1f3f6' }
+    };
+    var pal = palette[key] || {
+      color: resolved.color || '#1d60a2',
+      bg: (resolved.color && resolved.color.charAt(0) === '#') ? (resolved.color + '22') : '#eaf2fb'
+    };
+    return { label: label, bg: pal.bg, color: pal.color };
   }
 
   function fmtDate(v) {
@@ -696,6 +783,20 @@
     applyLeadSelectStyle(selectEl);
   }
 
+  function statusRank(label, id) {
+    var s = String(label || '').toLowerCase();
+    var sid = String(id || '');
+    if (sid === '1' || sid === '10085' || /new|חדש/.test(s)) return 10;
+    if (sid === '10191' || /follow|פולוא/.test(s)) return 20;
+    if (sid === '10190' || /offer|quote|נשלחה/.test(s)) return 30;
+    if (sid === '10194' || /proposal.?approved|approved|אושרה|נחתמה|signed/.test(s)) return 40;
+    if (sid === '10195' || /order.?placed|בוצעה הזמנה|הזמנה/.test(s)) return 50;
+    if (sid === '10192' || /no.?response|no.?answer|מענה/.test(s)) return 60;
+    if (/closed|נסגר/.test(s)) return 70;
+    if (sid === '10193' || /irrelevant|לא רלוונטי/.test(s)) return 80;
+    return 90;
+  }
+
   function populateLeadStatusSelect(selectEl, folderStatuses, selectedStatusId) {
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
     selectEl.innerHTML = '';
@@ -703,15 +804,47 @@
     placeholder.value = '';
     placeholder.textContent = t('--Select Internal Status--', '-- בחר סטטוס פנימי --');
     selectEl.appendChild(placeholder);
+
+    var rows = Array.isArray(folderStatuses) && folderStatuses.length ? folderStatuses.slice() : [];
+    if (!rows.length) {
+      rows = [
+        { id: '10085', name_en: 'New', name_he: 'חדש' },
+        { id: '10191', name_en: 'Follow up', name_he: 'פולואפ' },
+        { id: '10190', name_en: 'Offer sent', name_he: 'נשלחה הצעה' },
+        { id: '10194', name_en: 'Proposal Approved', name_he: 'הצעה אושרה' },
+        { id: '10195', name_en: 'Order Placed', name_he: 'בוצעה הזמנה' },
+        { id: '10192', name_en: 'No Response', name_he: 'אין מענה' },
+        { id: '10193', name_en: 'Irrelevant', name_he: 'לא רלוונטי' }
+      ];
+    }
+
+    var list = [];
+    var seenIds = {};
+    rows.forEach(function (row) {
+      var id = String(row.status_id || row.id || row.data_id || '').trim();
+      if (!id || seenIds[id]) return;
+      seenIds[id] = true;
+      var rawLabel = isEn ? (row.name_en || row.name_for || row.name_he || row.name) : (row.name_he || row.name_for || row.name_en || row.name);
+      var label = localizeCustomerStatus(rawLabel);
+      if (/proposal.?signed|נחתמה הצעה|הצעה נחתמה/i.test(label) || id === '10194') {
+        label = isEn ? 'Proposal Approved' : 'הצעה אושרה';
+      }
+      if (/no.?answer/i.test(label) || id === '10192') {
+        label = isEn ? 'No Response' : 'אין מענה';
+      }
+      list.push({ id: id, label: label, row: row });
+    });
+
+    list.sort(function (a, b) {
+      return statusRank(a.label, a.id) - statusRank(b.label, b.id);
+    });
+
     var knownIds = {};
-    (folderStatuses || []).forEach(function (row) {
-      var id = row.status_id || row.id || row.data_id;
-      var label = isEn ? (row.name_en || row.name_for || row.name_he) : (row.name_he || row.name_for || row.name_en);
-      if (id == null || !label) return;
-      knownIds[String(id)] = true;
+    list.forEach(function (item) {
+      knownIds[item.id] = true;
       var option = document.createElement('option');
-      option.value = String(id);
-      option.textContent = String(label);
+      option.value = item.id;
+      option.textContent = item.label;
       selectEl.appendChild(option);
     });
     var sel = selectedStatusId ? String(selectedStatusId) : '';
@@ -2023,10 +2156,23 @@
           draw: 1
         });
         var rows = (res && res.rows) || [];
+        function getMissionTime(m) {
+          if (!m) return 0;
+          var raw = String(m.date_created_format || m.date_created || m.created_at || m.last_update || '').trim();
+          var dmy = raw.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);
+          if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1])).getTime() || 0;
+          var t = new Date(raw.indexOf('T') !== -1 ? raw : raw.replace(' ', 'T')).getTime();
+          return !Number.isNaN(t) && t > 0 ? t : (Number(m.mission_id || m.id) || 0);
+        }
         return rows.filter(function (r) {
           var rid = String(r.customer_id || r.cust_id || r.contactus_id || '').trim();
           if (rid && rid !== cid) return false;
           return !(r.is_done || Number(r.done) === 1);
+        }).sort(function (a, b) {
+          var ta = getMissionTime(a);
+          var tb = getMissionTime(b);
+          if (ta !== tb) return tb - ta;
+          return (Number(b.mission_id || b.id) || 0) - (Number(a.mission_id || a.id) || 0);
         }).slice(0, 8);
       } catch (e) {
         return [];
@@ -2598,6 +2744,7 @@
       if (entryBack) backCard += '&back=' + encodeURIComponent(entryBack);
     } catch (eBack) { /* ignore */ }
 
+    var editLeadUrl = 'sales-add-lead.html?' + qs + '&back=' + encodeURIComponent(backCard);
     var quoteUrl = 'service-quote-form.html?' + qs + '&back=' + encodeURIComponent(backCard);
     var orderUrl = 'service-order-form.html?' + qs + '&from=lead&back=' + encodeURIComponent(backCard);
     var docsUrl = 'all-documents.html?' + qs + '&back=' + encodeURIComponent(backCard);
@@ -2648,10 +2795,17 @@
       esc(av) + '</div></div>' +
 
       '<div style="background:#fff;border-radius:16px;padding:4px 15px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:14px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 6px;border-bottom:1px solid #f0f2f5;">' +
+      '<span style="font-size:13px;font-weight:800;color:#8a96a3;">' + esc(t('Personal details', 'פרטים אישיים')) + '</span>' +
+      '<a href="' + esc(editLeadUrl) + '" style="display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;color:#1d60a2;text-decoration:none;">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+      esc(t('Edit', 'עריכה')) +
+      '</a></div>' +
       (detailsHtml || ('<div style="padding:12px 0;font-size:13px;color:#9aa3b0;font-weight:600;">' + esc(t('No details yet', 'אין פרטים עדיין')) + '</div>')) +
       '</div>' +
 
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">' +
+      actionTile(editLeadUrl, '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>', t('Edit lead', 'ערוך ליד')) +
       (phoneRaw ? actionTile(telHref(phoneRaw), '<svg width="22" height="22" viewBox="0 0 24 24" fill="#2e8a63"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.3 1z"/></svg>', t('Dial', 'חיוג')) : '') +
       (phoneRaw ? actionTile(waHref(phoneRaw), '<svg width="22" height="22" viewBox="0 0 24 24" fill="#25b35e"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"/></svg>', t('WhatsApp', 'וואטסאפ'), ' target="_blank" rel="noopener"') : '') +
       actionButton('mb-lead-update-status', '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d60a2" stroke-width="1.9"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>', t('Update status', 'עדכן סטטוס')) +

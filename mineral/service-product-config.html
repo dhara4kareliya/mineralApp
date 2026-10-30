@@ -173,11 +173,11 @@ class Component extends DCLogic {
 
       if (!productsList || productsList.length === 0) {
         productsList = [
-          { id: '200094', name: 'Filter main horizon', price: '89 NIS/month', priceNum: 89, sub: 'Two-year course', stock: 12 },
-          { id: '200095', name: 'Office water bar', price: '149 NIS/month', priceNum: 149, sub: 'Annual track', stock: 5 },
-          { id: '200096', name: 'Water center', price: '199 NIS/month', priceNum: 199, sub: 'Installation + service', stock: 2 },
-          { id: '200097', name: 'Electric bidet', price: '890?', priceNum: 890, sub: 'One time purchase', stock: 8 },
-          { id: '200092', name: 'Annual product insurance', price: '29 NIS/month', priceNum: 29, sub: 'Full coverage', stock: 99 }
+          { id: '200094', name: 'Filter main horizon', price: '89 ₪', priceNum: 89, sub: 'Two-year course', stock: 12 },
+          { id: '200095', name: 'Office water bar', price: '149 ₪', priceNum: 149, sub: 'Annual track', stock: 5 },
+          { id: '200096', name: 'Water center', price: '199 ₪', priceNum: 199, sub: 'Installation + service', stock: 2 },
+          { id: '200097', name: 'Electric bidet', price: '890 ₪', priceNum: 890, sub: 'One time purchase', stock: 8 },
+          { id: '200092', name: 'Annual product insurance', price: '29 ₪', priceNum: 29, sub: 'Full coverage', stock: 99 }
         ];
       }
 
@@ -208,9 +208,9 @@ class Component extends DCLogic {
     if (!product) {
       return {
         name: s.name,
-        product: { id: s.productId, name: 'Loading...', price: '0 NIS/month', priceNum: 0, sub: '', stock: 0 },
+        product: { id: s.productId, name: 'Loading...', price: '0 ₪', priceNum: 0, sub: '', stock: 0 },
         amount: s.amount,
-        lineTotal: '0 NIS/month',
+        lineTotal: '0 ₪',
         backUrl: '',
         addUrl: '#',
         onIncrement: () => {},
@@ -219,7 +219,7 @@ class Component extends DCLogic {
     }
     
     var lineTotalNum = product.priceNum * s.amount;
-    var lineTotal = lineTotalNum + (product.price.indexOf('NIS') !== -1 ? ' NIS/month' : '?');
+    var lineTotal = lineTotalNum + (product.price.indexOf('NIS') !== -1 ? ' NIS' : ' ₪');
 
     var q = new URLSearchParams(window.location.search);
     

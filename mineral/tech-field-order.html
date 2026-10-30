@@ -214,9 +214,7 @@ class Component extends DCLogic {
   }
 
   productPriceLabel(p) {
-    var base = this.fmt(p.price);
-    if (!p.sub) return base;
-    return base + ' / ' + this.t('per month', 'לחודש');
+    return this.fmt(p.price);
   }
 
   toggle(id) {
@@ -243,18 +241,22 @@ class Component extends DCLogic {
     try {
       var p = new URLSearchParams(window.location.search || '');
       var customerId = p.get('customer_id') || p.get('cust_id') || p.get('id') || sessionStorage.getItem('mb_customer_id') || '';
-      if (customerId && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
-        var cClient = MineralBarApp.getClient();
-        if (cClient && typeof cClient.request === 'function') {
-          await cClient.request('Customer.Edit', {
-            customer_id: customerId,
-            id: customerId,
-            cust_id: customerId,
-            status: 'בוצעה הזמנה',
-            status_id: '10195',
-            sub_list_data: '10195',
-            sub_list_data_name: 'בוצעה הזמנה'
-          });
+      if (customerId && window.MineralBarApp) {
+        if (typeof MineralBarApp.updateCustomerStatus === 'function') {
+          await MineralBarApp.updateCustomerStatus(customerId, '10195', 'בוצעה הזמנה');
+        } else if (typeof MineralBarApp.getClient === 'function') {
+          var cClient = MineralBarApp.getClient();
+          if (cClient && typeof cClient.request === 'function') {
+            await cClient.request('Customer.Edit', {
+              customer_id: customerId,
+              id: customerId,
+              cust_id: customerId,
+              status: '10195',
+              status_id: '10195',
+              sub_list_data: '10195',
+              sub_list_data_name: 'בוצעה הזמנה'
+            });
+          }
         }
       }
     } catch (e) {

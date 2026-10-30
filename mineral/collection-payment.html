@@ -258,14 +258,7 @@ mbCss('./common.css');
 <div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Internal payment notes</div>
 <textarea oninput="{{ onNoteInternal }}" placeholder="Note" value="{{ noteInternal }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
 </div>
-<div style="margin-bottom:14px;">
-<div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Notes For Header</div>
-<textarea oninput="{{ onNoteHeader }}" placeholder="Note" value="{{ noteHeader }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
-</div>
-<div style="margin-bottom:12px;">
-<div style="font-size:14px; font-weight:800; color:#1f2a3a; margin-bottom:7px;">Notes For Footer</div>
-<textarea oninput="{{ onNoteFooter }}" placeholder="Note" value="{{ noteFooter }}" style="width:100%; height:38px; padding:10px 12px; border:1.4px solid #dde2ea; border-radius:10px; font-size:13px; color:#1f2a3a; resize:vertical;"></textarea>
-</div>
+
 <div style="display:flex; gap:12px; align-items:center; margin-bottom:14px; font-size:12.5px; color:#5f6978;">
 <label style="display:flex; align-items:center; gap:5px;"><input onchange="{{ onSendMail }}" type="checkbox" checked="{{ sendMail }}"/>Send by mail</label>
 <label style="display:flex; align-items:center; gap:5px;"><input onchange="{{ onSendWhatsapp }}" type="checkbox" checked="{{ sendWhatsapp }}"/>Send by whatsapp</label>
@@ -1266,22 +1259,29 @@ class Component extends DCLogic {
     return '';
   }
 
-  buildReceiptMessage(amount, pdfUrl) {
+  buildReceiptMessage(amount, pdfUrl, createdId) {
+    var isHe = document.documentElement.lang === 'he' || (window.MineralBarI18n && typeof MineralBarI18n.getLanguage === 'function' && MineralBarI18n.getLanguage() === 'he');
     var lines = [];
-    lines.push('Receipt for ' + (this.state.customerName || 'customer'));
-    lines.push('Amount: ' + this.fmtAmount(amount));
+    var title = isHe ? 'קבלה לתשלום' : 'Payment receipt';
+    if (createdId) title += ' #' + createdId;
+    lines.push(title);
+    lines.push((isHe ? 'לקוח: ' : 'Customer: ') + (this.state.customerName || (isHe ? 'לקוח' : 'customer')));
+    lines.push((isHe ? 'סכום שהתקבל: ' : 'Amount received: ') + this.fmtAmount(amount));
     if (this.state.noteHeader) lines.push(String(this.state.noteHeader));
     if (this.state.noteInternal) lines.push(String(this.state.noteInternal));
     if (this.state.noteFooter) lines.push(String(this.state.noteFooter));
-    if (pdfUrl) lines.push(String(pdfUrl));
+    if (pdfUrl) {
+      lines.push(isHe ? 'לצפייה והורדת הקבלה:' : 'View and download receipt:');
+      lines.push(String(pdfUrl));
+    }
     return lines.filter(Boolean).join('\n');
   }
 
-  async sendReceiptMessages(amount, pdfUrl) {
+  async sendReceiptMessages(amount, pdfUrl, createdId) {
     if (!window.MineralBarApp || typeof MineralBarApp.sendCustomerMessage !== 'function') return;
     var customerId = this.getCustomerId();
     if (!customerId) return;
-    var message = this.buildReceiptMessage(amount, pdfUrl);
+    var message = this.buildReceiptMessage(amount, pdfUrl, createdId);
     var email = this.state.customerEmail || '';
     var phone = this.state.customerPhone || '';
     var jobs = [];
@@ -1543,6 +1543,21 @@ class Component extends DCLogic {
             }
           } catch (idErr) { createdId = ''; }
 
+          // Retrieve receipt viewable file_url via Documents.View API (https://eli.bull36.com/app/help/Documents.View)
+          if (!pdfUrl && createdId && window.MineralBarApp) {
+            try {
+              var viewRes = typeof MineralBarApp.viewDocument === 'function'
+                ? await MineralBarApp.viewDocument(createdId, { customer_id: customerId })
+                : await MineralBarApp.getClient().request('Documents.View', { document_id: createdId, file_id: createdId, id: createdId, customer_id: customerId });
+              pdfUrl = (viewRes && (viewRes.file_url || viewRes.output)) || this.findPdfUrl(viewRes, 0) || '';
+            } catch (eView) {
+              console.warn('[collection] could not retrieve receipt pdf_url via Documents.View', eView);
+            }
+          }
+          if (pdfUrl && !/^https?:\/\//i.test(pdfUrl) && window.MineralBarApp && typeof MineralBarApp.resolveFileUrl === 'function') {
+            pdfUrl = MineralBarApp.resolveFileUrl(pdfUrl);
+          }
+
           var cardDigits = String(this.state.cardNumber || '').replace(/\D/g, '');
           var cardLast4 = cardDigits.length >= 4 ? cardDigits.slice(-4) : '';
           var paymentSnap = {
@@ -1564,19 +1579,23 @@ class Component extends DCLogic {
           } catch (snapErr) { /* ignore */ }
 
           // Automatically update customer status to "Order Placed"
-          if (customerId && window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+          if (customerId && window.MineralBarApp) {
             try {
-              var cClient = MineralBarApp.getClient();
-              if (cClient && typeof cClient.request === 'function') {
-                await cClient.request('Customer.Edit', {
-                  customer_id: customerId,
-                  id: customerId,
-                  cust_id: customerId,
-                  status: 'בוצעה הזמנה',
-                  status_id: '10195',
-                  sub_list_data: '10195',
-                  sub_list_data_name: 'בוצעה הזמנה'
-                });
+              if (typeof MineralBarApp.updateCustomerStatus === 'function') {
+                await MineralBarApp.updateCustomerStatus(customerId, '10195', 'בוצעה הזמנה');
+              } else if (typeof MineralBarApp.getClient === 'function') {
+                var cClient = MineralBarApp.getClient();
+                if (cClient && typeof cClient.request === 'function') {
+                  await cClient.request('Customer.Edit', {
+                    customer_id: customerId,
+                    id: customerId,
+                    cust_id: customerId,
+                    status: '10195',
+                    status_id: '10195',
+                    sub_list_data: '10195',
+                    sub_list_data_name: 'בוצעה הזמנה'
+                  });
+                }
               }
             } catch (eStat) {
               console.warn('[collection] failed to update status to Order Placed', eStat);
@@ -1587,7 +1606,7 @@ class Component extends DCLogic {
           if (this.state.sendMail || this.state.sendWhatsapp) {
             this.setState({ statusMsg: 'Sending receipt message...' });
             try {
-              await this.sendReceiptMessages(amount, pdfUrl);
+              await this.sendReceiptMessages(amount, pdfUrl, createdId);
             } catch (sendErr) {
               console.warn('[collection] Biz1 message send failed', sendErr);
               this.setState({
@@ -1668,7 +1687,7 @@ class Component extends DCLogic {
       onSendWaLink: () => this.sendPaymentWhatsApp(),
       onSendSmsLink: () => this.sendPaymentSms(),
       amountText: this.fmtAmount(this.state.amount),
-      totalMonthlyText: this.fmtAmount(this.state.amount) + '/month',
+      totalMonthlyText: this.fmtAmount(this.state.amount),
       currentDate: this.state.currentDate || this.todayText(),
       statusMsg: this.state.statusMsg,
 

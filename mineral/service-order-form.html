@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 <head>
@@ -123,9 +123,21 @@ mbCss('./common.css');
 <sc-for as="p" list="{{ products }}">
 <div style="background:#eef4fb; border:1px solid #dbe6f5; border-radius:14px; padding:14px; margin-bottom:11px; position:relative;">
 
-<div style="font-size:11px; font-weight:700; color:#9aa3b0; margin-bottom:3px;">Product {{ p.index }}</div>
-<div style="font-size:15px; font-weight:800; color:#1d60a2;">{{ p.name }}</div>
-<div style="font-size:12px; color:#7b8595; margin-top:2px;">{{ p.sub }} · {{ p.price }}</div>
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+  <div style="font-size:11px; font-weight:700; color:#9aa3b0;">Product {{ p.index }}</div>
+  <sc-if value="{{ p.canRemove }}">
+    <button type="button" onclick="{{ p.remove }}" style="background:none; border:none; padding:0; cursor:pointer; color:#9aa3b0; font-size:16px; line-height:1;" title="Remove">✕</button>
+  </sc-if>
+</div>
+
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+  <div style="font-size:15.5px; font-weight:800; color:#1d60a2;">{{ p.name }}</div>
+  <div style="font-size:15px; font-weight:800; color:#1f2a3a; text-align:end; white-space:nowrap;">{{ p.price }}</div>
+</div>
+
+<sc-if value="{{ p.hasSub }}">
+  <div style="font-size:12px; color:#7b8595; margin-top:3px;">{{ p.sub }}</div>
+</sc-if>
 
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid #dbe6f5;">
 <span style="font-size:12.5px; font-weight:600; color:#5a6473;">Discount (NIS)</span>
@@ -160,14 +172,14 @@ mbCss('./common.css');
   </div>
   <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-top:1px solid #f0f2f5; margin-top:4px; padding-top:8px;">
     <span style="font-size:13.5px; color:#5a6473; text-align:start;">Intermediate amount (before VAT)</span>
-    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ beforeVat }} NIS/month</span>
+    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ beforeVat }} NIS</span>
   </div>
   <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0;">
     <span style="font-size:13.5px; color:#5a6473; text-align:start;">VAT 18%</span>
-    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ vatAmt }} NIS/month</span>
+    <span style="font-size:13.5px; font-weight:700; color:#1f2a3a; text-align:end;">{{ vatAmt }} NIS</span>
   </div>
   <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 0 4px; margin-top:6px; border-top:1px solid #f0f2f5;">
-    <span style="font-size:14px; font-weight:800; color:#1f2a3a; text-align:start;">Total monthly</span>
+    <span style="font-size:14px; font-weight:800; color:#1f2a3a; text-align:start;">Total payable</span>
     <span style="font-size:18px; font-weight:800; color:#2e8a63; text-align:end;">{{ totalPayable }}</span>
   </div>
 </div>
@@ -394,7 +406,85 @@ class Component extends DCLogic {
         }
       }
 
-      var stateUpdate = { customer_id: customerId || '' };
+      var quoteAmount = Number(q.get('amount') || q.get('total') || q.get('final_amount') || 0);
+      if (!quoteAmount) {
+        try {
+          var stAmt = (customerId ? sessionStorage.getItem('mb_quote_amount:' + customerId) : null) ||
+            sessionStorage.getItem('mb_quote_amount') ||
+            sessionStorage.getItem('mb_collection_amount');
+          if (stAmt) quoteAmount = Number(stAmt) || 0;
+        } catch (eA) { /* ignore */ }
+      }
+
+      var quoteTotals = null;
+      try {
+        var tRaw = (customerId ? sessionStorage.getItem('mb_quote_totals:' + customerId) : null) ||
+          sessionStorage.getItem('mb_quote_totals');
+        if (tRaw) quoteTotals = JSON.parse(tRaw);
+      } catch (eT) { quoteTotals = null; }
+
+      var quoteDiscount = Number(q.get('discount') || (quoteTotals && quoteTotals.discountAmt) || 0) || 0;
+      var quoteBeforeVat = Number(q.get('before_vat') || (quoteTotals && quoteTotals.beforeVat) || 0) || 0;
+      var quoteVat = Number(q.get('vat') || (quoteTotals && quoteTotals.vatAmt) || 0) || 0;
+
+      var productsFromQuote = [];
+      try {
+        var pq = q.get('products_json');
+        if (pq) productsFromQuote = JSON.parse(pq);
+      } catch (ePq) { productsFromQuote = []; }
+
+      if (!productsFromQuote || !productsFromQuote.length) {
+        try {
+          var pStored = (customerId ? sessionStorage.getItem('mb_quote_products:' + customerId) : null) ||
+            sessionStorage.getItem('mb_quote_products');
+          if (pStored) productsFromQuote = JSON.parse(pStored);
+        } catch (ePs) { productsFromQuote = []; }
+      }
+
+      var documentId = q.get('document_id') || q.get('doc_id') || '';
+      if (!documentId) {
+        try {
+          documentId = sessionStorage.getItem('mb_quote_document_id') || '';
+        } catch (eDocId) { /* ignore */ }
+      }
+
+      if (documentId && window.MineralBarApp && typeof MineralBarApp.getClient === 'function' && (!productsFromQuote || !productsFromQuote.length || !quoteAmount)) {
+        try {
+          var clientDoc = MineralBarApp.getClient();
+          var docPayload = { document_id: documentId, doc_id: documentId, id: documentId, customer_id: customerId };
+          var docRes = null;
+          try { docRes = await clientDoc.request('Documents.View', docPayload); }
+          catch (eDv) { docRes = await clientDoc.request('Documents.Get', docPayload); }
+          var docData = (docRes && (docRes.data || docRes.output || docRes)) || {};
+          if (docData.final_amount && !quoteAmount) {
+            quoteAmount = Number(docData.final_amount) || 0;
+          }
+          var docItems = docData.items || (docData.data && docData.data.items) || [];
+          if (Array.isArray(docItems) && docItems.length && (!productsFromQuote || !productsFromQuote.length)) {
+            productsFromQuote = docItems.map(function(it, idx) {
+              var pVal = Number(it.item_price || it.price || 0);
+              var pDisc = Number(it.item_discount || it.discount || 0);
+              return {
+                id: String(it.iteeeem_id || it.item_id || it.product_id || it.id || ('doc-' + idx)),
+                name: it.item_name || it.name || 'מוצר',
+                priceNum: pVal,
+                price: pVal + ' NIS',
+                discountAmt: pDisc,
+                discountText: pDisc > 0 ? (pDisc + '₪') : '0₪',
+                sub: it.description || ''
+              };
+            });
+          }
+        } catch (eDoc) { /* ignore */ }
+      }
+
+      var stateUpdate = {
+        customer_id: customerId || '',
+        quoteAmount: quoteAmount,
+        quoteBeforeVat: quoteBeforeVat,
+        quoteVat: quoteVat,
+        quoteDiscount: quoteDiscount
+      };
       if (name) stateUpdate.name = name;
       if (phone) stateUpdate.phone = phone;
       if (tz) stateUpdate.tz = tz;
@@ -431,7 +521,7 @@ class Component extends DCLogic {
       if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
         try {
           var client = MineralBarApp.getClient();
-          var res = await client.request('Products.List', { limit: 25 });
+          var res = await client.request('Products.List', { limit: 200 });
           var data = res && (res.data || res.output || res);
           if (Array.isArray(data) && data.length > 0) {
             productsList = data.map(function(item) {
@@ -470,20 +560,66 @@ class Component extends DCLogic {
 
       if (!productsList || productsList.length === 0) {
         productsList = [
-          { id: '200094', name: 'Filter main horizon', sub: 'Annual route', price: '89 NIS/month', priceNum: 89, discountAmt: 0, discountText: '0₪', isDroplet: true },
-          { id: '200092', name: 'Annual product insurance', sub: 'Full coverage', price: '29 NIS/month', priceNum: 29, discountAmt: 0, discountText: '0₪', isDroplet: false }
+          { id: '200094', name: 'Filter main horizon', sub: 'Annual route', price: '89 ₪', priceNum: 89, discountAmt: 0, discountText: '0₪', isDroplet: true },
+          { id: '200092', name: 'Annual product insurance', sub: 'Full coverage', price: '29 ₪', priceNum: 29, discountAmt: 0, discountText: '0₪', isDroplet: false }
         ];
       }
 
       var finalProducts = [];
+      if (productsFromQuote && productsFromQuote.length > 0) {
+        finalProducts = productsFromQuote.map(function(item) {
+          var pVal = Number(item.priceNum != null ? item.priceNum : (item.price != null ? String(item.price).replace(/[^\d.]/g, '') : 0)) || 0;
+          var dVal = Number(item.discountAmt != null ? item.discountAmt : (item.discountVal || 0)) || 0;
+          var isDrop = item.isDroplet != null ? !!item.isDroplet : (item.name && /filter|בר|סנן|horizon/i.test(item.name));
+          return {
+            id: String(item.id || item.product_id || '').trim(),
+            name: item.name || item.product_name || 'מוצר',
+            sub: item.sub || item.description || '',
+            price: pVal + ' ₪',
+            priceNum: pVal,
+            discountAmt: dVal,
+            discountText: dVal > 0 ? (dVal + '₪') : '0₪',
+            isDroplet: isDrop
+          };
+        });
+      }
+
       if (productIdsStr) {
         var ids = productIdsStr.split(',').map(function (x) { return String(x || '').trim(); }).filter(Boolean);
         ids.forEach(function(productId) {
-          var found = productsList.find(function(p) { return String(p.id) === productId; });
-          if (found) {
-            finalProducts.push(JSON.parse(JSON.stringify(found)));
+          var alreadyIn = finalProducts.some(function(fp) { return String(fp.id).trim() === productId; });
+          if (!alreadyIn) {
+            var found = productsList.find(function(p) { return String(p.id).trim() === productId; });
+            if (found) {
+              var pPrice = (found.priceNum != null ? found.priceNum : (found.price != null ? String(found.price).replace(/[^\d.]/g, '') : 0)) || 0;
+              finalProducts.push({
+                id: String(found.id),
+                name: found.name || found.product_name || 'מוצר',
+                sub: found.sub || found.description || '',
+                price: pPrice + ' ₪',
+                priceNum: pPrice,
+                discountAmt: found.discountAmt || 0,
+                discountText: (found.discountAmt || 0) + '₪',
+                isDroplet: !!found.isDroplet
+              });
+            }
           }
         });
+      }
+
+      if (finalProducts.length === 0 && quoteAmount > 0) {
+        var itemBeforeVat = quoteBeforeVat > 0 ? quoteBeforeVat : Math.round(quoteAmount / 1.18);
+        var qNum = q.get('quote_num') || q.get('quoteNum') || 'QT-0041';
+        finalProducts = [{
+          id: (productIdsStr ? productIdsStr.split(',')[0] : 'quote-1'),
+          name: (typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en') ? ('Approved quote #' + qNum) : ('הצעה מאושרת #' + qNum),
+          sub: (typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en') ? 'Approved plan' : 'מסלול שאושר על ידי הלקוח',
+          price: itemBeforeVat + ' ₪',
+          priceNum: itemBeforeVat,
+          discountAmt: quoteDiscount,
+          discountText: quoteDiscount > 0 ? (quoteDiscount + '₪') : '0₪',
+          isDroplet: true
+        }];
       }
 
       stateUpdate.products = finalProducts;
@@ -575,9 +711,12 @@ class Component extends DCLogic {
   renderVals() {
     var s = this.state;
     var initials = this.getInitials(s.name);
+    var numProducts = (s.products || []).length;
     var productsWithIndex = (s.products || []).map((p, idx) => ({
       ...p,
       index: idx + 1,
+      hasSub: !!(p.sub && String(p.sub).trim()),
+      canRemove: numProducts > 1,
       remove: () => this.onRemoveProduct(p.id),
       onDiscountChange: (e) => this.onDiscountInput(p.id, e.target.value)
     }));
@@ -587,7 +726,14 @@ class Component extends DCLogic {
     var beforeVat = Math.max(0, subTotal - totalDiscount);
     var vatAmt = Math.round(beforeVat * 0.18);
     var totalPayableVal = beforeVat + vatAmt;
-    var totalPayable = totalPayableVal + ' NIS/month';
+
+    if (totalPayableVal === 0 && Number(s.quoteAmount) > 0) {
+      totalPayableVal = Number(s.quoteAmount);
+      beforeVat = s.quoteBeforeVat > 0 ? s.quoteBeforeVat : Math.round(totalPayableVal / 1.18);
+      vatAmt = s.quoteVat > 0 ? s.quoteVat : (totalPayableVal - beforeVat);
+      totalDiscount = s.quoteDiscount || 0;
+    }
+    var totalPayable = totalPayableVal + ' ₪';
 
     var composedAddress = this.composeAddress(s) || s.address || '';
     var addressOk = this.isAddressDetailed(s);

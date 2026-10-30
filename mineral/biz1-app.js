@@ -863,8 +863,8 @@
 
   function normalizeMissionColor(value) {
     var raw = String(value == null ? '' : value).trim().toLowerCase();
-    if (!raw || raw === 'default') return 'yellow';
-    if (raw === 'transparent' || raw === 'yellow' || raw === 'red' || raw === 'green' || raw === 'blue') {
+    if (!raw || raw === 'default' || raw === 'transparent') return 'yellow';
+    if (raw === 'yellow' || raw === 'red' || raw === 'green' || raw === 'blue') {
       return raw;
     }
     if (raw === '#ef4444' || raw === '#c0392b' || raw.indexOf('red') !== -1) return 'red';
@@ -968,6 +968,7 @@
 
     var color = normalizeMissionColor(p.appoinment_color1 || p.color || p.priority);
     payload.color = color;
+    payload.priority = color;
     payload.appoinment_color1 = color;
 
     if (p.tag_id != null || p.tag != null) {
@@ -1582,6 +1583,104 @@
     };
   }
 
+  /** Customer.Edit / Customer.Update — update existing customer or lead record. */
+  async function updateCustomer(customerId, params) {
+    var cid = requireId(customerId, 'customer_id');
+    var client = getClient();
+    var p = params || {};
+    var payload = {
+      customer_id: cid,
+      cust_id: cid,
+      id: cid
+    };
+
+    var allowed = [
+      'name', 'email', 'second_email', 'phone', 'mobile', 'second_phone',
+      'company', 'company_id', 'csv_id', 'source', 'affiliate', 'website',
+      'password', 'note', 'notes', 'address', 'city', 'city_name', 'city_id',
+      'folder_id', 'folder', 'status_id', 'status', 'sub_list_data',
+      'sub_list_data_name', 'internal_sub_status_list', 'tag', 'extra_fields',
+      'user_id', 'customer_manager', 'team_member_id'
+    ];
+
+    var nameVal = p.name || p.client_name;
+    if (nameVal !== undefined && nameVal !== '') payload.name = nameVal;
+
+    if (p.email !== undefined) payload.email = p.email;
+    var secondEmailVal = p.second_email || p.email2 || p.email_2;
+    if (secondEmailVal !== undefined && secondEmailVal !== '') payload.second_email = secondEmailVal;
+
+    if (p.phone !== undefined) payload.phone = p.phone;
+    if (p.mobile !== undefined) payload.mobile = p.mobile;
+    else if (p.phone !== undefined) payload.mobile = p.phone;
+    var secondPhoneVal = p.second_phone || p.phone2 || p.phone_2;
+    if (secondPhoneVal !== undefined && secondPhoneVal !== '') payload.second_phone = secondPhoneVal;
+
+    if (p.source !== undefined) payload.source = p.source;
+    var noteVal = p.note != null ? p.note : p.notes;
+    if (noteVal !== undefined) payload.note = noteVal;
+
+    if (p.address !== undefined) payload.address = p.address;
+    if (p.city !== undefined) payload.city = p.city;
+    if (p.city_name !== undefined) payload.city_name = p.city_name;
+    if (p.city_id !== undefined) payload.city_id = p.city_id;
+
+    var folderVal = p.folder_id != null && p.folder_id !== '' ? p.folder_id : p.folder;
+    if (folderVal !== undefined && folderVal !== '') {
+      var folderNum = Number(folderVal);
+      payload.folder_id = isFinite(folderNum) ? folderNum : folderVal;
+    }
+
+    var statusVal = p.status_id || p.status || p.sub_list_data;
+    if (statusVal !== undefined && statusVal !== '') {
+      payload.status_id = statusVal;
+      payload.status = statusVal;
+      payload.sub_list_data = statusVal;
+    }
+
+    var managerId = p.customer_manager || p.team_member_id || p.user_id;
+    if (managerId !== undefined && managerId !== '') {
+      payload.user_id = managerId;
+      payload.customer_manager = managerId;
+      payload.team_member_id = managerId;
+    }
+
+    Object.keys(p).forEach(function (k) {
+      if (payload[k] === undefined && (allowed.indexOf(k) !== -1 || k.indexOf('cf-') === 0 || k.indexOf('extra_fields[') === 0)) {
+        if (p[k] !== undefined && p[k] !== '') {
+          payload[k] = p[k];
+        }
+      }
+    });
+
+    var routes = ['Customer.Edit', 'Customer.Update'];
+    var raw = null;
+    var lastErr = null;
+    for (var r = 0; r < routes.length; r++) {
+      try {
+        raw = await client.request(routes[r], payload);
+        if (raw && (Number(raw.success) === 1 || raw.success === true || raw.output || raw.data)) {
+          break;
+        }
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    if (!raw && lastErr) throw lastErr;
+    if (managerId) {
+      try {
+        await assignCustomerTeamMember(cid, managerId);
+      } catch (assignErr) {
+        console.warn('[MineralBarApp] assignCustomerTeamMember after update failed', assignErr);
+      }
+    }
+    return {
+      ok: true,
+      id: cid,
+      raw: raw
+    };
+  }
+
   /** Assign a customer to a team member (service representative). */
   async function assignCustomerTeamMember(customerId, teamMemberId) {
     var cid = requireId(customerId, 'customer_id');
@@ -1617,6 +1716,62 @@
     }
 
     return { ok: false, message: 'Team member assignment is not supported by the API yet.' };
+  }
+
+  async function updateCustomerStatus(customerId, statusId, statusName, folderId) {
+    if (!customerId) return { ok: false, error: 'Missing customerId' };
+    var client = getClient();
+    if (!client || typeof client.request !== 'function') return { ok: false, error: 'No client' };
+
+    var sid = String(statusId || '').trim();
+    var sName = statusName || '';
+    if (!sName) {
+      var map = {
+        '1': 'חדש',
+        '10085': 'חדש',
+        '10190': 'נשלחה הצעה',
+        '10191': 'פולואפ',
+        '10192': 'אין מענה',
+        '10193': 'לא רלוונטי',
+        '10194': 'הצעה אושרה',
+        '10195': 'בוצעה הזמנה'
+      };
+      sName = map[sid] || '';
+    }
+
+    var payload = {
+      customer_id: String(customerId),
+      id: String(customerId),
+      cust_id: String(customerId),
+      status: sid,
+      status_id: sid,
+      sub_list_data: sid,
+      sub_list_data_name: sName
+    };
+    if (folderId) {
+      payload.folder_id = String(folderId);
+    }
+
+    var routes = ['Customer.Edit', 'Customer.Update'];
+    for (var r = 0; r < routes.length; r++) {
+      try {
+        var res = await client.request(routes[r], payload);
+        if (res && (Number(res.success) === 1 || res.success === true || res.output || res.data)) {
+          try {
+            if (window.__mbLeadCardCustomer && String(window.__mbLeadCardCustomer.id || window.__mbLeadCardCustomer.customer_id) === String(customerId)) {
+              window.__mbLeadCardCustomer.status = sid;
+              window.__mbLeadCardCustomer.status_id = sid;
+              window.__mbLeadCardCustomer.sub_list_data = sid;
+              window.__mbLeadCardCustomer.sub_list_data_name = sName;
+            }
+          } catch (eMem) {}
+          return { ok: true, raw: res };
+        }
+      } catch (err) {
+        console.warn('[MineralBarApp] updateCustomerStatus ' + routes[r] + ' failed', err);
+      }
+    }
+    return { ok: false };
   }
 
   var ticketCustomFieldsCache = null;
@@ -2492,6 +2647,34 @@
       draw: 1
     }, extra || {}));
     return { raw: raw, html: raw.files_html || '', customer_id: id };
+  }
+
+  /**
+   * Documents.View — return viewable file URL for a business document or uploaded file.
+   * @see https://eli.bull36.com/app/help/Documents.View
+   * Response: { success: 1, file_url: "...", output: "...", document_id: ..., type: "pdf", raw: ... }
+   */
+  async function viewDocument(documentId, extra) {
+    var client = getClient();
+    var payload = Object.assign({}, extra || {});
+    if (documentId != null && documentId !== '') {
+      payload.document_id = documentId;
+      payload.file_id = payload.file_id || documentId;
+      payload.id = payload.id || documentId;
+    }
+    var raw = await client.request('Documents.View', payload);
+    var url = (raw && (raw.file_url || raw.output || (raw.data && (raw.data.file_url || raw.data.output)))) || '';
+    if (url && !/^https?:\/\//i.test(url) && !/^data:/i.test(url) && !/^blob:/i.test(url)) {
+      url = resolveFileUrl(url);
+    }
+    return {
+      success: raw && raw.success !== 0 && raw.success !== false ? 1 : 0,
+      file_url: url,
+      output: url,
+      document_id: (raw && raw.document_id) || documentId,
+      type: (raw && raw.type) || 'pdf',
+      raw: raw
+    };
   }
 
   function parseEmailsHtml(html) {
@@ -3727,6 +3910,8 @@
     getSelectedProductIds: getSelectedProductIds,
     setSelectedProductIds: setSelectedProductIds,
     createCustomer: createCustomer,
+    updateCustomer: updateCustomer,
+    updateCustomerStatus: updateCustomerStatus,
     assignCustomerTeamMember: assignCustomerTeamMember,
     countCustomers: countCustomers,
     listProjects: listProjects,
@@ -3759,6 +3944,7 @@
     applyTicketLabeledCustomFields: applyTicketLabeledCustomFields,
     readTicketLabeledField: readTicketLabeledField,
     listDocuments: listDocuments,
+    viewDocument: viewDocument,
     listBanks: listBanks,
     countBanks: countBanks,
     getBank: getBank,
