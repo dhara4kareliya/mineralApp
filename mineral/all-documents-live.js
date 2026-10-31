@@ -124,8 +124,16 @@
         if (c && c.data && typeof c.data === 'object') c = c.data;
         customerName = c && c.name ? c.name : '';
       }
-      var raw = await MineralBarApp.getClient().request('Documents.List', { customer_id: cid, length: 25, draw: 1, start: 0 });
-      var docs = (raw && (raw.rows || raw.data || raw.output)) || [];
+      var payload = { length: 50, draw: 1, start: 0 };
+      if (cid) {
+        payload.customer_id = cid;
+        payload.cust_id = cid;
+      }
+      var raw = await MineralBarApp.getClient().request('Documents.List', payload);
+      var docs = Array.isArray(raw) ? raw : ((raw && (raw.rows || raw.data || raw.output)) || []);
+      if ((!customerName || customerName === 'Customer') && docs.length && docs[0].name) {
+        customerName = docs[0].name;
+      }
       render(root, docs, customerName);
     } catch (e) {
       console.warn('[all-documents-live] failed', e);

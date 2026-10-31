@@ -1505,8 +1505,15 @@
       payload.folder_id = isFinite(folderNum) ? folderNum : folderVal;
     }
 
-    var statusVal = p.status_id || p.status;
-    if (statusVal !== undefined && statusVal !== '') payload.status_id = statusVal;
+    var statusVal = p.status_id != null && p.status_id !== '' ? p.status_id : p.status;
+    if (statusVal === undefined || statusVal === '') statusVal = p.sub_list_data;
+    if (statusVal !== undefined && statusVal !== '') {
+      payload.status_id = statusVal;
+      payload.status = statusVal;
+      if (payload.sub_list_data === undefined) {
+        payload.sub_list_data = statusVal;
+      }
+    }
 
     if (p.sub_list_data !== undefined && p.sub_list_data !== '') payload.sub_list_data = p.sub_list_data;
     if (p.sub_list_data_name !== undefined && p.sub_list_data_name !== '') payload.sub_list_data_name = p.sub_list_data_name;
@@ -1574,6 +1581,13 @@
         await assignCustomerTeamMember(newId, managerId);
       } catch (assignErr) {
         console.warn('[MineralBarApp] assignCustomerTeamMember after create failed', assignErr);
+      }
+    }
+    if (newId && (statusVal || p.sub_list_data)) {
+      try {
+        await updateCustomerStatus(newId, statusVal || p.sub_list_data, p.sub_list_data_name, payload.folder_id || 1);
+      } catch (stErr) {
+        console.warn('[MineralBarApp] updateCustomerStatus after create failed', stErr);
       }
     }
     return {
@@ -1733,8 +1747,9 @@
         '10191': 'פולואפ',
         '10192': 'אין מענה',
         '10193': 'לא רלוונטי',
-        '10194': 'הצעה אושרה',
-        '10195': 'בוצעה הזמנה'
+        '10194': 'בוצעה הזמנה',
+        '10195': 'בוצעה הזמנה',
+        '10307': 'נחתמה הצעה'
       };
       sName = map[sid] || '';
     }
@@ -1746,11 +1761,9 @@
       status: sid,
       status_id: sid,
       sub_list_data: sid,
-      sub_list_data_name: sName
+      sub_list_data_name: sName,
+      folder_id: String(folderId || 1)
     };
-    if (folderId) {
-      payload.folder_id = String(folderId);
-    }
 
     var routes = ['Customer.Edit', 'Customer.Update'];
     for (var r = 0; r < routes.length; r++) {

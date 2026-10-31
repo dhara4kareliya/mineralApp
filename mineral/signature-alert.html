@@ -183,8 +183,8 @@ class Component extends DCLogic {
 
       var hasInvoice = false;
       try {
-        var docsRes = await client.request('Documents.List', { customer_id: customerId, limit: 10 });
-        var docs = (docsRes && (docsRes.data || docsRes.output || docsRes)) || [];
+        var docsRes = await client.request('Documents.List', { customer_id: customerId, cust_id: customerId, limit: 10 });
+        var docs = Array.isArray(docsRes) ? docsRes : ((docsRes && (docsRes.data || docsRes.output || docsRes.rows || docsRes)) || []);
         if (Array.isArray(docs)) {
           hasInvoice = docs.some(function(d) {
             var docType = String(d.type || d.document_type || d.doc_type || d.type_name || '').toLowerCase();

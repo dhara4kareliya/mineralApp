@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html>
 
@@ -143,7 +143,7 @@
             <sc-for as="d" hint-placeholder-count="6" list="{{ docs }}">
               <div
                 style="background:#fff; border-radius:16px; padding:13px 14px; margin-bottom:11px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
-                <div style="display:flex; align-items:flex-start; gap:12px;">
+                <div style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;" onclick="{{ d.viewPdf }}">
                   <!-- icon -->
                   <div
                     style="width:44px; height:44px; border-radius:12px; background:{{ d.iconBg }}; color:{{ d.iconColor }}; display:flex; align-items:center; justify-content:center; flex:none;">
@@ -261,14 +261,39 @@ class Component extends DCLogic {
   };
 
   isEn() {
-    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+    if (typeof window !== 'undefined' && typeof window.getCurrentLanguage === 'function') {
+      return window.getCurrentLanguage() === 'en';
+    }
+    if (typeof getCurrentLanguage === 'function') {
+      return getCurrentLanguage() === 'en';
+    }
+    try {
+      var l = localStorage.getItem('mineralbar_lang') || localStorage.getItem('app_lang') || localStorage.getItem('lang') || (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || '';
+      if (l) return String(l).toLowerCase().indexOf('en') === 0;
+    } catch (e) {}
+    return false;
   }
 
   t(en, he) {
     return this.isEn() ? en : he;
   }
 
-  statusMeta(pay) {
+  statusMeta(pay, kind, raw) {
+    if (kind === 'quote') {
+      var isSigned = raw && (
+        Number(raw.approve) === 1 ||
+        Number(raw.is_signed) === 1 ||
+        raw.is_signed === true ||
+        raw.approved === true ||
+        raw.signed === true ||
+        Boolean(raw.approve_datetime) ||
+        Boolean(raw.approve_sign_img)
+      );
+      if (isSigned) {
+        return { status: this.t('Approved', 'אושר'), statusColor: '#1f9d55', statusBg: '#eafaf0' };
+      }
+      return { status: this.t('Awaiting signature', 'ממתין לחתימה'), statusColor: '#bd8324', statusBg: '#fdf1dd' };
+    }
     if (pay === 'paid') {
       return { status: this.t('Paid', 'שולם'), statusColor: '#1f9d55', statusBg: '#eafaf0' };
     }
@@ -389,24 +414,26 @@ class Component extends DCLogic {
   }
 
   inferKind(raw) {
-    var t = String(raw.type || raw.doc_type || raw.document_type || raw.name || '').toLowerCase();
+    var t = String(raw.type || raw.doc_type || raw.document_type || raw.type_name || raw.name || '').toLowerCase();
     if (/credit/.test(t)) return 'credit';
     if (/receipt_tax|tax_receipt|קבלה.*מס|מס.*קבלה/.test(t)) return 'receipt';
     if (/^receipt$|קבלה/.test(t) && !/invoice/.test(t)) return 'receipt';
-    if (/quote|proposal|הצעת/.test(t)) return 'quote';
+    if (/quote|proposal|הצעה|הצעת/.test(t)) return 'quote';
     if (/order|הזמנה|delivery/.test(t)) return 'order';
     return 'invoice';
   }
 
   typeLabel(raw) {
-    var t = String(raw.type || raw.doc_type || raw.document_type || '').toLowerCase();
-    if (t === 'invoice') return this.t('Tax Invoice', 'חשבונית מס');
-    if (t === 'credit_invoice') return this.t('Credit Invoice', 'חשבונית זיכוי');
-    if (t === 'receipt') return this.t('Receipt', 'קבלה');
-    if (t === 'receipt_tax_invoice') return this.t('Receipt Tax Invoice', 'חשבונית מס קבלה');
-    if (t === 'delivery_invoice') return this.t('Delivery', 'משלוח');
-    if (t === 'order_proposals') return this.t('Transaction Invoice', 'חשבונית עסקה');
+    var t = String(raw.type || raw.doc_type || raw.document_type || raw.type_name || raw.name || '').toLowerCase();
+    if (t === 'invoice' || t === 'tax_invoice') return this.t('Tax Invoice', 'חשבונית מס');
+    if (t === 'credit_invoice' || /credit/.test(t)) return this.t('Credit Invoice', 'חשבונית זיכוי');
+    if (t === 'receipt_tax_invoice' || /receipt_tax|tax_receipt/.test(t)) return this.t('Receipt Tax Invoice', 'חשבונית מס קבלה');
+    if (t === 'receipt' || /^receipt$|קבלה/.test(t)) return this.t('Receipt', 'קבלה');
+    if (t === 'delivery_invoice' || t === 'delivery') return this.t('Delivery', 'משלוח');
+    if (t === 'order_proposals' || /quote|proposal|הצעה|הצעת/.test(t)) return this.t('Price Quote', 'הצעת מחיר');
+    if (t === 'transaction_invoice') return this.t('Transaction Invoice', 'חשבונית עסקה');
     if (t === 'proforma_invoice') return this.t('Proforma Invoice', 'חשבונית פרופורמה');
+    if (t === 'order' || /order|הזמנה/.test(t)) return this.t('Order', 'הזמנה');
     if (t === 'gi_ir' || t === 'gr_ir') return this.t('GR/IR', 'קבלת סחורה / חשבונית');
     if (t === 'organization_receipt' || t === 'donation_receipt') return this.t('Donation Receipt', 'קבלת תרומה');
     return raw.type || this.t('Document', 'מסמך');
@@ -516,6 +543,17 @@ class Component extends DCLogic {
     setTimeout(() => { if (box.parentNode) box.remove(); }, 2800);
   }
 
+  async viewDocument(doc) {
+    try {
+      var url = await this.getPdfUrl(doc);
+      if (url) {
+        window.open(url, '_blank');
+      }
+    } catch (e) {
+      this.showFeedback((e && e.message) || this.t('PDF could not be opened', 'לא ניתן לפתוח את ה-PDF'), true);
+    }
+  }
+
   async downloadDocument(doc) {
     try {
       var url = await this.getPdfUrl(doc);
@@ -569,11 +607,10 @@ class Component extends DCLogic {
   async loadData() {
     if (!window.MineralBarApp || typeof MineralBarApp.isAuthenticated !== 'function' || !MineralBarApp.isAuthenticated()) return;
     var cid = this.getCustomerId();
-    if (!cid) return;
     try {
-      var customerName = this.t('Customer', 'לקוח');
+      var customerName = cid ? this.t('Customer', 'לקוח') : this.t('All clients', 'כל הלקוחות');
       var customer = null;
-      if (typeof MineralBarApp.getCustomer === 'function') {
+      if (cid && typeof MineralBarApp.getCustomer === 'function') {
         var cRes = await MineralBarApp.getCustomer(cid).catch(() => null);
         var c = cRes && cRes.customer;
         if (c && c.data && typeof c.data === 'object') c = c.data;
@@ -581,20 +618,34 @@ class Component extends DCLogic {
         if (c && c.name) customerName = c.name;
       }
 
-      var raw = await MineralBarApp.getClient().request('Documents.List', {
-        customer_id: cid,
-        length: 50,
-        start: 0,
-        draw: 1
-      });
-      var rows = (raw && (raw.rows || raw.data || raw.output)) || [];
+      var payload = { length: 50, start: 0, draw: 1 };
+      if (cid) {
+        payload.customer_id = cid;
+        payload.cust_id = cid;
+      }
+      var raw = await MineralBarApp.getClient().request('Documents.List', payload);
+      var rows = Array.isArray(raw)
+        ? raw
+        : ((raw && (raw.data || raw.rows || raw.output || raw.list || raw.records || raw.items)) || []);
       if (!Array.isArray(rows)) rows = [];
+
+      // Clean up any legacy locally cached quotes so only API response data is shown
+      try {
+        if (cid) localStorage.removeItem('mb_customer_quotes:' + cid);
+        localStorage.removeItem('mb_customer_quotes');
+      } catch (eCl) { /* ignore */ }
+
+      if ((!customerName || customerName === this.t('Customer', 'לקוח')) && rows.length && rows[0].name) {
+        customerName = rows[0].name;
+      }
+
       var docsData = rows.map((r) => {
-        var num = r.last_documents_id || r.number || r.doc_no || r.id || '-';
+        var num = r.id || r.last_documents_id || r.number || r.doc_no || '-';
         return {
           kind: this.inferKind(r),
           typeKey: String(r.type || r.doc_type || r.document_type || ''),
           num: '#' + num,
+          id: r.id || num,
           date: this.fmtDate(r.date_created || r.inserted_date || r.date || r.create_date || r.created_at || ''),
           amount: this.fmtAmount(r.final_amount != null ? r.final_amount : (r.total != null ? r.total : (r.amount || r.price || 0))),
           pay: this.inferStatus(r),
@@ -690,7 +741,7 @@ class Component extends DCLogic {
       })
       .map(d => {
         const t = this.TYPEMAP[d.kind];
-        const s = this.statusMeta(d.pay);
+        const s = this.statusMeta(d.pay, d.kind, d.raw);
         return {
           type: this.typeLabel(d.raw || { type: d.type }),
           num: d.num, date: d.date, amount: d.amount,
@@ -698,6 +749,7 @@ class Component extends DCLogic {
           iconBg: t.iconBg, iconColor: t.iconColor,
           amountColor: '#1f2a3a',
           status: s.status, statusColor: s.statusColor, statusBg: s.statusBg,
+          viewPdf: () => this.viewDocument(d),
           sendWhatsApp: () => this.sendDocument(d, 'whatsapp'),
           sendMail: () => this.sendDocument(d, 'email'),
           downloadPdf: () => this.downloadDocument(d),

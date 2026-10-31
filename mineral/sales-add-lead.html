@@ -234,7 +234,18 @@ class Component extends DCLogic {
   onSalesperson(e) { this.setState({ salespersonId: this.inputValue(e) }); }
 
   isEn() {
-    return typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+    if (typeof window.getCurrentLanguage === 'function') {
+      return window.getCurrentLanguage() === 'en';
+    }
+    try {
+      var l = localStorage.getItem('mineralbar_lang') || localStorage.getItem('app_lang') || localStorage.getItem('lang') || document.documentElement.lang || '';
+      if (l) return String(l).toLowerCase().indexOf('en') === 0;
+    } catch (e) {}
+    try {
+      var q = new URLSearchParams(window.location.search).get('lang');
+      if (q) return String(q).toLowerCase().indexOf('en') === 0;
+    } catch (e2) {}
+    return false;
   }
 
   t(en, he) {
@@ -411,13 +422,97 @@ class Component extends DCLogic {
     this.setState({ teamMembers: team, salespersonId: nextId });
   }
 
+  localizeStatus(label, isEn) {
+    var raw = String(label || '').trim();
+    if (!raw) return '';
+    if (!isEn) {
+      if (raw === 'ליד חדש' || raw === 'ילד חדש') return 'חדש';
+      return raw;
+    }
+    var translations = {
+      'ליד חדש': 'New',
+      'ילד חדש': 'New',
+      'חדש': 'New',
+      'חדשה': 'New',
+      'New lead': 'New',
+      'New child': 'New',
+      'שמור': 'Saved',
+      'שמורה': 'Saved',
+      'פולואפ': 'Follow up',
+      'פולו אפ': 'Follow up',
+      'נשלחה הצעה': 'Offer sent',
+      'הצעה נשלחה': 'Offer sent',
+      'נחתמה הצעה': 'Proposal Approved',
+      'הצעה נחתמה': 'Proposal Approved',
+      'אושרה הצעה': 'Proposal Approved',
+      'בוצעה הזמנה': 'Order Placed',
+      'הזמנה בוצעה': 'Order Placed',
+      'אין מענה': 'No Response',
+      'לא ענה': 'No Response',
+      'No answer': 'No Response',
+      'לא רלוונטי': 'Irrelevant',
+      'Not relevant': 'Irrelevant',
+      'סגור': 'Closed',
+      'סגורה': 'Closed',
+      'סגירה': 'Closed',
+      'פתוח': 'Open',
+      'פתוחה': 'Open',
+      'בטיפול': 'In progress',
+      'ממתין': 'Waiting',
+      'ממתינה': 'Waiting',
+      'שולם': 'Paid',
+      'שולמה': 'Paid',
+      'לא שולם': 'Unpaid',
+      'לא שולמה': 'Unpaid',
+      'מבוטל': 'Cancelled',
+      'מבוטלת': 'Cancelled'
+    };
+    if (translations[raw]) return translations[raw];
+    var lower = raw.toLowerCase();
+    if (lower === 'new lead' || lower === 'new child') return 'New';
+    if (lower === 'no answer') return 'No Response';
+    if (lower === 'not relevant') return 'Irrelevant';
+    if (/lead.?new|new.?lead|חדש/i.test(raw)) return 'New';
+    if (/אושר|נחתמ/i.test(raw)) return 'Proposal Approved';
+    if (/הצעה|offer|quote|proposal/i.test(raw)) return 'Offer sent';
+    if (/follow|פולו/i.test(raw)) return 'Follow up';
+    if (/order|הזמנה/i.test(raw)) return 'Order Placed';
+    if (/no.?response|no.?answer|מענה|לא ענה/i.test(raw)) return 'No Response';
+    if (/irrelevant|רלוונט/i.test(raw)) return 'Irrelevant';
+    return raw;
+  }
+
+  knownStatusLabel(id, isEn) {
+    var sid = String(id || '').trim();
+    var map = {
+      '1': isEn ? 'New' : 'חדש',
+      '10085': isEn ? 'New' : 'חדש',
+      '10190': isEn ? 'Offer sent' : 'נשלחה הצעה',
+      '10191': isEn ? 'Follow up' : 'פולואפ',
+      '10192': isEn ? 'No Response' : 'אין מענה',
+      '10193': isEn ? 'Irrelevant' : 'לא רלוונטי',
+      '10194': isEn ? 'Order Placed' : 'בוצעה הזמנה',
+      '10195': isEn ? 'Order Placed' : 'בוצעה הזמנה',
+      '10307': isEn ? 'Proposal Approved' : 'נחתמה הצעה'
+    };
+    return map[sid] || '';
+  }
+
   statusRowLabel(row, isEn) {
     if (!row) return '';
-    return String(
-      isEn
-        ? (row.name_en || row.name_for || row.name_he || row.name || row.label || '')
-        : (row.name_he || row.name_for || row.name_en || row.name || row.label || '')
-    ).trim();
+    // Use name_en and name_he from response on selected language
+    var text = '';
+    if (isEn) {
+      text = String(row.name_en || row.name_for || row.name || row.label || row.status_name || row.name_he || '').trim();
+    } else {
+      text = String(row.name_he || row.name || row.name_for || row.label || row.status_name || row.name_en || '').trim();
+    }
+    // Only fall back to known ID map if response has no textual status name
+    if (!text || /^\d+$/.test(text)) {
+      var id = String(row.status_id || row.id || row.data_id || '').trim();
+      text = this.knownStatusLabel(id, isEn);
+    }
+    return this.localizeStatus(text, isEn);
   }
 
   async loadStatuses() {
@@ -426,32 +521,51 @@ class Component extends DCLogic {
         ? window.MineralBarApp.getClient()
         : null;
       if (!client || !client.getToken || !client.getToken()) return;
-      const res = await client.request('CustomerStatuses.List', {
-        limit: 100,
-        length: 100,
-        start: 0
-      });
-      var rows = (res && (res.data || res.output || res.rows || res.list)) || [];
+      var rows = [];
+      try {
+        var res1 = await client.request('Statuses.List', {
+          type: 'internal_status',
+          folder_id: this.leadsFolderId() || 1,
+          limit: 100
+        });
+        rows = (res1 && (res1.data || res1.output || res1.rows || res1.list)) || [];
+      } catch (e1) {}
+      if (!Array.isArray(rows) || !rows.length) {
+        var res2 = await client.request('CustomerStatuses.List', {
+          limit: 100,
+          length: 100,
+          start: 0
+        });
+        rows = (res2 && (res2.data || res2.output || res2.rows || res2.list)) || [];
+      }
       if (!Array.isArray(rows)) rows = [];
       const isEn = this.isEn();
       const statusesData = rows.map(function (row) {
         var id = String(row.status_id || row.id || row.data_id || '').trim();
         var label = this.statusRowLabel(row, isEn);
         var order = Number(row.status_order != null ? row.status_order : 9999);
-        return { id: id, label: label, order: isFinite(order) ? order : 9999 };
+        var rawName = row.name || row.status_name || label;
+        return {
+          id: id,
+          label: label,
+          rawName: rawName,
+          name_en: row.name_en || '',
+          name_he: row.name_he || '',
+          order: isFinite(order) ? order : 9999
+        };
       }.bind(this)).filter(function (row) { return row.id && row.label; });
       statusesData.sort(function (a, b) { return a.order - b.order; });
       var current = String(this.state.status || '');
       var selectedExists = statusesData.some(function (row) { return row.id === current; });
       var opening = statusesData.find(function (row) {
-        return /new|חדש/i.test(row.label);
+        return String(row.id) === '1' || String(row.id) === '10085' || /new|חדש/i.test(row.label) || /new|חדש/i.test(row.rawName);
       });
       this.setState({
         statusesData: statusesData,
         status: selectedExists ? current : ((opening && opening.id) || (statusesData[0] ? statusesData[0].id : ''))
       });
     } catch (e) {
-      console.error('[sales-add-lead] CustomerStatuses.List failed', e);
+      console.error('[sales-add-lead] loadStatuses failed', e);
       this.setState({ statusesData: [] });
     }
   }
@@ -474,8 +588,12 @@ class Component extends DCLogic {
 
     const statuses = (this.state.statusesData || []).map(st => {
       const on = String(st.id) === String(this.state.status);
+      var displayLabel = this.statusRowLabel(st, isEn) ||
+        this.knownStatusLabel(st.id, isEn) ||
+        this.localizeStatus(st.label || st.rawName, isEn) ||
+        st.label;
       return {
-        label: st.label,
+        label: displayLabel,
         pick: () => this.setState({ status: st.id }),
         bg: on ? '#1d60a2' : 'transparent',
         color: on ? '#fff' : '#5a6473',
@@ -670,6 +788,25 @@ class Component extends DCLogic {
     try {
       var folderId = this.leadsFolderId();
       var statusId = String(this.state.status || '').trim();
+      var numericStatusId = /^\d+$/.test(statusId) ? Number(statusId) : statusId;
+      var matchedStatus = (this.state.statusesData || []).find(function (st) {
+        return String(st.id) === String(statusId);
+      });
+      var statusName = matchedStatus ? (matchedStatus.rawName || matchedStatus.label) : '';
+      if (!statusName && statusId) {
+        var defaultNames = {
+          '1': isEn ? 'New' : 'חדש',
+          '10085': isEn ? 'New' : 'חדש',
+          '10190': isEn ? 'Offer sent' : 'נשלחה הצעה',
+          '10191': isEn ? 'Follow up' : 'פולואפ',
+          '10192': isEn ? 'No Response' : 'אין מענה',
+          '10193': isEn ? 'Irrelevant' : 'לא רלוונטי',
+          '10194': isEn ? 'Order Placed' : 'בוצעה הזמנה',
+          '10195': isEn ? 'Order Placed' : 'בוצעה הזמנה',
+          '10307': isEn ? 'Proposal Approved' : 'נחתמה הצעה'
+        };
+        statusName = defaultNames[statusId] || (isEn ? 'New' : 'חדש');
+      }
       var city = String(this.state.city || '').trim();
       var address = this.composedAddress(isEn);
 
@@ -692,9 +829,10 @@ class Component extends DCLogic {
           team_member_id: salespersonId
         };
         if (statusId) {
-          editPayload.status_id = /^\d+$/.test(statusId) ? Number(statusId) : statusId;
-          editPayload.status = editPayload.status_id;
-          editPayload.sub_list_data = editPayload.status_id;
+          editPayload.status_id = numericStatusId;
+          editPayload.status = numericStatusId;
+          editPayload.sub_list_data = numericStatusId;
+          if (statusName) editPayload.sub_list_data_name = statusName;
         }
 
         if (window.MineralBarApp && typeof MineralBarApp.updateCustomer === 'function') {
@@ -706,6 +844,12 @@ class Component extends DCLogic {
           } catch (eEdit) {
             await client.request('Customer.Update', editPayload);
           }
+        }
+
+        if (statusId && window.MineralBarApp && typeof MineralBarApp.updateCustomerStatus === 'function') {
+          try {
+            await MineralBarApp.updateCustomerStatus(this.state.leadId, numericStatusId, statusName, folderId);
+          } catch (eUpEdit) {}
         }
 
         var backTarget = 'lead-card.html?customer_id=' + encodeURIComponent(this.state.leadId) +
@@ -734,11 +878,22 @@ class Component extends DCLogic {
         team_member_id: salespersonId
       };
       if (statusId) {
-        payload.status_id = /^\d+$/.test(statusId) ? Number(statusId) : statusId;
+        payload.status_id = numericStatusId;
+        payload.status = numericStatusId;
+        payload.sub_list_data = numericStatusId;
+        if (statusName) payload.sub_list_data_name = statusName;
       }
 
       const res = await MineralBarApp.createCustomer(payload);
       if (res && res.ok) {
+        var createdId = res.id || res.insert_id || (res.data && res.data.id) || (res.raw && (res.raw.insert_id || res.raw.customer_id));
+        if (createdId && statusId && window.MineralBarApp && typeof MineralBarApp.updateCustomerStatus === 'function') {
+          try {
+            await MineralBarApp.updateCustomerStatus(createdId, numericStatusId, statusName, folderId);
+          } catch (eUp) {
+            console.warn('[sales-add-lead] post-create updateCustomerStatus error', eUp);
+          }
+        }
         window.location.href = 'leads-list.html?refresh=' + Date.now();
       } else {
         var failMsg = (res && res.raw && res.raw.message) || (isEn ? 'Failed to add lead' : 'הוספת ליד נכשלה');

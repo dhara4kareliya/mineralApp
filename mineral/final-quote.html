@@ -605,6 +605,27 @@ mbCss('./common.css');
           console.warn('[MineralBar] failed to fetch customer details', err);
         }
       }
+
+      // Automatically update lead/customer status to "Offer sent" (10190 / נשלחה הצעה)
+      if (customerId && window.MineralBarApp && typeof MineralBarApp.updateCustomerStatus === 'function') {
+        try {
+          await MineralBarApp.updateCustomerStatus(customerId, '10190', 'נשלחה הצעה', 1);
+        } catch (eStat) {
+          console.warn('[final-quote] status update to Offer sent failed', eStat);
+        }
+      }
+
+      // Automatically ensure quote document exists in Biz1 and All Documents
+      if (!this.state.documentId && customerId && window.MineralBarApp && MineralBarApp.getClient) {
+        try {
+          var autoDoc = await this.ensureQuoteDocument();
+          if (autoDoc && autoDoc.documentId) {
+            this.setState({ documentId: autoDoc.documentId, pdfUrl: autoDoc.pdfUrl || '' });
+          }
+        } catch (eAuto) {
+          console.warn('[final-quote] auto ensureQuoteDocument error', eAuto);
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -691,6 +712,7 @@ mbCss('./common.css');
         item_qty: 1,
         item_price: price,
         item_total: Math.max(0, price - (Number(p.discountAmt) || 0)),
+        item_id: Number(p.id) || 0,
         iteeeem_id: Number(p.id) || 0,
         item_discount_type: 'price',
         item_discount: Number(p.discountAmt) || 0
@@ -702,6 +724,7 @@ mbCss('./common.css');
         item_qty: 1,
         item_price: totals.totalPayable || 0,
         item_total: totals.totalPayable || 0,
+        item_id: 0,
         iteeeem_id: 0,
         item_discount_type: 'price',
         item_discount: 0
@@ -715,7 +738,7 @@ mbCss('./common.css');
       address: this.joinInstallAddress(s) || s.address || '',
       document_type: 'order_proposals',
       final_amount: totals.totalPayable || 0,
-      items: items,
+      items: JSON.stringify(items),
       note: 'Quotation from MineralBar app',
       source: 'final-quote'
     };
@@ -765,8 +788,11 @@ mbCss('./common.css');
     }
     var client2 = MineralBarApp.getClient();
     var created = await client2.request('Documents.Add', this.buildQuotePayload());
+    var createdData = created && (created.data || created.output || created);
     var documentId = String(
-      (created && (created.document_id || created.inserted_documents_id || created.id)) || ''
+      (createdData && (createdData.document_id || createdData.inserted_documents_id || createdData.id || createdData.number)) ||
+      (created && (created.document_id || created.inserted_documents_id || created.id)) ||
+      ''
     );
     var pdfUrl = this.absoluteUrl(this.findPdfUrl(created, 0));
     if (!pdfUrl && documentId) {
@@ -792,12 +818,20 @@ mbCss('./common.css');
     var quoteNum = documentId ? ('QT-' + documentId) : (s.quoteNum || 'QT-0041');
     this.setState({ documentId: documentId, pdfUrl: pdfUrl, quoteNum: quoteNum });
     try {
-      if (documentId) sessionStorage.setItem('mb_quote_document_id', documentId);
-      if (pdfUrl) sessionStorage.setItem('mb_quote_pdf_url', pdfUrl);
+      if (documentId) {
+        sessionStorage.setItem('mb_quote_document_id', documentId);
+        localStorage.setItem('mb_quote_document_id', documentId);
+        sessionStorage.setItem('mb_quote_document_id:' + s.customer_id, documentId);
+      }
+      if (pdfUrl) {
+        sessionStorage.setItem('mb_quote_pdf_url', pdfUrl);
+        localStorage.setItem('mb_quote_pdf_url', pdfUrl);
+        sessionStorage.setItem('mb_quote_pdf_url:' + s.customer_id, pdfUrl);
+      }
     } catch (e4) { /* ignore */ }
     if (s.customer_id && window.MineralBarApp && typeof MineralBarApp.updateCustomerStatus === 'function') {
       try {
-        await MineralBarApp.updateCustomerStatus(s.customer_id, '10190', 'נשלחה הצעה');
+        await MineralBarApp.updateCustomerStatus(s.customer_id, '10190', 'נשלחה הצעה', 1);
       } catch (eStat) {
         console.warn('[final-quote] status update to Offer sent failed', eStat);
       }
@@ -879,8 +913,8 @@ mbCss('./common.css');
       var client = MineralBarApp.getClient();
       var hasInvoice = false;
       try {
-        var docRes = await client.request('Documents.List', { customer_id: customerId, limit: 10 });
-        var docs = (docRes && (docRes.data || docRes.rows || docRes.output)) || [];
+        var docRes = await client.request('Documents.List', { customer_id: customerId, cust_id: customerId, limit: 10 });
+        var docs = Array.isArray(docRes) ? docRes : ((docRes && (docRes.data || docRes.rows || docRes.output)) || []);
         if (Array.isArray(docs)) {
           hasInvoice = docs.some(function (d) {
             var dt = String(d.document_type || d.type || '').toLowerCase();

@@ -181,7 +181,20 @@
   function appendBody(body, key, value) {
     if (value === undefined || value === null) return;
     value = normalizeDateInput(key, value);
+    if (key === 'items' && typeof value !== 'string') {
+      try {
+        body.append(key, JSON.stringify(value));
+        return;
+      } catch (eIt) { /* fallback */ }
+    }
     if (Array.isArray(value)) {
+      var hasObjects = value.some(function (item) {
+        return item && typeof item === 'object' && !(typeof Blob !== 'undefined' && item instanceof Blob);
+      });
+      if (hasObjects) {
+        body.append(key, JSON.stringify(value));
+        return;
+      }
       value.forEach(function (item) { body.append(key, normalizeDateInput(key, item)); });
       return;
     }
@@ -264,13 +277,16 @@
   }
 
   function listRows(raw) {
-    if (!raw || typeof raw !== 'object') return [];
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw !== 'object') return [];
     if (Array.isArray(raw.data)) return raw.data;
     if (Array.isArray(raw.rows)) return raw.rows;
     if (Array.isArray(raw.items)) return raw.items;
     if (Array.isArray(raw.records)) return raw.records;
     if (Array.isArray(raw.tickets)) return raw.tickets;
     if (Array.isArray(raw.messages)) return raw.messages;
+    if (Array.isArray(raw.output)) return raw.output;
     return [];
   }
 

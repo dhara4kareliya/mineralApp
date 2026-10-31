@@ -40,15 +40,15 @@
   async function getDocuments(customer) {
     if (!window.MineralBarApp || !MineralBarApp.getClient) return [];
     try {
-      var cid = (customer && (customer.customer_id || customer.id)) || getCustomerId();
+      var cid = (customer && (customer.customer_id || customer.id || customer.cust_id)) || getCustomerId();
       if (!cid) return [];
-      var raw = await MineralBarApp.getClient().request('Documents.List', {
-        customer_id: cid,
-        length: 25,
-        start: 0,
-        draw: 1
-      });
-      return (raw && (raw.rows || raw.data || raw.output)) || [];
+      var payload = { length: 50, start: 0, draw: 1 };
+      if (cid) {
+        payload.customer_id = cid;
+        payload.cust_id = cid;
+      }
+      var raw = await MineralBarApp.getClient().request('Documents.List', payload);
+      return Array.isArray(raw) ? raw : ((raw && (raw.rows || raw.data || raw.output)) || []);
     } catch (e) {
       return [];
     }

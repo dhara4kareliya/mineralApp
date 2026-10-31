@@ -189,12 +189,14 @@
   /** Known lead / reason status ids (folder 1 + reason folder) — used when Statuses.List is thin. */
   var KNOWN_STATUS_LABELS = {
     '1': { name_en: 'New', name_he: 'חדש' },
+    '10085': { name_en: 'New', name_he: 'חדש' },
     '10190': { name_en: 'Offer sent', name_he: 'נשלחה הצעה' },
     '10191': { name_en: 'Follow up', name_he: 'פולואפ' },
     '10192': { name_en: 'No Response', name_he: 'אין מענה' },
     '10193': { name_en: 'Irrelevant', name_he: 'לא רלוונטי' },
-    '10194': { name_en: 'Proposal Approved', name_he: 'הצעה אושרה' },
+    '10194': { name_en: 'Order Placed', name_he: 'בוצעה הזמנה' },
     '10195': { name_en: 'Order Placed', name_he: 'בוצעה הזמנה' },
+    '10307': { name_en: 'Proposal Approved', name_he: 'נחתמה הצעה' },
     '10092': { name_en: 'Price', name_he: 'מחיר' },
     '10093': { name_en: 'Product size', name_he: 'גודל מוצר' },
     '10094': { name_en: 'Preference for competitors', name_he: 'עדיפות למתחרים' },
@@ -383,6 +385,8 @@
   function resolveStatus(row) {
     row = row || {};
 
+    var isLead = kindIsLeadsPage() || String(row.folder_id) === '1' || String(row.folder) === '1';
+
     // Customer.List / Customer.Get expose the customer status in `status`
     // (id like "10086" / "1399", OR already a label like "שולם" / "followup").
     var rawStatus = stripHtmlText(row.status);
@@ -394,6 +398,12 @@
       row.status_text ||
       ''
     );
+
+    // If this is a lead, payment status ('1399' or 'Paid' or 'שולם') must NEVER be used as the lead status
+    if (isLead) {
+      if (/^(paid|שולם)$/i.test(named)) named = '';
+      if (/^(1399|paid|שולם)$/i.test(rawStatus)) rawStatus = '';
+    }
 
     // 1) Prefer an explicit non-numeric display name from the row
     if (named && !/^\d+$/.test(named)) {
@@ -414,7 +424,15 @@
     }
 
     // 3) Resolve numeric status id via Statuses.List maps (+ known fallbacks)
-    var idCand = [
+    // For leads, prioritize sub_list_data / status_id over rawStatus
+    var idCand = isLead ? [
+      row.sub_list_data,
+      row.status_id,
+      row.internal_status_id,
+      row.internal_status_wise_client_new,
+      row.data_id,
+      rawStatus
+    ] : [
       rawStatus,
       row.sub_list_data,
       row.status_id,
@@ -425,6 +443,7 @@
     for (var i = 0; i < idCand.length; i++) {
       var sid = idCand[i] == null ? '' : String(idCand[i]).trim();
       if (!sid || !/^\d+$/.test(sid)) continue;
+      if (isLead && sid === '1399') continue; // Never show "Paid" on leads from customer status 1399
       var mapped = lookupStatusById(sid);
       if (mapped && mapped.name) {
         return {
@@ -438,6 +457,12 @@
     var key = leadStatusKey(named || rawStatus, row);
     if (key && key !== 'other') {
       return { label: leadStatusFilterLabel(key), color: '#1d60a2' };
+    }
+
+    // 5) If this is a lead and no status could be resolved, default to "New" / "חדש"
+    if (isLead) {
+      var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+      return { label: isEn ? 'New' : 'חדש', color: '#1d60a2' };
     }
 
     return { label: '', color: '#1d60a2' };

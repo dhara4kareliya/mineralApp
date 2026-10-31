@@ -164,9 +164,9 @@ mbCss('./common.css');
 </div>
 </div>
 <!-- whatsapp CTA -->
-<a href="{{ sendUrl }}" onclick="{{ onSendQuote }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:15px; border-radius:14px; background:linear-gradient(135deg,#2bb05c,#1f9a4e); color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(37,179,94,.28);">
+<a href="javascript:void(0);" onclick="{{ onSendQuote }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:15px; border-radius:14px; background:linear-gradient(135deg,#2bb05c,#1f9a4e); color:#fff; font-size:15px; font-weight:800; text-decoration:none; box-shadow:0 6px 16px rgba(37,179,94,.28); cursor:pointer;">
 <svg fill="#fff" height="20" viewbox="0 0 24 24" width="20"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2z"></path></svg>
-          Send for a digital signature on WhatsApp
+          {{ sendBtnText }}
         </a>
 </div>
 </div>
@@ -200,6 +200,14 @@ mbCss('./common.css');
   ADDR_FLOOR = 'a-1786932709';
   ADDR_APARTMENT = 'a-1786932606';
   ADDR_ENTRANCE = 'a-1786932387';
+
+  isEn() {
+    return typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en';
+  }
+
+  t(en, he) {
+    return this.isEn() ? en : he;
+  }
 
   componentDidMount() {
     if (window.LiveSync && typeof LiveSync.bind === 'function') {
@@ -419,6 +427,86 @@ mbCss('./common.css');
     return 'final-quote.html?' + q.toString();
   }
 
+  findPdfUrl(value, depth) {
+    if (!value || depth > 4) return '';
+    if (typeof value === 'string') {
+      var text = value.trim();
+      if (/^(https?:)?\/\//i.test(text) || /^\//.test(text) || /\.pdf(?:$|[?#])/i.test(text)) return text;
+      return '';
+    }
+    if (Array.isArray(value)) {
+      for (var a = 0; a < value.length; a++) {
+        var arrayUrl = this.findPdfUrl(value[a], depth + 1);
+        if (arrayUrl) return arrayUrl;
+      }
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+    var preferred = ['pdf_url', 'pdfUrl', 'document_link', 'download_url', 'downloadUrl', 'document_url', 'documentUrl', 'file_url', 'fileUrl', 'pdf', 'file', 'url', 'path'];
+    for (var i = 0; i < preferred.length; i++) {
+      if (value[preferred[i]] != null) {
+        var preferredUrl = this.findPdfUrl(value[preferred[i]], depth + 1);
+        if (preferredUrl) return preferredUrl;
+      }
+    }
+    var keys = Object.keys(value);
+    for (var k = 0; k < keys.length; k++) {
+      if (/pdf|file|download|document|link/i.test(keys[k])) {
+        var nestedUrl = this.findPdfUrl(value[keys[k]], depth + 1);
+        if (nestedUrl) return nestedUrl;
+      }
+    }
+    return '';
+  }
+
+  buildQuotePayload() {
+    var s = this.state;
+    var items = (s.products || []).map(function (p) {
+      var rawPrice = String(p.price || p.priceNum || '').replace(/[^\d.]/g, '');
+      var price = Number(rawPrice) || 0;
+      var disc = Number(p.discountAmt || 0);
+      return {
+        item_name: p.name || 'Product',
+        item_qty: 1,
+        item_price: price,
+        item_total: Math.max(0, price - disc),
+        item_id: Number(p.id) || 0,
+        iteeeem_id: Number(p.id) || 0,
+        item_discount_type: 'price',
+        item_discount: disc
+      };
+    });
+    if (!items.length) {
+      var tot = Number(s.totalAmt) || 0;
+      items = [{
+        item_name: 'Quotation',
+        item_qty: 1,
+        item_price: tot,
+        item_total: tot,
+        item_id: 0,
+        iteeeem_id: 0,
+        item_discount_type: 'price',
+        item_discount: 0
+      }];
+    }
+    var payload = {
+      name: s.name || '',
+      email: s.email || '',
+      mobile: s.phone || '',
+      phone: s.phone || '',
+      address: s.address || this.joinInstallAddress(s) || '',
+      document_type: 'order_proposals',
+      final_amount: Number(s.totalAmt) || 0,
+      items: JSON.stringify(items),
+      note: 'Quotation from MineralBar app',
+      source: 'service-quote-form'
+    };
+    var cid = s.customer_id || this.getCustomerId();
+    if (cid) payload.customer_id = cid;
+    if (s.invoiceSettingId) payload.invoice_setting_id = s.invoiceSettingId;
+    return payload;
+  }
+
   async onSendQuote(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (this.state.sending) return false;
@@ -427,18 +515,81 @@ mbCss('./common.css');
       var customerId = this.getCustomerId();
       var address = this.joinInstallAddress(this.state);
       this.setState({ address: address });
-      await this.persistCustomerAddress(Object.assign({}, this.state, { address: address }));
+
+      // 1. Persist detailed address
+      try {
+        await this.persistCustomerAddress(Object.assign({}, this.state, { address: address }));
+      } catch (eAddr) {
+        console.warn('[QuoteForm] address persist skipped', eAddr);
+      }
+
+      // 2. CREATE the price quote document in Biz1 via Documents.Add!
+      var docId = '';
+      var pdfUrl = '';
+      if (window.MineralBarApp && typeof MineralBarApp.getClient === 'function') {
+        try {
+          var client = MineralBarApp.getClient();
+          var payload = this.buildQuotePayload();
+          var created = await client.request('Documents.Add', payload);
+          var createdData = created && (created.data || created.output || created);
+          docId = String(
+            (createdData && (createdData.document_id || createdData.inserted_documents_id || createdData.id || createdData.number)) ||
+            (created && (created.document_id || created.inserted_documents_id || created.id)) ||
+            ''
+          );
+          pdfUrl = this.findPdfUrl(created, 0);
+          if (!pdfUrl && docId) {
+            try {
+              var viewRes = await client.request('Documents.View', {
+                document_id: docId,
+                doc_id: docId,
+                id: docId,
+                customer_id: customerId
+              });
+              pdfUrl = this.findPdfUrl(viewRes, 0);
+            } catch (eView) {}
+          }
+        } catch (eDoc) {
+          console.warn('[QuoteForm] Documents.Add error', eDoc);
+        }
+      }
+
+      // 3. Automatically update lead/customer status to "Offer sent" (10190 / נשלחה הצעה)
       if (customerId && window.MineralBarApp && typeof MineralBarApp.updateCustomerStatus === 'function') {
         try {
-          await MineralBarApp.updateCustomerStatus(customerId, '10190', 'נשלחה הצעה');
+          await MineralBarApp.updateCustomerStatus(customerId, '10190', 'נשלחה הצעה', 1);
         } catch (eStat) {
           console.warn('[QuoteForm] status update to Offer sent failed', eStat);
         }
       }
-      location.href = this.buildSendUrl({ address: address });
+
+      // 4. Save to local/session storage for immediate availability in Documents screen
+      try {
+        if (docId) {
+          sessionStorage.setItem('mb_quote_document_id', docId);
+          localStorage.setItem('mb_quote_document_id', docId);
+          sessionStorage.setItem('mb_quote_document_id:' + customerId, docId);
+        }
+        if (pdfUrl) {
+          sessionStorage.setItem('mb_quote_pdf_url', pdfUrl);
+          localStorage.setItem('mb_quote_pdf_url', pdfUrl);
+          sessionStorage.setItem('mb_quote_pdf_url:' + customerId, pdfUrl);
+        }
+      } catch (eStore) {
+        console.warn('[QuoteForm] cache quote error', eStore);
+      }
+
+      // 5. Navigate to final-quote.html with document_id and pdf_url
+      var targetUrl = this.buildSendUrl({
+        address: address,
+        document_id: docId,
+        doc_id: docId,
+        pdf_url: pdfUrl
+      });
+      window.location.href = targetUrl;
     } catch (err) {
       console.warn('[QuoteForm] send failed', err);
-      location.href = this.buildSendUrl();
+      window.location.href = this.buildSendUrl();
     } finally {
       this.setState({ sending: false });
     }
@@ -705,6 +856,7 @@ mbCss('./common.css');
       products: productsMapped,
       discountAmt: s.discountAmt || 0,
       totalAmt: s.totalAmt || 0,
+      sendBtnText: s.sending ? (this.isEn() ? 'Sending…' : 'שולח…') : this.t('Send for a digital signature on WhatsApp', 'שלח לחתימה דיגיטלית בוואטסאפ'),
       sendUrl: this.buildSendUrl(),
       selectProductUrl: 'service-select-product.html?' + selectProductQuery.toString(),
       onCityInput: (e) => this.onCityInput(e),

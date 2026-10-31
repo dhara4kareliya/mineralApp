@@ -271,8 +271,9 @@
     '10191': { name_en: 'Follow up', name_he: 'פולואפ' },
     '10192': { name_en: 'No Response', name_he: 'אין מענה' },
     '10193': { name_en: 'Irrelevant', name_he: 'לא רלוונטי' },
-    '10194': { name_en: 'Proposal Approved', name_he: 'הצעה אושרה' },
+    '10194': { name_en: 'Order Placed', name_he: 'בוצעה הזמנה' },
     '10195': { name_en: 'Order Placed', name_he: 'בוצעה הזמנה' },
+    '10307': { name_en: 'Proposal Approved', name_he: 'נחתמה הצעה' },
     '10092': { name_en: 'Price', name_he: 'מחיר' },
     '10093': { name_en: 'Product size', name_he: 'גודל מוצר' },
     '10094': { name_en: 'Preference for competitors', name_he: 'עדיפות למתחרים' },
@@ -372,6 +373,18 @@
   function resolveStatus(c) {
     c = c || {};
     var isEn = typeof window.getCurrentLanguage === 'function' && window.getCurrentLanguage() === 'en';
+
+    var isLeadContext = false;
+    try {
+      var mountEl = liveMountEl();
+      isLeadContext = (mountEl && mountEl.getAttribute('data-kind') === 'lead') ||
+        String(c.folder_id) === '1' ||
+        String(c.folder) === '1' ||
+        location.pathname.indexOf('lead') !== -1 ||
+        location.href.indexOf('lead') !== -1 ||
+        document.body.getAttribute('data-active-tab') === 'leads';
+    } catch (eCtx) {}
+
     var rawStatus = stripHtmlText(c.status);
     var named = stripHtmlText(
       c.sub_list_data_name ||
@@ -381,6 +394,11 @@
       c.status_text ||
       ''
     );
+
+    if (isLeadContext) {
+      if (/^(paid|שולם)$/i.test(named)) named = '';
+      if (/^(1399|paid|שולם)$/i.test(rawStatus)) rawStatus = '';
+    }
 
     if (named && !/^\d+$/.test(named)) {
       var byNamed = statusMapByName[named.toLowerCase()];
@@ -400,10 +418,11 @@
       };
     }
 
-    var idCand = [rawStatus, c.sub_list_data, c.status_id, c.internal_status_id];
+    var idCand = isLeadContext ? [c.sub_list_data, c.status_id, c.internal_status_id, rawStatus] : [rawStatus, c.sub_list_data, c.status_id, c.internal_status_id];
     for (var i = 0; i < idCand.length; i++) {
       var sid = idCand[i] == null ? '' : String(idCand[i]).trim();
       if (!sid || !/^\d+$/.test(sid)) continue;
+      if (isLeadContext && sid === '1399') continue;
       if (statusMapById[sid]) {
         return {
           label: localizeCustomerStatus(statusMapById[sid].name),
@@ -421,15 +440,6 @@
         };
       }
     }
-
-    var isLeadContext = false;
-    try {
-      var mountEl = liveMountEl();
-      isLeadContext = (mountEl && mountEl.getAttribute('data-kind') === 'lead') ||
-        location.pathname.indexOf('lead') !== -1 ||
-        location.href.indexOf('lead') !== -1 ||
-        document.body.getAttribute('data-active-tab') === 'leads';
-    } catch (eCtx) {}
 
     if (isLeadContext) {
       return {
